@@ -1,8 +1,8 @@
 using System;
 using System.IO;
 using System.Reflection;
-using Coflnet.Sky.Base.Models;
-using Coflnet.Sky.Base.Services;
+using Coflnet.Sky.ModCommands.Models;
+using Coflnet.Sky.ModCommands.Services;
 using hypixel;
 using Jaeger.Samplers;
 using Jaeger.Senders;
@@ -19,7 +19,7 @@ using OpenTracing;
 using OpenTracing.Util;
 using Prometheus;
 
-namespace Coflnet.Sky.Base
+namespace Coflnet.Sky.ModCommands
 {
     public class Startup
     {
@@ -36,7 +36,7 @@ namespace Coflnet.Sky.Base
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "SkyBase", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "SkyModCommands", Version = "v1" });
                 // Set the comments path for the Swagger JSON and UI.
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -58,7 +58,7 @@ namespace Coflnet.Sky.Base
             );
             services.AddHostedService<BaseBackgroundService>();
             services.AddJaeger();
-            services.AddTransient<BaseService>();
+            services.AddTransient<ModService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -71,7 +71,7 @@ namespace Coflnet.Sky.Base
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "SkyBase v1");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "SkyModCommands v1");
                 c.RoutePrefix = "api";
             });
 

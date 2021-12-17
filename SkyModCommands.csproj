@@ -2,16 +2,30 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <NoWarn>1591</NoWarn>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../dev/hypixel.csproj" />
+    <ProjectReference Include="../SkyFilter/SkyFilter.csproj" />
+    <ProjectReference Include="../SkyBackendForFrontend/SkyBackendForFrontend.csproj" />
+    <ProjectReference Include="../websocket-sharp/websocket-sharp/websocket-sharp.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <DefaultItemExcludes>$(DefaultItemExcludes);Client\**\*</DefaultItemExcludes>
   </PropertyGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <Compile Remove="**\*.Tests.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
+    <PackageReference Include="nunit" Version="3.13.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="Confluent.Kafka" Version="1.7.0" />

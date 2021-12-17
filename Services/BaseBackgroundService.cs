@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Coflnet.Sky.Base.Models;
+using Coflnet.Sky.ModCommands.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -8,9 +8,9 @@ using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 using System;
 using Microsoft.Extensions.Logging;
-using Coflnet.Sky.Base.Controllers;
+using Coflnet.Sky.ModCommands.Controllers;
 
-namespace Coflnet.Sky.Base.Services
+namespace Coflnet.Sky.ModCommands.Services
 {
 
     public class BaseBackgroundService : BackgroundService
@@ -33,28 +33,12 @@ namespace Coflnet.Sky.Base.Services
         /// <returns></returns>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            using var scope = scopeFactory.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<BaseDbContext>();
-            // make sure all migrations are applied
-            await context.Database.MigrateAsync();
-
-            var flipCons = Coflnet.Kafka.KafkaConsumer.Consume<LowPricedAuction>(config["KAFKA_HOST"], config["TOPICS:LOW_PRICED"], async lp =>
-            {
-                var service = GetService();
-                await service.AddFlip(new Flip()
-                {
-                    AuctionId = lp.UId,
-                    FinderType = lp.Finder,
-                    TargetPrice = lp.TargetPrice,
-                });
-            }, stoppingToken, "flipbase");
-
-            await Task.WhenAll(flipCons);
+            return;
         }
 
-        private BaseService GetService()
+        private ModService GetService()
         {
-            return scopeFactory.CreateScope().ServiceProvider.GetRequiredService<BaseService>();
+            return scopeFactory.CreateScope().ServiceProvider.GetRequiredService<ModService>();
         }
     }
 }

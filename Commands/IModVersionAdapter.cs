@@ -1,0 +1,12 @@
+using System.Threading.Tasks;
+using hypixel;
+
+namespace Coflnet.Sky.Commands.MC
+{
+    public interface IModVersionAdapter
+    {
+        Task<bool> SendFlip(FlipInstance flip);
+        void SendSound(string name, float pitch = 1);
+        void SendMessage(params ChatPart[] parts);
+    }
+}
