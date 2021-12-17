@@ -29,7 +29,7 @@ namespace Coflnet.Sky.ModCommands.Controllers
         /// Indicates status of service, should be 200 (OK)
         /// </summary>
         /// <returns></returns>
-        [HttpPost]
+        [HttpGet]
         [Route("/status")]
         public async Task TrackFlip()
         {
