@@ -521,8 +521,9 @@ namespace Coflnet.Sky.Commands.MC
 
             var builder = new StringBuilder(80);
 
-            builder.Append($"\n{(flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ? "SNIPE" : "FLIP")}: {GetRarityColor(a.Tier)}{a.ItemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} "
-                + $"(+{FormatPrice(profit)}{textAfterProfit}) §g");
+            builder.Append($"\n{(flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ? "SNIPE" : "FLIP")}: {GetRarityColor(a.Tier)}{a.ItemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
+            if((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
+                builder.Append($"(+{FormatPrice(profit)}{textAfterProfit}) ");
             /*   tmp deactivated  if (Settings.Visibility?.MedianPrice ?? false)
                      builder.Append(McColorCodes.GRAY + " Med: " + McColorCodes.AQUA + FormatPrice(flip.MedianPrice));
                  if (Settings.Visibility?.LowestBin ?? false)
