@@ -43,7 +43,7 @@ namespace Coflnet.Sky.Commands.MC
 
             SendMessage(parts.ToArray());
  
-            if (socket.Settings.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000)
+            if (socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000)
                 SendSound("note.pling", (float)(1 / (Math.Sqrt((float)flip.Profit / 1_000_000) + 1)));
             return true;
         }
