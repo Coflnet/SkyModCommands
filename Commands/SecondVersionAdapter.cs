@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
             
             var uuid = flip.Auction.Uuid;
             var seller = "";
-            if (socket.Settings.Visibility.Seller)
+            if (socket.Settings?.Visibility?.Seller ?? false)
                 seller = await PlayerSearch.Instance.GetNameWithCacheAsync(flip.Auction.AuctioneerId);
 
             var parts = new List<ChatPart>(){
