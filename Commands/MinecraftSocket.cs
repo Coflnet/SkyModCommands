@@ -227,7 +227,7 @@ namespace Coflnet.Sky.Commands.MC
         private async Task SendAuthorizedHello(SettingsChange cachedSettings)
         {
             var player = await PlayerService.Instance.GetPlayer(this.McId);
-            var mcName = this.McId.Length == 32 ? player?.Name : this.McId;
+            var mcName = this.McId?.Length == 32 ? player?.Name : this.McId;
             McUuid = player.UuId;
             var user = UserService.Instance.GetUserById(cachedSettings.UserId);
             var length = user.Email.Length < 10 ? 3 : 6;
@@ -447,6 +447,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var isMatch = (false, "");
                 var flipInstance = FlipperService.LowPriceToFlip(flip);
+                await FlipperService.FillVisibilityProbs(flipInstance,this.Settings);
                 try
                 {
                     isMatch = Settings.MatchesSettings(flipInstance);
@@ -524,10 +525,10 @@ namespace Coflnet.Sky.Commands.MC
             builder.Append($"\n{(flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ? "SNIPE" : "FLIP")}: {GetRarityColor(a.Tier)}{a.ItemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
             if((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
                 builder.Append($"(+{FormatPrice(profit)}{textAfterProfit}) ");
-            /*   tmp deactivated  if (Settings.Visibility?.MedianPrice ?? false)
-                     builder.Append(McColorCodes.GRAY + " Med: " + McColorCodes.AQUA + FormatPrice(flip.MedianPrice));
-                 if (Settings.Visibility?.LowestBin ?? false)
-                     builder.Append(McColorCodes.GRAY + " LBin: " + McColorCodes.AQUA + FormatPrice(flip.LowestBin ?? 0)); */
+            if (Settings.Visibility?.MedianPrice ?? false)
+                builder.Append(McColorCodes.GRAY + " Med: " + McColorCodes.AQUA + FormatPrice(flip.MedianPrice));
+            if (Settings.Visibility?.LowestBin ?? false)
+                builder.Append(McColorCodes.GRAY + " LBin: " + McColorCodes.AQUA + FormatPrice(flip.LowestBin ?? 0));
             if (Settings.Visibility?.Volume ?? false)
                 builder.Append(McColorCodes.GRAY + " Vol: " + McColorCodes.AQUA + flip.Volume.ToString("0.#"));
             return builder.ToString();
