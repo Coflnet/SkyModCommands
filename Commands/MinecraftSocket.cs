@@ -13,6 +13,7 @@ using Jaeger.Samplers;
 using Newtonsoft.Json;
 using WebSocketSharp;
 using WebSocketSharp.Server;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -222,6 +223,12 @@ namespace Coflnet.Sky.Commands.MC
         private string GetAuthLink(string stringId)
         {
             return $"https://sky.coflnet.com/authmod?mcid={McId}&conId={HttpUtility.UrlEncode(stringId)}";
+        }
+
+        public async Task<string> GetPlayerName(string uuid)
+        {
+            return (await Shared.DiHandler.ServiceProvider.GetRequiredService<PlayerName.Client.Api.PlayerNameApi>()
+                    .PlayerNameNameUuidGetAsync(uuid)).Trim('"');
         }
 
         private async Task SendAuthorizedHello(SettingsChange cachedSettings)
@@ -440,7 +447,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (!flip.Auction.Bin) // no nonbin 
                     return true;
 
-                if (flip.AdditionalProps.ContainsKey("sold"))
+                if (flip.AdditionalProps?.ContainsKey("sold") ?? false)
                 {
                     BlockedFlip(flip, "sold");
                     return true;
@@ -474,6 +481,13 @@ namespace Coflnet.Sky.Commands.MC
                 var settings = Settings;
                 await FlipperService.FillVisibilityProbs(flipInstance, settings);
 
+
+
+                if (base.ConnectionState != WebSocketState.Open)
+                {
+                    RemoveMySelf();
+                    return false;
+                }
                 await ModAdapter.SendFlip(flipInstance);
 
                 span.Span.Log("sent");

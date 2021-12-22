@@ -6,7 +6,7 @@ using Coflnet.Sky.ModCommands.Services;
 using hypixel;
 using Jaeger.Samplers;
 using Jaeger.Senders;
-using Jaeger.Senders.Thrift;
+using Coflnet.Sky.Commands.Shared;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +59,7 @@ namespace Coflnet.Sky.ModCommands
             services.AddHostedService<BaseBackgroundService>();
             services.AddJaeger();
             services.AddTransient<ModService>();
+            services.AddCoflService();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

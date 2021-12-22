@@ -22,7 +22,7 @@ namespace Coflnet.Sky.Commands.MC
 
             string seller = null;
             if (socket.Settings.Visibility.Seller)
-                seller = await PlayerSearch.Instance.GetNameWithCacheAsync(flip.Auction.AuctioneerId);
+                seller = await socket.GetPlayerName(flip.Auction.AuctioneerId);
             socket.Send(Response.Create("flip", new
             {
                 messages = new ChatPart[]{

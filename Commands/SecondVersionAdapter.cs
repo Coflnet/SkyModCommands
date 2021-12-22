@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using hypixel;
 using System.Threading.Tasks;
+using Coflnet.Sky;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -23,9 +25,9 @@ namespace Coflnet.Sky.Commands.MC
             var extraText = "\n" + String.Join(McColorCodes.DARK_GRAY + ", " + McColorCodes.WHITE, interesting.Take(socket.Settings.Visibility?.ExtraInfoMax ?? 0));
             
             var uuid = flip.Auction.Uuid;
-            var seller = "";
-            if (socket.Settings?.Visibility?.Seller ?? false)
-                seller = await PlayerSearch.Instance.GetNameWithCacheAsync(flip.Auction.AuctioneerId);
+            var seller = flip.SellerName;
+            if (string.IsNullOrEmpty(seller) && (socket.Settings?.Visibility?.Seller ?? false))
+                seller = await socket.GetPlayerName(flip.Auction.AuctioneerId);
 
             var parts = new List<ChatPart>(){
                 new ChatPart(message, openCommand, string.Join('\n', interesting.Select(s => "・" + s)) + "\n" + seller),
