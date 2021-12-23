@@ -328,7 +328,7 @@ namespace Coflnet.Sky.Commands.MC
                 catch (Exception ex)
                 {
                     var id = Error(ex, "mod command");
-                    SendMessage(COFLNET + $"An error occured why processing your command. The error was recorded and will be investigated soon. You can reffer to it by {id}", "http://" + id, "click to open the id as link (and be able to copy)");
+                    SendMessage(COFLNET + $"An error occured while processing your command. The error was recorded and will be investigated soon. You can refer to it by {id}", "http://" + id, "click to open the id as link (and be able to copy)");
                 }
                 finally
                 {
