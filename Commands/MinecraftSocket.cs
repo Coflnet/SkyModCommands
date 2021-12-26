@@ -228,7 +228,7 @@ namespace Coflnet.Sky.Commands.MC
         public async Task<string> GetPlayerName(string uuid)
         {
             return (await Shared.DiHandler.ServiceProvider.GetRequiredService<PlayerName.Client.Api.PlayerNameApi>()
-                    .PlayerNameNameUuidGetAsync(uuid)).Trim('"');
+                    .PlayerNameNameUuidGetAsync(uuid))?.Trim('"');
         }
 
         private async Task SendAuthorizedHello(SettingsChange cachedSettings)
@@ -437,13 +437,7 @@ namespace Coflnet.Sky.Commands.MC
                 // pre check already sent flips
                 if (SentFlips.ContainsKey(flip.UId))
                     return true; // don't double send
-                if (Settings.AllowedFinders != LowPricedAuction.FinderType.UNKOWN && flip.Finder != LowPricedAuction.FinderType.UNKOWN
-                        && !Settings.AllowedFinders.HasFlag(flip.Finder)
-                        && (int)flip.Finder != 3)
-                {
-                    BlockedFlip(flip, "finder " + flip.Finder.ToString());
-                    return true;
-                }
+
                 if (!flip.Auction.Bin) // no nonbin 
                     return true;
 

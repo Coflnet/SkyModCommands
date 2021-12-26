@@ -47,7 +47,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             await Task.Delay(3000);
             var based = await hypixel.CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
-            span.Span.Log(string.Join('\n', based.Select(b => $"{b.ItemName} {b.highestBid} {b.uuid}")));
+            span.Span.Log(string.Join('\n', based?.Select(b => $"{b.ItemName} {b.highestBid} {b.uuid}")));
         }
 
         private static void Blacklist(MinecraftSocket socket, LowPricedAuction bad)
