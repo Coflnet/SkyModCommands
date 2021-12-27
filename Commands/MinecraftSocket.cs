@@ -262,7 +262,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (blockedFlipFilterCount > 0)
                 {
-                    SendMessage(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute");//, "/cofl blocked", "click to list the best 5 of the last min");
+                    SendMessage(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute", null, $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips");
                 }
                 else
                 {
@@ -448,7 +448,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var isMatch = (false, "");
                 var flipInstance = FlipperService.LowPriceToFlip(flip);
-                await FlipperService.FillVisibilityProbs(flipInstance,this.Settings);
+                await FlipperService.FillVisibilityProbs(flipInstance, this.Settings);
                 try
                 {
                     isMatch = Settings.MatchesSettings(flipInstance);
@@ -531,7 +531,7 @@ namespace Coflnet.Sky.Commands.MC
             var builder = new StringBuilder(80);
 
             builder.Append($"\n{(flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ? "SNIPE" : "FLIP")}: {GetRarityColor(a.Tier)}{a.ItemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
-            if((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
+            if ((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
                 builder.Append($"(+{FormatPrice(profit)}{textAfterProfit}) ");
             if (Settings.Visibility?.MedianPrice ?? false)
                 builder.Append(McColorCodes.GRAY + " Med: " + McColorCodes.AQUA + FormatPrice(flip.MedianPrice));
@@ -725,12 +725,19 @@ namespace Coflnet.Sky.Commands.MC
                 NextUpdateStart -= SendTimer;
                 return;
             }
+            if(Settings.ModSettings.BlockTenSecondsMsg)
+            {
+                Send(Response.Create("ping", 0));
+                return;
+            }
             SendMessage(
                 COFLNET + "Flips in 10 seconds",
                 null,
                 "The Hypixel API will update in 10 seconds. Get ready to receive the latest flips. "
                 + "(this is an automated message being sent 50 seconds after the last update)");
             TopBlocked.Clear();
+            if (Settings.ModSettings.PlaySoundOnFlip)
+                SendSound("note.hat", 1);
         }
 
         private string FindWhatsNew(FlipSettings current, FlipSettings newSettings)
