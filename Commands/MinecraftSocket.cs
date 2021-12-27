@@ -27,9 +27,9 @@ namespace Coflnet.Sky.Commands.MC
 
         protected string sessionId = "";
 
-        public FlipSettings Settings => LastSettingsChange.Settings;
-        public int UserId => LastSettingsChange.UserId;
-        private SettingsChange LastSettingsChange { get; set; } = new SettingsChange() { Settings = DEFAULT_SETTINGS };
+        public FlipSettings Settings => LatestSettings.Settings;
+        public int UserId => LatestSettings.UserId;
+        public SettingsChange LatestSettings { get; set; } = new SettingsChange() { Settings = DEFAULT_SETTINGS };
 
         public string Version { get; private set; }
         public OpenTracing.ITracer tracer = new Jaeger.Tracer.Builder("sky-commands-mod").WithSampler(new ConstSampler(true)).Build();
@@ -151,7 +151,7 @@ namespace Coflnet.Sky.Commands.MC
 
 
             if (Settings == null)
-                LastSettingsChange.Settings = DEFAULT_SETTINGS;
+                LatestSettings.Settings = DEFAULT_SETTINGS;
             FlipperService.Instance.AddNonConnection(this, false);
             System.Threading.Tasks.Task.Run(async () =>
             {
@@ -172,11 +172,11 @@ namespace Coflnet.Sky.Commands.MC
                 try
                 {
                     MigrateSettings(cachedSettings);
-                    this.LastSettingsChange = cachedSettings;
+                    this.LatestSettings = cachedSettings;
                     UpdateConnectionTier(cachedSettings);
                     await SendAuthorizedHello(cachedSettings);
                     // set them again
-                    this.LastSettingsChange = cachedSettings;
+                    this.LatestSettings = cachedSettings;
                     SendMessage(COFLNET + $"§fFound and loaded settings for your connection\n"
                         + $"{McColorCodes.GRAY} MinProfit: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfit)}  "
                         + $"{McColorCodes.GRAY} MaxCost: {McColorCodes.AQUA}{FormatPrice(Settings.MaxCost)}"
@@ -268,7 +268,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     Send(Response.Create("ping", 0));
 
-                    UpdateConnectionTier(LastSettingsChange);
+                    UpdateConnectionTier(LatestSettings);
                 }
             }
             catch (Exception e)
@@ -628,7 +628,7 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage($"setting changed " + changed);
                 span.Span.Log(changed);
             }
-            LastSettingsChange = settings;
+            LatestSettings = settings;
             UpdateConnectionTier(settings);
 
             CacheService.Instance.SaveInRedis(this.Id.ToString(), settings, TimeSpan.FromDays(3));
@@ -637,7 +637,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public Task UpdateSettings(Func<SettingsChange, SettingsChange> updatingFunc)
         {
-            var newSettings = updatingFunc(this.LastSettingsChange);
+            var newSettings = updatingFunc(this.LatestSettings);
             return FlipperService.Instance.UpdateSettings(newSettings);
         }
 
