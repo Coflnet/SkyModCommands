@@ -25,11 +25,9 @@ namespace Coflnet.Sky.Commands.MC
                 if(bad != null)
                 Blacklist(socket, bad);
                 socket.SendMessage(new ChatPart(COFLNET + "Thanks for your feedback, Please help us better understand why this flip is bad\n", null, "you can also send free text with /cofl report"),
-                    new ChatPart(" * Its overpriced\n", "/cofl report overpriced "),
-                    new ChatPart(" * This item sells slowly\n", "/cofl report slow sell"),
-                    new ChatPart(" * I blacklisted this before\n", "/cofl report blacklist broken"),
-                    new ChatPart(" * This item is manipulated\n", "/cofl report manipulated item"),
-                    new ChatPart(" * Reference auctions are wrong \n", "/cofl report reference auctions are wrong ", "please send /cofl report with further information"));
+                    new ChatPart(" * This flip is overpriced\n", "/cofl dialog overpriced ", "overpriced/bad flip"),
+                    new ChatPart(" * This item sells slowly\n", "/cofl dialog slowsell"),
+                    new ChatPart(" * I blacklisted this before\n", "/cofl report blacklist broken"));
                 await FlipTrackingService.Instance.DownVote(uuid, socket.McUuid);
             }
             else if (rating == "up")

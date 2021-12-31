@@ -308,9 +308,12 @@ namespace Coflnet.Sky.Commands.MC
             if (sessionId.StartsWith("debug"))
                 SendMessage("executed " + a.data, "");
 
-            // block click commands for now
+            // tokenlogin is the legacy version of clicked
             if (a.type == "tokenLogin" || a.type == "clicked")
+            {
+                Task.Run(async () => await FlipTrackingService.Instance.ClickFlip(a.data.Replace("/viewauction ",""),McUuid));
                 return;
+            }
 
             if (!Commands.TryGetValue(a.type.ToLower(), out McCommand command))
             {
