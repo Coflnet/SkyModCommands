@@ -313,7 +313,8 @@ namespace Coflnet.Sky.Commands.MC
             // tokenlogin is the legacy version of clicked
             if (a.type == "tokenLogin" || a.type == "clicked")
             {
-                Task.Run(async () => await FlipTrackingService.Instance.ClickFlip(a.data.Replace("/viewauction ",""),McUuid));
+                if (a.data.StartsWith("/viewauction "))
+                    Task.Run(async () => await FlipTrackingService.Instance.ClickFlip(a.data.Trim('"').Replace("/viewauction ", ""), McUuid));
                 return;
             }
 
@@ -731,7 +732,7 @@ namespace Coflnet.Sky.Commands.MC
                 NextUpdateStart -= SendTimer;
                 return;
             }
-            if(Settings.ModSettings.BlockTenSecondsMsg)
+            if (Settings.ModSettings.BlockTenSecondsMsg)
             {
                 Send(Response.Create("ping", 0));
                 return;
