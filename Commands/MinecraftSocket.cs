@@ -76,6 +76,8 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<ExperimentalCommand>();
             Commands.Add<RateCommand>();
             Commands.Add<NormalCommand>();
+            Commands.Add<DialogCommand>();
+            Commands.Add<ProfitCommand>();
 
             Task.Run(async () =>
             {
@@ -634,7 +636,8 @@ namespace Coflnet.Sky.Commands.MC
             LatestSettings = settings;
             UpdateConnectionTier(settings);
 
-            CacheService.Instance.SaveInRedis(this.Id.ToString(), settings, TimeSpan.FromDays(3));
+            CacheService.Instance.SaveInRedis(this.Id.ToString(), settings, TimeSpan.FromDays(3))
+            .Wait(); // this call is synchronised because redis is set to fire and forget (returns instantly)
             span.Span.Log(JSON.Stringify(settings));
         }
 

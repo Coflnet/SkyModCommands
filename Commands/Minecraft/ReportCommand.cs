@@ -29,7 +29,7 @@ namespace Coflnet.Sky.Commands.MC
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.TopBlocked?.Take(10)));
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.Settings));
 
-            socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + spanId, spanId);
+            socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + spanId);
             return Task.CompletedTask;
         }
     }

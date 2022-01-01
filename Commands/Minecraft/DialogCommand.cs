@@ -8,11 +8,13 @@ namespace Coflnet.Sky.Commands.MC
         private static DialogService DialogService = new DialogService();
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
-            var response = DialogService.GetResponse(arguments);
+            var response = DialogService.GetResponse(arguments.Trim('"'));
             socket.SendMessage(response);
 
             return Task.CompletedTask;
         }
 
     }
+
+    
 }

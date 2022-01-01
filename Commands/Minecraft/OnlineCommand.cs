@@ -4,10 +4,11 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class OnlineCommand : McCommand
     {
-        public override Task Execute(MinecraftSocket socket, string arguments)
+        public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            socket.SendMessage(COFLNET + $"There are {hypixel.FlipperService.Instance.PremiumUserCount} users connected to this server");
-            return Task.CompletedTask;
+            var count = await Commands.FlipTrackingService.Instance.ActiveFlipperCount();
+            socket.SendMessage(COFLNET + $"There are {hypixel.FlipperService.Instance.PremiumUserCount} users connected to this server\n"
+                            + $"{McColorCodes.AQUA}{count}{McColorCodes.GRAY} players clicked on a flip in the last 3 minutes.");
         }
     }
 }
