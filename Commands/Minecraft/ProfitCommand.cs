@@ -37,7 +37,7 @@ namespace Coflnet.Sky.Commands.MC
             if (other > 0)
                 hover += $"\n {FormatPrice(socket, other)} from other finders";
             if (tfm > 0 || stonks > 0)
-                hover += $"\n {FormatPrice(socket, other)} from the {COFLNET} mod";
+                hover += $"\n {FormatPrice(socket, coflnet)} from the {COFLNET} mod";
             socket.SendMessage(COFLNET + $"According to our data you made {McColorCodes.AQUA}{socket.FormatPrice(response.TotalProfit)}{McColorCodes.GRAY} "
                 + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days accross {McColorCodes.AQUA}{response.Flips.Length}{McColorCodes.GRAY} auctions",
                 null,hover);
