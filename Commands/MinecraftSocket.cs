@@ -313,7 +313,7 @@ namespace Coflnet.Sky.Commands.MC
             // tokenlogin is the legacy version of clicked
             if (a.type == "tokenLogin" || a.type == "clicked")
             {
-                if (a.data.StartsWith("/viewauction "))
+                if (a.data.Contains("/viewauction "))
                     Task.Run(async () => await FlipTrackingService.Instance.ClickFlip(a.data.Trim('"').Replace("/viewauction ", ""), McUuid));
                 return;
             }
