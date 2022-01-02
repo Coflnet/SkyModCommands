@@ -452,8 +452,12 @@ namespace Coflnet.Sky.Commands.MC
                     BlockedFlip(flip, "sold");
                     return true;
                 }
-                var isMatch = (false, "");
                 var flipInstance = FlipperService.LowPriceToFlip(flip);
+                // fast match before fill
+                Settings.GetPrice(flipInstance, out _,out long profit);
+                if (!Settings.BasedOnLBin &&  Settings.MinProfit > profit)
+                    return BlockedFlip(flip, "MinProfit");
+                var isMatch = (false, "");
                 await FlipperService.FillVisibilityProbs(flipInstance, this.Settings);
                 try
                 {
@@ -517,7 +521,7 @@ namespace Coflnet.Sky.Commands.MC
             return true;
         }
 
-        private void BlockedFlip(LowPricedAuction flip, string reason)
+        private bool BlockedFlip(LowPricedAuction flip, string reason)
         {
 
             TopBlocked.Enqueue(new BlockedElement()
@@ -525,6 +529,7 @@ namespace Coflnet.Sky.Commands.MC
                 Flip = flip,
                 Reason = reason
             });
+            return true;
         }
 
         public string GetFlipMsg(FlipInstance flip)
