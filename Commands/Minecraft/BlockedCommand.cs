@@ -18,7 +18,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     socket.Settings.GetPrice(hypixel.FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
                     return new ChatPart(
-                        $"{b.Flip.Auction.ItemName} (+{socket.FormatPrice(profit)}) got blocked because {b.Reason.Replace("SNIPER", "experimental flip finder")}\n",
+                        $"{socket.GetRarityColor(b.Flip.Auction.Tier)}{b.Flip.Auction.ItemName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} blocked because {McColorCodes.WHITE}{b.Reason}\n",
                         "https://sky.coflnet.com/auction/" + b.Flip.Auction.Uuid,
                         "Click to open");
                 }).Append(new ChatPart() { text = COFLNET + "These are random examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray()
