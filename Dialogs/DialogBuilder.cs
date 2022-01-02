@@ -54,7 +54,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
         /// <returns></returns>
         public DialogBuilder DialogLink<TDialog>(string message, string context, string hover = null) where TDialog : Dialog
         {
-            var dialogName = ClassNameDictonary<TDialog>.GetCleardName<TDialog>();// typeof(TDialog).Name.Replace(typeof(Dialog).Name,"");
+            var dialogName = ClassNameDictonary<Dialog>.GetCleardName<TDialog>();// typeof(TDialog).Name.Replace(typeof(Dialog).Name,"");
             return CoflCommand<DialogCommand>(message, $"{dialogName} {context}", hover);
         }
 

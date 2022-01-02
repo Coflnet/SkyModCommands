@@ -19,9 +19,9 @@ namespace Coflnet.Sky.ModCommands.Services
         }
         public ChatPart[] GetResponse(string context)
         {
-            var commandName = context.Split(' ').First();
+            var commandName = context.Split(' ').Where(s=>!string.IsNullOrEmpty(s)).First();
             if(!Dialogs.TryGetValue(commandName.ToLower(),out Dialog instance))
-                return new ChatPart[]{new ChatPart("could not find a response to that, sorry\n if you need help please raise a bug report on the discord")};
+                return new ChatPart[]{new ChatPart($"could not find a response {commandName}, sorry\n if you need help please raise a bug report on the discord")};
             return instance.GetResponse(context.Replace(commandName,"").Trim());
         }
     }
