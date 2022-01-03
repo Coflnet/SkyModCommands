@@ -236,7 +236,7 @@ namespace Coflnet.Sky.Commands.MC
         private async Task SendAuthorizedHello(SettingsChange cachedSettings)
         {
             var player = await PlayerService.Instance.GetPlayer(this.McId);
-            var mcName = this.McId?.Length == 32 ? player?.Name : this.McId;
+            var mcName = player?.Name;
             McUuid = player.UuId;
             var user = UserService.Instance.GetUserById(cachedSettings.UserId);
             var length = user.Email.Length < 10 ? 3 : 6;

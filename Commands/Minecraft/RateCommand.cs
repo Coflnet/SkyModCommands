@@ -25,6 +25,7 @@ namespace Coflnet.Sky.Commands.MC
                 if(bad != null)
                 Blacklist(socket, bad);
                 socket.SendMessage(new ChatPart(COFLNET + "Thanks for your feedback, Please help us better understand why this flip is bad\n", null, "you can also send free text with /cofl report"),
+                    new ChatPart(" * it isn't I mis-clicked \n", "/cofl dialog echo okay, have a nice day "),
                     new ChatPart(" * This flip is overpriced\n", "/cofl dialog overpriced ", "overpriced/bad flip"),
                     new ChatPart(" * This item sells slowly\n", "/cofl dialog slowsell"),
                     new ChatPart(" * I blacklisted this before\n", "/cofl report blacklist broken"));
@@ -33,7 +34,7 @@ namespace Coflnet.Sky.Commands.MC
             else if (rating == "up")
             {
                 socket.SendMessage(new ChatPart(COFLNET + "Thanks for your feedback, Please help us better understand why this flip is good\n"),
-                                    new ChatPart(" * it isn't I mis-clicked \n", "/cofl report misclicked "),
+                                    new ChatPart(" * it isn't I mis-clicked \n", "/cofl dialog echo okay, have a nice day "),
                                     new ChatPart(" * This item sells fast\n", "/cofl report fast sell"),
                                     new ChatPart(" * High profit\n", "/cofl report high profit"),
                                     new ChatPart(" * Something else \n", null, "please send /cofl report with further information"));

@@ -26,12 +26,15 @@ namespace Coflnet.Sky.Commands.MC
             }
             socket.ModAdapter.SendMessage(new ChatPart("Caclulating references", "https://sky.coflnet.com/auction/" + uuid, "please give it a second"));
             var based = await CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
-            socket.ModAdapter.SendMessage(based
-                .Select(b => new ChatPart(
-                    $"\n-> {b.ItemName} for {McColorCodes.AQUA}{socket.FormatPrice(b.highestBid)}{McColorCodes.GRAY} {b.end}",
-                    "https://sky.coflnet.com/auction/" + b.uuid,
-                    "Click to open this auction"))
-                .ToArray());
+            if (based == null)
+                socket.ModAdapter.SendMessage(new ChatPart("Woops, sorry but there could be no references found or another error occured :("));
+            else
+                socket.ModAdapter.SendMessage(based
+                    .Select(b => new ChatPart(
+                        $"\n-> {b.ItemName} for {McColorCodes.AQUA}{socket.FormatPrice(b.highestBid)}{McColorCodes.GRAY} {b.end}",
+                        "https://sky.coflnet.com/auction/" + b.uuid,
+                        "Click to open this auction"))
+                    .ToArray());
             await Task.Delay(200);
             socket.ModAdapter.SendMessage(new ChatPart(MinecraftSocket.COFLNET + "click this to open the auction on the website (in case you want to report an error or share it)", "https://sky.coflnet.com/auction/" + uuid, "please give it a second"));
         }
