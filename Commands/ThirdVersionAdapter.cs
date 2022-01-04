@@ -19,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
 
             socket.Send(Response.Create("flip", new
             {
-                messages = GetMessageparts(flip),
+                messages = await GetMessageparts(flip),
                 id = uuid,
                 worth = flip.Profit,
                 cost = flip.Auction.StartingBid,
