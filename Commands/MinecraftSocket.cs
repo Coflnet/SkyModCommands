@@ -75,7 +75,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<BlockedCommand>();
             Commands.Add<ExperimentalCommand>();
             Commands.Add<RateCommand>();
-            Commands.Add<NormalCommand>();
+            Commands.Add<TimeCommand>();
             Commands.Add<DialogCommand>();
             Commands.Add<ProfitCommand>();
 
@@ -454,8 +454,8 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var flipInstance = FlipperService.LowPriceToFlip(flip);
                 // fast match before fill
-                Settings.GetPrice(flipInstance, out _,out long profit);
-                if (!Settings.BasedOnLBin &&  Settings.MinProfit > profit)
+                Settings.GetPrice(flipInstance, out _, out long profit);
+                if (!Settings.BasedOnLBin && Settings.MinProfit > profit)
                     return BlockedFlip(flip, "MinProfit");
                 var isMatch = (false, "");
                 await FlipperService.FillVisibilityProbs(flipInstance, this.Settings);
@@ -493,6 +493,8 @@ namespace Coflnet.Sky.Commands.MC
                     return false;
                 }
                 await ModAdapter.SendFlip(flipInstance);
+                if (flipInstance.Auction.Context != null)
+                    flipInstance.Auction.Context["csend"] = DateTime.Now.ToString();
 
                 span.Span.Log("sent");
                 LastSent.Enqueue(flip);
