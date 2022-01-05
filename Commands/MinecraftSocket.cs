@@ -350,7 +350,7 @@ namespace Coflnet.Sky.Commands.MC
                     var auctionUuid = a.data.Trim('"').Replace("/viewauction ", "");
                     var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
                     if (flip != null && flip.Auction.Context != null)
-                        flipInstance.Auction.Context["clickT"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
+                        flip.Auction.Context["clickT"] = (DateTime.Now - flip.Auction.FindTime).ToString();
                     await FlipTrackingService.Instance.ClickFlip(auctionUuid, McUuid);
 
                 });
