@@ -25,7 +25,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public long Id { get; private set; }
 
-        protected string sessionId = "";
+        public SessionInfo sessionInfo { get; protected set; } = new SessionInfo();
 
         public FlipSettings Settings => LatestSettings.Settings;
         public int UserId => LatestSettings.UserId;
@@ -73,7 +73,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SniperCommand>();
             Commands.Add<ExactCommand>();
             Commands.Add<BlockedCommand>();
-            Commands.Add<ExperimentalCommand>();
+            Commands.Add<ChatCommand>();
             Commands.Add<RateCommand>();
             Commands.Add<TimeCommand>();
             Commands.Add<DialogCommand>();
@@ -132,7 +132,7 @@ namespace Coflnet.Sky.Commands.MC
             if (args["uuid"] == null && args["player"] == null)
                 Send(Response.Create("error", "the connection query string needs to include 'player'"));
             if (args["SId"] != null)
-                sessionId = args["SId"].Truncate(60);
+                sessionInfo.sessionId = args["SId"].Truncate(60);
             if (args["version"] != null)
                 Version = args["version"].Truncate(10);
 
@@ -187,7 +187,7 @@ namespace Coflnet.Sky.Commands.MC
                         + $"{McColorCodes.AQUA}: click this if you want to change a setting \n"
                         + "§8: nothing else to do have a nice day :)",
                         "https://sky.coflnet.com/flipper");
-                    Console.WriteLine($"loaded settings for {this.sessionId} " + JsonConvert.SerializeObject(cachedSettings));
+                    Console.WriteLine($"loaded settings for {this.sessionInfo.sessionId} " + JsonConvert.SerializeObject(cachedSettings));
                     await Task.Delay(500);
                     SendMessage(COFLNET + $"{McColorCodes.DARK_GREEN} click this to relink your account",
                     GetAuthLink(stringId), "You don't need to relink your account. \nThis is only here to allow you to link your mod to the website again should you notice your settings aren't updated");
@@ -282,7 +282,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected (long, string) ComputeConnectionId()
         {
-            var bytes = Encoding.UTF8.GetBytes(McId.ToLower() + sessionId + DateTime.Now.Date.ToString());
+            var bytes = Encoding.UTF8.GetBytes(McId.ToLower() + sessionInfo.sessionId + DateTime.Now.Date.ToString());
             var hash = System.Security.Cryptography.SHA512.Create();
             var hashed = hash.ComputeHash(bytes);
             return (BitConverter.ToInt64(hashed), Convert.ToBase64String(hashed, 0, 16).Replace('+', '-').Replace('/', '_'));
@@ -307,14 +307,13 @@ namespace Coflnet.Sky.Commands.MC
             }
             span.Span.SetTag("type", a.type);
             span.Span.SetTag("content", a.data);
-            if (sessionId.StartsWith("debug"))
+            if (sessionInfo.sessionId.StartsWith("debug"))
                 SendMessage("executed " + a.data, "");
 
             // tokenlogin is the legacy version of clicked
             if (a.type == "tokenLogin" || a.type == "clicked")
             {
-                if (a.data.Contains("/viewauction "))
-                    Task.Run(async () => await FlipTrackingService.Instance.ClickFlip(a.data.Trim('"').Replace("/viewauction ", ""), McUuid));
+                ClickCallback(a);
                 return;
             }
 
@@ -341,6 +340,20 @@ namespace Coflnet.Sky.Commands.MC
                     waiting--;
                 }
             });
+        }
+
+        private void ClickCallback(Response a)
+        {
+            if (a.data.Contains("/viewauction "))
+                Task.Run(async () =>
+                {
+                    var auctionUuid = a.data.Trim('"').Replace("/viewauction ", "");
+                    var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
+                    if (flip != null && flip.Auction.Context != null)
+                        flipInstance.Auction.Context["clickT"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
+                    await FlipTrackingService.Instance.ClickFlip(auctionUuid, McUuid);
+
+                });
         }
 
         protected override void OnClose(CloseEventArgs e)
@@ -377,20 +390,22 @@ namespace Coflnet.Sky.Commands.MC
             return span;
         }
 
-        public void SendMessage(params ChatPart[] parts)
+        public bool SendMessage(params ChatPart[] parts)
         {
             if (ConnectionState != WebSocketState.Open)
             {
                 RemoveMySelf();
-                return;
+                return false;
             }
             try
             {
                 this.ModAdapter.SendMessage(parts);
+                return true;
             }
             catch (Exception e)
             {
                 CloseBecauseError(e);
+                return false;
             }
         }
 
@@ -494,7 +509,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 await ModAdapter.SendFlip(flipInstance);
                 if (flipInstance.Auction.Context != null)
-                    flipInstance.Auction.Context["csend"] = DateTime.Now.ToString();
+                    flipInstance.Auction.Context["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
 
                 span.Span.Log("sent");
                 LastSent.Enqueue(flip);
