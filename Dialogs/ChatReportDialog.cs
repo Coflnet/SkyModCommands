@@ -11,6 +11,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 .Break()
                 .CoflCommand<ReportCommand>(McColorCodes.RED + " YES ", "Chat report for " + context, "Confirm report").Break()
                 .DialogLink<EchoDialog>(McColorCodes.GREEN + " No, I actually don't ", "Okay! have fun chatting :)", "cancle the report").Break()
+                .BlockCommands()
             ;
         }
     }

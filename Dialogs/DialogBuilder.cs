@@ -16,10 +16,21 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             Parts.Add(new ChatPart(message, onClick == null ? CurrentUrl : onClick, hover));
             return this;
         }
+        public DialogBuilder MsgLine(string message, string onClick = null, string hover = null)
+        {
+            Parts.Add(new ChatPart(message + "\n", onClick == null ? CurrentUrl : onClick, hover));
+            return this;
+        }
 
         public DialogBuilder Break()
         {
             Parts.Add(new ChatPart("\n"));
+            return this;
+        }
+
+        public DialogBuilder BlockCommands()
+        {
+            GetLastPart().onClick = null;
             return this;
         }
 

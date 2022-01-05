@@ -15,7 +15,9 @@ namespace Coflnet.Sky.Commands.MC
                 chat.Subscribe(m =>
                 {
                     var color = ((int)m.Tier) > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE;
-                    return socket.SendMessage(new ChatPart($"{CHAT_PREFIX} {color}{m.SenderName}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.SenderName} {m.Message}", "click to report message"));
+                    return socket.SendMessage(
+                        new ChatPart($"{CHAT_PREFIX} {color}{m.SenderName}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.SenderName} {m.Message}", "click to report message"),
+                        new ChatPart("","/cofl void"));
                 });
                 socket.sessionInfo.ListeningToChat = true;
             }

@@ -71,7 +71,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<OnlineCommand>();
             Commands.Add<BlacklistCommand>();
             Commands.Add<SniperCommand>();
-            Commands.Add<ExactCommand>();
+            Commands.Add<VoidCommand>();
             Commands.Add<BlockedCommand>();
             Commands.Add<ChatCommand>();
             Commands.Add<RateCommand>();
