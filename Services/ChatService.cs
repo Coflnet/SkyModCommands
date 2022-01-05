@@ -12,17 +12,26 @@ namespace Coflnet.Sky.ModCommands.Services
         public void Subscribe(Func<ModChatMessage, bool> OnMessage)
         {
             var sub = GetCon().Subscribe("mcChat");
-            
+
             sub.OnMessage((value) =>
             {
                 var message = JsonConvert.DeserializeObject<ModChatMessage>(value.Message);
-                if(!OnMessage(message))
+                if (!OnMessage(message))
                     sub.Unsubscribe();
             });
         }
         public async Task Send(ModChatMessage message)
         {
-            await GetCon().PublishAsync("mcChat", JsonConvert.SerializeObject(message));
+            for (int i = 0; i < 5; i++)
+                try
+                {
+                    await GetCon().PublishAsync("mcChat", JsonConvert.SerializeObject(message));
+                    return;
+                }
+                catch (RedisTimeoutException e)
+                {
+
+                }
         }
 
         [MessagePackObject]

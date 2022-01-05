@@ -74,6 +74,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<VoidCommand>();
             Commands.Add<BlockedCommand>();
             Commands.Add<ChatCommand>();
+            Commands.Add<CCommand>();
             Commands.Add<RateCommand>();
             Commands.Add<TimeCommand>();
             Commands.Add<DialogCommand>();

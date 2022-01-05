@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Coflnet.Sky.ModCommands.Services;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -10,6 +11,8 @@ namespace Coflnet.Sky.Commands.MC
         public static string CHAT_PREFIX = "[§1C§6hat§f]";
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            var maxMsgLength = 150;
+            var message = JsonConvert.DeserializeObject<string>(arguments);
             if (!socket.sessionInfo.ListeningToChat)
             {
                 chat.Subscribe(m =>
@@ -26,13 +29,23 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "You are writing to fast please slow down");
                 return;
             }
+            if(message.Length > maxMsgLength)
+            {
+                socket.SendMessage(COFLNET + "Please use another chat for long messages", null, $"Messages over {maxMsgLength} characters are blocked");
+                return;
+            }
             await chat.Send(new ChatService.ModChatMessage()
             {
-                Message = arguments.Trim('"'),
+                Message = message,
                 SenderName = socket.McId,
                 Tier = socket.LatestSettings.Tier
             });
         }
+    }
+
+    public class CCommand : ChatCommand
+    {
+
     }
 
 
