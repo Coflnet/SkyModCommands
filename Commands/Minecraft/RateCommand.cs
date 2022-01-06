@@ -36,7 +36,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(new ChatPart(COFLNET + "Thanks for your feedback, Please help us better understand why this flip is good\n"),
                                     new ChatPart(" * it isn't I mis-clicked \n", "/cofl dialog echo okay, have a nice day "),
                                     new ChatPart(" * This item sells fast\n", "/cofl report fast sell"),
-                                    new ChatPart(" * High profit\n", "/cofl report high profit"),
+                                    new ChatPart(" * High profit\n", "/cofl dialog echo Okay, sounds great, have fun with your coins :)"),
                                     new ChatPart(" * Something else \n", null, "please send /cofl report with further information"));
                 await FlipTrackingService.Instance.UpVote(uuid, socket.McUuid);
             }
