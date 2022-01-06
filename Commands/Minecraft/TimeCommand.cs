@@ -10,15 +10,16 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            Dictionary<string, string> context = socket.LastSent.LastOrDefault()?.Auction.Context;
+            var flip =  socket.LastSent.LastOrDefault();
+            Dictionary<string, string> context = flip?.Auction.Context;
             var msg = new DialogBuilder()
                 .MsgLine("These are the relatives times to the api update")
                 .AddTime(context, "FindTime", "fT")
                 .AddTime(context, "Flipper Receive", "frec")
                 .AddTime(context, "Flipper Send", "fsend")
                 .AddTime(context, "Command Receive", "crec")
-                .AddTime(context, "Command Send", "csend")
-                .AddTime(context, "Click ", "clickT")
+                .AddTime(flip.AdditionalProps, "Command Send", "csend")
+                .AddTime(flip.AdditionalProps, "Click ", "clickT")
             ;
             socket.SendMessage(msg.Build());
         }

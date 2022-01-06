@@ -70,7 +70,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<ResetCommand>();
             Commands.Add<OnlineCommand>();
             Commands.Add<BlacklistCommand>();
-            Commands.Add<SniperCommand>();
+            Commands.Add<FastCommand>();
             Commands.Add<VoidCommand>();
             Commands.Add<BlockedCommand>();
             Commands.Add<ChatCommand>();
@@ -474,7 +474,8 @@ namespace Coflnet.Sky.Commands.MC
                 if (!Settings.BasedOnLBin && Settings.MinProfit > profit)
                     return BlockedFlip(flip, "MinProfit");
                 var isMatch = (false, "");
-                await FlipperService.FillVisibilityProbs(flipInstance, this.Settings);
+                if (!Settings.FastMode)
+                    await FlipperService.FillVisibilityProbs(flipInstance, this.Settings);
                 try
                 {
                     isMatch = Settings.MatchesSettings(flipInstance);
@@ -499,9 +500,6 @@ namespace Coflnet.Sky.Commands.MC
                     return true; // make sure flips are not sent twice
                 using var span = tracer.BuildSpan("Flip").WithTag("uuid", flipInstance.Uuid).AsChildOf(ConSpan.Context).StartActive();
                 var settings = Settings;
-                await FlipperService.FillVisibilityProbs(flipInstance, settings);
-
-
 
                 if (base.ConnectionState != WebSocketState.Open)
                 {
@@ -509,27 +507,29 @@ namespace Coflnet.Sky.Commands.MC
                     return false;
                 }
                 await ModAdapter.SendFlip(flipInstance);
-                if (flipInstance.Auction.Context != null)
-                    flipInstance.Auction.Context["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
+                if (flipInstance.Context != null)
+                    flipInstance.Context["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
 
                 span.Span.Log("sent");
                 LastSent.Enqueue(flip);
                 sentFlipsCount.Inc();
 
                 PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
-                await FlipTrackingService.Instance.ReceiveFlip(flip.Auction.Uuid, McUuid);
-                span.Span.Log("after inc");
 
-                // remove dupplicates
-                if (SentFlips.Count > 300)
+                var track = Task.Run(async () =>
                 {
-                    foreach (var item in SentFlips.Where(i => i.Value < DateTime.Now - TimeSpan.FromMinutes(2)).ToList())
+                    await FlipTrackingService.Instance.ReceiveFlip(flip.Auction.Uuid, McUuid);
+                    // remove dupplicates
+                    if (SentFlips.Count > 300)
                     {
-                        SentFlips.TryRemove(item.Key, out DateTime value);
+                        foreach (var item in SentFlips.Where(i => i.Value < DateTime.Now - TimeSpan.FromMinutes(2)).ToList())
+                        {
+                            SentFlips.TryRemove(item.Key, out DateTime value);
+                        }
                     }
-                }
-                if (LastSent.Count > 30)
-                    LastSent.TryDequeue(out _);
+                    if (LastSent.Count > 30)
+                        LastSent.TryDequeue(out _);
+                });
             }
             catch (Exception e)
             {
@@ -743,6 +743,8 @@ namespace Coflnet.Sky.Commands.MC
                 NextUpdateStart -= SendTimer;
                 NextUpdateStart += SendTimer;
             }
+            else if(settings.Tier == AccountTier.PREMIUM_PLUS)
+                FlipperService.Instance.AddConnectionPlus(this,false);
             else
                 FlipperService.Instance.AddNonConnection(this, false);
             this.ConSpan.SetTag("tier", settings.Tier.ToString());
