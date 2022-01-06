@@ -29,14 +29,29 @@ namespace Coflnet.Sky.Commands.MC
             if (based == null)
                 socket.ModAdapter.SendMessage(new ChatPart("Woops, sorry but there could be no references found or another error occured :("));
             else
-                socket.ModAdapter.SendMessage(based
-                    .Select(b => new ChatPart(
-                        $"\n-> {b.ItemName} for {McColorCodes.AQUA}{socket.FormatPrice(b.highestBid)}{McColorCodes.GRAY} {b.end}",
-                        "https://sky.coflnet.com/auction/" + b.uuid,
-                        "Click to open this auction"))
+            {
+                socket.ModAdapter.SendMessage(
+                    based.OrderBy(b => b.highestBid).Skip(based.Count()/2).Take(3)
+                    .Select(ToMessage(socket))
+                    .Append(new ChatPart("The 3 most recent references are"))
+                    .Concat(based.OrderByDescending(b => b.end).Take(3)
+                    .Select(ToMessage(socket)))
+                    .Append(new ChatPart("The 3 most expensive references are"))
+                    .Concat(based.OrderByDescending(b => b.highestBid).Take(3)
+                    .Select(ToMessage(socket)))
                     .ToArray());
+            }
+
             await Task.Delay(200);
             socket.ModAdapter.SendMessage(new ChatPart(MinecraftSocket.COFLNET + "click this to open the auction on the website (in case you want to report an error or share it)", "https://sky.coflnet.com/auction/" + uuid, "please give it a second"));
+        }
+
+        private static Func<BasedOnCommandResponse, ChatPart> ToMessage(MinecraftSocket socket)
+        {
+            return b => new ChatPart(
+                                        $"\n-> {b.ItemName} for {McColorCodes.AQUA}{socket.FormatPrice(b.highestBid)}{McColorCodes.GRAY} {b.end}",
+                                        "https://sky.coflnet.com/auction/" + b.uuid,
+                                        "Click to open this auction");
         }
 
         private async Task SniperReference(MinecraftSocket socket, string uuid, LowPricedAuction flip, string algo)

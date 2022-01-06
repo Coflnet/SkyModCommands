@@ -79,6 +79,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<TimeCommand>();
             Commands.Add<DialogCommand>();
             Commands.Add<ProfitCommand>();
+            Commands.Add<AhOpenCommand>();
 
             Task.Run(async () =>
             {
@@ -351,7 +352,7 @@ namespace Coflnet.Sky.Commands.MC
                     var auctionUuid = a.data.Trim('"').Replace("/viewauction ", "");
                     var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
                     if (flip != null && flip.Auction.Context != null)
-                        flip.Auction.Context["clickT"] = (DateTime.Now - flip.Auction.FindTime).ToString();
+                        flip.AdditionalProps["clickT"] = (DateTime.Now - flip.Auction.FindTime).ToString();
                     await FlipTrackingService.Instance.ClickFlip(auctionUuid, McUuid);
 
                 });
@@ -381,6 +382,16 @@ namespace Coflnet.Sky.Commands.MC
             {
                 CloseBecauseError(e);
             }
+        }
+
+        /// <summary>
+        /// Execute a command on the client
+        /// use with CAUTION
+        /// </summary>
+        /// <param name="command">The command to execute</param>
+        public void ExecuteCommand(string command)
+        {
+            this.Send(Response.Create("execute", command));
         }
 
         private OpenTracing.IScope RemoveMySelf()
