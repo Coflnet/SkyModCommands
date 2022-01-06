@@ -507,8 +507,8 @@ namespace Coflnet.Sky.Commands.MC
                     return false;
                 }
                 await ModAdapter.SendFlip(flipInstance);
-                if (flipInstance.Context != null)
-                    flipInstance.Context["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
+                
+                flip.AdditionalProps["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
 
                 span.Span.Log("sent");
                 LastSent.Enqueue(flip);
