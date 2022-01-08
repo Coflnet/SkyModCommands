@@ -80,6 +80,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<DialogCommand>();
             Commands.Add<ProfitCommand>();
             Commands.Add<AhOpenCommand>();
+            Commands.Add<SetCommand>();
 
             Task.Run(async () =>
             {
@@ -440,6 +441,8 @@ namespace Coflnet.Sky.Commands.MC
         private string Error(Exception exception, string message = null, string additionalLog = null)
         {
             using var error = tracer.BuildSpan("error").WithTag("message", message).WithTag("error", "true").StartActive();
+            if (System.Net.Dns.GetHostName().Contains("ekwav"))
+                Console.WriteLine(exception.Message + "\n" + exception.StackTrace);
             AddExceptionLog(error, exception);
             if (additionalLog != null)
                 error.Span.Log(additionalLog);
@@ -518,7 +521,7 @@ namespace Coflnet.Sky.Commands.MC
                     return false;
                 }
                 await ModAdapter.SendFlip(flipInstance);
-                
+
                 flip.AdditionalProps["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
 
                 span.Span.Log("sent");
@@ -565,12 +568,43 @@ namespace Coflnet.Sky.Commands.MC
         {
             Settings.GetPrice(flip, out long targetPrice, out long profit);
             var priceColor = GetProfitColor((int)profit);
+            var finderType = flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ? "SNIPE" : "FLIP";
             var a = flip.Auction;
+            if (Settings.ModSettings.Format != null)
+            {
+                /*
+                    "\n{0}: {1}{2} {3}{4} -> {5} (+{6} {7}) Med: {8} Lbin: {9} Volume: {10}"
+                    {0} FlipFinder
+                    {1} Item Rarity Color
+                    {2} Item Name
+                    {3} Price color
+                    {4} Starting bid
+                    {5} Target Price
+                    {6} Estimated Profit
+                    {7} Provit percentage
+                    {8} Median Price
+                    {9} Lowest Bin
+                    {10}Volume
+                */
+                return String.Format(Settings.ModSettings.Format,
+                    finderType,
+                    GetRarityColor(a.Tier),
+                    a.ItemName,
+                    priceColor,
+                    FormatPrice(a.StartingBid),
+                    FormatPrice(targetPrice), // this is {5}
+                    FormatPrice(profit),
+                    FormatPrice((profit * 100 / a.StartingBid)),
+                    FormatPrice(flip.MedianPrice),
+                    FormatPrice(flip.LowestBin ?? 0),
+                    flip.Volume  // this is {10}
+                );
+            }
             var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice((profit * 100 / a.StartingBid))}%{priceColor}" : "";
 
             var builder = new StringBuilder(80);
 
-            builder.Append($"\n{(flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ? "SNIPE" : "FLIP")}: {GetRarityColor(a.Tier)}{a.ItemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
+            builder.Append($"\n{finderType}: {GetRarityColor(a.Tier)}{a.ItemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
             if ((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
                 builder.Append($"(+{FormatPrice(profit)}{textAfterProfit}) ");
             if (Settings.Visibility?.MedianPrice ?? false)
@@ -580,6 +614,13 @@ namespace Coflnet.Sky.Commands.MC
             if (Settings.Visibility?.Volume ?? false)
                 builder.Append(McColorCodes.GRAY + " Vol: " + McColorCodes.AQUA + flip.Volume.ToString("0.#"));
             return builder.ToString();
+        }
+
+        public string GetHoverText(FlipInstance flip)
+        {
+            if(Settings.Visibility.Lore)
+                return flip.Auction.Context.GetValueOrDefault("lore");
+            return string.Join('\n', flip.Interesting.Select(s => "・" + s)) + "\n" + flip.SellerName;
         }
 
         public string GetRarityColor(Tier rarity)
@@ -754,8 +795,8 @@ namespace Coflnet.Sky.Commands.MC
                 NextUpdateStart -= SendTimer;
                 NextUpdateStart += SendTimer;
             }
-            else if(settings.Tier == AccountTier.PREMIUM_PLUS)
-                FlipperService.Instance.AddConnectionPlus(this,false);
+            else if (settings.Tier == AccountTier.PREMIUM_PLUS)
+                FlipperService.Instance.AddConnectionPlus(this, false);
             else
                 FlipperService.Instance.AddNonConnection(this, false);
             this.ConSpan.SetTag("tier", settings.Tier.ToString());

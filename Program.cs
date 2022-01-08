@@ -12,7 +12,10 @@ namespace Coflnet.Sky.ModCommands.MC
     {
         public static void Main(string[] args)
         {
-            var server = new HttpServer(8008);
+            if (!int.TryParse(args.Length > 0 ? args[0] : "", out int port))
+                port = 8008;
+            Console.WriteLine(port);
+            var server = new HttpServer(port);
             server.KeepClean = false;
             server.AddWebSocketService<MinecraftSocket>("/modsocket");
             server.Start();

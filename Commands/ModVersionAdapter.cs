@@ -27,7 +27,7 @@ namespace Coflnet.Sky.Commands.MC
                 seller = await socket.GetPlayerName(flip.Auction.AuctioneerId);
 
             var parts = new List<ChatPart>(){
-                new ChatPart(message, openCommand, string.Join('\n', interesting.Select(s => "・" + s)) + "\n" + seller),
+                new ChatPart(message, openCommand, socket.GetHoverText(flip)),
                 new ChatPart(" [?]", "/cofl reference " + uuid, "Get reference auctions"),
                 new ChatPart(" ❤", $"/cofl rate {uuid} {flip.Finder} up", "Vote this flip up"),
                 new ChatPart("✖ ", $"/cofl rate {uuid} {flip.Finder} down", "Vote this flip down"),
