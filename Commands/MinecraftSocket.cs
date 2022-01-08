@@ -809,7 +809,7 @@ namespace Coflnet.Sky.Commands.MC
                 NextUpdateStart -= SendTimer;
                 return;
             }
-            if (Settings?.ModSettings?.BlockTenSecondsMsg)
+            if (Settings?.ModSettings?.BlockTenSecondsMsg ?? false)
             {
                 Send(Response.Create("ping", 0));
                 return;
