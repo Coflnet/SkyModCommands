@@ -171,7 +171,14 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SetupConnectionSettings(string stringId)
         {
-            var cachedSettings = await CacheService.Instance.GetFromRedis<SettingsChange>(this.Id.ToString());
+            SettingsChange cachedSettings = null;
+            for (int i = 0; i < 3; i++)
+            {
+                cachedSettings = await CacheService.Instance.GetFromRedis<SettingsChange>(this.Id.ToString());
+                if(cachedSettings != null)
+                    break;
+            }
+            
             if (cachedSettings != null)
             {
                 try
@@ -706,7 +713,7 @@ namespace Coflnet.Sky.Commands.MC
             else if (!settingsSame)
             {
                 var changed = FindWhatsNew(this.Settings, settings.Settings);
-                SendMessage($"setting changed " + changed);
+                SendMessage($"{COFLNET} setting changed " + changed);
                 span.Span.Log(changed);
             }
             LatestSettings = settings;
@@ -820,7 +827,7 @@ namespace Coflnet.Sky.Commands.MC
                 "The Hypixel API will update in 10 seconds. Get ready to receive the latest flips. "
                 + "(this is an automated message being sent 50 seconds after the last update)");
             TopBlocked.Clear();
-            if (Settings.ModSettings.PlaySoundOnFlip)
+            if (Settings?.ModSettings?.PlaySoundOnFlip  ?? false)
                 SendSound("note.hat", 1);
         }
 
