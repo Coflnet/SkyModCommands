@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using hypixel;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
@@ -14,24 +15,30 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();
-                arguments = arguments.Trim('"');
+                if (arguments.Length > 300)
+                    throw new CoflnetException("to_long", "the settings value is too long");
+                arguments = arguments.Trim('"').Replace('$','§');
                 var name = arguments.Split(' ')[0];
                 if (arguments.Length == 0)
                 {
                     socket.SendMessage("Available settings are:\n" + String.Join(',', updater.Options()));
                     return;
                 }
-                await updater.Update(socket, name, arguments.Substring(name.Length+1));
+                await updater.Update(socket, name, arguments.Substring(name.Length + 1));
                 await service.UpdateSetting(socket.UserId.ToString(), "flipSettings", socket.Settings);
                 socket.LatestSettings.Settings.Changer = "mod-" + socket.sessionInfo.sessionId;
-                await socket.UpdateSettings(current => 
+                await socket.UpdateSettings(current =>
                     current
                 );
             }
+            catch (CoflnetException e)
+            {
+                socket.SendMessage(new ChatPart(COFLNET + e.Message));
+                dev.Logger.Instance.Error(e, "set setting");
+            }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
-                Console.WriteLine(e.StackTrace);
+                dev.Logger.Instance.Error(e, "set setting");
             }
         }
     }
