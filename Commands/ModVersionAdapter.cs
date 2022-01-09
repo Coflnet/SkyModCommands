@@ -41,7 +41,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             else if (socket.Settings.Visibility?.SellerOpenButton ?? false)
             {
-                parts.Insert(1, new ChatPart(McColorCodes.GRAY + " sellers ah", $"/cofl ahopen {flip.Auction}", $"{McColorCodes.GRAY}Open the ah for the seller"));
+                parts.Insert(1, new ChatPart(McColorCodes.GRAY + " sellers ah", $"/cofl ahopen {flip.Auction.AuctioneerId}", $"{McColorCodes.GRAY}Open the ah for the seller"));
             }
 
             return parts;
