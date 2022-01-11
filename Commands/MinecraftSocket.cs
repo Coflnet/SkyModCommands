@@ -177,6 +177,7 @@ namespace Coflnet.Sky.Commands.MC
                 cachedSettings = await CacheService.Instance.GetFromRedis<SettingsChange>(this.Id.ToString());
                 if(cachedSettings != null)
                     break;
+                await Task.Delay(800); // backoff to give redis time to recover
             }
             
             if (cachedSettings != null)
@@ -228,7 +229,7 @@ namespace Coflnet.Sky.Commands.MC
             if (cachedSettings.Version >= currentVersion)
                 return;
             if (cachedSettings.Settings.AllowedFinders == LowPricedAuction.FinderType.UNKOWN)
-                cachedSettings.Settings.AllowedFinders = LowPricedAuction.FinderType.FLIPPER;
+                cachedSettings.Settings.AllowedFinders = LowPricedAuction.FinderType.FLIPPER | LowPricedAuction.FinderType.SNIPER_MEDIAN;
             cachedSettings.Version = currentVersion;
         }
 
@@ -831,7 +832,7 @@ namespace Coflnet.Sky.Commands.MC
                 SendSound("note.hat", 1);
         }
 
-        private string FindWhatsNew(FlipSettings current, FlipSettings newSettings)
+        public string FindWhatsNew(FlipSettings current, FlipSettings newSettings)
         {
             try
             {
@@ -856,7 +857,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (current.ModSettings != null)
                     foreach (var prop in current.ModSettings?.GetType().GetFields())
                     {
-                        if (prop.GetValue(current.ModSettings).ToString() != prop.GetValue(newSettings.ModSettings).ToString())
+                        if (prop.GetValue(current.ModSettings)?.ToString() != prop.GetValue(newSettings.ModSettings)?.ToString())
                         {
                             return GetEnableMessage(newSettings.ModSettings, prop);
                         }
