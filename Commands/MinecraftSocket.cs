@@ -38,7 +38,9 @@ namespace Coflnet.Sky.Commands.MC
 
         public IModVersionAdapter ModAdapter;
 
-        public static FlipSettings DEFAULT_SETTINGS = new FlipSettings() { MinProfit = 100000, MinVolume = 50, ModSettings = new ModSettings(), Visibility = new VisibilitySettings() };
+        public static FlipSettings DEFAULT_SETTINGS = new FlipSettings() { MinProfit = 100000, MinVolume = 20, 
+            ModSettings = new ModSettings(), 
+            Visibility = new VisibilitySettings() {SellerOpenButton = true, ExtraInfoMax = 3} };
 
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
