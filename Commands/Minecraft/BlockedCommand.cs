@@ -14,13 +14,20 @@ namespace Coflnet.Sky.Commands.MC
                 return Task.CompletedTask;
             }
             var r = new Random();
-            socket.SendMessage(socket.TopBlocked.OrderBy(e => r.Next()).Take(5).Select(b =>
+            socket.SendMessage(socket.TopBlocked.OrderBy(e => r.Next()).Take(5).SelectMany(b =>
                 {
                     socket.Settings.GetPrice(hypixel.FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
-                    return new ChatPart(
-                        $"{socket.GetRarityColor(b.Flip.Auction.Tier)}{b.Flip.Auction.ItemName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} blocked because {McColorCodes.WHITE}{b.Reason}\n",
+                    return new ChatPart[]
+                    {
+                        new ChatPart(
+                        $"{socket.GetRarityColor(b.Flip.Auction.Tier)}{b.Flip.Auction.ItemName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} blocked because {McColorCodes.WHITE}{b.Reason}",
                         "https://sky.coflnet.com/auction/" + b.Flip.Auction.Uuid,
-                        "Click to open");
+                        "Open on website"),
+                        new ChatPart(
+                        $" §l[ah]§r\n",
+                        "/viewauction " + b.Flip.Auction.Uuid,
+                        "Open in game")
+                    };
                 }).Append(new ChatPart() { text = COFLNET + "These are random examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray()
             );
             return Task.CompletedTask;

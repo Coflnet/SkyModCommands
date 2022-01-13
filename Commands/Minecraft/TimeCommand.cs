@@ -31,7 +31,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public static DialogBuilder AddTime(this DialogBuilder msg, Dictionary<string, string> context,  string label, string key)
         {
-            return msg.MsgLine($"{McColorCodes.GRAY}{label}: {McColorCodes.WHITE}" + context.GetValueOrDefault(key));
+            return msg.MsgLine($"{McColorCodes.GRAY}{label}: {McColorCodes.WHITE}" + context?.GetValueOrDefault(key, "§onotavailable§r"));
         }
     }
 }

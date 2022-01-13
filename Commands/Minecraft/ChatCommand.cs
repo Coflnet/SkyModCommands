@@ -13,23 +13,13 @@ namespace Coflnet.Sky.Commands.MC
         {
             var maxMsgLength = 150;
             var message = JsonConvert.DeserializeObject<string>(arguments);
-            if (!socket.sessionInfo.ListeningToChat)
-            {
-                chat.Subscribe(m =>
-                {
-                    var color = ((int)m.Tier) > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE;
-                    return socket.SendMessage(
-                        new ChatPart($"{CHAT_PREFIX} {color}{m.SenderName}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.SenderName} {m.Message}", "click to report message"),
-                        new ChatPart("","/cofl void"));
-                });
-                socket.sessionInfo.ListeningToChat = true;
-            }
-            if(DateTime.Now - TimeSpan.FromSeconds(1) < socket.sessionInfo.LastMessage )
+            MakeSureChatIsConnected(socket);
+            if (DateTime.Now - TimeSpan.FromSeconds(1) < socket.sessionInfo.LastMessage)
             {
                 socket.SendMessage(COFLNET + "You are writing to fast please slow down");
                 return;
             }
-            if(message.Length > maxMsgLength)
+            if (message.Length > maxMsgLength)
             {
                 socket.SendMessage(COFLNET + "Please use another chat for long messages", null, $"Messages over {maxMsgLength} characters are blocked");
                 return;
@@ -40,6 +30,21 @@ namespace Coflnet.Sky.Commands.MC
                 SenderName = socket.McId,
                 Tier = socket.LatestSettings.Tier
             });
+        }
+
+        public static void MakeSureChatIsConnected(MinecraftSocket socket)
+        {
+            if (!socket.sessionInfo.ListeningToChat)
+            {
+                chat.Subscribe(m =>
+                {
+                    var color = ((int)m.Tier) > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE;
+                    return socket.SendMessage(
+                        new ChatPart($"{CHAT_PREFIX} {color}{m.SenderName}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.SenderName} {m.Message}", "click to report message"),
+                        new ChatPart("", "/cofl void"));
+                });
+                socket.sessionInfo.ListeningToChat = true;
+            }
         }
     }
 

@@ -38,9 +38,13 @@ namespace Coflnet.Sky.Commands.MC
 
         public IModVersionAdapter ModAdapter;
 
-        public static FlipSettings DEFAULT_SETTINGS = new FlipSettings() { MinProfit = 100000, MinVolume = 20, 
-            ModSettings = new ModSettings(), 
-            Visibility = new VisibilitySettings() {SellerOpenButton = true, ExtraInfoMax = 3} };
+        public static FlipSettings DEFAULT_SETTINGS = new FlipSettings()
+        {
+            MinProfit = 100000,
+            MinVolume = 20,
+            ModSettings = new ModSettings(),
+            Visibility = new VisibilitySettings() { SellerOpenButton = true, ExtraInfoMax = 3 }
+        };
 
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
@@ -177,11 +181,11 @@ namespace Coflnet.Sky.Commands.MC
             for (int i = 0; i < 3; i++)
             {
                 cachedSettings = await CacheService.Instance.GetFromRedis<SettingsChange>(this.Id.ToString());
-                if(cachedSettings != null)
+                if (cachedSettings != null)
                     break;
                 await Task.Delay(800); // backoff to give redis time to recover
             }
-            
+
             if (cachedSettings != null)
             {
                 try
@@ -628,7 +632,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public string GetHoverText(FlipInstance flip)
         {
-            if(Settings.Visibility.Lore)
+            if (Settings.Visibility.Lore)
                 return flip.Auction.Context.GetValueOrDefault("lore");
             return string.Join('\n', flip.Interesting.Select(s => "・" + s)) + "\n" + flip.SellerName;
         }
@@ -722,6 +726,9 @@ namespace Coflnet.Sky.Commands.MC
             LatestSettings = settings;
             UpdateConnectionTier(settings);
 
+            if(settings.Settings?.ModSettings?.Chat ?? false)
+                ChatCommand.MakeSureChatIsConnected(this);
+
             CacheService.Instance.SaveInRedis(this.Id.ToString(), settings, TimeSpan.FromDays(3))
             .Wait(); // this call is synchronised because redis is set to fire and forget (returns instantly)
             span.Span.Log(JSON.Stringify(settings));
@@ -799,17 +806,24 @@ namespace Coflnet.Sky.Commands.MC
 
         private void UpdateConnectionTier(SettingsChange settings)
         {
+            this.ConSpan.SetTag("tier", settings.Tier.ToString());
+            if (settings.Tier == AccountTier.NONE)
+            {
+                FlipperService.Instance.AddNonConnection(this, false);
+                NextUpdateStart -= TopBlocked.Clear;
+                NextUpdateStart += TopBlocked.Clear;
+                return;
+            }
             if ((settings.Tier.HasFlag(AccountTier.PREMIUM) || settings.Tier.HasFlag(AccountTier.STARTER_PREMIUM)) && settings.ExpiresAt > DateTime.Now)
             {
                 FlipperService.Instance.AddConnection(this, false);
-                NextUpdateStart -= SendTimer;
-                NextUpdateStart += SendTimer;
             }
             else if (settings.Tier == AccountTier.PREMIUM_PLUS)
                 FlipperService.Instance.AddConnectionPlus(this, false);
-            else
-                FlipperService.Instance.AddNonConnection(this, false);
-            this.ConSpan.SetTag("tier", settings.Tier.ToString());
+
+            NextUpdateStart -= SendTimer;
+            NextUpdateStart += SendTimer;
+
         }
 
         private void SendTimer()
@@ -830,7 +844,7 @@ namespace Coflnet.Sky.Commands.MC
                 "The Hypixel API will update in 10 seconds. Get ready to receive the latest flips. "
                 + "(this is an automated message being sent 50 seconds after the last update)");
             TopBlocked.Clear();
-            if (Settings?.ModSettings?.PlaySoundOnFlip  ?? false)
+            if (Settings?.ModSettings?.PlaySoundOnFlip ?? false)
                 SendSound("note.hat", 1);
         }
 
