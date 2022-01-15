@@ -253,6 +253,14 @@ namespace Coflnet.Sky.Commands.MC
         private async Task SendAuthorizedHello(SettingsChange cachedSettings)
         {
             var player = await PlayerService.Instance.GetPlayer(this.McId);
+            if (player == null)
+            {
+                var profile = await PlayerSearch.Instance.GetMcProfile(this.McId);
+                player = new Player() { Name = profile.Name, UuId = profile.Id };
+                var update = await IndexerClient.TriggerNameUpdate(player.UuId);
+                Console.WriteLine("status: " + update.StatusCode);
+                Console.WriteLine(update.Content);
+            }
             var mcName = player?.Name;
             McUuid = player.UuId;
             var user = UserService.Instance.GetUserById(cachedSettings.UserId);
@@ -726,7 +734,7 @@ namespace Coflnet.Sky.Commands.MC
             LatestSettings = settings;
             UpdateConnectionTier(settings);
 
-            if(settings.Settings?.ModSettings?.Chat ?? false)
+            if (settings.Settings?.ModSettings?.Chat ?? false)
                 ChatCommand.MakeSureChatIsConnected(this);
 
             CacheService.Instance.SaveInRedis(this.Id.ToString(), settings, TimeSpan.FromDays(3))
