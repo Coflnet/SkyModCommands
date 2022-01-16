@@ -13,7 +13,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var maxMsgLength = 150;
             var message = JsonConvert.DeserializeObject<string>(arguments);
-            MakeSureChatIsConnected(socket);
+            await MakeSureChatIsConnected(socket);
             if (DateTime.Now - TimeSpan.FromSeconds(1) < socket.sessionInfo.LastMessage)
             {
                 socket.SendMessage(COFLNET + "You are writing to fast please slow down");
@@ -32,11 +32,11 @@ namespace Coflnet.Sky.Commands.MC
             });
         }
 
-        public static void MakeSureChatIsConnected(MinecraftSocket socket)
+        public static async Task MakeSureChatIsConnected(MinecraftSocket socket)
         {
             if (!socket.sessionInfo.ListeningToChat)
             {
-                chat.Subscribe(m =>
+                await chat.Subscribe(m =>
                 {
                     var color = ((int)m.Tier) > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE;
                     return socket.SendMessage(

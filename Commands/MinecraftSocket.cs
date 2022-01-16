@@ -177,6 +177,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SetupConnectionSettings(string stringId)
         {
+            using var loadSpan = tracer.BuildSpan("load").AsChildOf(ConSpan).StartActive();
             SettingsChange cachedSettings = null;
             for (int i = 0; i < 3; i++)
             {
@@ -192,7 +193,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     MigrateSettings(cachedSettings);
                     this.LatestSettings = cachedSettings;
-                    UpdateConnectionTier(cachedSettings);
+                    UpdateConnectionTier(cachedSettings, loadSpan.Span);
                     await SendAuthorizedHello(cachedSettings);
                     // set them again
                     this.LatestSettings = cachedSettings;
@@ -295,7 +296,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     Send(Response.Create("ping", 0));
 
-                    UpdateConnectionTier(LatestSettings);
+                    UpdateConnectionTier(LatestSettings, span.Span);
                 }
             }
             catch (Exception e)
@@ -478,6 +479,16 @@ namespace Coflnet.Sky.Commands.MC
             error.Span.Log(e.StackTrace);
             if (e.InnerException != null)
                 AddExceptionLog(error, e.InnerException);
+        }
+
+
+        public void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information)
+        {
+            if (level == Microsoft.Extensions.Logging.LogLevel.Error)
+            {
+                using var error = tracer.BuildSpan("error").WithTag("message", message).AsChildOf(ConSpan).WithTag("error", "true").StartActive();
+            }
+            ConSpan.Log(message);
         }
 
         public void Send(Response response)
@@ -732,10 +743,10 @@ namespace Coflnet.Sky.Commands.MC
                 span.Span.Log(changed);
             }
             LatestSettings = settings;
-            UpdateConnectionTier(settings);
+            UpdateConnectionTier(settings, span.Span);
 
             if (settings.Settings?.ModSettings?.Chat ?? false)
-                ChatCommand.MakeSureChatIsConnected(this);
+                ChatCommand.MakeSureChatIsConnected(this).Wait();
 
             CacheService.Instance.SaveInRedis(this.Id.ToString(), settings, TimeSpan.FromDays(3))
             .Wait(); // this call is synchronised because redis is set to fire and forget (returns instantly)
@@ -812,9 +823,10 @@ namespace Coflnet.Sky.Commands.MC
             return MessagePack.MessagePackSerializer.Serialize(settings.Settings).SequenceEqual(MessagePack.MessagePackSerializer.Serialize(Settings));
         }
 
-        private void UpdateConnectionTier(SettingsChange settings)
+        private void UpdateConnectionTier(SettingsChange settings, OpenTracing.ISpan span)
         {
             this.ConSpan.SetTag("tier", settings.Tier.ToString());
+            span.Log("set connection tier to " + settings.Tier.ToString());
             if (settings.Tier == AccountTier.NONE)
             {
                 FlipperService.Instance.AddNonConnection(this, false);
