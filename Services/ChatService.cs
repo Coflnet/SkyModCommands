@@ -9,16 +9,28 @@ namespace Coflnet.Sky.ModCommands.Services
 {
     public class ChatService
     {
-        public void Subscribe(Func<ModChatMessage, bool> OnMessage)
+        public async Task Subscribe(Func<ModChatMessage, bool> OnMessage)
         {
-            var sub = GetCon().Subscribe("mcChat");
-
-            sub.OnMessage((value) =>
+            for (int i = 0; i < 3; i++)
             {
-                var message = JsonConvert.DeserializeObject<ModChatMessage>(value.Message);
-                if (!OnMessage(message))
-                    sub.Unsubscribe();
-            });
+                try
+                {
+                    var sub = await GetCon().SubscribeAsync("mcChat");
+
+                    sub.OnMessage((value) =>
+                    {
+                        var message = JsonConvert.DeserializeObject<ModChatMessage>(value.Message);
+                        if (!OnMessage(message))
+                            sub.Unsubscribe();
+                    });
+                }
+                catch (Exception)
+                {
+                    if(i >= 2)
+                        throw;
+                    await Task.Delay(300);
+                }
+            }
         }
         public async Task Send(ModChatMessage message)
         {
