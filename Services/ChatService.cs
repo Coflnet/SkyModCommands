@@ -23,6 +23,7 @@ namespace Coflnet.Sky.ModCommands.Services
                         if (!OnMessage(message))
                             sub.Unsubscribe();
                     });
+                    return;
                 }
                 catch (Exception)
                 {

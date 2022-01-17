@@ -10,7 +10,12 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            var flip =  socket.LastSent.LastOrDefault();
+            var flip = socket.LastSent.LastOrDefault();
+            if (flip == null)
+            {
+                socket.SendMessage(new DialogBuilder().MsgLine("Flip not found, can't get timings", null, "sorry :("));
+                return;
+            }
             Dictionary<string, string> context = flip?.Auction.Context;
             var msg = new DialogBuilder()
                 .MsgLine("These are the relatives times to the api update")
@@ -24,12 +29,12 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(msg.Build());
         }
 
-        
+
     }
 
     public static class TimeCommandOverloads
     {
-        public static DialogBuilder AddTime(this DialogBuilder msg, Dictionary<string, string> context,  string label, string key)
+        public static DialogBuilder AddTime(this DialogBuilder msg, Dictionary<string, string> context, string label, string key)
         {
             return msg.MsgLine($"{McColorCodes.GRAY}{label}: {McColorCodes.WHITE}" + context?.GetValueOrDefault(key, "§onotavailable§r"));
         }

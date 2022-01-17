@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -14,7 +15,11 @@ namespace Coflnet.Sky.Commands.MC
                 return Task.CompletedTask;
             }
             var r = new Random();
-            socket.SendMessage(socket.TopBlocked.OrderBy(e => r.Next()).Take(5).SelectMany(b =>
+            var grouped = socket.TopBlocked.OrderBy(e => r.Next()).GroupBy(f=>f.Reason).OrderByDescending(f=>f.Count());
+            var flipsToSend = new List<MinecraftSocket.BlockedElement>();
+            flipsToSend.AddRange(grouped.First().Take(5 - grouped.Count()));
+            flipsToSend.AddRange(grouped.Skip(1).Select(g=>g.First()));
+            socket.SendMessage(flipsToSend.Take(5).SelectMany(b =>
                 {
                     socket.Settings.GetPrice(hypixel.FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
                     return new ChatPart[]

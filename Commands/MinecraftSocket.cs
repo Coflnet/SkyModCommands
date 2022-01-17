@@ -222,9 +222,9 @@ namespace Coflnet.Sky.Commands.MC
             {
                 SendMessage(COFLNET + "§lPlease click this [LINK] to login and configure your flip filters §8(you won't receive real time flips until you do)",
                     GetAuthLink(stringId));
-                await Task.Delay(TimeSpan.FromSeconds(60 * index));
+                await Task.Delay(TimeSpan.FromSeconds(60 * index++));
 
-                if (Settings != DEFAULT_SETTINGS)
+                if (LatestSettings.UserId != 0)
                     return;
                 SendMessage("do /cofl stop to stop receiving this (or click this message)", "/cofl stop");
             }
@@ -290,7 +290,10 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (blockedFlipFilterCount > 0)
                 {
-                    SendMessage(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute", null, $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips");
+                    SendMessage(new ChatPart(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute",
+                        "/cofl blocked",
+                        $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips"),
+                        new ChatPart(" ", "/cofl void", null));
                 }
                 else
                 {
@@ -423,6 +426,10 @@ namespace Coflnet.Sky.Commands.MC
             var span = tracer.BuildSpan("removing").AsChildOf(ConSpan).StartActive();
             FlipperService.Instance.RemoveConnection(this);
             PingTimer.Dispose();
+            Task.Run(async ()=>{
+                await Task.Delay(1000);
+                span.Span.Finish();
+            });
             return span;
         }
 
@@ -848,6 +855,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SendTimer()
         {
+            using var loadSpan = tracer.BuildSpan("timer").AsChildOf(ConSpan).StartActive();
             if (base.ConnectionState != WebSocketState.Open)
             {
                 NextUpdateStart -= SendTimer;

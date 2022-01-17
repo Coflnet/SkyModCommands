@@ -22,8 +22,8 @@ namespace Coflnet.Sky.Commands.MC
 
             if (rating == "down")
             {
-                if(bad != null)
-                Blacklist(socket, bad);
+                if (bad != null)
+                    Blacklist(socket, bad);
                 socket.SendMessage(new ChatPart(COFLNET + "Thanks for your feedback, Please help us better understand why this flip is bad\n", null, "you can also send free text with /cofl report"),
                     new ChatPart(" * it isn't I mis-clicked \n", "/cofl dialog echo okay, have a nice day "),
                     new ChatPart(" * This flip is overpriced\n", "/cofl dialog overpriced ", "overpriced/bad flip"),
@@ -46,7 +46,10 @@ namespace Coflnet.Sky.Commands.MC
             }
             await Task.Delay(3000);
             var based = await hypixel.CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
-            span.Span.Log(string.Join('\n', based?.Select(b => $"{b.ItemName} {b.highestBid} {b.uuid}")));
+            if (based == null)
+                span.Span.Log("based not available");
+            else
+                span.Span.Log(string.Join('\n', based?.Select(b => $"{b.ItemName} {b.highestBid} {b.uuid}")));
         }
 
         private static void Blacklist(MinecraftSocket socket, LowPricedAuction bad)
