@@ -38,7 +38,9 @@ namespace Coflnet.Sky.Commands.MC
 
         public IModVersionAdapter ModAdapter;
 
-        public static FlipSettings DEFAULT_SETTINGS = new FlipSettings()
+        public FormatProvider formatProvider {get; private set;}
+
+        public static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
         {
             MinProfit = 100000,
             MinVolume = 20,
@@ -117,6 +119,7 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnOpen()
         {
             ConSpan = tracer.BuildSpan("connection").Start();
+            formatProvider = new FormatProvider(Settings);
             base.OnOpen();
             Task.Run(() =>
             {
@@ -197,13 +200,7 @@ namespace Coflnet.Sky.Commands.MC
                     await SendAuthorizedHello(cachedSettings);
                     // set them again
                     this.LatestSettings = cachedSettings;
-                    SendMessage(COFLNET + $"§fFound and loaded settings for your connection\n"
-                        + $"{McColorCodes.GRAY} MinProfit: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfit)}  "
-                        + $"{McColorCodes.GRAY} MaxCost: {McColorCodes.AQUA}{FormatPrice(Settings.MaxCost)}"
-                        + $"{McColorCodes.GRAY} Blacklist-Size: {McColorCodes.AQUA}{Settings?.BlackList?.Count ?? 0}\n "
-                        + (Settings.BasedOnLBin ? $"{McColorCodes.RED} Your profit is based on Lowest bin, please note that this is NOT the intended way to use this\n " : "")
-                        + $"{McColorCodes.AQUA}: click this if you want to change a setting \n"
-                        + "§8: nothing else to do have a nice day :)",
+                    SendMessage(formatProvider.WelcomeMessage(),
                         "https://sky.coflnet.com/flipper");
                     Console.WriteLine($"loaded settings for {this.sessionInfo.sessionId} " + JsonConvert.SerializeObject(cachedSettings));
                     await Task.Delay(500);
@@ -229,6 +226,7 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage("do /cofl stop to stop receiving this (or click this message)", "/cofl stop");
             }
         }
+
 
         private static void MigrateSettings(SettingsChange cachedSettings)
         {
@@ -426,7 +424,8 @@ namespace Coflnet.Sky.Commands.MC
             var span = tracer.BuildSpan("removing").AsChildOf(ConSpan).StartActive();
             FlipperService.Instance.RemoveConnection(this);
             PingTimer.Dispose();
-            Task.Run(async ()=>{
+            Task.Run(async () =>
+            {
                 await Task.Delay(1000);
                 span.Span.Finish();
             });
@@ -518,10 +517,8 @@ namespace Coflnet.Sky.Commands.MC
                     return true;
 
                 if (flip.AdditionalProps?.ContainsKey("sold") ?? false)
-                {
-                    BlockedFlip(flip, "sold");
-                    return true;
-                }
+                    return BlockedFlip(flip, "sold");
+
                 var flipInstance = FlipperService.LowPriceToFlip(flip);
                 // fast match before fill
                 Settings.GetPrice(flipInstance, out _, out long profit);
@@ -541,13 +538,10 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     var id = Error(e, "matching flip settings", JSON.Stringify(flip) + "\n" + JSON.Stringify(Settings));
                     dev.Logger.Instance.Error(e, "minecraft socket flip settings matching " + id);
-                    BlockedFlip(flip, "Error " + e.Message);
+                    return BlockedFlip(flip, "Error " + e.Message);
                 }
                 if (Settings != null && !isMatch.Item1)
-                {
-                    BlockedFlip(flip, isMatch.Item2);
-                    return true;
-                }
+                    return BlockedFlip(flip, isMatch.Item2);
 
                 // this check is down here to avoid filling up the list
                 if (!SentFlips.TryAdd(flip.UId, DateTime.Now))
@@ -606,123 +600,18 @@ namespace Coflnet.Sky.Commands.MC
 
         public string GetFlipMsg(FlipInstance flip)
         {
-            Settings.GetPrice(flip, out long targetPrice, out long profit);
-            var priceColor = GetProfitColor((int)profit);
-            var finderType = flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ? "SNIPE" : "FLIP";
-            var a = flip.Auction;
-            if (Settings.ModSettings.Format != null)
-            {
-                /*
-                    "\n{0}: {1}{2} {3}{4} -> {5} (+{6} {7}) Med: {8} Lbin: {9} Volume: {10}"
-                    {0} FlipFinder
-                    {1} Item Rarity Color
-                    {2} Item Name
-                    {3} Price color
-                    {4} Starting bid
-                    {5} Target Price
-                    {6} Estimated Profit
-                    {7} Provit percentage
-                    {8} Median Price
-                    {9} Lowest Bin
-                    {10}Volume
-                */
-                return String.Format(Settings.ModSettings.Format,
-                    finderType,
-                    GetRarityColor(a.Tier),
-                    a.ItemName,
-                    priceColor,
-                    FormatPrice(a.StartingBid),
-                    FormatPrice(targetPrice), // this is {5}
-                    FormatPrice(profit),
-                    FormatPrice((profit * 100 / a.StartingBid)),
-                    FormatPrice(flip.MedianPrice),
-                    FormatPrice(flip.LowestBin ?? 0),
-                    flip.Volume  // this is {10}
-                );
-            }
-            var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice((profit * 100 / a.StartingBid))}%{priceColor}" : "";
-
-            var builder = new StringBuilder(80);
-
-            builder.Append($"\n{finderType}: {GetRarityColor(a.Tier)}{a.ItemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
-            if ((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
-                builder.Append($"(+{FormatPrice(profit)}{textAfterProfit}) ");
-            if (Settings.Visibility?.MedianPrice ?? false)
-                builder.Append(McColorCodes.GRAY + " Med: " + McColorCodes.AQUA + FormatPrice(flip.MedianPrice));
-            if (Settings.Visibility?.LowestBin ?? false)
-                builder.Append(McColorCodes.GRAY + " LBin: " + McColorCodes.AQUA + FormatPrice(flip.LowestBin ?? 0));
-            if (Settings.Visibility?.Volume ?? false)
-                builder.Append(McColorCodes.GRAY + " Vol: " + McColorCodes.AQUA + flip.Volume.ToString("0.#"));
-            return builder.ToString();
+            return formatProvider.FormatFlip(flip);
         }
 
-        public string GetHoverText(FlipInstance flip)
-        {
-            if (Settings.Visibility.Lore)
-                return flip.Auction.Context.GetValueOrDefault("lore");
-            return string.Join('\n', flip.Interesting.Select(s => "・" + s)) + "\n" + flip.SellerName;
-        }
-
-        public string GetRarityColor(Tier rarity)
-        {
-            return rarity switch
-            {
-                Tier.COMMON => "§f",
-                Tier.EPIC => "§5",
-                Tier.UNCOMMON => "§a",
-                Tier.RARE => "§9",
-                Tier.SPECIAL => "§c",
-                Tier.SUPREME => "§4",
-                Tier.VERY_SPECIAL => "§4",
-                Tier.LEGENDARY => "§6",
-                Tier.MYTHIC => "§d",
-                _ => ""
-            };
-        }
-
-        public string GetProfitColor(int profit)
-        {
-            if (profit >= 50_000_000)
-                return McColorCodes.GOLD;
-            if (profit >= 10_000_000)
-                return McColorCodes.AQUA;
-            if (profit >= 1_000_000)
-                return McColorCodes.GREEN;
-            if (profit >= 100_000)
-                return McColorCodes.DARK_GREEN;
-            return McColorCodes.DARK_GRAY;
-        }
 
         public string FormatPrice(long price)
         {
             if (Settings.ModSettings?.ShortNumbers ?? false)
-                return FormatPriceShort(price);
+                return FormatProvider.FormatPriceShort(price);
             return string.Format("{0:n0}", price);
         }
 
-        /// <summary>
-        /// By RenniePet on Stackoverflow
-        /// https://stackoverflow.com/a/30181106
-        /// </summary>
-        /// <param name="num"></param>
-        /// <returns></returns>
-        private static string FormatPriceShort(long num)
-        {
-            if (num <= 0) // there was an issue with flips attempting to be devided by 0
-                return "0";
-            // Ensure number has max 3 significant digits (no rounding up can happen)
-            long i = (long)Math.Pow(10, (int)Math.Max(0, Math.Log10(num) - 2));
-            num = num / i * i;
 
-            if (num >= 1000000000)
-                return (num / 1000000000D).ToString("0.##") + "B";
-            if (num >= 1000000)
-                return (num / 1000000D).ToString("0.##") + "M";
-            if (num >= 1000)
-                return (num / 1000D).ToString("0.##") + "k";
-
-            return num.ToString("#,0");
-        }
 
         public Task<bool> SendSold(string uuid)
         {
@@ -757,6 +646,7 @@ namespace Coflnet.Sky.Commands.MC
 
             CacheService.Instance.SaveInRedis(this.Id.ToString(), settings, TimeSpan.FromDays(3))
             .Wait(); // this call is synchronised because redis is set to fire and forget (returns instantly)
+
             span.Span.Log(JSON.Stringify(settings));
         }
 

@@ -49,7 +49,7 @@ namespace Coflnet.Sky.Commands.MC
             var best = sorted.FirstOrDefault();
             if (best == null)
                 return;
-            socket.SendMessage(COFLNET + $"The best flip was a {socket.GetRarityColor(Enum.Parse<hypixel.Tier>(best.Tier))}{best.ItemName}" +
+            socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<hypixel.Tier>(best.Tier))}{best.ItemName}" +
                             $" {FormatPrice(socket, best.PricePaid)} -> {FormatPrice(socket, best.SoldFor)}",
                 "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction");
         }

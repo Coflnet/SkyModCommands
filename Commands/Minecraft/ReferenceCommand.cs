@@ -31,7 +31,7 @@ namespace Coflnet.Sky.Commands.MC
             else
             {
                 socket.ModAdapter.SendMessage(
-                    based.OrderBy(b => b.highestBid).Skip(based.Count()/2).Take(3)
+                    based.OrderBy(b => b.highestBid).Skip(based.Count() / 2).Take(3)
                     .Select(ToMessage(socket))
                     .Append(new ChatPart("The 3 most recent references are"))
                     .Concat(based.OrderByDescending(b => b.end).Take(3)
@@ -56,7 +56,14 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SniperReference(MinecraftSocket socket, string uuid, LowPricedAuction flip, string algo)
         {
-            var reference = await AuctionService.Instance.GetAuctionAsync(flip.AdditionalProps["reference"]);
+            var referenceId = flip.AdditionalProps["reference"];
+            if (referenceId == null)
+            {
+                socket.Log("reference is missing", Microsoft.Extensions.Logging.LogLevel.Error);
+                socket.ModAdapter.SendMessage(new ChatPart(COFLNET + "The reference for this flip could not be retrieved. It got lost"));
+                return;
+            }
+            var reference = await AuctionService.Instance.GetAuctionAsync(referenceId);
             Console.WriteLine(JSON.Stringify(flip.AdditionalProps));
             Console.WriteLine(JSON.Stringify(reference));
             socket.ModAdapter.SendMessage(new ChatPart($"{COFLNET}This flip was found by the {algo} algorithm\n", "https://sky.coflnet.com/auction/" + uuid, "click this to open the flip on website"),
