@@ -120,7 +120,7 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnOpen()
         {
             ConSpan = tracer.BuildSpan("connection").Start();
-            formatProvider = new FormatProvider(Settings);
+            formatProvider = new FormatProvider(this);
             base.OnOpen();
             Task.Run(() =>
             {

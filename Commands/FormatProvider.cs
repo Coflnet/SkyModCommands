@@ -9,11 +9,12 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class FormatProvider
     {
-        private FlipSettings Settings;
+        private IFlipConnection con;
+        private FlipSettings Settings => con.Settings;
 
-        public FormatProvider(FlipSettings settings)
+        public FormatProvider(IFlipConnection connection)
         {
-            Settings = settings;
+            con = connection;
         }
 
         /// <summary>
