@@ -18,6 +18,7 @@ namespace Coflnet.Sky.Commands.MC
                         .WithTag("message", arguments.Truncate(150))
                         .WithTag("error", "true")
                         .WithTag("mcId", JsonConvert.SerializeObject(socket.McId))
+                        .WithTag("uuid", JsonConvert.SerializeObject(socket.McUuid))
                         .AsChildOf(socket.ConSpan).StartActive();
                         
             reportSpan.Span.Log(JsonConvert.SerializeObject(socket.Settings));

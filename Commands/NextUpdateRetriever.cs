@@ -16,7 +16,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     last = (await client.ExecuteAsync<DateTime>(new RestRequest("/api/time"))).Data;
                 }
-                return last + TimeSpan.FromSeconds(61);
+                return last + TimeSpan.FromSeconds(60);
             }
             catch (Exception e)
             {

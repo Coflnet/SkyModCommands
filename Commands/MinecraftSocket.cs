@@ -215,6 +215,7 @@ namespace Coflnet.Sky.Commands.MC
                     SendMessage(COFLNET + $"Your settings could not be loaded, please relink again :)");
                 }
             }
+            loadSpan.Span.Finish();
             var index = 1;
             while (true)
             {
