@@ -38,7 +38,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public IModVersionAdapter ModAdapter;
 
-        public FormatProvider formatProvider {get; private set;}
+        public FormatProvider formatProvider { get; private set; }
 
         public static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
         {
@@ -726,7 +726,11 @@ namespace Coflnet.Sky.Commands.MC
         {
             this.ConSpan.SetTag("tier", settings.Tier.ToString());
             span.Log("set connection tier to " + settings.Tier.ToString());
-            if (settings.Tier == AccountTier.NONE)
+            if (DateTime.Now < new DateTime(2022, 1, 22))
+            {
+                FlipperService.Instance.AddConnection(this, false);
+            }
+            else if (settings.Tier == AccountTier.NONE)
             {
                 FlipperService.Instance.AddNonConnection(this, false);
                 NextUpdateStart -= TopBlocked.Clear;
