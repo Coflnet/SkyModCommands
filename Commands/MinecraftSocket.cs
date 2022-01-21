@@ -233,6 +233,12 @@ namespace Coflnet.Sky.Commands.MC
         private static void MigrateSettings(SettingsChange cachedSettings)
         {
             var currentVersion = 3;
+            if (DateTime.Now < new DateTime(2022, 1, 22) && cachedSettings.ExpiresAt < DateTime.Now)
+            {
+                cachedSettings.ExpiresAt = new DateTime(2022, 1, 22);
+                cachedSettings.Tier = AccountTier.PREMIUM;
+                return;
+            }
             if (cachedSettings.Version >= currentVersion)
                 return;
             if (cachedSettings.Settings.AllowedFinders == LowPricedAuction.FinderType.UNKOWN)
