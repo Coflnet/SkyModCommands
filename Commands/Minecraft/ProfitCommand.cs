@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "Crunshing the latest numbers for you :)", null, "this might take a few seconds");
             }
 
-            var response = await Sky.Commands.FlipTrackingService.Instance.GetPlayerFlips(socket.McUuid, time);
+            var response = await Sky.Commands.FlipTrackingService.Instance.GetPlayerFlips(socket.SessionInfo.McUuid, time);
             var tfm = GetProfitForFinder(response, LowPricedAuction.FinderType.TFM);
             var stonks = GetProfitForFinder(response, LowPricedAuction.FinderType.STONKS);
             var other = GetProfitForFinder(response, LowPricedAuction.FinderType.EXTERNAL);

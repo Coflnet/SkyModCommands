@@ -14,12 +14,12 @@ namespace Coflnet.Sky.Commands.MC
             Console.WriteLine(arguments);
             var uuid = arguments.Trim('"');
             var flip = socket.GetFlip(uuid);
-            if (flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER))
+            if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ?? false)
             {
                 await SniperReference(socket, uuid, flip, "sniping");
                 return;
             }
-            if (flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER_MEDIAN))
+            if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER_MEDIAN) ?? false)
             {
                 await SniperReference(socket, uuid, flip, "median sniper");
                 return;

@@ -19,13 +19,11 @@ namespace Coflnet.Sky.Commands.MC
 {
     public partial class MinecraftSocket : WebSocketBehavior, IFlipConnection
     {
-        public string McId;
-        public string McUuid = "00000000000000000";
         public static string COFLNET = "[§1C§6oflnet§f]§7: ";
 
         public long Id { get; private set; }
 
-        public SessionInfo sessionInfo { get; protected set; } = new SessionInfo();
+        public SessionInfo SessionInfo { get; protected set; } = new SessionInfo();
 
         public FlipSettings Settings => LatestSettings.Settings;
         public int UserId => LatestSettings.UserId;
@@ -120,6 +118,7 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnOpen()
         {
             ConSpan = tracer.BuildSpan("connection").Start();
+            SendMessage(COFLNET + "§fNOTE §7This is a development preview, it is NOT stable/bugfree", $"https://discord.gg/wvKXfTgCfb", "Attempting to load your settings on " + System.Net.Dns.GetHostName());
             formatProvider = new FormatProvider(this);
             base.OnOpen();
             Task.Run(() =>
@@ -139,13 +138,12 @@ namespace Coflnet.Sky.Commands.MC
 
         private void StartConnection(OpenTracing.IScope openSpan)
         {
-            SendMessage(COFLNET + "§fNOTE §7This is a development preview, it is NOT stable/bugfree", $"https://discord.gg/wvKXfTgCfb", System.Net.Dns.GetHostName());
             var args = System.Web.HttpUtility.ParseQueryString(Context.RequestUri.Query);
             Console.WriteLine(Context.RequestUri.Query);
             if (args["uuid"] == null && args["player"] == null)
                 Send(Response.Create("error", "the connection query string needs to include 'player'"));
             if (args["SId"] != null)
-                sessionInfo.sessionId = args["SId"].Truncate(60);
+                SessionInfo.sessionId = args["SId"].Truncate(60);
             if (args["version"] != null)
                 Version = args["version"].Truncate(10);
 
@@ -156,12 +154,12 @@ namespace Coflnet.Sky.Commands.MC
                 _ => new FirstModVersionAdapter(this)
             };
 
-            McId = args["player"] ?? args["uuid"];
-            ConSpan.SetTag("uuid", McId);
+            var passedId = args["player"] ?? args["uuid"];
+            TryAsyncTimes(async () => await LoadPlayerName(passedId), "loading PlayerName");
             ConSpan.SetTag("version", Version);
 
             string stringId;
-            (this.Id, stringId) = ComputeConnectionId();
+            (this.Id, stringId) = ComputeConnectionId(passedId);
             ConSpan.SetTag("conId", stringId);
 
 
@@ -177,6 +175,23 @@ namespace Coflnet.Sky.Commands.MC
             {
                 SendPing();
             }, null, TimeSpan.FromSeconds(50), TimeSpan.FromSeconds(50));
+        }
+
+        private async Task LoadPlayerName(string passedId)
+        {
+
+            using var loadSpan = tracer.BuildSpan("nameLoad").AsChildOf(ConSpan).StartActive();
+            var player = await PlayerService.Instance.GetPlayer(passedId);
+            if (player == null)
+            {
+                var profile = await PlayerSearch.Instance.GetMcProfile(passedId);
+                player = new Player() { Name = profile.Name, UuId = profile.Id };
+                var update = await IndexerClient.TriggerNameUpdate(player.UuId);
+            }
+            SessionInfo.McName = player.Name;
+            SessionInfo.McUuid = player.UuId;
+            loadSpan.Span.SetTag("playerId", passedId);
+            loadSpan.Span.SetTag("uuid", player.UuId);
         }
 
         private async Task SetupConnectionSettings(string stringId)
@@ -198,13 +213,12 @@ namespace Coflnet.Sky.Commands.MC
                     MigrateSettings(cachedSettings);
                     this.LatestSettings = cachedSettings;
                     UpdateConnectionTier(cachedSettings, loadSpan.Span);
-                    await SendAuthorizedHello(cachedSettings);
-                    // set them again
-                    this.LatestSettings = cachedSettings;
+                    var helloTask = SendAuthorizedHello(cachedSettings);
                     SendMessage(formatProvider.WelcomeMessage(),
                         "https://sky.coflnet.com/flipper");
-                    Console.WriteLine($"loaded settings for {this.sessionInfo.sessionId} " + JsonConvert.SerializeObject(cachedSettings));
+                    Console.WriteLine($"loaded settings for {this.SessionInfo.sessionId} " + JsonConvert.SerializeObject(cachedSettings));
                     await Task.Delay(500);
+                    await helloTask;
                     SendMessage(COFLNET + $"{McColorCodes.DARK_GREEN} click this to relink your account",
                     GetAuthLink(stringId), "You don't need to relink your account. \nThis is only here to allow you to link your mod to the website again should you notice your settings aren't updated");
                     return;
@@ -229,6 +243,23 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        private Task TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3)
+        {
+            return Task.Run(async () =>
+            {
+                for (int i = 0; i < times; i++)
+                    try
+                    {
+                        await action();
+                        return;
+                    }
+                    catch (System.Exception e)
+                    {
+                        Error(e, errorMessage);
+                    }
+            });
+
+        }
 
         private static void MigrateSettings(SettingsChange cachedSettings)
         {
@@ -248,7 +279,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private string GetAuthLink(string stringId)
         {
-            return $"https://sky.coflnet.com/authmod?mcid={McId}&conId={HttpUtility.UrlEncode(stringId)}";
+            return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(stringId)}";
         }
 
         public async Task<string> GetPlayerName(string uuid)
@@ -259,17 +290,6 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendAuthorizedHello(SettingsChange cachedSettings)
         {
-            var player = await PlayerService.Instance.GetPlayer(this.McId);
-            if (player == null)
-            {
-                var profile = await PlayerSearch.Instance.GetMcProfile(this.McId);
-                player = new Player() { Name = profile.Name, UuId = profile.Id };
-                var update = await IndexerClient.TriggerNameUpdate(player.UuId);
-                Console.WriteLine("status: " + update.StatusCode);
-                Console.WriteLine(update.Content);
-            }
-            var mcName = player?.Name;
-            McUuid = player.UuId;
             var user = UserService.Instance.GetUserById(cachedSettings.UserId);
             var length = user.Email.Length < 10 ? 3 : 6;
             var builder = new StringBuilder(user.Email);
@@ -280,7 +300,9 @@ namespace Coflnet.Sky.Commands.MC
                 builder[i] = '*';
             }
             var anonymisedEmail = builder.ToString();
-            var messageStart = $"Hello {mcName} ({anonymisedEmail}) \n";
+            if(this.SessionInfo.McName == null)
+                await Task.Delay(800); // allow another half second for the playername to be loaded
+            var messageStart = $"Hello {this.SessionInfo.McName} ({anonymisedEmail}) \n";
             if (cachedSettings.Tier != AccountTier.NONE && cachedSettings.ExpiresAt > DateTime.Now)
                 SendMessage(COFLNET + messageStart + $"You have {cachedSettings.Tier.ToString()} until {cachedSettings.ExpiresAt}");
             else
@@ -315,9 +337,9 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        protected (long, string) ComputeConnectionId()
+        protected (long, string) ComputeConnectionId(string passedId)
         {
-            var bytes = Encoding.UTF8.GetBytes(McId.ToLower() + sessionInfo.sessionId + DateTime.Now.Date.ToString());
+            var bytes = Encoding.UTF8.GetBytes(passedId.ToLower() + SessionInfo.sessionId + DateTime.Now.Date.ToString());
             var hash = System.Security.Cryptography.SHA512.Create();
             var hashed = hash.ComputeHash(bytes);
             return (BitConverter.ToInt64(hashed), Convert.ToBase64String(hashed, 0, 16).Replace('+', '-').Replace('/', '_'));
@@ -342,7 +364,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             span.Span.SetTag("type", a.type);
             span.Span.SetTag("content", a.data);
-            if (sessionInfo.sessionId.StartsWith("debug"))
+            if (SessionInfo.sessionId.StartsWith("debug"))
                 SendMessage("executed " + a.data, "");
 
             // tokenlogin is the legacy version of clicked
@@ -386,7 +408,7 @@ namespace Coflnet.Sky.Commands.MC
                     var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
                     if (flip != null && flip.Auction.Context != null)
                         flip.AdditionalProps["clickT"] = (DateTime.Now - flip.Auction.FindTime).ToString();
-                    await FlipTrackingService.Instance.ClickFlip(auctionUuid, McUuid);
+                    await FlipTrackingService.Instance.ClickFlip(auctionUuid, SessionInfo.McUuid);
 
                 });
         }
@@ -574,7 +596,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 var track = Task.Run(async () =>
                 {
-                    await FlipTrackingService.Instance.ReceiveFlip(flip.Auction.Uuid, McUuid);
+                    await FlipTrackingService.Instance.ReceiveFlip(flip.Auction.Uuid, SessionInfo.McUuid);
                     // remove dupplicates
                     if (SentFlips.Count > 300)
                     {
@@ -695,7 +717,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task CheckVerificationStatus(SettingsChange settings)
         {
-            var connect = await McAccountService.Instance.ConnectAccount(settings.UserId.ToString(), McUuid);
+            var connect = await McAccountService.Instance.ConnectAccount(settings.UserId.ToString(), SessionInfo.McUuid);
             if (connect.IsConnected)
                 return;
             using var verification = tracer.BuildSpan("Verification").AsChildOf(ConSpan.Context).StartActive();
@@ -712,7 +734,7 @@ namespace Coflnet.Sky.Commands.MC
             verification.Span.Log(JSON.Stringify(targetAuction));
 
             SendMessage(new ChatPart(
-                $"{COFLNET}You connected from an unkown account. Please verify that you are indeed {McId} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction.",
+                $"{COFLNET}You connected from an unkown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction.",
                 $"/viewauction {targetAuction?.Uuid}",
                 $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
 

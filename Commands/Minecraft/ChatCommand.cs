@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
             var maxMsgLength = 150;
             var message = JsonConvert.DeserializeObject<string>(arguments);
             await MakeSureChatIsConnected(socket);
-            if (DateTime.Now - TimeSpan.FromSeconds(1) < socket.sessionInfo.LastMessage)
+            if (DateTime.Now - TimeSpan.FromSeconds(1) < socket.SessionInfo.LastMessage)
             {
                 socket.SendMessage(COFLNET + "You are writing to fast please slow down");
                 return;
@@ -27,14 +27,14 @@ namespace Coflnet.Sky.Commands.MC
             await chat.Send(new ChatService.ModChatMessage()
             {
                 Message = message,
-                SenderName = socket.McId,
+                SenderName = socket.SessionInfo.McName,
                 Tier = socket.LatestSettings.Tier
             });
         }
 
         public static async Task MakeSureChatIsConnected(MinecraftSocket socket)
         {
-            if (!socket.sessionInfo.ListeningToChat)
+            if (!socket.SessionInfo.ListeningToChat)
             {
                 await chat.Subscribe(m =>
                 {
@@ -43,7 +43,7 @@ namespace Coflnet.Sky.Commands.MC
                         new ChatPart($"{CHAT_PREFIX} {color}{m.SenderName}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.SenderName} {m.Message}", "click to report message"),
                         new ChatPart("", "/cofl void"));
                 });
-                socket.sessionInfo.ListeningToChat = true;
+                socket.SessionInfo.ListeningToChat = true;
             }
         }
     }

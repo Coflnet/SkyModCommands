@@ -17,8 +17,8 @@ namespace Coflnet.Sky.Commands.MC
             using var reportSpan = socket.tracer.BuildSpan("report")
                         .WithTag("message", arguments.Truncate(150))
                         .WithTag("error", "true")
-                        .WithTag("mcId", JsonConvert.SerializeObject(socket.McId))
-                        .WithTag("uuid", JsonConvert.SerializeObject(socket.McUuid))
+                        .WithTag("mcId", JsonConvert.SerializeObject(socket.SessionInfo.McName))
+                        .WithTag("uuid", JsonConvert.SerializeObject(socket.SessionInfo.McUuid))
                         .AsChildOf(socket.ConSpan).StartActive();
                         
             reportSpan.Span.Log(JsonConvert.SerializeObject(socket.Settings));

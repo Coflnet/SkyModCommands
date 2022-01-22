@@ -6,6 +6,8 @@ namespace Coflnet.Sky.Commands.MC
     {
         public string sessionId = "";
         public bool ListeningToChat;
+        public string McName;
+        public string McUuid = "00000000000000000";
         public DateTime LastMessage;
     }
 }

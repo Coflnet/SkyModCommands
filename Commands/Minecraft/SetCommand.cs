@@ -27,7 +27,7 @@ namespace Coflnet.Sky.Commands.MC
                 var newValue = arguments.Substring(name.Length + 1);
                 await updater.Update(socket, name, newValue);
                 await service.UpdateSetting(socket.UserId.ToString(), "flipSettings", socket.Settings);
-                socket.LatestSettings.Settings.Changer = "mod-" + socket.sessionInfo.sessionId;
+                socket.LatestSettings.Settings.Changer = "mod-" + socket.SessionInfo.sessionId;
                 await socket.UpdateSettings(current =>
                     current
                 );
