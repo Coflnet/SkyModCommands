@@ -615,7 +615,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Exception e)
             {
-                Error(e, "sending flip");
+                Error(e, "sending flip", JsonConvert.SerializeObject(flip));
                 return false;
             }
             return true;
@@ -691,10 +691,9 @@ namespace Coflnet.Sky.Commands.MC
             CacheService.Instance.SaveInRedis(this.Id.ToString(), settings, TimeSpan.FromDays(3))
             .Wait(); // this call is synchronised because redis is set to fire and forget (returns instantly)
 
-            if (settings.Settings.BasedOnLBin)
+            if (settings.Settings.BasedOnLBin && settings.Settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
             {
-                settings.Settings.AllowedFinders = LowPricedAuction.FinderType.SNIPER;
-                SendMessage(new DialogBuilder().Msg(McColorCodes.RED + "Your profit is based on lbin, therefor only the `sniper` flip finder was enabled to maximise speed"));
+                SendMessage(new DialogBuilder().Msg(McColorCodes.RED + "Your profit is based on lbin, therefor you should only use the `sniper` flip finder to maximise speed"));
             }
         }
 
@@ -869,14 +868,14 @@ namespace Coflnet.Sky.Commands.MC
             return LastSent.Where(s => s.Auction.Uuid == uuid).FirstOrDefault();
         }
 
-        public Task<bool> SendFlip(FlipInstance flip)
+        public async Task<bool> SendFlip(FlipInstance flip)
         {
             var props = flip.Context;
             if (props == null)
                 props = new Dictionary<string, string>();
             if (flip.Sold)
                 props["sold"] = "y";
-            return this.SendFlip(new LowPricedAuction()
+            var result = await this.SendFlip(new LowPricedAuction()
             {
                 Auction = flip.Auction,
                 DailyVolume = flip.Volume,
@@ -884,6 +883,14 @@ namespace Coflnet.Sky.Commands.MC
                 TargetPrice = flip.MedianPrice,
                 AdditionalProps = props
             });
+            if(!result)
+            {
+                Log("failed");
+                Log(base.ConnectionState.ToString());
+            }
+
+
+            return true;
         }
     }
 }
