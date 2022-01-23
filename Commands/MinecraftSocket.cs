@@ -334,7 +334,7 @@ namespace Coflnet.Sky.Commands.MC
             catch (Exception e)
             {
                 span.Span.Log("could not send ping");
-                CloseBecauseError(e);
+                Error(e, "on ping"); // CloseBecauseError(e);
             }
         }
 
@@ -419,6 +419,7 @@ namespace Coflnet.Sky.Commands.MC
             base.OnClose(e);
             FlipperService.Instance.RemoveConnection(this);
             ConSpan.Log(e?.Reason);
+            PingTimer.Dispose();
 
             ConSpan.Finish();
         }
@@ -468,6 +469,7 @@ namespace Coflnet.Sky.Commands.MC
             if (ConnectionState != WebSocketState.Open)
             {
                 RemoveMySelf();
+                ConSpan.Log("connection state was found to be " + ConnectionState);
                 return false;
             }
             try
