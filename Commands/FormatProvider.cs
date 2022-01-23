@@ -129,7 +129,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public string FormatPrice(long price)
         {
-            if (Settings.ModSettings?.ShortNumbers ?? false)
+            if (Settings?.ModSettings?.ShortNumbers ?? false)
                 return FormatProvider.FormatPriceShort(price);
             return string.Format("{0:n0}", price);
         }

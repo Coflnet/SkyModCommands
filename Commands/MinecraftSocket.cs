@@ -539,7 +539,10 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 if (base.ConnectionState != WebSocketState.Open)
+                {
+                    Log("con check was false");
                     return false;
+                }
                 // pre check already sent flips
                 if (SentFlips.ContainsKey(flip.UId))
                     return true; // don't double send
