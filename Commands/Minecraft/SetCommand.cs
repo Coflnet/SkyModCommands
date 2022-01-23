@@ -26,12 +26,12 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var newValue = arguments.Substring(name.Length + 1);
                 await updater.Update(socket, name, newValue);
-                await service.UpdateSetting(socket.UserId.ToString(), "flipSettings", socket.Settings);
                 socket.LatestSettings.Settings.Changer = "mod-" + socket.SessionInfo.sessionId;
-                await socket.UpdateSettings(current =>
-                    current
-                );
-                socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{name}{DEFAULT_COLOR} to{McColorCodes.WHITE}{newValue}"));
+                await Task.WhenAll(service.UpdateSetting(socket.UserId.ToString(), "flipSettings", socket.Settings),
+                    socket.UpdateSettings(current =>
+                        current
+                    ));
+                socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{name}{DEFAULT_COLOR} to {McColorCodes.WHITE}{newValue}"));
             }
             catch (CoflnetException e)
             {

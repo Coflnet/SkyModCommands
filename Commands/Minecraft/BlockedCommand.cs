@@ -25,7 +25,7 @@ namespace Coflnet.Sky.Commands.MC
                     return new ChatPart[]
                     {
                         new ChatPart(
-                        $"{socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier)}{b.Flip.Auction.ItemName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} blocked because {McColorCodes.WHITE}{b.Reason}",
+                        $"{McColorCodes.DARK_GRAY}> {socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier)}{b.Flip.Auction.ItemName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}",
                         "https://sky.coflnet.com/auction/" + b.Flip.Auction.Uuid,
                         "Open on website"),
                         new ChatPart(

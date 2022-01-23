@@ -80,7 +80,7 @@ namespace Coflnet.Sky.Commands.MC
                 return String.Format(Settings.ModSettings.Format,
                     finderType,
                     GetRarityColor(a.Tier),
-                    a.ItemName,
+                    flip.Auction.Context.ContainsKey("cname") ? flip.Auction.Context["cname"] : a.ItemName,
                     priceColor,
                     FormatPrice(a.StartingBid),
                     FormatPrice(targetPrice), // this is {5}
@@ -95,7 +95,9 @@ namespace Coflnet.Sky.Commands.MC
 
             var builder = new StringBuilder(80);
 
-            builder.Append($"\n{finderType}: {GetRarityColor(a.Tier)}{a.ItemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
+            string itemName = flip.Auction.Context.ContainsKey("cname") ? flip.Auction.Context["cname"] : $"{GetRarityColor(a.Tier)}{a.ItemName}";
+
+            builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
             if ((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
                 builder.Append($"(+{FormatPrice(profit)}{textAfterProfit}) ");
             if (Settings.Visibility?.MedianPrice ?? false)
@@ -139,7 +141,6 @@ namespace Coflnet.Sky.Commands.MC
                                     + $"{McColorCodes.GRAY} MinProfit: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfit)}  "
                                     + $"{McColorCodes.GRAY} MaxCost: {McColorCodes.AQUA}{FormatPrice(Settings.MaxCost)}"
                                     + $"{McColorCodes.GRAY} Blacklist-Size: {McColorCodes.AQUA}{Settings?.BlackList?.Count ?? 0}\n "
-                                    + (Settings.BasedOnLBin ? $"{McColorCodes.RED} Your profit is based on Lowest bin, please note that this is NOT the intended way to use this\n " : "")
                                     + $"{McColorCodes.AQUA}: click this if you want to change a setting \n"
                                     + "§8: nothing else to do have a nice day :)";
         }

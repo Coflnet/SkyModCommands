@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using WebSocketSharp;
 using WebSocketSharp.Server;
 using Microsoft.Extensions.DependencyInjection;
+using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -42,8 +43,8 @@ namespace Coflnet.Sky.Commands.MC
         {
             MinProfit = 100000,
             MinVolume = 20,
-            ModSettings = new ModSettings(),
-            Visibility = new VisibilitySettings() { SellerOpenButton = true, ExtraInfoMax = 3 }
+            ModSettings = new ModSettings() { ShortNumbers = true },
+            Visibility = new VisibilitySettings() { SellerOpenButton = true, ExtraInfoMax = 3, Lore = true }
         };
 
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
@@ -211,7 +212,7 @@ namespace Coflnet.Sky.Commands.MC
                 try
                 {
                     MigrateSettings(cachedSettings);
-                    this.LatestSettings = cachedSettings;
+                    ApplySetting(cachedSettings);
                     UpdateConnectionTier(cachedSettings, loadSpan.Span);
                     var helloTask = SendAuthorizedHello(cachedSettings);
                     SendMessage(formatProvider.WelcomeMessage(),
@@ -233,7 +234,7 @@ namespace Coflnet.Sky.Commands.MC
             var index = 1;
             while (true)
             {
-                SendMessage(COFLNET + "§lPlease click this [LINK] to login and configure your flip filters §8(you won't receive real time flips until you do)",
+                SendMessage(COFLNET + $"Please {McColorCodes.WHITE}§lclick this [LINK] to login {McColorCodes.GRAY}and configure your flip filters §8(you won't receive real time flips until you do)",
                     GetAuthLink(stringId));
                 await Task.Delay(TimeSpan.FromSeconds(60 * index++));
 
@@ -300,7 +301,7 @@ namespace Coflnet.Sky.Commands.MC
                 builder[i] = '*';
             }
             var anonymisedEmail = builder.ToString();
-            if(this.SessionInfo.McName == null)
+            if (this.SessionInfo.McName == null)
                 await Task.Delay(800); // allow another half second for the playername to be loaded
             var messageStart = $"Hello {this.SessionInfo.McName} ({anonymisedEmail}) \n";
             if (cachedSettings.Tier != AccountTier.NONE && cachedSettings.ExpiresAt > DateTime.Now)
@@ -658,7 +659,7 @@ namespace Coflnet.Sky.Commands.MC
                     .WithTag("premium", settings.Tier.ToString())
                     .WithTag("userId", settings.UserId.ToString())
                     .StartActive();
-            if (this.Settings == DEFAULT_SETTINGS)
+            if (this.LatestSettings.UserId == 0)
             {
                 Task.Run(async () => await ModGotAuthorised(settings));
             }
@@ -668,16 +669,30 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage($"{COFLNET} setting changed " + changed);
                 span.Span.Log(changed);
             }
-            LatestSettings = settings;
             UpdateConnectionTier(settings, span.Span);
+            ApplySetting(settings);
 
+            span.Span.Log(JSON.Stringify(settings));
+        }
+
+        /// <summary>
+        /// Applies any settings changes
+        /// </summary>
+        /// <param name="settings"></param>
+        private void ApplySetting(SettingsChange settings)
+        {
+            LatestSettings = settings;
             if (settings.Settings?.ModSettings?.Chat ?? false)
                 ChatCommand.MakeSureChatIsConnected(this).Wait();
 
             CacheService.Instance.SaveInRedis(this.Id.ToString(), settings, TimeSpan.FromDays(3))
             .Wait(); // this call is synchronised because redis is set to fire and forget (returns instantly)
 
-            span.Span.Log(JSON.Stringify(settings));
+            if (settings.Settings.BasedOnLBin)
+            {
+                settings.Settings.AllowedFinders = LowPricedAuction.FinderType.SNIPER;
+                SendMessage(new DialogBuilder().Msg(McColorCodes.RED + "Your profit is based on lbin, therefor only the `sniper` flip finder was enabled to maximise speed"));
+            }
         }
 
         public Task UpdateSettings(Func<SettingsChange, SettingsChange> updatingFunc)
