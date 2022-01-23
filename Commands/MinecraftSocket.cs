@@ -135,6 +135,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }).ConfigureAwait(false);
 
+            System.Console.CancelKeyPress += OnApplicationStop;
         }
 
         private void StartConnection(OpenTracing.IScope openSpan)
@@ -497,7 +498,16 @@ namespace Coflnet.Sky.Commands.MC
             span.Span.Log(e.Message);
             OnClose(null);
             PingTimer.Dispose();
+            System.Console.CancelKeyPress -= OnApplicationStop;
             return span;
+        }
+
+        private void OnApplicationStop(object? sender, ConsoleCancelEventArgs e)
+        {
+            SendMessage(COFLNET + "Server is restarting, you may experience connection issues for a few seconds.",
+                 "/cofl start", "if it doesn't auto reconnect click this");
+            Console.WriteLine("onapplicationstop ds");
+            System.Threading.Thread.Sleep(10);
         }
 
         private string Error(Exception exception, string message = null, string additionalLog = null)
@@ -885,7 +895,7 @@ namespace Coflnet.Sky.Commands.MC
                 TargetPrice = flip.MedianPrice,
                 AdditionalProps = props
             });
-            if(!result)
+            if (!result)
             {
                 Log("failed");
                 Log(base.ConnectionState.ToString());
