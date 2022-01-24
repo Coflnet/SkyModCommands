@@ -681,7 +681,9 @@ namespace Coflnet.Sky.Commands.MC
             else if (!settingsSame)
             {
                 var changed = FindWhatsNew(this.Settings, settings.Settings);
-                SendMessage($"{COFLNET} setting changed " + changed);
+                if(string.IsNullOrWhiteSpace(changed))
+                    changed = "Settings changed";
+                SendMessage($"{COFLNET} {changed}");
                 span.Span.Log(changed);
             }
             UpdateConnectionTier(settings, span.Span);
@@ -705,7 +707,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (settings.Settings.BasedOnLBin && settings.Settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
             {
-                SendMessage(new DialogBuilder().Msg(McColorCodes.RED + "Your profit is based on lbin, therefor you should only use the `sniper` flip finder to maximise speed"));
+                SendMessage(new DialogBuilder().Msg(McColorCodes.RED + "Your profit is based on lbin, therefore you should only use the `sniper` flip finder to maximise speed"));
             }
         }
 
@@ -834,11 +836,11 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 if (current.MinProfit != newSettings.MinProfit)
-                    return "min Profit to " + FormatPrice(newSettings.MinProfit);
+                    return "set min Profit to " + FormatPrice(newSettings.MinProfit);
                 if (current.MinProfit != newSettings.MinProfit)
-                    return "max Cost to " + FormatPrice(newSettings.MaxCost);
+                    return "set max Cost to " + FormatPrice(newSettings.MaxCost);
                 if (current.MinProfitPercent != newSettings.MinProfitPercent)
-                    return "min profit percentage to " + FormatPrice(newSettings.MinProfitPercent);
+                    return "set min Profit percentage to " + FormatPrice(newSettings.MinProfitPercent);
                 if (current.BlackList?.Count < newSettings.BlackList?.Count)
                     return $"blacklisted item " + ItemDetails.TagToName(newSettings.BlackList?.Last()?.ItemTag);
                 if (current.WhiteList?.Count < newSettings.WhiteList?.Count)
@@ -846,6 +848,8 @@ namespace Coflnet.Sky.Commands.MC
                 if (current.Visibility != null)
                     foreach (var prop in current.Visibility?.GetType().GetFields())
                     {
+                        if(prop.FieldType == typeof(string))
+                            return prop.Name + " changed";
                         if (prop.GetValue(current.Visibility).ToString() != prop.GetValue(newSettings.Visibility).ToString())
                         {
                             return GetEnableMessage(newSettings.Visibility, prop);

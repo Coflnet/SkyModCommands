@@ -61,7 +61,7 @@ namespace Coflnet.Sky.Commands.MC
             var priceColor = GetProfitColor((int)profit);
             var finderType = flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ? "SNIPE" : "FLIP";
             var a = flip.Auction;
-            if (Settings.ModSettings.Format != null)
+            if (!string.IsNullOrWhiteSpace(Settings.ModSettings.Format))
             {
                 /*
                     "\n{0}: {1}{2} {3}{4} -> {5} (+{6} {7}) Med: {8} Lbin: {9} Volume: {10}"
