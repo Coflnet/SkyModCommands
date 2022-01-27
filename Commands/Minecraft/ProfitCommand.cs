@@ -21,7 +21,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             else
             {
-                socket.SendMessage(COFLNET + "Crunshing the latest numbers for you :)", null, "this might take a few seconds");
+                socket.SendMessage(COFLNET + "Crunching the latest numbers for you :)", null, "this might take a few seconds");
             }
 
             var response = await Sky.Commands.FlipTrackingService.Instance.GetPlayerFlips(socket.SessionInfo.McUuid, time);
