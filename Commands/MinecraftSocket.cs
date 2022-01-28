@@ -529,8 +529,12 @@ namespace Coflnet.Sky.Commands.MC
                 AddExceptionLog(error, e.InnerException);
         }
 
-
-        public void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information)
+        /// <summary>
+        /// Log a message to the connection
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="level"></param>
+        public new void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information)
         {
             if (level == Microsoft.Extensions.Logging.LogLevel.Error)
             {
