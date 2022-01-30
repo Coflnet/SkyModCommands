@@ -100,7 +100,6 @@ namespace Coflnet.Sky.Commands.MC
             builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
             try
             {
-
                 if ((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
                     builder.Append($"(+{FormatPrice(profit)}{textAfterProfit}) ");
                 if (Settings.Visibility?.MedianPrice ?? false)
