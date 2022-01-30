@@ -57,11 +57,16 @@ namespace Coflnet.Sky.Commands.MC
 
         public string FormatFlip(FlipInstance flip)
         {
+            if(Settings.Visibility == null)
+                Settings.Visibility = new VisibilitySettings();
+            if(Settings.ModSettings == null)
+                Settings.ModSettings = new ModSettings();
+
             Settings.GetPrice(flip, out long targetPrice, out long profit);
             var priceColor = GetProfitColor((int)profit);
             var finderType = flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ? "SNIPE" : "FLIP";
             var a = flip.Auction;
-            if (!string.IsNullOrWhiteSpace(Settings.ModSettings.Format))
+            if (!string.IsNullOrWhiteSpace(Settings.ModSettings?.Format))
             {
                 /*
                     "\n{0}: {1}{2} {3}{4} -> {5} (+{6} {7}) Med: {8} Lbin: {9} Volume: {10}"
