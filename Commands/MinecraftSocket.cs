@@ -18,6 +18,10 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    /// <summary>
+    /// Main connection point for the mod.
+    /// Handles establishing, authorization and handling of messages for a session
+    /// </summary>
     public partial class MinecraftSocket : WebSocketBehavior, IFlipConnection
     {
         public static string COFLNET = "[§1C§6oflnet§f]§7: ";
@@ -260,7 +264,6 @@ namespace Coflnet.Sky.Commands.MC
                         Error(e, errorMessage);
                     }
             });
-
         }
 
         private static void MigrateSettings(SettingsChange cachedSettings)
