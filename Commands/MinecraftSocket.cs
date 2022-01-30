@@ -661,7 +661,11 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-
+        /// <summary>
+        /// Tell the client that a flip isn't available anymore
+        /// </summary>
+        /// <param name="uuid"></param>
+        /// <returns></returns>
         public Task<bool> SendSold(string uuid)
         {
             if (base.ConnectionState != WebSocketState.Open)
