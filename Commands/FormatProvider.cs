@@ -134,6 +134,11 @@ namespace Coflnet.Sky.Commands.MC
             };
         }
 
+        /// <summary>
+        /// Formats the price either with decimal delimitors or by shortening it
+        /// </summary>
+        /// <param name="price"></param>
+        /// <returns></returns>
         public string FormatPrice(long price)
         {
             if (Settings?.ModSettings?.ShortNumbers ?? false)
