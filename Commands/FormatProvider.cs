@@ -98,14 +98,22 @@ namespace Coflnet.Sky.Commands.MC
             string itemName = flip.Auction.Context.ContainsKey("cname") ? flip.Auction.Context["cname"] : $"{GetRarityColor(a.Tier)}{a.ItemName}";
 
             builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
-            if ((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
-                builder.Append($"(+{FormatPrice(profit)}{textAfterProfit}) ");
-            if (Settings.Visibility?.MedianPrice ?? false)
-                builder.Append(McColorCodes.GRAY + " Med: " + McColorCodes.AQUA + FormatPrice(flip.MedianPrice));
-            if (Settings.Visibility?.LowestBin ?? false)
-                builder.Append(McColorCodes.GRAY + " LBin: " + McColorCodes.AQUA + FormatPrice(flip.LowestBin ?? 0));
-            if (Settings.Visibility?.Volume ?? false)
-                builder.Append(McColorCodes.GRAY + " Vol: " + McColorCodes.AQUA + flip.Volume.ToString("0.#"));
+            try
+            {
+
+                if ((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
+                    builder.Append($"(+{FormatPrice(profit)}{textAfterProfit}) ");
+                if (Settings.Visibility?.MedianPrice ?? false)
+                    builder.Append(McColorCodes.GRAY + " Med: " + McColorCodes.AQUA + FormatPrice(flip.MedianPrice));
+                if (Settings.Visibility?.LowestBin ?? false)
+                    builder.Append(McColorCodes.GRAY + " LBin: " + McColorCodes.AQUA + FormatPrice(flip.LowestBin ?? 0));
+                if (Settings.Visibility?.Volume ?? false)
+                    builder.Append(McColorCodes.GRAY + " Vol: " + McColorCodes.AQUA + flip.Volume.ToString("0.#"));
+            }
+            catch (Exception e)
+            {
+                throw new Exception(profit + JSON.Stringify(Settings),e);
+            }
             return builder.ToString();
         }
 

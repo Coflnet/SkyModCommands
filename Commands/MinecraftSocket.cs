@@ -603,7 +603,7 @@ namespace Coflnet.Sky.Commands.MC
                     RemoveMySelf();
                     return false;
                 }
-                await ModAdapter.SendFlip(flipInstance);
+                await ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
 
                 flip.AdditionalProps["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
 
@@ -626,7 +626,7 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     if (LastSent.Count > 30)
                         LastSent.TryDequeue(out _);
-                });
+                }).ConfigureAwait(false);
             }
             catch (Exception e)
             {
