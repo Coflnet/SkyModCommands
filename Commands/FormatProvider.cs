@@ -111,7 +111,11 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Exception e)
             {
-                throw new Exception(profit + JSON.Stringify(Settings),e);
+                if (con == null)
+                    throw new Exception("connection is null " + profit, e);
+                if (Settings == null)
+                    throw new Exception("settings are null " + profit, e);
+                throw new Exception(JSON.Stringify(Settings), e);
             }
             return builder.ToString();
         }
