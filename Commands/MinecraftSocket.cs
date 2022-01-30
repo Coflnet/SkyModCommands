@@ -802,9 +802,6 @@ namespace Coflnet.Sky.Commands.MC
             else if (settings.Tier == AccountTier.NONE)
             {
                 FlipperService.Instance.AddNonConnection(this, false);
-                NextUpdateStart -= TopBlocked.Clear;
-                NextUpdateStart += TopBlocked.Clear;
-                return;
             }
             if ((settings.Tier.HasFlag(AccountTier.PREMIUM) || settings.Tier.HasFlag(AccountTier.STARTER_PREMIUM)) && settings.ExpiresAt > DateTime.Now)
             {
