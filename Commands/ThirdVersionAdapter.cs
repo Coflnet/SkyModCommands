@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using hypixel;
@@ -25,6 +26,9 @@ namespace Coflnet.Sky.Commands.MC
                 cost = flip.Auction.StartingBid,
                 sound = (string)null
             }));
+
+            if (socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000)
+                SendSound("note.pling", (float)(1 / (Math.Sqrt((float)flip.Profit / 1_000_000) + 1)));
             return true;
         }
 
