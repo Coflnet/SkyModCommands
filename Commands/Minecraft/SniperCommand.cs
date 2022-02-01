@@ -6,10 +6,9 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            var premPlus = $"{McColorCodes.AQUA}premium{McColorCodes.DARK_GREEN}{McColorCodes.BOLD}+{McColorCodes.GRAY}";
             if (socket.SessionInfo.McName != "Ekwav" && socket.LatestSettings.Tier != hypixel.AccountTier.PREMIUM_PLUS)
             {
-                socket.SendMessage(COFLNET + $"This is a {premPlus} setting. You are not a {premPlus} user :/ ");
+                socket.SendMessage(COFLNET + $"This is a setting is currently in development. You can't use it yet. :/ ");
                 return;
             }
             await socket.UpdateSettings(settings =>
