@@ -8,7 +8,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (socket.SessionInfo.McName != "Ekwav" && socket.LatestSettings.Tier != hypixel.AccountTier.PREMIUM_PLUS)
             {
-                socket.SendMessage(COFLNET + $"This is a setting is currently in development. You can't use it yet. :/ ");
+                socket.SendMessage(COFLNET + $"This setting is currently in development. You can't use it yet. :/ ");
                 return;
             }
             await socket.UpdateSettings(settings =>
