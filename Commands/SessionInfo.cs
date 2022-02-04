@@ -9,5 +9,6 @@ namespace Coflnet.Sky.Commands.MC
         public string McName;
         public string McUuid = "00000000000000000";
         public DateTime LastMessage;
+        public DateTime MutedUntil;
     }
 }

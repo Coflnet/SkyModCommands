@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
                 id = uuid,
                 worth = flip.Profit,
                 cost = flip.Auction.StartingBid,
-                sound = (string)null
+                sound = (string)"note.pling"
             }));
 
             if (socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000)
