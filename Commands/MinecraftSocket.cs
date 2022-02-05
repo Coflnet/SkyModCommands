@@ -67,7 +67,7 @@ namespace Coflnet.Sky.Commands.MC
             public LowPricedAuction Flip;
             public string Reason;
         }
-        private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_commands_sent_flips", "How many flip messages were sent");
+        private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
 
         static MinecraftSocket()
         {

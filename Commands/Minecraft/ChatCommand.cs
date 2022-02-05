@@ -21,7 +21,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "You are writing to fast please slow down");
                 return;
             }
-            if(DateTime.Now > socket.SessionInfo.MutedUntil)
+            if(DateTime.Now < socket.SessionInfo.MutedUntil)
             {
                 socket.SendMessage(COFLNET + $"You are muted for {(int)(socket.SessionInfo.MutedUntil-DateTime.Now).TotalMinutes +1} minutes");
                 return;
