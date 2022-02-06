@@ -61,6 +61,10 @@ namespace Coflnet.Sky.Commands.MC
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
         public ConcurrentQueue<BlockedElement> TopBlocked = new ConcurrentQueue<BlockedElement>();
         public ConcurrentQueue<LowPricedAuction> LastSent = new ConcurrentQueue<LowPricedAuction>();
+        /// <summary>
+        /// Triggered when the connection closes
+        /// </summary>
+        public event Action OnConClose;
 
         public class BlockedElement
         {
@@ -426,6 +430,7 @@ namespace Coflnet.Sky.Commands.MC
             PingTimer.Dispose();
 
             ConSpan.Finish();
+            OnConClose?.Invoke();
         }
 
         public void SendMessage(string text, string clickAction = null, string hoverText = null)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.ModCommands.Services;
@@ -10,9 +11,15 @@ namespace Coflnet.Sky.Commands.MC
     {
         static ChatService chat = new ChatService();
         public static string CHAT_PREFIX = "[§1C§6hat§f]";
-        private static string[] BadWords = new string[]{"my ah", "nigger"};
+        private static string[] BadWords = new string[] { "my ah", "nigger" };
+        private static HashSet<string> MutedUsers = new HashSet<string>() { "850cfa6e7f184ed4b72a8c304734bcbe" };
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            if(MutedUsers.Contains(socket.SessionInfo.McUuid))
+            {
+                socket.SendMessage(COFLNET + "You have been muted from the chat because you repeadetly violated the rules", "I am blocked from the Coflnet chat :(", $"Click to express your sadness");
+                return;
+            }
             var maxMsgLength = 150;
             var message = JsonConvert.DeserializeObject<string>(arguments);
             await MakeSureChatIsConnected(socket);
@@ -21,14 +28,14 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "You are writing to fast please slow down");
                 return;
             }
-            if(DateTime.Now < socket.SessionInfo.MutedUntil)
+            if (DateTime.Now < socket.SessionInfo.MutedUntil)
             {
-                socket.SendMessage(COFLNET + $"You are muted for {(int)(socket.SessionInfo.MutedUntil-DateTime.Now).TotalMinutes +1} minutes");
+                socket.SendMessage(COFLNET + $"You are muted for {(int)(socket.SessionInfo.MutedUntil - DateTime.Now).TotalMinutes + 1} minutes");
                 return;
             }
-            if(BadWords.Any(w=>message.ToLower().Contains(w)))
+            if (BadWords.Any(w => message.ToLower().Contains(w)))
             {
-                socket.SendMessage(COFLNET + $"Your message violated either rule 1 or rule 2. Please don't violate any rules. You are muted for 1 hour.",null,"1. Be nice\n2. Don't advertise something nobody asked for");
+                socket.SendMessage(COFLNET + $"Your message violated either rule 1 or rule 2. Please don't violate any rules. You are muted for 1 hour.", null, "1. Be nice\n2. Don't advertise something nobody asked for");
                 socket.SessionInfo.MutedUntil = DateTime.Now + TimeSpan.FromHours(1);
                 return;
             }
@@ -41,7 +48,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Message = message,
                 SenderName = socket.SessionInfo.McName,
-                Tier = socket.LatestSettings.Tier
+                Tier = socket.LatestSettings.Tier,
+                SenderUuid = socket.SessionInfo.McUuid
             });
             socket.SessionInfo.LastMessage = DateTime.Now;
         }
@@ -50,14 +58,24 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (!socket.SessionInfo.ListeningToChat)
             {
-                await chat.Subscribe(m =>
+                var sub = await chat.Subscribe(m =>
                 {
+                    if (socket.Settings.BlackList.Any(b => b.filter.Where(f => f.Key == "Seller" && f.Value == m.SenderUuid).Any()))
+                    {
+                        socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player on your blacklist", null, $"You blacklisted {m.SenderName}"));
+                        return true;
+                    }
                     var color = ((int)m.Tier) > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE;
                     return socket.SendMessage(
                         new ChatPart($"{CHAT_PREFIX} {color}{m.SenderName}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.SenderName} {m.Message}", "click to report message"),
                         new ChatPart("", "/cofl void"));
                 });
                 socket.SessionInfo.ListeningToChat = true;
+
+                socket.OnConClose += () =>
+                {
+                    sub.Unsubscribe();
+                };
             }
         }
     }

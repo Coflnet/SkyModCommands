@@ -9,7 +9,7 @@ namespace Coflnet.Sky.ModCommands.Services
 {
     public class ChatService
     {
-        public async Task Subscribe(Func<ModChatMessage, bool> OnMessage)
+        public async Task<ChannelMessageQueue> Subscribe(Func<ModChatMessage, bool> OnMessage)
         {
             for (int i = 0; i < 3; i++)
             {
@@ -23,7 +23,7 @@ namespace Coflnet.Sky.ModCommands.Services
                         if (!OnMessage(message))
                             sub.Unsubscribe();
                     });
-                    return;
+                    return sub;
                 }
                 catch (Exception)
                 {
@@ -32,6 +32,7 @@ namespace Coflnet.Sky.ModCommands.Services
                     await Task.Delay(300);
                 }
             }
+            throw new CoflnetException("connection_failed","connection to chat failed");
         }
         public async Task Send(ModChatMessage message)
         {
@@ -56,6 +57,8 @@ namespace Coflnet.Sky.ModCommands.Services
             public string Message;
             [Key(2)]
             public AccountTier Tier;
+            [Key(3)]
+            public string SenderUuid;
         }
 
         private static ISubscriber GetCon()
