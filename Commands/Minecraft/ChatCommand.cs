@@ -48,7 +48,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Message = message,
                 SenderName = socket.SessionInfo.McName,
-                Tier = socket.LatestSettings.Tier,
+                Tier = socket.sessionLifesycle.AccountInfo.Value.Tier,
                 SenderUuid = socket.SessionInfo.McUuid
             });
             socket.SessionInfo.LastMessage = DateTime.Now;
