@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 using Coflnet.Sky.Commands.Helper;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Filter;
@@ -15,6 +14,7 @@ using WebSocketSharp;
 using WebSocketSharp.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Coflnet.Sky.ModCommands.Dialogs;
+using System.Runtime.Serialization;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -30,9 +30,8 @@ namespace Coflnet.Sky.Commands.MC
 
         public SessionInfo SessionInfo { get; protected set; } = new SessionInfo();
 
-        public FlipSettings Settings => LatestSettings.Settings;
-        public int UserId => LatestSettings.UserId;
-        public SettingsChange LatestSettings { get; set; } = new SettingsChange() { Settings = DEFAULT_SETTINGS };
+        public FlipSettings Settings => sessionLifesycle.FlipSettings;
+        public hypixel.SettingsChange LatestSettings { get; set; } = new hypixel.SettingsChange() { Settings = ModSessionLifesycle.DEFAULT_SETTINGS };
 
         public string Version { get; private set; }
         public OpenTracing.ITracer tracer = new Jaeger.Tracer.Builder("sky-commands-mod").WithSampler(new ConstSampler(true)).Build();
@@ -42,19 +41,16 @@ namespace Coflnet.Sky.Commands.MC
         public IModVersionAdapter ModAdapter;
 
         public FormatProvider formatProvider { get; private set; }
+        public ModSessionLifesycle sessionLifesycle { get; private set; }
 
-        public static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
-        {
-            MinProfit = 100000,
-            MinVolume = 20,
-            ModSettings = new ModSettings() { ShortNumbers = true },
-            Visibility = new VisibilitySettings() { SellerOpenButton = true, ExtraInfoMax = 3, Lore = true }
-        };
+
 
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
         public static event Action NextUpdateStart;
         private int blockedFlipFilterCount => TopBlocked.Count;
+
+        int IFlipConnection.UserId => int.Parse(sessionLifesycle.UserId);
 
         private static System.Threading.Timer updateTimer;
 
@@ -97,6 +93,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<ProfitCommand>();
             Commands.Add<AhOpenCommand>();
             Commands.Add<SetCommand>();
+            Commands.Add<GetCommand>();
 
             Task.Run(async () =>
             {
@@ -144,6 +141,9 @@ namespace Coflnet.Sky.Commands.MC
             }).ConfigureAwait(false);
 
             System.Console.CancelKeyPress += OnApplicationStop;
+
+            NextUpdateStart -= SendTimer;
+            NextUpdateStart += SendTimer;
         }
 
         private void StartConnection(OpenTracing.IScope openSpan)
@@ -172,85 +172,25 @@ namespace Coflnet.Sky.Commands.MC
             (this.Id, stringId) = ComputeConnectionId(passedId);
             ConSpan.SetTag("conId", stringId);
 
-
-            if (Settings == null)
-                LatestSettings.Settings = DEFAULT_SETTINGS;
             FlipperService.Instance.AddNonConnection(this, false);
             System.Threading.Tasks.Task.Run(async () =>
             {
-                await SetupConnectionSettings(stringId);
+                try
+                {
+
+                    sessionLifesycle = new ModSessionLifesycle(this);
+                    await sessionLifesycle.SetupConnectionSettings(stringId);
+                }
+                catch (Exception e)
+                {
+                    Error(e, "failed to setup connection");
+                }
             }).ConfigureAwait(false);
 
             PingTimer = new System.Threading.Timer((e) =>
             {
                 SendPing();
             }, null, TimeSpan.FromSeconds(50), TimeSpan.FromSeconds(50));
-        }
-
-        private async Task LoadPlayerName(string passedId)
-        {
-
-            using var loadSpan = tracer.BuildSpan("nameLoad").AsChildOf(ConSpan).StartActive();
-            var player = await PlayerService.Instance.GetPlayer(passedId);
-            if (player == null)
-            {
-                var profile = await PlayerSearch.Instance.GetMcProfile(passedId);
-                player = new Player() { Name = profile.Name, UuId = profile.Id };
-                var update = await IndexerClient.TriggerNameUpdate(player.UuId);
-            }
-            SessionInfo.McName = player.Name;
-            SessionInfo.McUuid = player.UuId;
-            loadSpan.Span.SetTag("playerId", passedId);
-            loadSpan.Span.SetTag("uuid", player.UuId);
-        }
-
-        private async Task SetupConnectionSettings(string stringId)
-        {
-            using var loadSpan = tracer.BuildSpan("load").AsChildOf(ConSpan).StartActive();
-            SettingsChange cachedSettings = null;
-            for (int i = 0; i < 3; i++)
-            {
-                cachedSettings = await CacheService.Instance.GetFromRedis<SettingsChange>(this.Id.ToString());
-                if (cachedSettings != null)
-                    break;
-                await Task.Delay(800); // backoff to give redis time to recover
-            }
-
-            if (cachedSettings != null)
-            {
-                try
-                {
-                    MigrateSettings(cachedSettings);
-                    ApplySetting(cachedSettings);
-                    UpdateConnectionTier(cachedSettings, loadSpan.Span);
-                    var helloTask = SendAuthorizedHello(cachedSettings);
-                    SendMessage(formatProvider.WelcomeMessage(),
-                        "https://sky.coflnet.com/flipper");
-                    Console.WriteLine($"loaded settings for {this.SessionInfo.sessionId} " + JsonConvert.SerializeObject(cachedSettings));
-                    await Task.Delay(500);
-                    await helloTask;
-                    SendMessage(COFLNET + $"{McColorCodes.DARK_GREEN} click this to relink your account",
-                    GetAuthLink(stringId), "You don't need to relink your account. \nThis is only here to allow you to link your mod to the website again should you notice your settings aren't updated");
-                    return;
-                }
-                catch (Exception e)
-                {
-                    Error(e, "loading modsocket");
-                    SendMessage(COFLNET + $"Your settings could not be loaded, please relink again :)");
-                }
-            }
-            loadSpan.Span.Finish();
-            var index = 1;
-            while (true)
-            {
-                SendMessage(COFLNET + $"Please {McColorCodes.WHITE}§lclick this [LINK] to login {McColorCodes.GRAY}and configure your flip filters §8(you won't receive real time flips until you do)",
-                    GetAuthLink(stringId));
-                await Task.Delay(TimeSpan.FromSeconds(60 * index++));
-
-                if (LatestSettings.UserId != 0)
-                    return;
-                SendMessage("do /cofl stop to stop receiving this (or click this message)", "/cofl stop");
-            }
         }
 
         private Task TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3)
@@ -270,54 +210,28 @@ namespace Coflnet.Sky.Commands.MC
             });
         }
 
-        private static void MigrateSettings(SettingsChange cachedSettings)
-        {
-            var currentVersion = 3;
-            if (DateTime.Now < new DateTime(2022, 1, 22) && cachedSettings.ExpiresAt < DateTime.Now)
-            {
-                cachedSettings.ExpiresAt = new DateTime(2022, 1, 22);
-                cachedSettings.Tier = AccountTier.PREMIUM;
-                return;
-            }
-            if (cachedSettings.Version >= currentVersion)
-                return;
-            if (cachedSettings.Settings.AllowedFinders == LowPricedAuction.FinderType.UNKOWN)
-                cachedSettings.Settings.AllowedFinders = LowPricedAuction.FinderType.FLIPPER | LowPricedAuction.FinderType.SNIPER_MEDIAN;
-            cachedSettings.Version = currentVersion;
-        }
-
-        private string GetAuthLink(string stringId)
-        {
-            return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(stringId)}";
-        }
-
         public async Task<string> GetPlayerName(string uuid)
         {
             return (await Shared.DiHandler.ServiceProvider.GetRequiredService<PlayerName.Client.Api.PlayerNameApi>()
                     .PlayerNameNameUuidGetAsync(uuid))?.Trim('"');
         }
 
-        private async Task SendAuthorizedHello(SettingsChange cachedSettings)
-        {
-            var user = UserService.Instance.GetUserById(cachedSettings.UserId);
-            var length = user.Email.Length < 10 ? 3 : 6;
-            var builder = new StringBuilder(user.Email);
-            for (int i = 0; i < builder.Length - 5; i++)
-            {
-                if (builder[i] == '@' || i < 3)
-                    continue;
-                builder[i] = '*';
-            }
-            var anonymisedEmail = builder.ToString();
-            if (this.SessionInfo.McName == null)
-                await Task.Delay(800); // allow another half second for the playername to be loaded
-            var messageStart = $"Hello {this.SessionInfo.McName} ({anonymisedEmail}) \n";
-            if (cachedSettings.Tier != AccountTier.NONE && cachedSettings.ExpiresAt > DateTime.Now)
-                SendMessage(COFLNET + messageStart + $"You have {cachedSettings.Tier.ToString()} until {cachedSettings.ExpiresAt}");
-            else
-                SendMessage(COFLNET + messageStart + $"You use the free version of the flip finder");
 
-            await Task.Delay(300);
+        private async Task LoadPlayerName(string passedId)
+        {
+
+            using var loadSpan = tracer.BuildSpan("nameLoad").AsChildOf(ConSpan).StartActive();
+            var player = await PlayerService.Instance.GetPlayer(passedId);
+            if (player == null)
+            {
+                var profile = await PlayerSearch.Instance.GetMcProfile(passedId);
+                player = new Player() { Name = profile.Name, UuId = profile.Id };
+                var update = await IndexerClient.TriggerNameUpdate(player.UuId);
+            }
+            SessionInfo.McName = player.Name;
+            SessionInfo.McUuid = player.UuId;
+            loadSpan.Span.SetTag("playerId", passedId);
+            loadSpan.Span.SetTag("uuid", player.UuId);
         }
 
         private void SendPing()
@@ -336,7 +250,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     Send(Response.Create("ping", 0));
 
-                    UpdateConnectionTier(LatestSettings, span.Span);
+                    sessionLifesycle.UpdateConnectionTier(sessionLifesycle.AccountInfo, span.Span);
                 }
             }
             catch (Exception e)
@@ -517,11 +431,10 @@ namespace Coflnet.Sky.Commands.MC
             System.Threading.Thread.Sleep(10);
         }
 
-        private string Error(Exception exception, string message = null, string additionalLog = null)
+        public string Error(Exception exception, string message = null, string additionalLog = null)
         {
             using var error = tracer.BuildSpan("error").WithTag("message", message).WithTag("error", "true").StartActive();
-            if (System.Net.Dns.GetHostName().Contains("ekwav"))
-                Console.WriteLine(exception.Message + "\n" + exception.StackTrace);
+
             AddExceptionLog(error, exception);
             if (additionalLog != null)
                 error.Span.Log(additionalLog);
@@ -535,6 +448,8 @@ namespace Coflnet.Sky.Commands.MC
             error.Span.Log(e.StackTrace);
             if (e.InnerException != null)
                 AddExceptionLog(error, e.InnerException);
+            if (System.Net.Dns.GetHostName().Contains("ekwav"))
+                Console.WriteLine(e.Message + "\n" + e.StackTrace);
         }
 
         /// <summary>
@@ -691,39 +606,18 @@ namespace Coflnet.Sky.Commands.MC
                     .StartActive();
             if (this.LatestSettings.UserId == 0)
             {
-                Task.Run(async () => await ModGotAuthorised(settings));
+                //Task.Run(async () => await ModGotAuthorised(settings));
             }
             else if (!settingsSame)
             {
                 var changed = FindWhatsNew(this.Settings, settings.Settings);
-                if(string.IsNullOrWhiteSpace(changed))
+                if (string.IsNullOrWhiteSpace(changed))
                     changed = "Settings changed";
                 SendMessage($"{COFLNET} {changed}");
                 span.Span.Log(changed);
             }
-            UpdateConnectionTier(settings, span.Span);
-            ApplySetting(settings);
 
             span.Span.Log(JSON.Stringify(settings));
-        }
-
-        /// <summary>
-        /// Applies any settings changes
-        /// </summary>
-        /// <param name="settings"></param>
-        private void ApplySetting(SettingsChange settings)
-        {
-            LatestSettings = settings;
-            if (settings.Settings?.ModSettings?.Chat ?? false)
-                ChatCommand.MakeSureChatIsConnected(this).Wait();
-
-            CacheService.Instance.SaveInRedis(this.Id.ToString(), settings, TimeSpan.FromDays(3))
-            .Wait(); // this call is synchronised because redis is set to fire and forget (returns instantly)
-
-            if (settings.Settings.BasedOnLBin && settings.Settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
-            {
-                SendMessage(new DialogBuilder().Msg(McColorCodes.RED + "Your profit is based on lbin, therefore you should only use the `sniper` flip finder to maximise speed"));
-            }
         }
 
         public Task UpdateSettings(Func<SettingsChange, SettingsChange> updatingFunc)
@@ -732,59 +626,6 @@ namespace Coflnet.Sky.Commands.MC
             return FlipperService.Instance.UpdateSettings(newSettings);
         }
 
-        private async Task<OpenTracing.IScope> ModGotAuthorised(SettingsChange settings)
-        {
-            var span = tracer.BuildSpan("Authorized").AsChildOf(ConSpan.Context).StartActive();
-            try
-            {
-                await SendAuthorizedHello(settings);
-                SendMessage($"Authorized connection you can now control settings via the website");
-                await Task.Delay(TimeSpan.FromSeconds(20));
-                SendMessage($"Remember: the format of the flips is: §dITEM NAME §fCOST -> MEDIAN");
-            }
-            catch (Exception e)
-            {
-                Error(e, "settings authorization");
-                span.Span.Log(e.Message);
-            }
-
-            //await Task.Delay(TimeSpan.FromMinutes(2));
-            try
-            {
-                await CheckVerificationStatus(settings);
-            }
-            catch (Exception e)
-            {
-                Error(e, "verification failed");
-            }
-
-            return span;
-        }
-
-        private async Task CheckVerificationStatus(SettingsChange settings)
-        {
-            var connect = await McAccountService.Instance.ConnectAccount(settings.UserId.ToString(), SessionInfo.McUuid);
-            if (connect.IsConnected)
-                return;
-            using var verification = tracer.BuildSpan("Verification").AsChildOf(ConSpan.Context).StartActive();
-            var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
-            {
-                name = "STICK",
-            });
-            var bid = connect.Code;
-            var r = new Random();
-
-            var targetAuction = activeAuction.Where(a => a.Price < bid).OrderBy(x => r.Next()).FirstOrDefault();
-            verification.Span.SetTag("code", bid);
-            verification.Span.Log(JSON.Stringify(activeAuction));
-            verification.Span.Log(JSON.Stringify(targetAuction));
-
-            SendMessage(new ChatPart(
-                $"{COFLNET}You connected from an unkown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction.",
-                $"/viewauction {targetAuction?.Uuid}",
-                $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
-
-        }
 
         /// <summary>
         /// Tests if the given settings are different from the current active ones
@@ -794,30 +635,6 @@ namespace Coflnet.Sky.Commands.MC
         private bool AreSettingsTheSame(SettingsChange settings)
         {
             return MessagePack.MessagePackSerializer.Serialize(settings.Settings).SequenceEqual(MessagePack.MessagePackSerializer.Serialize(Settings));
-        }
-
-        private void UpdateConnectionTier(SettingsChange settings, OpenTracing.ISpan span)
-        {
-            this.ConSpan.SetTag("tier", settings.Tier.ToString());
-            span.Log("set connection tier to " + settings.Tier.ToString());
-            if (DateTime.Now < new DateTime(2022, 1, 22))
-            {
-                FlipperService.Instance.AddConnection(this, false);
-            }
-            else if (settings.Tier == AccountTier.NONE)
-            {
-                FlipperService.Instance.AddNonConnection(this, false);
-            }
-            if ((settings.Tier.HasFlag(AccountTier.PREMIUM) || settings.Tier.HasFlag(AccountTier.STARTER_PREMIUM)) && settings.ExpiresAt > DateTime.Now)
-            {
-                FlipperService.Instance.AddConnection(this, false);
-            }
-            else if (settings.Tier == AccountTier.PREMIUM_PLUS)
-                FlipperService.Instance.AddConnectionPlus(this, false);
-
-            NextUpdateStart -= SendTimer;
-            NextUpdateStart += SendTimer;
-
         }
 
         private void SendTimer()
@@ -860,7 +677,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (current.Visibility != null)
                     foreach (var prop in current.Visibility?.GetType().GetFields())
                     {
-                        if(prop.FieldType == typeof(string))
+                        if (prop.FieldType == typeof(string))
                             return prop.Name + " changed";
                         if (prop.GetValue(current.Visibility).ToString() != prop.GetValue(newSettings.Visibility).ToString())
                         {

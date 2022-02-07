@@ -27,11 +27,30 @@ namespace Coflnet.Sky.Commands.MC
                 var newValue = arguments.Substring(name.Length + 1);
                 await updater.Update(socket, name, newValue);
                 socket.LatestSettings.Settings.Changer = "mod-" + socket.SessionInfo.sessionId;
-                await Task.WhenAll(service.UpdateSetting(socket.UserId.ToString(), "flipSettings", socket.Settings),
-                    socket.UpdateSettings(current =>
-                        current
-                    ));
+                await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
                 socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{name}{DEFAULT_COLOR} to {McColorCodes.WHITE}{newValue}"));
+            }
+            catch (CoflnetException e)
+            {
+                socket.SendMessage(new ChatPart(COFLNET + e.Message));
+                dev.Logger.Instance.Error(e, "set setting");
+            }
+            catch (Exception e)
+            {
+                dev.Logger.Instance.Error(e, "set setting");
+            }
+        }
+    }
+    public class GetCommand : McCommand
+    {
+        private static SettingsUpdater updater = new SettingsUpdater();
+        public override async Task Execute(MinecraftSocket socket, string arguments)
+        {
+            try
+            {
+                var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();
+                await service.UpdateSetting("1", "flipSettings", new FlipSettings(){Changer = arguments});
+                //socket.SendMessage(new ChatPart($"{COFLNET}val is {socket.SettingsTest.Value.Changer}"));
             }
             catch (CoflnetException e)
             {
