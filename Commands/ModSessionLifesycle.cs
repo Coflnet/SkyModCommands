@@ -165,8 +165,6 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Error(e, "settings authorization");
                 span.Span.Log(e.Message);
             }
-
-            //await Task.Delay(TimeSpan.FromMinutes(2));
             try
             {
                 await CheckVerificationStatus(settings);
