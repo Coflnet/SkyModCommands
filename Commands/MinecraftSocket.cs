@@ -599,25 +599,6 @@ namespace Coflnet.Sky.Commands.MC
 
         public void UpdateSettings(SettingsChange settings)
         {
-            var settingsSame = AreSettingsTheSame(settings);
-            using var span = tracer.BuildSpan("SettingsUpdate").AsChildOf(ConSpan.Context)
-                    .WithTag("premium", settings.Tier.ToString())
-                    .WithTag("userId", settings.UserId.ToString())
-                    .StartActive();
-            if (this.LatestSettings.UserId == 0)
-            {
-                //Task.Run(async () => await ModGotAuthorised(settings));
-            }
-            else if (!settingsSame)
-            {
-                var changed = FindWhatsNew(this.Settings, settings.Settings);
-                if (string.IsNullOrWhiteSpace(changed))
-                    changed = "Settings changed";
-                SendMessage($"{COFLNET} {changed}");
-                span.Span.Log(changed);
-            }
-
-            span.Span.Log(JSON.Stringify(settings));
         }
 
         public Task UpdateSettings(Func<SettingsChange, SettingsChange> updatingFunc)

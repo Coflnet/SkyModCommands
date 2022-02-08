@@ -95,7 +95,8 @@ namespace Coflnet.Sky.Commands.MC
         /// <param name="settings"></param>
         private void UpdateSettings(FlipSettings settings)
         {
-            Console.WriteLine("updated settings");
+            using var span = tracer.BuildSpan("SettingsUpdate").AsChildOf(ConSpan.Context)
+                    .StartActive();
             var changed = socket.FindWhatsNew(FlipSettings.Value, settings);
             if (string.IsNullOrWhiteSpace(changed))
                 changed = "Settings changed";
@@ -107,18 +108,23 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.SendMessage(new DialogBuilder().Msg(McColorCodes.RED + "Your profit is based on lbin, therefore you should only use the `sniper` flip finder to maximise speed"));
             }
+            span.Span.Log(JSON.Stringify(settings));
         }
 
         private async Task UpdateAccountInfo(AccountInfo info)
         {
-            if (AccountInfo == null)
+            using var span = tracer.BuildSpan("AuthUpdate").AsChildOf(ConSpan.Context)
+                    .WithTag("premium", info.Tier.ToString())
+                    .WithTag("userId", info.UserId.ToString())
+                    .StartActive();
+            if (info == null)
                 return;
             try
             {
                 //MigrateSettings(cachedSettings);
                 /*ApplySetting(cachedSettings);*/
-                UpdateConnectionTier(AccountInfo, socket.ConSpan);
-                var helloTask = SendAuthorizedHello(AccountInfo);
+                UpdateConnectionTier(info, socket.ConSpan);
+                var helloTask = SendAuthorizedHello(info);
                 SendMessage(socket.formatProvider.WelcomeMessage(),
                     "https://sky.coflnet.com/flipper");
                 await Task.Delay(500);
