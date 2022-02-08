@@ -6,7 +6,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            if (socket.SessionInfo.McName != "Ekwav" && socket.LatestSettings.Tier != hypixel.AccountTier.PREMIUM_PLUS)
+            if (socket.SessionInfo.McName != "Ekwav" && socket.sessionLifesycle.AccountInfo.Value.Tier != hypixel.AccountTier.PREMIUM_PLUS)
             {
                 socket.SendMessage(COFLNET + $"This setting is currently in development. You can't use it yet. :/ ");
                 return;

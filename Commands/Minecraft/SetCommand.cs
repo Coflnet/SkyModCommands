@@ -26,7 +26,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var newValue = arguments.Substring(name.Length + 1);
                 await updater.Update(socket, name, newValue);
-                socket.LatestSettings.Settings.Changer = "mod-" + socket.SessionInfo.sessionId;
+                //socket.LatestSettings.Settings.Changer = "mod-" + socket.SessionInfo.sessionId;
                 await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
                 socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{name}{DEFAULT_COLOR} to {McColorCodes.WHITE}{newValue}"));
             }

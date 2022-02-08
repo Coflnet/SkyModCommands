@@ -31,7 +31,11 @@ namespace Coflnet.Sky.Commands.MC
         public SessionInfo SessionInfo { get; protected set; } = new SessionInfo();
 
         public FlipSettings Settings => sessionLifesycle.FlipSettings;
-        public hypixel.SettingsChange LatestSettings { get; set; } = new hypixel.SettingsChange() { Settings = ModSessionLifesycle.DEFAULT_SETTINGS };
+        public hypixel.SettingsChange LatestSettings => new hypixel.SettingsChange() { 
+            Settings = sessionLifesycle.FlipSettings, 
+            Tier = sessionLifesycle.AccountInfo.Value.Tier,
+            UserId = sessionLifesycle.AccountInfo.Value.UserId 
+            };
 
         public string Version { get; private set; }
         public OpenTracing.ITracer tracer = new Jaeger.Tracer.Builder("sky-commands-mod").WithSampler(new ConstSampler(true)).Build();
@@ -603,8 +607,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public Task UpdateSettings(Func<SettingsChange, SettingsChange> updatingFunc)
         {
-            var newSettings = updatingFunc(this.LatestSettings);
-            return FlipperService.Instance.UpdateSettings(newSettings);
+            return Task.CompletedTask;
         }
 
 
