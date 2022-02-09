@@ -61,7 +61,6 @@ namespace Coflnet.Sky.Commands.MC
 
             loadSpan.Span.Finish();
             var index = 1;
-            Console.WriteLine("userId: " + UserId.Value);
             while (UserId.Value == null)
             {
                 SendMessage(COFLNET + $"Please {McColorCodes.WHITE}§lclick this [LINK] to login {McColorCodes.GRAY}and configure your flip filters §8(you won't receive real time flips until you do)",
@@ -76,12 +75,10 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SubToSettings(string val)
         {
-            Console.WriteLine("user updated to " + val);
             FlipSettings = SelfUpdatingValue<FlipSettings>.Create(val, "flipSettings", () => DEFAULT_SETTINGS).Result;
             AccountInfo = SelfUpdatingValue<AccountInfo>.Create(val, "accountInfo").Result;
 
             FlipSettings.OnChange += UpdateSettings;
-            Console.WriteLine("assigned default settings");
             AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai));
             if(AccountInfo.Value != default)
                 Task.Run(async () => await  UpdateAccountInfo(AccountInfo));
@@ -204,7 +201,6 @@ namespace Coflnet.Sky.Commands.MC
 
         public void UpdateConnectionTier(AccountInfo accountInfo, OpenTracing.ISpan span)
         {
-            Console.WriteLine(JsonConvert.SerializeObject(accountInfo));
             this.ConSpan.SetTag("tier", accountInfo.Tier.ToString());
             span.Log("set connection tier to " + accountInfo.Tier.ToString());
             if (DateTime.Now < new DateTime(2022, 1, 22))
