@@ -80,9 +80,9 @@ namespace Coflnet.Sky.Commands.MC
 
             FlipSettings.OnChange += UpdateSettings;
             AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai));
-            if(AccountInfo.Value != default)
-                Task.Run(async () => await  UpdateAccountInfo(AccountInfo));
-            else 
+            if (AccountInfo.Value != default)
+                Task.Run(async () => await UpdateAccountInfo(AccountInfo));
+            else
                 Console.WriteLine("accountinfo is default");
         }
 
@@ -121,6 +121,8 @@ namespace Coflnet.Sky.Commands.MC
                 //MigrateSettings(cachedSettings);
                 /*ApplySetting(cachedSettings);*/
                 UpdateConnectionTier(info, socket.ConSpan);
+                if (AccountInfo.Value?.UserId == info.UserId)
+                    return; // don't send hello again
                 var helloTask = SendAuthorizedHello(info);
                 SendMessage(socket.formatProvider.WelcomeMessage(),
                     "https://sky.coflnet.com/flipper");
