@@ -100,7 +100,7 @@ namespace Coflnet.Sky.Commands.MC
 
             var builder = new StringBuilder(80);
 
-            string itemName = flip.Auction.Context.ContainsKey("cname") ? flip.Auction.Context["cname"] : $"{GetRarityColor(a.Tier)}{a.ItemName}";
+            string itemName = flip.Auction?.Context?.ContainsKey("cname") ?? false ? flip.Auction.Context["cname"] : $"{GetRarityColor(a.Tier)}{a.ItemName}";
 
             builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
             try
@@ -170,7 +170,7 @@ namespace Coflnet.Sky.Commands.MC
         public string GetHoverText(FlipInstance flip)
         {
             if (Settings.Visibility.Lore)
-                return flip.Auction.Context.GetValueOrDefault("lore");
+                return flip.Auction?.Context?.GetValueOrDefault("lore");
             return string.Join('\n', flip.Interesting.Select(s => "・" + s)) + "\n" + flip.SellerName;
         }
     }

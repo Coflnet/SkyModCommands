@@ -121,8 +121,9 @@ namespace Coflnet.Sky.Commands.MC
                 //MigrateSettings(cachedSettings);
                 /*ApplySetting(cachedSettings);*/
                 UpdateConnectionTier(info, socket.ConSpan);
-                if (AccountInfo.Value?.UserId == info.UserId)
+                if (SessionInfo.SentWelcome)
                     return; // don't send hello again
+                SessionInfo.SentWelcome = true;
                 var helloTask = SendAuthorizedHello(info);
                 SendMessage(socket.formatProvider.WelcomeMessage(),
                     "https://sky.coflnet.com/flipper");
