@@ -29,7 +29,7 @@ namespace Coflnet.Sky.Commands.MC
                     new ChatPart(" * This flip is overpriced\n", "/cofl dialog overpriced ", "overpriced/bad flip"),
                     new ChatPart(" * This item sells slowly\n", "/cofl dialog slowsell"),
                     new ChatPart(" * I blacklisted this before\n", "/cofl report blacklist broken"));
-                await FlipTrackingService.Instance.DownVote(uuid, socket.SessionInfo.McUuid);
+                await socket.GetService<Commands.FlipTrackingService>().DownVote(uuid, socket.SessionInfo.McUuid);
             }
             else if (rating == "up")
             {
@@ -38,7 +38,7 @@ namespace Coflnet.Sky.Commands.MC
                                     new ChatPart(" * This item sells fast\n", "/cofl report fast sell"),
                                     new ChatPart(" * High profit\n", "/cofl dialog echo Okay, sounds great, have fun with your coins :)"),
                                     new ChatPart(" * Something else \n", null, "please send /cofl report with further information"));
-                await FlipTrackingService.Instance.UpVote(uuid, socket.SessionInfo.McUuid);
+                await socket.GetService<Commands.FlipTrackingService>().UpVote(uuid, socket.SessionInfo.McUuid);
             }
             else
             {

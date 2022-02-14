@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "Crunching the latest numbers for you :)", null, "this might take a few seconds");
             }
 
-            var response = await Sky.Commands.FlipTrackingService.Instance.GetPlayerFlips(socket.SessionInfo.McUuid, time);
+            var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(socket.SessionInfo.McUuid, time);
             var tfm = GetProfitForFinder(response, LowPricedAuction.FinderType.TFM);
             var stonks = GetProfitForFinder(response, LowPricedAuction.FinderType.STONKS);
             var other = GetProfitForFinder(response, LowPricedAuction.FinderType.EXTERNAL);
@@ -45,7 +45,7 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(COFLNET + $"According to our data you made {FormatPrice(socket, response.TotalProfit)} "
                 + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days accross {FormatPrice(socket, response.Flips.Length)} auctions",
                 null, hover);
-            var sorted = response.Flips.OrderByDescending(f => f.SoldFor - f.PricePaid).ToList();
+            var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
             var best = sorted.FirstOrDefault();
             if (best == null)
                 return;
@@ -56,7 +56,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private static long GetProfitForFinder(Shared.FlipSumary response, LowPricedAuction.FinderType type)
         {
-            return response.Flips.Where(f => f.Finder == type).Sum(f => f.SoldFor - f.PricePaid);
+            return response.Flips.Where(f => f.Finder == type).Sum(f => f.Profit);
         }
 
         private string FormatPrice(MinecraftSocket socket, long number)

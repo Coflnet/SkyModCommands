@@ -220,6 +220,11 @@ namespace Coflnet.Sky.Commands.MC
                     .PlayerNameNameUuidGetAsync(uuid))?.Trim('"');
         }
 
+        public T GetService<T>()
+        {
+            return Shared.DiHandler.ServiceProvider.GetRequiredService<T>();
+        }
+
 
         private async Task LoadPlayerName(string passedId)
         {
@@ -335,7 +340,7 @@ namespace Coflnet.Sky.Commands.MC
                     var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
                     if (flip != null && flip.Auction.Context != null)
                         flip.AdditionalProps["clickT"] = (DateTime.Now - flip.Auction.FindTime).ToString();
-                    await FlipTrackingService.Instance.ClickFlip(auctionUuid, SessionInfo.McUuid);
+                    await GetService<FlipTrackingService>().ClickFlip(auctionUuid, SessionInfo.McUuid);
 
                 });
         }
@@ -542,7 +547,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 var track = Task.Run(async () =>
                 {
-                    await FlipTrackingService.Instance.ReceiveFlip(flip.Auction.Uuid, SessionInfo.McUuid);
+                    await GetService<FlipTrackingService>().ReceiveFlip(flip.Auction.Uuid, SessionInfo.McUuid);
                     // remove dupplicates
                     if (SentFlips.Count > 300)
                     {
