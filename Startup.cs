@@ -50,7 +50,7 @@ namespace Coflnet.Sky.ModCommands
             var serverVersion = new MariaDbServerVersion(new Version(Configuration["MARIADB_VERSION"]));
 
             // Replace 'YourDbContext' with the name of your own DbContext derived class.
-            services.AddDbContext<BaseDbContext>(
+            services.AddDbContext<HypixelContext>(
                 dbContextOptions => dbContextOptions
                     .UseMySql(Configuration["DB_CONNECTION"], serverVersion)
                     .EnableSensitiveDataLogging() // <-- These two calls are optional but help

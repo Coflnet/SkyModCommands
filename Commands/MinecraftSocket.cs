@@ -188,6 +188,7 @@ namespace Coflnet.Sky.Commands.MC
                 catch (Exception e)
                 {
                     Error(e, "failed to setup connection");
+                    SendMessage(new DialogBuilder().CoflCommand<ReportCommand>("Whoops, we are very sorry but the connection setup failed. If this persists please click this message to create a report.", "failed to setup connection", "create a report"));
                 }
             }).ConfigureAwait(false);
 
