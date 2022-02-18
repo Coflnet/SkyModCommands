@@ -93,7 +93,7 @@ namespace Coflnet.Sky.Commands.MC
                     FormatPrice((profit * 100 / a.StartingBid)),
                     FormatPrice(flip.MedianPrice),
                     FormatPrice(flip.LowestBin ?? 0),
-                    flip.Volume  // this is {10}
+                    flip.Volume.ToString("0.#")  // this is {10}
                 );
             }
             var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice((profit * 100 / a.StartingBid))}%{priceColor}" : "";
