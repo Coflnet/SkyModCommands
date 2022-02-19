@@ -55,14 +55,20 @@ namespace Coflnet.Sky.ModCommands.Services
             }
             redis.GetSubscriber().Subscribe("snipes", (chan, val) =>
             {
-                var flip = MessagePackSerializer.Deserialize<LowPricedAuction>(val);
-                flip.Auction.ItemName += "!";
-                FlipperService.Instance.DeliverLowPricedAuction(flip);
-                logger.LogInformation($"sheduled bfcs {flip.Auction.UId} {DateTime.Now.Second}.{DateTime.Now.Millisecond}");
-                
+                try
+                {
+                    var flip = MessagePackSerializer.Deserialize<LowPricedAuction>(val);
+                    flip.Auction.ItemName += "!";
+                    FlipperService.Instance.DeliverLowPricedAuction(flip);
+                    logger.LogInformation($"sheduled bfcs {flip.Auction.UId} {DateTime.Now.Second}.{DateTime.Now.Millisecond}");
+                } 
+                catch(Exception e)
+                {
+                    logger.LogError(e, "bfcs error");
+                }
             });
             logger.LogInformation("set up fast track flipper");
-            return;
+            await Task.Delay(Timeout.Infinite, stoppingToken);
         }
 
         private ModService GetService()
