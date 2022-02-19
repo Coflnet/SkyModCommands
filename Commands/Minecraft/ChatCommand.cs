@@ -48,7 +48,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Message = message,
                 SenderName = socket.SessionInfo.McName,
-                Tier = socket.sessionLifesycle.AccountInfo.Value.Tier,
+                Tier = socket.sessionLifesycle.AccountInfo?.Value?.Tier ?? hypixel.AccountTier.NONE,
                 SenderUuid = socket.SessionInfo.McUuid
             });
             socket.SessionInfo.LastMessage = DateTime.Now;

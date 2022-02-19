@@ -9,6 +9,9 @@ using Microsoft.Extensions.Configuration;
 using System;
 using Microsoft.Extensions.Logging;
 using Coflnet.Sky.ModCommands.Controllers;
+using StackExchange.Redis;
+using hypixel;
+using MessagePack;
 
 namespace Coflnet.Sky.ModCommands.Services
 {
@@ -33,6 +36,32 @@ namespace Coflnet.Sky.ModCommands.Services
         /// <returns></returns>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            await Task.Yield();
+            ConnectionMultiplexer redis = null;
+            var i = 2;
+            while (redis == null)
+            {
+                try
+                {
+
+                    var redisOptions = ConfigurationOptions.Parse(config["FLIP_REDIS_OPTIONS"]);
+                    redis = ConnectionMultiplexer.Connect(redisOptions);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "connecting to flip redis");
+                    await Task.Delay(i++ * 10000);
+                }
+            }
+            redis.GetSubscriber().Subscribe("snipes", (chan, val) =>
+            {
+                var flip = MessagePackSerializer.Deserialize<LowPricedAuction>(val);
+                flip.Auction.ItemName += "!";
+                FlipperService.Instance.DeliverLowPricedAuction(flip);
+                logger.LogInformation($"sheduled bfcs {flip.Auction.UId} {DateTime.Now.Second}.{DateTime.Now.Millisecond}");
+                
+            });
+            logger.LogInformation("set up fast track flipper");
             return;
         }
 
