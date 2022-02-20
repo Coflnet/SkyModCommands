@@ -337,7 +337,7 @@ namespace Coflnet.Sky.Commands.MC
             if (a.data.Contains("/viewauction "))
                 Task.Run(async () =>
                 {
-                    var auctionUuid = a.data.Trim('"').Replace("/viewauction ", "");
+                    var auctionUuid = JsonConvert.DeserializeObject<string>(a.data).Trim('"').Replace("/viewauction ", "");
                     var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
                     if (flip != null && flip.Auction.Context != null)
                         flip.AdditionalProps["clickT"] = (DateTime.Now - flip.Auction.FindTime).ToString();
