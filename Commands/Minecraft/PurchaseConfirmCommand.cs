@@ -2,11 +2,12 @@ using System.Threading.Tasks;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    public class PurchaseConfirmCommand : McCommand
+    public class PurchaseConfirmCommand : PurchaseStartCommand
     {
-        public override Task Execute(MinecraftSocket socket, string arguments)
+        protected override string StatName => "pConfirm";
+        protected override async Task ExecuteTrack(MinecraftSocket socket, string auctionUuid)
         {
-            return Task.CompletedTask;
+            await socket.GetService<FlipTrackingService>().PurchaseConfirm(auctionUuid, socket.SessionInfo.McUuid);
         }
     }
 }

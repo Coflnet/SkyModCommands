@@ -12,6 +12,7 @@ using Coflnet.Sky.ModCommands.Controllers;
 using StackExchange.Redis;
 using hypixel;
 using MessagePack;
+using Coflnet.Sky.Commands.MC;
 
 namespace Coflnet.Sky.ModCommands.Services
 {
@@ -58,11 +59,13 @@ namespace Coflnet.Sky.ModCommands.Services
                 try
                 {
                     var flip = MessagePackSerializer.Deserialize<LowPricedAuction>(val);
-                    flip.Auction.ItemName += "!";
+                    if (flip.Auction.Context.ContainsKey("cname"))
+                        flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
+                    flip.AdditionalProps?.TryAdd("bfcs", "redis");
                     FlipperService.Instance.DeliverLowPricedAuction(flip);
                     logger.LogInformation($"sheduled bfcs {flip.Auction.UId} {DateTime.Now.Second}.{DateTime.Now.Millisecond}");
-                } 
-                catch(Exception e)
+                }
+                catch (Exception e)
                 {
                     logger.LogError(e, "bfcs error");
                 }
