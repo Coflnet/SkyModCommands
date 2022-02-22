@@ -12,6 +12,8 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var auctionUuid = JsonConvert.DeserializeObject<PurchaseAction>(arguments).AuctionId;
+            if(string.IsNullOrEmpty(auctionUuid))
+                return; // currently no handling
             var flip = socket.GetFlip(auctionUuid);
             if (flip != null && flip.Auction.Context != null)
                 flip.AdditionalProps[StatName] = (DateTime.Now - flip.Auction.FindTime).ToString();
