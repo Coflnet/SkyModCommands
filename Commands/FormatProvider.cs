@@ -64,7 +64,12 @@ namespace Coflnet.Sky.Commands.MC
 
             Settings.GetPrice(flip, out long targetPrice, out long profit);
             var priceColor = GetProfitColor((int)profit);
-            var finderType = flip.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ? "SNIPE" : "FLIP";
+            var finderType = flip.Finder switch
+            {
+                LowPricedAuction.FinderType.SNIPER => "SNIPE",
+                LowPricedAuction.FinderType.SNIPER_MEDIAN => "MS",
+                _ => "FLIP"
+            };
             var a = flip.Auction;
             if (!string.IsNullOrWhiteSpace(Settings.ModSettings?.Format))
             {
