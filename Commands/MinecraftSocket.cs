@@ -31,11 +31,12 @@ namespace Coflnet.Sky.Commands.MC
         public SessionInfo SessionInfo { get; protected set; } = new SessionInfo();
 
         public FlipSettings Settings => sessionLifesycle.FlipSettings;
-        public hypixel.SettingsChange LatestSettings => new hypixel.SettingsChange() { 
-            Settings = sessionLifesycle.FlipSettings, 
+        public hypixel.SettingsChange LatestSettings => new hypixel.SettingsChange()
+        {
+            Settings = sessionLifesycle.FlipSettings,
             Tier = sessionLifesycle.AccountInfo.Value.Tier,
-            UserId = sessionLifesycle.AccountInfo.Value.UserId 
-            };
+            UserId = sessionLifesycle.AccountInfo.Value.UserId
+        };
 
         public string Version { get; private set; }
         public OpenTracing.ITracer tracer = new Jaeger.Tracer.Builder("sky-commands-mod").WithSampler(new ConstSampler(true)).Build();
@@ -101,21 +102,20 @@ namespace Coflnet.Sky.Commands.MC
 
             Task.Run(async () =>
             {
-                var next = await new NextUpdateRetriever().Get();
-
                 NextUpdateStart += () =>
                 {
                     Console.WriteLine("next update");
                     GC.Collect();
                 };
-                while (next < DateTime.Now)
-                    next += TimeSpan.FromMinutes(1);
+                DateTime next = await GetNextUpdateTime();
                 Console.WriteLine($"started timer to start at {next} now its {DateTime.Now}");
                 updateTimer = new System.Threading.Timer((e) =>
                 {
                     try
                     {
                         NextUpdateStart?.Invoke();
+                        if (DateTime.Now.Minute % 10 == 0)
+                            UpdateTimer();
                     }
                     catch (Exception ex)
                     {
@@ -123,6 +123,25 @@ namespace Coflnet.Sky.Commands.MC
                     }
                 }, null, next - DateTime.Now, TimeSpan.FromMinutes(1));
             }).ConfigureAwait(false);
+        }
+
+        private static void UpdateTimer()
+        {
+            Task.Run(async () =>
+            {
+
+                DateTime next = await GetNextUpdateTime();
+                updateTimer.Change(next - DateTime.Now, TimeSpan.FromMinutes(1));
+            });
+        }
+
+        private static async Task<DateTime> GetNextUpdateTime()
+        {
+            var next = await new NextUpdateRetriever().Get();
+
+            while (next < DateTime.Now)
+                next += TimeSpan.FromMinutes(1);
+            return next;
         }
 
         protected override void OnOpen()
@@ -494,9 +513,6 @@ namespace Coflnet.Sky.Commands.MC
                 // pre check already sent flips
                 if (SentFlips.ContainsKey(flip.UId))
                     return true; // don't double send
-
-                if (!flip.Auction.Bin) // no nonbin 
-                    return true;
 
                 if (flip.AdditionalProps?.ContainsKey("sold") ?? false)
                     return BlockedFlip(flip, "sold");
