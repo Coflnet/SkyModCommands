@@ -15,7 +15,7 @@ namespace Coflnet.Sky.Commands.MC
         private static HashSet<string> MutedUsers = new HashSet<string>() { "850cfa6e7f184ed4b72a8c304734bcbe" };
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            if(MutedUsers.Contains(socket.SessionInfo.McUuid))
+            if (MutedUsers.Contains(socket.SessionInfo.McUuid))
             {
                 socket.SendMessage(COFLNET + "You have been muted from the chat because you repeadetly violated the rules", "I am blocked from the Coflnet chat :(", $"Click to express your sadness");
                 return;
@@ -60,15 +60,25 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var sub = await chat.Subscribe(m =>
                 {
-                    if (socket.Settings.BlackList.Any(b => b.filter.Where(f => f.Key == "Seller" && f.Value == m.SenderUuid).Any()))
+                    try
                     {
-                        socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player on your blacklist", null, $"You blacklisted {m.SenderName}"));
-                        return true;
+
+                        if (socket.Settings?.BlackList?.Any(b => b.filter.Where(f => f.Key == "Seller" && f.Value == m.SenderUuid).Any()) ?? false)
+                        {
+                            Console.WriteLine("blacklist " + m.Message);
+                            socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player on your blacklist", null, $"You blacklisted {m.SenderName}"));
+                            return true;
+                        }
+                        Console.WriteLine("got message " + m.Message);
+                        var color = ((int)m.Tier) > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE;
+                        return socket.SendMessage(
+                            new ChatPart($"{CHAT_PREFIX} {color}{m.SenderName}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.SenderName} {m.Message}", "click to report message"),
+                            new ChatPart("", "/cofl void"));
+                    } catch(Exception e)
+                    {
+                        dev.Logger.Instance.Error(e, "chat message");
                     }
-                    var color = ((int)m.Tier) > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE;
-                    return socket.SendMessage(
-                        new ChatPart($"{CHAT_PREFIX} {color}{m.SenderName}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.SenderName} {m.Message}", "click to report message"),
-                        new ChatPart("", "/cofl void"));
+                    return false;
                 });
                 socket.SessionInfo.ListeningToChat = true;
 

@@ -204,8 +204,10 @@ namespace Coflnet.Sky.Commands.MC
 
         public void UpdateConnectionTier(AccountInfo accountInfo, OpenTracing.ISpan span)
         {
-            this.ConSpan.SetTag("tier", accountInfo.Tier.ToString());
-            span.Log("set connection tier to " + accountInfo.Tier.ToString());
+            this.ConSpan.SetTag("tier", accountInfo?.Tier.ToString());
+            span.Log("set connection tier to " + accountInfo?.Tier.ToString());
+            if(accountInfo == null)
+                return;
             if (DateTime.Now < new DateTime(2022, 1, 22))
             {
                 FlipperService.Instance.AddConnection(socket, false);
@@ -220,8 +222,6 @@ namespace Coflnet.Sky.Commands.MC
             }
             else if (accountInfo.Tier == AccountTier.PREMIUM_PLUS)
                 FlipperService.Instance.AddConnectionPlus(socket, false);
-
-
         }
 
 

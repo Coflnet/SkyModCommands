@@ -4,11 +4,23 @@ using hypixel;
 using MessagePack;
 using Newtonsoft.Json;
 using StackExchange.Redis;
+using Coflnet.Sky.Chat.Client;
+using Coflnet.Sky.Commands.MC;
+using Coflnet.Sky.Chat.Client.Client;
+using Microsoft.Extensions.Configuration;
 
 namespace Coflnet.Sky.ModCommands.Services
 {
     public class ChatService
     {
+        Chat.Client.Api.ChatApi api;
+        string chatAuthKey;
+
+        public ChatService(IConfiguration config)
+        {
+            api = new(config["CHAT:BASE_URL"]);
+            chatAuthKey = config["CHAT:API_KEY"];
+        }
         public async Task<ChannelMessageQueue> Subscribe(Func<ModChatMessage, bool> OnMessage)
         {
             for (int i = 0; i < 3; i++)
@@ -27,12 +39,12 @@ namespace Coflnet.Sky.ModCommands.Services
                 }
                 catch (Exception)
                 {
-                    if(i >= 2)
+                    if (i >= 2)
                         throw;
                     await Task.Delay(300);
                 }
             }
-            throw new CoflnetException("connection_failed","connection to chat failed");
+            throw new CoflnetException("connection_failed", "connection to chat failed");
         }
         public async Task Send(ModChatMessage message)
         {
@@ -40,11 +52,20 @@ namespace Coflnet.Sky.ModCommands.Services
                 try
                 {
                     await GetCon().PublishAsync("mcChat", JsonConvert.SerializeObject(message));
+                    var chatMsg = new Chat.Client.Model.ChatMessage(
+                        message.SenderUuid, message.SenderName,
+                        (int)message.Tier > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE,
+                        message.Message);
+                    await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
                     return;
                 }
                 catch (RedisTimeoutException e)
                 {
 
+                }
+                catch (ApiException e)
+                {
+                    throw JsonConvert.DeserializeObject<CoflnetException>(e.Message.Replace("Error calling ApiChatSendPost: ", ""));
                 }
         }
 

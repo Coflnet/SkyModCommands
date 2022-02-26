@@ -338,6 +338,10 @@ namespace Coflnet.Sky.Commands.MC
                 try
                 {
                     await command.Execute(this, a.data);
+                } 
+                catch(CoflnetException e)
+                {
+                    SendMessage(COFLNET + $"{McColorCodes.RED}{e.Message}");
                 }
                 catch (Exception ex)
                 {
