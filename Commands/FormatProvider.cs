@@ -71,6 +71,7 @@ namespace Coflnet.Sky.Commands.MC
                 _ => "FLIP"
             };
             var a = flip.Auction;
+            var cost = a.HighestBidAmount == 0 ? a.StartingBid : a.HighestBidAmount;
             if (!string.IsNullOrWhiteSpace(Settings.ModSettings?.Format))
             {
                 /*
@@ -92,22 +93,22 @@ namespace Coflnet.Sky.Commands.MC
                     GetRarityColor(a.Tier),
                     flip.Auction.Context.ContainsKey("cname") ? flip.Auction.Context["cname"] : a.ItemName,
                     priceColor,
-                    FormatPrice(a.StartingBid),
+                    FormatPrice(cost),
                     FormatPrice(targetPrice), // this is {5}
                     FormatPrice(profit),
-                    FormatPrice((profit * 100 / a.StartingBid)),
+                    FormatPrice((profit * 100 / cost)),
                     FormatPrice(flip.MedianPrice),
                     FormatPrice(flip.LowestBin ?? 0),
                     flip.Volume.ToString("0.#")  // this is {10}
                 );
             }
-            var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice((profit * 100 / a.StartingBid))}%{priceColor}" : "";
+            var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice((profit * 100 / cost))}%{priceColor}" : "";
 
             var builder = new StringBuilder(80);
 
             string itemName = flip.Auction?.Context?.ContainsKey("cname") ?? false ? flip.Auction.Context["cname"] : $"{GetRarityColor(a.Tier)}{a.ItemName}";
 
-            builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(a.StartingBid)} -> {FormatPrice(targetPrice)} ");
+            builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(cost)} -> {FormatPrice(targetPrice)} ");
             try
             {
                 if ((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
