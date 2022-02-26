@@ -9,10 +9,11 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class ChatCommand : McCommand
     {
-        static ChatService chat = new ChatService();
+        static ChatService chat;
         public static string CHAT_PREFIX = "[§1C§6hat§f]";
         private static string[] BadWords = new string[] { "my ah", "nigger" };
         private static HashSet<string> MutedUsers = new HashSet<string>() { "850cfa6e7f184ed4b72a8c304734bcbe" };
+
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             if (MutedUsers.Contains(socket.SessionInfo.McUuid))
@@ -58,6 +59,10 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (!socket.SessionInfo.ListeningToChat)
             {
+                if(chat == null)
+                {
+                    chat = socket.GetService<ChatService>();
+                }
                 var sub = await chat.Subscribe(m =>
                 {
                     try
