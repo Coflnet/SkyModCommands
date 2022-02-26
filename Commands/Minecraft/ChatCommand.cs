@@ -68,16 +68,16 @@ namespace Coflnet.Sky.Commands.MC
                     try
                     {
 
-                        if (socket.Settings?.BlackList?.Any(b => b.filter.Where(f => f.Key == "Seller" && f.Value == m.SenderUuid).Any()) ?? false)
+                        if (socket.Settings?.BlackList?.Any(b => b.filter.Where(f => f.Key == "Seller" && f.Value == m.Uuid).Any()) ?? false)
                         {
                             Console.WriteLine("blacklist " + m.Message);
-                            socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player on your blacklist", null, $"You blacklisted {m.SenderName}"));
+                            socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player on your blacklist", null, $"You blacklisted {m.Name}"));
                             return true;
                         }
                         Console.WriteLine("got message " + m.Message);
-                        var color = ((int)m.Tier) > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE;
+                        var color = m.Prefix;
                         return socket.SendMessage(
-                            new ChatPart($"{CHAT_PREFIX} {color}{m.SenderName}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.SenderName} {m.Message}", "click to report message"),
+                            new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.Name} {m.ClientName} {m.Message}", $"click to report message from {m.ClientName}"),
                             new ChatPart("", "/cofl void"));
                     } catch(Exception e)
                     {

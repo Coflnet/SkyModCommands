@@ -8,6 +8,7 @@ using Coflnet.Sky.Chat.Client;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Chat.Client.Client;
 using Microsoft.Extensions.Configuration;
+using Coflnet.Sky.Chat.Client.Model;
 
 namespace Coflnet.Sky.ModCommands.Services
 {
@@ -21,17 +22,17 @@ namespace Coflnet.Sky.ModCommands.Services
             api = new(config["CHAT:BASE_URL"]);
             chatAuthKey = config["CHAT:API_KEY"];
         }
-        public async Task<ChannelMessageQueue> Subscribe(Func<ModChatMessage, bool> OnMessage)
+        public async Task<ChannelMessageQueue> Subscribe(Func<ChatMessage, bool> OnMessage)
         {
             for (int i = 0; i < 3; i++)
             {
                 try
                 {
-                    var sub = await GetCon().SubscribeAsync("mcChat");
+                    var sub = await GetCon().SubscribeAsync("chat");
 
                     sub.OnMessage((value) =>
                     {
-                        var message = JsonConvert.DeserializeObject<ModChatMessage>(value.Message);
+                        var message = JsonConvert.DeserializeObject<ChatMessage>(value.Message);
                         if (!OnMessage(message))
                             sub.Unsubscribe();
                     });

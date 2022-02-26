@@ -14,10 +14,15 @@ namespace Coflnet.Sky.ModCommands.MC
         {
             if (!int.TryParse(args.Length > 0 ? args[0] : "", out int port))
                 port = 8008;
-            System.Threading.ThreadPool.SetMinThreads(20,8);
+            System.Threading.ThreadPool.SetMinThreads(20, 8);
             var server = new HttpServer(port);
             server.KeepClean = false;
             server.AddWebSocketService<MinecraftSocket>("/modsocket");
+            server.OnGet += async (s, e) =>
+            {
+                await Task.Delay(1);
+                e.Response.StatusCode = 201;
+            };
             server.Start();
 
             RunIsolatedForever(FlipperService.Instance.ListentoUnavailableTopics, "flip wait");
