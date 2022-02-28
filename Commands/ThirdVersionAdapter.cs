@@ -42,4 +42,11 @@ namespace Coflnet.Sky.Commands.MC
             socket.Send(Response.Create("playSound", new { name, pitch }));
         }
     }
+
+    public class InventoryVersionAdapter : ThirdVersionAdapter
+    {
+        public InventoryVersionAdapter(MinecraftSocket socket) : base(socket)
+        {
+        }
+    }
 }

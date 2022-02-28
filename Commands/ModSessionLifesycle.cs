@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,6 +26,8 @@ namespace Coflnet.Sky.Commands.MC
         public SelfUpdatingValue<string> UserId;
         public SelfUpdatingValue<AccountInfo> AccountInfo;
         public OpenTracing.ISpan ConSpan => socket.ConSpan;
+        private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
+        private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
         public static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
         {
             MinProfit = 100000,
@@ -35,6 +39,84 @@ namespace Coflnet.Sky.Commands.MC
         public ModSessionLifesycle(MinecraftSocket socket)
         {
             this.socket = socket;
+        }
+
+        public async Task<bool> SendFlip(LowPricedAuction flip)
+        {
+            var Settings = FlipSettings.Value;
+            // pre check already sent flips
+            if (SentFlips.ContainsKey(flip.UId))
+                return true; // don't double send
+
+            if (flip.AdditionalProps?.ContainsKey("sold") ?? false)
+                return BlockedFlip(flip, "sold");
+
+            var flipInstance = FlipperService.LowPriceToFlip(flip);
+            // fast match before fill
+            Settings.GetPrice(flipInstance, out _, out long profit);
+            if (!Settings.BasedOnLBin && Settings.MinProfit > profit)
+                return BlockedFlip(flip, "MinProfit");
+            var isMatch = (false, "");
+            if (!Settings.FastMode)
+                await FlipperService.FillVisibilityProbs(flipInstance, Settings);
+            try
+            {
+                isMatch = Settings.MatchesSettings(flipInstance);
+                if (flip.AdditionalProps == null)
+                    flip.AdditionalProps = new Dictionary<string, string>();
+                flip.AdditionalProps["match"] = isMatch.Item2;
+            }
+            catch (Exception e)
+            {
+                var id = socket.Error(e, "matching flip settings", JSON.Stringify(flip) + "\n" + JSON.Stringify(Settings));
+                dev.Logger.Instance.Error(e, "minecraft socket flip settings matching " + id);
+                return BlockedFlip(flip, "Error " + e.Message);
+            }
+            if (Settings != null && !isMatch.Item1)
+                return BlockedFlip(flip, isMatch.Item2);
+
+            // this check is down here to avoid filling up the list
+            if (!SentFlips.TryAdd(flip.UId, DateTime.Now))
+                return true; // make sure flips are not sent twice
+            using var span = tracer.BuildSpan("Flip").WithTag("uuid", flipInstance.Uuid).AsChildOf(ConSpan.Context).StartActive();
+            var settings = Settings;
+
+            await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
+
+            flip.AdditionalProps["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
+
+            span.Span.Log("sent");
+            socket.LastSent.Enqueue(flip);
+            sentFlipsCount.Inc();
+
+            socket.PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
+
+            var track = Task.Run(async () =>
+            {
+                await socket.GetService<FlipTrackingService>().ReceiveFlip(flip.Auction.Uuid, SessionInfo.McUuid);
+                // remove dupplicates
+                if (SentFlips.Count > 300)
+                {
+                    foreach (var item in SentFlips.Where(i => i.Value < DateTime.Now - TimeSpan.FromMinutes(2)).ToList())
+                    {
+                        SentFlips.TryRemove(item.Key, out DateTime value);
+                    }
+                }
+                if (socket.LastSent.Count > 30)
+                    socket.LastSent.TryDequeue(out _);
+            }).ConfigureAwait(false);
+            return true;
+        }
+
+
+        private bool BlockedFlip(LowPricedAuction flip, string reason)
+        {
+            socket.TopBlocked.Enqueue(new MinecraftSocket.BlockedElement()
+            {
+                Flip = flip,
+                Reason = reason
+            });
+            return true;
         }
 
         public async Task SetupConnectionSettings(string stringId)
@@ -73,7 +155,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private void SubToSettings(string val)
+        protected virtual void SubToSettings(string val)
         {
             FlipSettings = SelfUpdatingValue<FlipSettings>.Create(val, "flipSettings", () => DEFAULT_SETTINGS).Result;
             AccountInfo = SelfUpdatingValue<AccountInfo>.Create(val, "accountInfo").Result;
@@ -90,7 +172,7 @@ namespace Coflnet.Sky.Commands.MC
         /// Called when setting were updated to apply them
         /// </summary>
         /// <param name="settings"></param>
-        private void UpdateSettings(FlipSettings settings)
+        protected virtual void UpdateSettings(FlipSettings settings)
         {
             using var span = tracer.BuildSpan("SettingsUpdate").AsChildOf(ConSpan.Context)
                     .StartActive();
@@ -108,7 +190,7 @@ namespace Coflnet.Sky.Commands.MC
             span.Span.Log(JSON.Stringify(settings));
         }
 
-        private async Task UpdateAccountInfo(AccountInfo info)
+        protected virtual async Task UpdateAccountInfo(AccountInfo info)
         {
             using var span = tracer.BuildSpan("AuthUpdate").AsChildOf(ConSpan.Context)
                     .WithTag("premium", info.Tier.ToString())
@@ -140,17 +222,17 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private void SendMessage(string message, string click = null, string hover = null)
+        protected virtual void SendMessage(string message, string click = null, string hover = null)
         {
             socket.SendMessage(message, click, hover);
         }
-        private string GetAuthLink(string stringId)
+        protected virtual string GetAuthLink(string stringId)
         {
             return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(stringId)}";
         }
 
 
-        private async Task<OpenTracing.IScope> ModGotAuthorised(AccountInfo settings)
+        protected virtual async Task<OpenTracing.IScope> ModGotAuthorised(AccountInfo settings)
         {
             var span = tracer.BuildSpan("Authorized").AsChildOf(ConSpan.Context).StartActive();
             try
@@ -177,7 +259,7 @@ namespace Coflnet.Sky.Commands.MC
             return span;
         }
 
-        private async Task CheckVerificationStatus(AccountInfo settings)
+        protected virtual async Task CheckVerificationStatus(AccountInfo settings)
         {
             var connect = await McAccountService.Instance.ConnectAccount(settings.UserId.ToString(), SessionInfo.McUuid);
             if (connect.IsConnected)
@@ -206,7 +288,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             this.ConSpan.SetTag("tier", accountInfo?.Tier.ToString());
             span.Log("set connection tier to " + accountInfo?.Tier.ToString());
-            if(accountInfo == null)
+            if (accountInfo == null)
                 return;
             if (DateTime.Now < new DateTime(2022, 1, 22))
             {
@@ -225,7 +307,7 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-        private async Task SendAuthorizedHello(AccountInfo accountInfo)
+        protected virtual async Task SendAuthorizedHello(AccountInfo accountInfo)
         {
             var user = UserService.Instance.GetUserById(accountInfo.UserId);
             var length = user.Email.Length < 10 ? 3 : 6;

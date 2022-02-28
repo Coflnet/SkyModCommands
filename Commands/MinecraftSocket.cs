@@ -41,7 +41,7 @@ namespace Coflnet.Sky.Commands.MC
         public string Version { get; private set; }
         public OpenTracing.ITracer tracer = new Jaeger.Tracer.Builder("sky-commands-mod").WithSampler(new ConstSampler(true)).Build();
         public OpenTracing.ISpan ConSpan { get; private set; }
-        private System.Threading.Timer PingTimer;
+        public System.Threading.Timer PingTimer;
 
         public IModVersionAdapter ModAdapter;
 
@@ -59,7 +59,6 @@ namespace Coflnet.Sky.Commands.MC
 
         private static System.Threading.Timer updateTimer;
 
-        private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
         public ConcurrentQueue<BlockedElement> TopBlocked = new ConcurrentQueue<BlockedElement>();
         public ConcurrentQueue<LowPricedAuction> LastSent = new ConcurrentQueue<LowPricedAuction>();
         /// <summary>
@@ -72,7 +71,6 @@ namespace Coflnet.Sky.Commands.MC
             public LowPricedAuction Flip;
             public string Reason;
         }
-        private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
 
         static MinecraftSocket()
         {
@@ -182,6 +180,7 @@ namespace Coflnet.Sky.Commands.MC
 
             ModAdapter = Version switch
             {
+                "1.4-Alpha" => new InventoryVersionAdapter(this),
                 "1.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.2-Alpha" => new SecondVersionAdapter(this),
                 _ => new FirstModVersionAdapter(this)
@@ -200,8 +199,11 @@ namespace Coflnet.Sky.Commands.MC
             {
                 try
                 {
-
-                    sessionLifesycle = new ModSessionLifesycle(this);
+                    sessionLifesycle = Version switch
+                    {
+                        "1.4-Alpha" => new InventoryModSession(this),
+                        _ => new ModSessionLifesycle(this)
+                    };
                     await sessionLifesycle.SetupConnectionSettings(stringId);
                 }
                 catch (Exception e)
@@ -338,8 +340,8 @@ namespace Coflnet.Sky.Commands.MC
                 try
                 {
                     await command.Execute(this, a.data);
-                } 
-                catch(CoflnetException e)
+                }
+                catch (CoflnetException e)
                 {
                     SendMessage(COFLNET + $"{McColorCodes.RED}{e.Message}");
                 }
@@ -407,7 +409,7 @@ namespace Coflnet.Sky.Commands.MC
             this.Send(Response.Create("execute", command));
         }
 
-        private OpenTracing.IScope RemoveMySelf()
+        public OpenTracing.IScope RemoveMySelf()
         {
             var span = tracer.BuildSpan("removing").AsChildOf(ConSpan).StartActive();
             FlipperService.Instance.RemoveConnection(this);
@@ -514,72 +516,7 @@ namespace Coflnet.Sky.Commands.MC
                     Log("con check was false");
                     return false;
                 }
-                // pre check already sent flips
-                if (SentFlips.ContainsKey(flip.UId))
-                    return true; // don't double send
-
-                if (flip.AdditionalProps?.ContainsKey("sold") ?? false)
-                    return BlockedFlip(flip, "sold");
-
-                var flipInstance = FlipperService.LowPriceToFlip(flip);
-                // fast match before fill
-                Settings.GetPrice(flipInstance, out _, out long profit);
-                if (!Settings.BasedOnLBin && Settings.MinProfit > profit)
-                    return BlockedFlip(flip, "MinProfit");
-                var isMatch = (false, "");
-                if (!Settings.FastMode)
-                    await FlipperService.FillVisibilityProbs(flipInstance, this.Settings);
-                try
-                {
-                    isMatch = Settings.MatchesSettings(flipInstance);
-                    if (flip.AdditionalProps == null)
-                        flip.AdditionalProps = new Dictionary<string, string>();
-                    flip.AdditionalProps["match"] = isMatch.Item2;
-                }
-                catch (Exception e)
-                {
-                    var id = Error(e, "matching flip settings", JSON.Stringify(flip) + "\n" + JSON.Stringify(Settings));
-                    dev.Logger.Instance.Error(e, "minecraft socket flip settings matching " + id);
-                    return BlockedFlip(flip, "Error " + e.Message);
-                }
-                if (Settings != null && !isMatch.Item1)
-                    return BlockedFlip(flip, isMatch.Item2);
-
-                // this check is down here to avoid filling up the list
-                if (!SentFlips.TryAdd(flip.UId, DateTime.Now))
-                    return true; // make sure flips are not sent twice
-                using var span = tracer.BuildSpan("Flip").WithTag("uuid", flipInstance.Uuid).AsChildOf(ConSpan.Context).StartActive();
-                var settings = Settings;
-
-                if (base.ConnectionState != WebSocketState.Open)
-                {
-                    RemoveMySelf();
-                    return false;
-                }
-                await ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
-
-                flip.AdditionalProps["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
-
-                span.Span.Log("sent");
-                LastSent.Enqueue(flip);
-                sentFlipsCount.Inc();
-
-                PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
-
-                var track = Task.Run(async () =>
-                {
-                    await GetService<FlipTrackingService>().ReceiveFlip(flip.Auction.Uuid, SessionInfo.McUuid);
-                    // remove dupplicates
-                    if (SentFlips.Count > 300)
-                    {
-                        foreach (var item in SentFlips.Where(i => i.Value < DateTime.Now - TimeSpan.FromMinutes(2)).ToList())
-                        {
-                            SentFlips.TryRemove(item.Key, out DateTime value);
-                        }
-                    }
-                    if (LastSent.Count > 30)
-                        LastSent.TryDequeue(out _);
-                }).ConfigureAwait(false);
+                sessionLifesycle.SendFlip(flip);
             }
             catch (Exception e)
             {
@@ -589,16 +526,6 @@ namespace Coflnet.Sky.Commands.MC
             return true;
         }
 
-        private bool BlockedFlip(LowPricedAuction flip, string reason)
-        {
-
-            TopBlocked.Enqueue(new BlockedElement()
-            {
-                Flip = flip,
-                Reason = reason
-            });
-            return true;
-        }
 
         public string GetFlipMsg(FlipInstance flip)
         {

@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -17,9 +18,14 @@ namespace Coflnet.Sky.Commands.MC
             this.data = data;
         }
 
+        private static JsonSerializerSettings Settings = new JsonSerializerSettings()
+        {
+            ContractResolver = new CamelCasePropertyNamesContractResolver()
+        };
+
         public static Response Create<T>(string type, T data)
         {
-            return new Response(type, JsonConvert.SerializeObject(data));
+            return new Response(type, JsonConvert.SerializeObject(data, Formatting.None, Settings));
         }
 
     }
