@@ -135,11 +135,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private static async Task<DateTime> GetNextUpdateTime()
         {
-            var next = await new NextUpdateRetriever().Get();
-
-            while (next < DateTime.Now)
-                next += TimeSpan.FromMinutes(1);
-            return next;
+            return await new NextUpdateRetriever().Get();
         }
 
         protected override void OnOpen()
