@@ -512,7 +512,7 @@ namespace Coflnet.Sky.Commands.MC
                     Log("con check was false");
                     return false;
                 }
-                sessionLifesycle.SendFlip(flip);
+                await sessionLifesycle.SendFlip(flip);
             }
             catch (Exception e)
             {
