@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using hypixel;
@@ -10,7 +11,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
-            if(string.IsNullOrEmpty(arguments) || arguments.Length < 3)
+            if (string.IsNullOrEmpty(arguments) || arguments.Length < 3)
             {
                 socket.SendMessage(COFLNET + "Please add some information to the report, ie. what happened, what do you think should have happened.");
             }
@@ -24,11 +25,19 @@ namespace Coflnet.Sky.Commands.MC
                         .WithTag("workerThreads", workerThreads)
                         .WithTag("completionPortThreads", completionPortThreads)
                         .AsChildOf(socket.ConSpan).StartActive();
-                        
+
             reportSpan.Span.Log(JsonConvert.SerializeObject(socket.Settings));
             reportSpan.Span.Log(JsonConvert.SerializeObject(socket.TopBlocked?.Take(80)));
             var spanId = reportSpan.Span.Context.SpanId.Truncate(6);
             reportSpan.Span.SetTag("id", spanId);
+            try
+            {
+                AddAllSettings(reportSpan);
+            }
+            catch (Exception e)
+            {
+                reportSpan.Span.Log(e.Message + "\n" + e.StackTrace);
+            }
 
             dev.Logger.Instance.Error($"Report with id {spanId} {arguments}");
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.TopBlocked?.Take(10)));
@@ -36,6 +45,21 @@ namespace Coflnet.Sky.Commands.MC
 
             socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + spanId);
             return Task.CompletedTask;
+        }
+
+        private static void AddAllSettings(OpenTracing.IScope reportSpan)
+        {
+            var otherUsers = FlipperService.Instance.Connections;
+            var result = otherUsers.Select(c => new
+            {
+                c.ChannelCount,
+                c.Connection.Settings?.Visibility,
+                c.Connection.Settings?.ModSettings,
+                c.Connection.Settings?.BasedOnLBin,
+                c.Connection.Settings?.AllowedFinders
+            });
+            reportSpan.Span.Log(JsonConvert.SerializeObject(result, Formatting.Indented));
+            System.Console.WriteLine(JsonConvert.SerializeObject(result));
         }
     }
 }
