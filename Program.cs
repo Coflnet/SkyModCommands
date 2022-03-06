@@ -24,6 +24,7 @@ namespace Coflnet.Sky.ModCommands.MC
                 e.Response.StatusCode = 201;
             };
             server.Start();
+            System.Threading.ThreadPool.SetMinThreads(10, 10);
 
             RunIsolatedForever(FlipperService.Instance.ListentoUnavailableTopics, "flip wait");
             RunIsolatedForever(FlipperService.Instance.ListenToNewFlips, "flip wait");

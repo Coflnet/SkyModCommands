@@ -44,6 +44,9 @@ namespace Coflnet.Sky.Commands.MC
         public async Task<bool> SendFlip(LowPricedAuction flip)
         {
             var Settings = FlipSettings.Value;
+            var verbose = flip.AdditionalProps.ContainsKey("long wait");
+            if(verbose)
+                ConSpan.Log("Start sending " + DateTime.Now);
             // pre check already sent flips
             if (SentFlips.ContainsKey(flip.UId))
                 return true; // don't double send
@@ -57,8 +60,14 @@ namespace Coflnet.Sky.Commands.MC
             if (!Settings.BasedOnLBin && Settings.MinProfit > profit)
                 return BlockedFlip(flip, "MinProfit");
             var isMatch = (false, "");
+
+            if(verbose)
+                ConSpan.Log("before visibility " + DateTime.Now);
             if (!Settings.FastMode)
                 await FlipperService.FillVisibilityProbs(flipInstance, Settings);
+
+            if(verbose)
+                ConSpan.Log("before matching " + DateTime.Now);
             try
             {
                 isMatch = Settings.MatchesSettings(flipInstance);
@@ -78,11 +87,16 @@ namespace Coflnet.Sky.Commands.MC
             // this check is down here to avoid filling up the list
             if (!SentFlips.TryAdd(flip.UId, DateTime.Now))
                 return true; // make sure flips are not sent twice
+
+            if(verbose)
+                ConSpan.Log("building trace " + DateTime.Now);
             using var span = tracer.BuildSpan("Flip").WithTag("uuid", flipInstance.Uuid).AsChildOf(ConSpan.Context).StartActive();
             var settings = Settings;
 
             await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
 
+            if(verbose)
+                ConSpan.Log("sent flip " + DateTime.Now);
             flip.AdditionalProps["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
 
             span.Span.Log("sent");
@@ -91,7 +105,7 @@ namespace Coflnet.Sky.Commands.MC
 
             socket.PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
 
-            var track = Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 await socket.GetService<FlipTrackingService>().ReceiveFlip(flip.Auction.Uuid, SessionInfo.McUuid);
                 // remove dupplicates
@@ -105,6 +119,9 @@ namespace Coflnet.Sky.Commands.MC
                 if (socket.LastSent.Count > 30)
                     socket.LastSent.TryDequeue(out _);
             }).ConfigureAwait(false);
+
+            if(verbose)
+                ConSpan.Log("exiting " + DateTime.Now);
             return true;
         }
 
