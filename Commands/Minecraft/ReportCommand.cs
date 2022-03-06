@@ -56,7 +56,8 @@ namespace Coflnet.Sky.Commands.MC
                 c.Connection.Settings?.Visibility,
                 c.Connection.Settings?.ModSettings,
                 c.Connection.Settings?.BasedOnLBin,
-                c.Connection.Settings?.AllowedFinders
+                c.Connection.Settings?.AllowedFinders,
+                c.Connection.UserId
             });
             reportSpan.Span.Log(JsonConvert.SerializeObject(result, Formatting.Indented));
             System.Console.WriteLine(JsonConvert.SerializeObject(result));
