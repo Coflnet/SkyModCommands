@@ -55,7 +55,7 @@ namespace Coflnet.Sky.Commands.MC
         public static event Action NextUpdateStart;
         private int blockedFlipFilterCount => TopBlocked.Count;
 
-        int IFlipConnection.UserId => int.Parse(sessionLifesycle.UserId);
+        int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId ?? "0");
 
         private static System.Threading.Timer updateTimer;
 
