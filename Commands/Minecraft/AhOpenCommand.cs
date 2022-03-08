@@ -14,6 +14,8 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(new DialogBuilder().Msg("Could not retrieve the sellers name to open ah"));
                 return;
             }
+            using var span = socket.tracer.BuildSpan("ahopen").AsChildOf(socket.ConSpan.Context).StartActive();
+            span.Span.SetTag("name",name);
             socket.ExecuteCommand($"/ah {name}");
         }
     }
