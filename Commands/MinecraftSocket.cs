@@ -56,6 +56,14 @@ namespace Coflnet.Sky.Commands.MC
         private int blockedFlipFilterCount => TopBlocked.Count;
 
         int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId ?? "0");
+        public string UserId {
+            get 
+            {
+                if(sessionLifesycle?.UserId == null)
+                    throw new NullReferenceException("no user set");
+                return sessionLifesycle.UserId.Value;
+            }
+        }
 
         private static System.Threading.Timer updateTimer;
 
@@ -97,6 +105,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<AhOpenCommand>();
             Commands.Add<SetCommand>();
             Commands.Add<GetCommand>();
+            Commands.Add<TopUpCommand>();
 
             Task.Run(async () =>
             {
