@@ -226,8 +226,7 @@ namespace Coflnet.Sky.Commands.MC
                     return; // don't send hello again
                 SessionInfo.SentWelcome = true;
                 var helloTask = SendAuthorizedHello(info);
-                SendMessage(socket.formatProvider.WelcomeMessage(),
-                    "https://sky.coflnet.com/flipper");
+                SendMessage(socket.formatProvider.WelcomeMessage());
                 await Task.Delay(500);
                 await helloTask;
                 //SendMessage(COFLNET + $"{McColorCodes.DARK_GREEN} click this to relink your account",
@@ -244,6 +243,10 @@ namespace Coflnet.Sky.Commands.MC
         protected virtual void SendMessage(string message, string click = null, string hover = null)
         {
             socket.SendMessage(message, click, hover);
+        }
+        protected virtual void SendMessage(ChatPart[] parts)
+        {
+            socket.SendMessage(parts);
         }
         protected virtual string GetAuthLink(string stringId)
         {

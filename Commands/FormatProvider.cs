@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.ModCommands.Dialogs;
 using hypixel;
 
 namespace Coflnet.Sky.Commands.MC
@@ -162,14 +163,17 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-        public string WelcomeMessage()
+        public ChatPart[] WelcomeMessage()
         {
-            return MinecraftSocket.COFLNET + $"§fFound and loaded settings for your connection\n"
+            var text = $"§fFound and loaded settings for your connection\n"
                                     + $"{McColorCodes.GRAY} MinProfit: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfit)}  "
                                     + $"{McColorCodes.GRAY} MaxCost: {McColorCodes.AQUA}{FormatPrice(Settings.MaxCost)}"
                                     + $"{McColorCodes.GRAY} Blacklist-Size: {McColorCodes.AQUA}{Settings?.BlackList?.Count ?? 0}\n "
                                     + $"{McColorCodes.AQUA}: click this if you want to change a setting \n"
                                     + "§8: nothing else to do have a nice day :)";
+            var hover = $"{McColorCodes.GRAY} Volume: {McColorCodes.AQUA}{FormatPrice(Settings.MinVolume)}\n"
+                        + $"{McColorCodes.GRAY} MinProfitPercent: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfitPercent)}";
+            return new DialogBuilder().Msg(text, "https://sky.coflnet.com/flipper", hover);
         }
 
 
