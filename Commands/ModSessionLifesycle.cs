@@ -16,7 +16,7 @@ namespace Coflnet.Sky.Commands.MC
     /// <summary>
     /// Represents a mod session
     /// </summary>
-    public class ModSessionLifesycle
+    public class ModSessionLifesycle : IDisposable
     {
         protected MinecraftSocket socket;
         protected OpenTracing.ITracer tracer => socket.tracer;
@@ -350,6 +350,13 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage(COFLNET + messageStart + $"You use the free version of the flip finder");
 
             await Task.Delay(300);
+        }
+
+        public void Dispose()
+        {
+            FlipSettings.Dispose();
+            UserId.Dispose();
+            AccountInfo.Dispose();
         }
     }
 }

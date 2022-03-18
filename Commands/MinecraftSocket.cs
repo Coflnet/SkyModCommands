@@ -385,6 +385,7 @@ namespace Coflnet.Sky.Commands.MC
 
             ConSpan.Finish();
             OnConClose?.Invoke();
+            sessionLifesycle.Dispose();
         }
 
         public void SendMessage(string text, string clickAction = null, string hoverText = null)
