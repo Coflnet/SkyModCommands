@@ -106,6 +106,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SetCommand>();
             Commands.Add<GetCommand>();
             Commands.Add<TopUpCommand>();
+            Commands.Add<HelpCommand>();
 
             Task.Run(async () =>
             {

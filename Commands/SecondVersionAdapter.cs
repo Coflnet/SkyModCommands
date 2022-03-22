@@ -4,6 +4,7 @@ using hypixel;
 using System.Threading.Tasks;
 using Coflnet.Sky;
 using Microsoft.Extensions.DependencyInjection;
+using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -12,6 +13,7 @@ namespace Coflnet.Sky.Commands.MC
         public SecondVersionAdapter(MinecraftSocket socket)
         {
             this.socket = socket;
+            SendOutDated();
         }
 
         public override async Task<bool> SendFlip(FlipInstance flip)
@@ -19,12 +21,15 @@ namespace Coflnet.Sky.Commands.MC
             List<ChatPart> parts = await GetMessageparts(flip);
 
             SendMessage(parts.ToArray());
-
-            if (socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000)
-                SendSound("note.pling", (float)(1 / (Math.Sqrt((float)flip.Profit / 1_000_000) + 1)));
             return true;
         }
 
+        private void SendOutDated()
+        {
+            SendMessage(new DialogBuilder().MsgLine("There is a newer mod version available. Please update as soon as possible. \nYou can click this to be redirected to the download.",
+                                        "https://discord.com/channels/267680588666896385/890682907889373257/955963133070032986",
+                                        "opens discord"));
+        }
 
         public override void SendMessage(params ChatPart[] parts)
         {
