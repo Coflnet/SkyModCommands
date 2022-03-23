@@ -54,7 +54,7 @@ namespace Coflnet.Sky.Commands.MC
             if (flip.AdditionalProps?.ContainsKey("sold") ?? false)
                 return BlockedFlip(flip, "sold");
             if(Settings.IsFinderBlocked(flip.Finder))
-                return BlockedFlip(flip, "finder");
+                return BlockedFlip(flip, "finder " + flip.Finder);
 
             var flipInstance = FlipperService.LowPriceToFlip(flip);
             // fast match before fill

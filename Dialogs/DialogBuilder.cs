@@ -22,11 +22,13 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             return this;
         }
 
-        public DialogBuilder Break()
+        public DialogBuilder LineBreak()
         {
             Parts.Add(new ChatPart("\n"));
             return this;
         }
+
+        public DialogBuilder Break => LineBreak();
 
         public DialogBuilder BlockCommands()
         {

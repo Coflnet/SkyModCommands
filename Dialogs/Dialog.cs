@@ -4,7 +4,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
 {
     public abstract class Dialog
     {
-        public abstract ChatPart[] GetResponse(string context);
+        public abstract ChatPart[] GetResponse(DialogArgs context);
 
         protected DialogBuilder New()
         {

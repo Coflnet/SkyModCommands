@@ -17,13 +17,19 @@ namespace Coflnet.Sky.ModCommands.Services
             Dialogs.Add<SlowSellDialog>();
             Dialogs.Add<ChatReportDialog>();
             Dialogs.Add<NoBestFlipDialog>();
+            Dialogs.Add<FlipOptionsDialog>();
         }
-        public ChatPart[] GetResponse(string context)
+        public ChatPart[] GetResponse(MinecraftSocket socket, string context)
         {
             var commandName = context.Split(' ').Where(s => !string.IsNullOrEmpty(s)).First();
             if (!Dialogs.TryGetValue(commandName.ToLower(), out Dialog instance))
                 return new ChatPart[] { new ChatPart($"could not find a response {commandName}, sorry\n if you need help please raise a bug report on the discord") };
-            return instance.GetResponse(context.Replace(commandName, "").Trim());
+            return instance.GetResponse(new DialogArgs()
+            {
+                Context = context.Replace(commandName, "").Trim(),
+                socket = socket
+            });
         }
+
     }
 }

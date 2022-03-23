@@ -299,7 +299,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected (long, string) ComputeConnectionId(string passedId)
         {
-            var bytes = Encoding.UTF8.GetBytes(passedId.ToLower() + SessionInfo.sessionId + DateTime.Now.Date.ToString());
+            var bytes = Encoding.UTF8.GetBytes(passedId.ToLower() + SessionInfo.sessionId + DateTime.Now.RoundDown(TimeSpan.FromDays(14)).ToString());
             var hash = System.Security.Cryptography.SHA512.Create();
             var hashed = hash.ComputeHash(bytes);
             return (BitConverter.ToInt64(hashed), Convert.ToBase64String(hashed, 0, 16).Replace('+', '-').Replace('/', '_'));

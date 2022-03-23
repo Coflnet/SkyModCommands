@@ -11,6 +11,8 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var flip = socket.LastSent.LastOrDefault();
+            if(arguments.Length > 30)
+                flip = socket.GetFlip(arguments.Trim('"'));
             if (flip == null)
             {
                 socket.SendMessage(new DialogBuilder().MsgLine("Flip not found, can't get timings", null, "sorry :("));

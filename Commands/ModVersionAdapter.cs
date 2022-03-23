@@ -28,9 +28,9 @@ namespace Coflnet.Sky.Commands.MC
 
             var parts = new List<ChatPart>(){
                 new ChatPart(message, openCommand, socket.formatProvider.GetHoverText(flip)),
-                new ChatPart(" [?]", "/cofl reference " + uuid, "Get reference auctions"),
-                new ChatPart(" ❤", $"/cofl rate {uuid} {flip.Finder} up", "Vote this flip up"),
-                new ChatPart("✖ ", $"/cofl rate {uuid} {flip.Finder} down", "Vote this flip down"),
+                new ChatPart(" ✥ ", "/cofl dialog flipoptions " + uuid, "Open flip options"),
+                //new ChatPart(" ❤", $"/cofl rate {uuid} {flip.Finder} up", "Vote this flip up"),
+                //new ChatPart("✖ ", $"/cofl rate {uuid} {flip.Finder} down", "Vote this flip down"),
                 new ChatPart(extraText, openCommand, null)
             };
 
