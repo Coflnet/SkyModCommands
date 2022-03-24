@@ -171,7 +171,7 @@ namespace Coflnet.Sky.Commands.MC
                                     + $"{McColorCodes.GRAY} Blacklist-Size: {McColorCodes.AQUA}{Settings?.BlackList?.Count ?? 0}\n "
                                     + $"{McColorCodes.AQUA}: click this if you want to change a setting \n"
                                     + "§8: nothing else to do have a nice day :)";
-            var hover = $"{McColorCodes.GRAY} Volume: {McColorCodes.AQUA}{FormatPrice(Settings.MinVolume)}\n"
+            var hover = $"{McColorCodes.GRAY} Volume: {McColorCodes.AQUA}{Settings.MinVolume}\n"
                         + $"{McColorCodes.GRAY} MinProfitPercent: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfitPercent)}";
             return new DialogBuilder().Msg(text, "https://sky.coflnet.com/flipper", hover);
         }
