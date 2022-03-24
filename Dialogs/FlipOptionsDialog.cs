@@ -12,7 +12,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             var timingMessage = $"{McColorCodes.WHITE} ⌛{McColorCodes.GRAY}   Get own timings";
             return New().MsgLine("What do you want to do?")
                 .CoflCommand<RateCommand>(
-                    $" {redX}  downvote & report", 
+                    $" {redX}  downvote / report",
                     $"{flip.Auction.Uuid} {flip.Finder} down", 
                     "Vote this flip down").Break
                 .CoflCommand<RateCommand>(
