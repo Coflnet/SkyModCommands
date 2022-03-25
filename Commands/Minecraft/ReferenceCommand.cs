@@ -69,15 +69,23 @@ namespace Coflnet.Sky.Commands.MC
             if (flip.AdditionalProps.ContainsKey("med"))
                 foreach (var item in flip.AdditionalProps["med"].Split(','))
                 {
-                    if (!string.IsNullOrEmpty(item))
-                        references.Add(await AuctionService.Instance.GetAuctionAsync(item));
+                    try
+                    {
+
+                        if (!string.IsNullOrEmpty(item))
+                            references.Add(await AuctionService.Instance.GetAuctionAsync(item));
+                    }
+                    catch (Exception e)
+                    {
+                        socket.Log(e.ToString());
+                    }
                 }
             SaveAuction reference = null;
             Console.WriteLine(JSON.Stringify(reference));
             var explanation = "This flip finder keeps reference auctions in RAM which makes it faster\nclick this to open the flip on website";
             var parts = new List<ChatPart>();
             parts.Add(new ChatPart($"{COFLNET}Finder algorithm: {algo}\n", "https://sky.coflnet.com/auction/" + uuid, explanation));
-         //   parts.Add(new ChatPart($"It was compared to {McColorCodes.AQUA} these auctions {DEFAULT_COLOR}, open ah", $"/viewauction {reference.Uuid}", McColorCodes.GREEN + "open it on ah"));
+            //   parts.Add(new ChatPart($"It was compared to {McColorCodes.AQUA} these auctions {DEFAULT_COLOR}, open ah", $"/viewauction {reference.Uuid}", McColorCodes.GREEN + "open it on ah"));
             parts.AddRange(references.Select(r =>
                 new ChatPart($"\n->{socket.formatProvider.GetRarityColor(r.Tier)} {r.ItemName}{McColorCodes.GRAY} for {McColorCodes.AQUA}{socket.FormatPrice(r.HighestBidAmount)}{McColorCodes.GRAY} {r.End}",
                                         "https://sky.coflnet.com/auction/" + r.Uuid,
