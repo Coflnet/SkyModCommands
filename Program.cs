@@ -4,7 +4,8 @@ using WebSocketSharp.Server;
 using Coflnet.Sky.Commands.MC;
 using System.Threading.Tasks;
 using System;
-using hypixel;
+using Coflnet.Sky.Core;
+using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.ModCommands.MC
 {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Services;
 using Newtonsoft.Json;
 
@@ -49,7 +50,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Message = message,
                 SenderName = socket.SessionInfo.McName,
-                Tier = socket.sessionLifesycle.AccountInfo?.Value?.Tier ?? hypixel.AccountTier.NONE,
+                Tier = socket.sessionLifesycle.AccountInfo?.Value?.Tier ?? AccountTier.NONE,
                 SenderUuid = socket.SessionInfo.McUuid
             });
             socket.SessionInfo.LastMessage = DateTime.Now;

@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using hypixel;
+using Coflnet.Sky.Core;
 using MessagePack;
 using Newtonsoft.Json;
 using StackExchange.Redis;
@@ -9,6 +9,7 @@ using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Chat.Client.Client;
 using Microsoft.Extensions.Configuration;
 using Coflnet.Sky.Chat.Client.Model;
+using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.ModCommands.Services
 {

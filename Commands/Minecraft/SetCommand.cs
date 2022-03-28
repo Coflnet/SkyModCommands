@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
-using hypixel;
+using Coflnet.Sky.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 

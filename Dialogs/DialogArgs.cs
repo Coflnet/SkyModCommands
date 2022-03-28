@@ -1,6 +1,6 @@
 using System.Linq;
 using Coflnet.Sky.Commands.MC;
-using hypixel;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.ModCommands.Dialogs
 {

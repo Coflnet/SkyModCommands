@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
-using hypixel;
+using Coflnet.Sky.Core;
 using System.Threading.Tasks;
 using Coflnet.Sky;
 using Microsoft.Extensions.DependencyInjection;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC
 {

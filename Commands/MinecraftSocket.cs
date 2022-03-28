@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Helper;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Filter;
-using hypixel;
+using Coflnet.Sky.Core;
 using Jaeger.Samplers;
 using Newtonsoft.Json;
 using WebSocketSharp;
@@ -31,7 +31,7 @@ namespace Coflnet.Sky.Commands.MC
         public SessionInfo SessionInfo { get; protected set; } = new SessionInfo();
 
         public FlipSettings Settings => sessionLifesycle.FlipSettings;
-        public hypixel.SettingsChange LatestSettings => new hypixel.SettingsChange()
+        public SettingsChange LatestSettings => new SettingsChange()
         {
             Settings = sessionLifesycle.FlipSettings,
             Tier = sessionLifesycle.AccountInfo.Value.Tier,

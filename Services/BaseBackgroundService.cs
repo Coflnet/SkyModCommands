@@ -10,9 +10,10 @@ using System;
 using Microsoft.Extensions.Logging;
 using Coflnet.Sky.ModCommands.Controllers;
 using StackExchange.Redis;
-using hypixel;
+using Coflnet.Sky.Core;
 using MessagePack;
 using Coflnet.Sky.Commands.MC;
+using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.ModCommands.Services
 {

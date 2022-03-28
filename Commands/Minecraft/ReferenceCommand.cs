@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
-using hypixel;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -33,10 +33,10 @@ namespace Coflnet.Sky.Commands.MC
                 socket.ModAdapter.SendMessage(
                     based.OrderBy(b => b.highestBid).Skip(based.Count() / 2).Take(3)
                     .Select(ToMessage(socket))
-                    .Append(new ChatPart("The 3 most recent references are"))
+                    .Append(new ChatPart("\nThe 3 most recent references are"))
                     .Concat(based.OrderByDescending(b => b.end).Take(3)
                     .Select(ToMessage(socket)))
-                    .Append(new ChatPart("The 3 most expensive references are"))
+                    .Append(new ChatPart("\nThe 3 most expensive references are"))
                     .Concat(based.OrderByDescending(b => b.highestBid).Take(3)
                     .Select(ToMessage(socket)))
                     .ToArray());

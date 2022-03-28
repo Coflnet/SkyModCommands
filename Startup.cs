@@ -3,7 +3,7 @@ using System.IO;
 using System.Reflection;
 using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
-using hypixel;
+using Coflnet.Sky.Core;
 using Jaeger.Samplers;
 using Jaeger.Senders;
 using Coflnet.Sky.Commands.Shared;

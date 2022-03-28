@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using hypixel;
+using Coflnet.Sky.Core;
 using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC
@@ -45,7 +45,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + $"Thanks for your feedback, you voted this flip " + rating, "/cofl undo", "We will try to improve the flips accordingly");
             }
             await Task.Delay(3000);
-            var based = await hypixel.CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
+            var based = await CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
             if (based == null)
                 span.Span.Log("based not available");
             else

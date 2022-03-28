@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -49,7 +50,7 @@ namespace Coflnet.Sky.Commands.MC
             var best = sorted.FirstOrDefault();
             if (best == null)
                 return;
-            socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<hypixel.Tier>(best.Tier))}{best.ItemName}" +
+            socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier))}{best.ItemName}" +
                             $" {FormatPrice(socket, best.PricePaid)} -> {FormatPrice(socket, best.SoldFor)} (+{FormatPrice(socket, best.Profit)})",
                 "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction");
         }

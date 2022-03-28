@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -21,7 +22,7 @@ namespace Coflnet.Sky.Commands.MC
             flipsToSend.AddRange(grouped.Skip(1).Select(g=>g.First()));
             socket.SendMessage(flipsToSend.Take(5).SelectMany(b =>
                 {
-                    socket.Settings.GetPrice(hypixel.FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
+                    socket.Settings.GetPrice(FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
                     return new ChatPart[]
                     {
                         new ChatPart(

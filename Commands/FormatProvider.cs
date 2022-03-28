@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
-using hypixel;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC
 {

@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
-using hypixel;
+using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC
 {

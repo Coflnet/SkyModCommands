@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Web;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
-using hypixel;
+using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 using WebSocketSharp;
 
