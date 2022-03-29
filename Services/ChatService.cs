@@ -61,7 +61,7 @@ namespace Coflnet.Sky.ModCommands.Services
                     await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
                     return;
                 }
-                catch (RedisTimeoutException e)
+                catch (RedisTimeoutException)
                 {
 
                 }
