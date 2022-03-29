@@ -11,5 +11,9 @@ namespace Coflnet.Sky.Commands.MC
         public DateTime LastMessage;
         public DateTime MutedUntil;
         public bool SentWelcome;
+        /// <summary>
+        /// Speed penalty for various bad actions eg botting
+        /// </summary>
+        public TimeSpan Penalty;
     }
 }

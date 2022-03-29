@@ -29,6 +29,7 @@ namespace Coflnet.Sky.Commands.MC
 
             reportSpan.Span.Log(JsonConvert.SerializeObject(socket.Settings));
             reportSpan.Span.Log(JsonConvert.SerializeObject(socket.TopBlocked?.Take(80)));
+            reportSpan.Span.Log("session info " + JsonConvert.SerializeObject(socket.SessionInfo));
             var spanId = reportSpan.Span.Context.SpanId.Truncate(6);
             reportSpan.Span.SetTag("id", spanId);
             try

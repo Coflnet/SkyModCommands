@@ -41,8 +41,6 @@ namespace Coflnet.Sky.Commands.MC
         public string Version { get; private set; }
         public OpenTracing.ITracer tracer = new Jaeger.Tracer.Builder("sky-commands-mod").WithSampler(new ConstSampler(true)).Build();
         public OpenTracing.ISpan ConSpan { get; private set; }
-        public System.Threading.Timer PingTimer;
-
         public IModVersionAdapter ModAdapter;
 
         public FormatProvider formatProvider { get; private set; }
@@ -53,7 +51,6 @@ namespace Coflnet.Sky.Commands.MC
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
         public static event Action NextUpdateStart;
-        private int blockedFlipFilterCount => TopBlocked.Count;
 
         int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId ?? "0");
         public string UserId {
@@ -218,11 +215,6 @@ namespace Coflnet.Sky.Commands.MC
                     SendMessage(new DialogBuilder().CoflCommand<ReportCommand>("Whoops, we are very sorry but the connection setup failed. If this persists please click this message to create a report.", "failed to setup connection", "create a report"));
                 }
             }).ConfigureAwait(false);
-
-            PingTimer = new System.Threading.Timer((e) =>
-            {
-                SendPing();
-            }, null, TimeSpan.FromSeconds(50), TimeSpan.FromSeconds(50));
         }
 
         private Task TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3)
@@ -271,31 +263,6 @@ namespace Coflnet.Sky.Commands.MC
             loadSpan.Span.SetTag("uuid", player.UuId);
         }
 
-        private void SendPing()
-        {
-            using var span = tracer.BuildSpan("ping").AsChildOf(ConSpan.Context).WithTag("count", blockedFlipFilterCount).StartActive();
-            try
-            {
-                if (blockedFlipFilterCount > 0)
-                {
-                    SendMessage(new ChatPart(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute",
-                        "/cofl blocked",
-                        $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips"),
-                        new ChatPart(" ", "/cofl void", null));
-                }
-                else
-                {
-                    Send(Response.Create("ping", 0));
-
-                    sessionLifesycle.UpdateConnectionTier(sessionLifesycle.AccountInfo, span.Span);
-                }
-            }
-            catch (Exception e)
-            {
-                span.Span.Log("could not send ping");
-                Error(e, "on ping"); // CloseBecauseError(e);
-            }
-        }
 
         protected (long, string) ComputeConnectionId(string passedId)
         {
@@ -382,7 +349,6 @@ namespace Coflnet.Sky.Commands.MC
             base.OnClose(e);
             FlipperService.Instance.RemoveConnection(this);
             ConSpan.Log(e?.Reason);
-            PingTimer.Dispose();
 
             ConSpan.Finish();
             OnConClose?.Invoke();
@@ -420,7 +386,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var span = tracer.BuildSpan("removing").AsChildOf(ConSpan).StartActive();
             FlipperService.Instance.RemoveConnection(this);
-            PingTimer.Dispose();
+            sessionLifesycle.Dispose();
             Task.Run(async () =>
             {
                 await Task.Delay(1000);
@@ -461,7 +427,7 @@ namespace Coflnet.Sky.Commands.MC
             var span = tracer.BuildSpan("Disconnect").WithTag("error", "true").AsChildOf(ConSpan.Context).StartActive();
             span.Span.Log(e.Message);
             OnClose(null);
-            PingTimer.Dispose();
+            sessionLifesycle.Dispose();
             System.Console.CancelKeyPress -= OnApplicationStop;
             return span;
         }

@@ -26,6 +26,8 @@ namespace Coflnet.Sky.Commands.MC
         public SelfUpdatingValue<string> UserId;
         public SelfUpdatingValue<AccountInfo> AccountInfo;
         public OpenTracing.ISpan ConSpan => socket.ConSpan;
+        public System.Threading.Timer PingTimer;
+
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
         private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
         public static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
@@ -45,7 +47,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var Settings = FlipSettings.Value;
             var verbose = flip.AdditionalProps.ContainsKey("long wait");
-            if(verbose)
+            if (verbose)
                 ConSpan.Log("Start sending " + DateTime.Now);
             // pre check already sent flips
             if (SentFlips.ContainsKey(flip.UId))
@@ -53,7 +55,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (flip.AdditionalProps?.ContainsKey("sold") ?? false)
                 return BlockedFlip(flip, "sold");
-            if(Settings.IsFinderBlocked(flip.Finder))
+            if (Settings.IsFinderBlocked(flip.Finder))
                 return BlockedFlip(flip, "finder " + flip.Finder);
 
             var flipInstance = FlipperService.LowPriceToFlip(flip);
@@ -63,12 +65,12 @@ namespace Coflnet.Sky.Commands.MC
                 return BlockedFlip(flip, "MinProfit");
             var isMatch = (false, "");
 
-            if(verbose)
+            if (verbose)
                 ConSpan.Log("before visibility " + DateTime.Now);
             if (!Settings.FastMode)
                 await FlipperService.FillVisibilityProbs(flipInstance, Settings);
 
-            if(verbose)
+            if (verbose)
                 ConSpan.Log("before matching " + DateTime.Now);
             try
             {
@@ -90,14 +92,16 @@ namespace Coflnet.Sky.Commands.MC
             if (!SentFlips.TryAdd(flip.UId, DateTime.Now))
                 return true; // make sure flips are not sent twice
 
-            if(verbose)
+            if (verbose)
                 ConSpan.Log("building trace " + DateTime.Now);
             using var span = tracer.BuildSpan("Flip").WithTag("uuid", flipInstance.Uuid).AsChildOf(ConSpan.Context).StartActive();
             var settings = Settings;
 
+            var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flip.Auction.Uuid, SessionInfo.McUuid);
+            await Task.Delay(SessionInfo.Penalty);
             await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
 
-            if(verbose)
+            if (verbose)
                 ConSpan.Log("sent flip " + DateTime.Now);
             flip.AdditionalProps["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
 
@@ -105,11 +109,11 @@ namespace Coflnet.Sky.Commands.MC
             socket.LastSent.Enqueue(flip);
             sentFlipsCount.Inc();
 
-            socket.PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
+            PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
 
             _ = Task.Run(async () =>
             {
-                await socket.GetService<FlipTrackingService>().ReceiveFlip(flip.Auction.Uuid, SessionInfo.McUuid);
+                await sendTimeTrack;
                 // remove dupplicates
                 if (SentFlips.Count > 300)
                 {
@@ -122,7 +126,7 @@ namespace Coflnet.Sky.Commands.MC
                     socket.LastSent.TryDequeue(out _);
             }).ConfigureAwait(false);
 
-            if(verbose)
+            if (verbose)
                 ConSpan.Log("exiting " + DateTime.Now);
             return true;
         }
@@ -141,6 +145,11 @@ namespace Coflnet.Sky.Commands.MC
         public async Task SetupConnectionSettings(string stringId)
         {
             using var loadSpan = socket.tracer.BuildSpan("load").AsChildOf(ConSpan).StartActive();
+
+            PingTimer = new System.Threading.Timer((e) =>
+            {
+                SendPing();
+            }, null, TimeSpan.FromSeconds(50), TimeSpan.FromSeconds(50));
             /*SettingsChange cachedSettings = null;
             for (int i = 0; i < 3; i++)
             {
@@ -161,6 +170,12 @@ namespace Coflnet.Sky.Commands.MC
                 SubToSettings(UserId);
 
             loadSpan.Span.Finish();
+            UpdateExtraDelay();
+            await SendLoginPromptMessage(stringId);
+        }
+
+        private async Task SendLoginPromptMessage(string stringId)
+        {
             var index = 1;
             while (UserId.Value == null)
             {
@@ -169,8 +184,8 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(TimeSpan.FromSeconds(60 * index++));
 
                 if (UserId != default)
-                    return;
-                SendMessage("do /cofl stop to stop receiving this (or click this message)", "/cofl stop");
+                    //    return;
+                    SendMessage("do /cofl stop to stop receiving this (or click this message)", "/cofl stop");
             }
         }
 
@@ -352,11 +367,61 @@ namespace Coflnet.Sky.Commands.MC
             await Task.Delay(300);
         }
 
+
+        private void SendPing()
+        {
+            var blockedFlipFilterCount = socket.TopBlocked.Count;
+            using var span = tracer.BuildSpan("ping").AsChildOf(ConSpan.Context).WithTag("count", blockedFlipFilterCount).StartActive();
+            try
+            {
+                if (blockedFlipFilterCount > 0)
+                {
+                    socket.SendMessage(new ChatPart(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute",
+                        "/cofl blocked",
+                        $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips"),
+                        new ChatPart(" ", "/cofl void", null));
+                }
+                else
+                {
+                    socket.Send(Response.Create("ping", 0));
+
+                    UpdateConnectionTier(AccountInfo, span.Span);
+                }
+                UpdateExtraDelay();
+            }
+            catch (Exception e)
+            {
+                span.Span.Log("could not send ping");
+                socket.Error(e, "on ping"); // CloseBecauseError(e);
+            }
+        }
+
+        private void UpdateExtraDelay()
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+
+                    var penalty = await socket.GetService<FlipTrackingService>().GetRecommendedPenalty(SessionInfo.McUuid);
+                    if (penalty > TimeSpan.Zero)
+                        SessionInfo.Penalty = penalty;
+                    else
+                        SessionInfo.Penalty = TimeSpan.Zero;
+                }
+                catch (Exception e)
+                {
+                    socket.Error(e, "retrieving penalty");
+                }
+            });
+        }
+
         public void Dispose()
         {
             FlipSettings.Dispose();
             UserId.Dispose();
             AccountInfo.Dispose();
+            PingTimer.Dispose();
         }
     }
 }
