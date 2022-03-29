@@ -405,7 +405,11 @@ namespace Coflnet.Sky.Commands.MC
 
                     var penalty = await socket.GetService<FlipTrackingService>().GetRecommendedPenalty(SessionInfo.McUuid);
                     if (penalty > TimeSpan.Zero)
+                    {
                         SessionInfo.Penalty = penalty;
+                        using var span = tracer.BuildSpan("nerv").AsChildOf(ConSpan).StartActive();
+                        span.Span.SetTag("time", penalty.ToString());
+                    }
                     else
                         SessionInfo.Penalty = TimeSpan.Zero;
                 }
