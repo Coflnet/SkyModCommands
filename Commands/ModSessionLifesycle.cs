@@ -145,6 +145,7 @@ namespace Coflnet.Sky.Commands.MC
         public async Task SetupConnectionSettings(string stringId)
         {
             using var loadSpan = socket.tracer.BuildSpan("load").AsChildOf(ConSpan).StartActive();
+            SessionInfo.SessionId = stringId;
 
             PingTimer = new System.Threading.Timer((e) =>
             {
@@ -234,6 +235,12 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             try
             {
+                if(info.ConIds.Contains("logout"))
+                {
+                    SendMessage("You have been logged out");
+                    socket.Close();
+                    return;
+                }
                 //MigrateSettings(cachedSettings);
                 /*ApplySetting(cachedSettings);*/
                 UpdateConnectionTier(info, socket.ConSpan);
@@ -424,8 +431,8 @@ namespace Coflnet.Sky.Commands.MC
         {
             FlipSettings.Dispose();
             UserId.Dispose();
-            AccountInfo.Dispose();
-            PingTimer.Dispose();
+            AccountInfo?.Dispose();
+            PingTimer?.Dispose();
         }
     }
 }

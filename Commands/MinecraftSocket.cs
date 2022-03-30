@@ -177,7 +177,7 @@ namespace Coflnet.Sky.Commands.MC
             if (args["uuid"] == null && args["player"] == null)
                 Send(Response.Create("error", "the connection query string needs to include 'player'"));
             if (args["SId"] != null)
-                SessionInfo.sessionId = args["SId"].Truncate(60);
+                SessionInfo.clientSessionId = args["SId"].Truncate(60);
             if (args["version"] != null)
                 Version = args["version"].Truncate(10);
 
@@ -266,7 +266,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected (long, string) ComputeConnectionId(string passedId)
         {
-            var bytes = Encoding.UTF8.GetBytes(passedId.ToLower() + SessionInfo.sessionId + DateTime.Now.RoundDown(TimeSpan.FromDays(14)).ToString());
+            var bytes = Encoding.UTF8.GetBytes(passedId.ToLower() + SessionInfo.clientSessionId + DateTime.Now.RoundDown(TimeSpan.FromDays(14)).ToString());
             var hash = System.Security.Cryptography.SHA512.Create();
             var hashed = hash.ComputeHash(bytes);
             return (BitConverter.ToInt64(hashed), Convert.ToBase64String(hashed, 0, 16).Replace('+', '-').Replace('/', '_'));
@@ -291,7 +291,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             span.Span.SetTag("type", a.type);
             span.Span.SetTag("content", a.data);
-            if (SessionInfo.sessionId.StartsWith("debug"))
+            if (SessionInfo.clientSessionId.StartsWith("debug"))
                 SendMessage("executed " + a.data, "");
 
             // tokenlogin is the legacy version of clicked
@@ -353,6 +353,13 @@ namespace Coflnet.Sky.Commands.MC
             ConSpan.Finish();
             OnConClose?.Invoke();
             sessionLifesycle.Dispose();
+        }
+
+        public new void Close()
+        {
+            base.Close();
+            ConSpan.Log("force close");
+            
         }
 
         public void SendMessage(string text, string clickAction = null, string hoverText = null)
