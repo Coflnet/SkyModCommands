@@ -104,6 +104,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<GetCommand>();
             Commands.Add<TopUpCommand>();
             Commands.Add<HelpCommand>();
+            Commands.Add<LogoutCommand>();
 
             Task.Run(async () =>
             {
