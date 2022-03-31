@@ -27,11 +27,49 @@ namespace Coflnet.Sky.Commands.MC
                 cost = flip.Auction.StartingBid,
                 sound = (string)"note.pling"
             }));
+            if (DateTime.Now.Month == 4 && DateTime.Now.Day == 1 && new Random().Next(500) < 2)
+            {
+                var msg = await GetMessageparts(Joke);
+                msg[0].onClick = "/cofl dialog echo Happy April fools ☺";
+                msg[0].text.Replace("FLIP", "TFM");
+                socket.Send(Response.Create("chatMessage", msg));
+            }
 
             if (socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000)
                 SendSound("note.pling", (float)(1 / (Math.Sqrt((float)flip.Profit / 1_000_000) + 1)));
             return true;
         }
+
+        private FlipInstance Joke => new FlipInstance()
+        {
+            Auction = new SaveAuction()
+            {
+                ItemName = "Hyperion",
+                Tier = Tier.DIVINE,
+                Bin = true,
+                StartingBid = 5000,
+                AuctioneerId = "384a029294fc445e863f2c42fe9709cb",
+                Enchantments = new System.Collections.Generic.List<Enchantment>()
+                {
+                    new Enchantment(Enchantment.EnchantmentType.ultimate_chimera, 10)
+                }
+            },
+            Bin = true,
+            Finder = LowPricedAuction.FinderType.TFM,
+            LastKnownCost = 5000,
+            LowestBin = 800_000_000,
+            MedianPrice = 945_123_456,
+            Name = "Hyperion",
+            SellerName = "Ekwav",
+            Tag = "HYPERION",
+            Volume = 30,
+            Interesting = new System.Collections.Generic.List<string>() { McColorCodes.LIGHT_PURPLE + "Chimera" },
+            Rarity = Tier.DIVINE,
+            Context = new System.Collections.Generic.Dictionary<string, string>()
+            {
+                {"lore", "Haha lol, April fools :)"}
+            }
+        };
 
         public override void SendMessage(params ChatPart[] parts)
         {
