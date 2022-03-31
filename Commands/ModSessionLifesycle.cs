@@ -235,7 +235,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             try
             {
-                if(info.ConIds.Contains("logout"))
+                if (info.ConIds.Contains("logout"))
                 {
                     SendMessage("You have been logged out");
                     socket.Close();
@@ -394,6 +394,8 @@ namespace Coflnet.Sky.Commands.MC
 
                     UpdateConnectionTier(AccountInfo, span.Span);
                 }
+                if (blockedFlipFilterCount > 1000)
+                    span.Span.SetTag("error", true);
                 UpdateExtraDelay();
             }
             catch (Exception e)
