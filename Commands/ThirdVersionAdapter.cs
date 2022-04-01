@@ -27,7 +27,7 @@ namespace Coflnet.Sky.Commands.MC
                 cost = flip.Auction.StartingBid,
                 sound = (string)"note.pling"
             }));
-            if (DateTime.Now.Month == 4 && DateTime.Now.Day == 1 && new Random().Next(700) < 2)
+            if (DateTime.Now.Month == 4 && DateTime.Now.Day == 1 && new Random().Next(400) < 2)
             {
                 var msg = await GetMessageparts(Joke);
                 msg[0].onClick = "/cofl dialog echo Happy April fools ☺";
