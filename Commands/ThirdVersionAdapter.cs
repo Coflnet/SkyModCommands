@@ -8,7 +8,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class ThirdVersionAdapter : ModVersionAdapter
     {
-
+        public Prometheus.Counter aprilJoke = Prometheus.Metrics.CreateCounter("sky_commands_april_flips", "How many april fools flips were sent");
 
         public ThirdVersionAdapter(MinecraftSocket socket)
         {
@@ -27,12 +27,20 @@ namespace Coflnet.Sky.Commands.MC
                 cost = flip.Auction.StartingBid,
                 sound = (string)"note.pling"
             }));
-            if (DateTime.Now.Month == 4 && DateTime.Now.Day == 1 && new Random().Next(500) < 2)
+            if (DateTime.Now.Month == 4 && DateTime.Now.Day == 1 && new Random().Next(700) < 2)
             {
                 var msg = await GetMessageparts(Joke);
                 msg[0].onClick = "/cofl dialog echo Happy April fools ☺";
-                msg[0].text.Replace("FLIP", "TFM");
+                var finder = new Random().Next(5) switch
+                {
+                    1 => "HYAUCTIONS",
+                    2 => "STONKS",
+                    3 => "AOTF",
+                    _ => "TFM",
+                };
+                msg[0].text = msg[0].text.Replace("FLIP", finder);
                 socket.Send(Response.Create("chatMessage", msg));
+                aprilJoke.Inc();
             }
 
             if (socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000)
