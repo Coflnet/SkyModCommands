@@ -9,6 +9,7 @@ namespace Coflnet.Sky.Commands.MC
     public class ThirdVersionAdapter : ModVersionAdapter
     {
         public Prometheus.Counter aprilJoke = Prometheus.Metrics.CreateCounter("sky_commands_april_flips", "How many april fools flips were sent");
+        private Random rng = new Random();
 
         public ThirdVersionAdapter(MinecraftSocket socket)
         {
@@ -27,15 +28,17 @@ namespace Coflnet.Sky.Commands.MC
                 cost = flip.Auction.StartingBid,
                 sound = (string)"note.pling"
             }));
-            if (DateTime.Now.Month == 4 && DateTime.Now.Day == 1 && new Random().Next(400) < 2)
+            if (DateTime.Now.Month == 4 && DateTime.Now.Day == 1 && rng.Next(200) == 1)
             {
                 var msg = await GetMessageparts(Joke);
                 msg[0].onClick = "/cofl dialog echo Happy April fools ☺";
-                var finder = new Random().Next(5) switch
+                var finder = rng.Next(6) switch
                 {
                     1 => "HYAUCTIONS",
                     2 => "STONKS",
                     3 => "AOTF",
+                    4 => "Jasmine",
+                    5 => "NEC",
                     _ => "TFM",
                 };
                 msg[0].text = msg[0].text.Replace("FLIP", finder);
@@ -68,10 +71,10 @@ namespace Coflnet.Sky.Commands.MC
             LowestBin = 800_000_000,
             MedianPrice = 945_123_456,
             Name = "Hyperion",
-            SellerName = "Ekwav",
+            SellerName = "Äkwav",
             Tag = "HYPERION",
-            Volume = 30,
-            Interesting = new System.Collections.Generic.List<string>() { McColorCodes.LIGHT_PURPLE + "Chimera" },
+            Volume = 420,
+            Interesting = new System.Collections.Generic.List<string>() { McColorCodes.LIGHT_PURPLE + "Chimera", "Black Sheep Skin", "Technoblade" },
             Rarity = Tier.DIVINE,
             Context = new System.Collections.Generic.Dictionary<string, string>()
             {
