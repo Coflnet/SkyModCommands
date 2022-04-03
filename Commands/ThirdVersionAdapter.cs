@@ -11,6 +11,8 @@ namespace Coflnet.Sky.Commands.MC
         public Prometheus.Counter aprilJoke = Prometheus.Metrics.CreateCounter("sky_commands_april_flips", "How many april fools flips were sent");
         private Random rng = new Random();
 
+        private DateTime lastSound = DateTime.Now;
+
         public ThirdVersionAdapter(MinecraftSocket socket)
         {
             this.socket = socket;
@@ -89,6 +91,9 @@ namespace Coflnet.Sky.Commands.MC
 
         public override void SendSound(string name, float pitch = 1)
         {
+            if(DateTime.Now -lastSound < TimeSpan.FromSeconds(0.1) )
+                return; // minecraft can't handle concurrent sounds
+            lastSound = DateTime.Now;
             socket.Send(Response.Create("playSound", new { name, pitch }));
         }
     }
