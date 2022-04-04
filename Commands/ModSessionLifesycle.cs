@@ -184,9 +184,9 @@ namespace Coflnet.Sky.Commands.MC
                     GetAuthLink(stringId));
                 await Task.Delay(TimeSpan.FromSeconds(60 * index++));
 
-                if (UserId != default)
-                    //    return;
-                    SendMessage("do /cofl stop to stop receiving this (or click this message)", "/cofl stop");
+                if (UserId.Value != default)
+                    return;
+                SendMessage("do /cofl stop to stop receiving this (or click this message)", "/cofl stop");
             }
         }
 
