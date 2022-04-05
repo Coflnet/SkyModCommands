@@ -440,7 +440,7 @@ namespace Coflnet.Sky.Commands.MC
             return span;
         }
 
-        private void OnApplicationStop(object? sender, ConsoleCancelEventArgs e)
+        private void OnApplicationStop(object sender, ConsoleCancelEventArgs e)
         {
             SendMessage(COFLNET + "Server is restarting, you may experience connection issues for a few seconds.",
                  "/cofl start", "if it doesn't auto reconnect click this");

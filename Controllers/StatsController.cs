@@ -31,9 +31,9 @@ namespace Coflnet.Sky.ModCommands.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("/status")]
-        public async Task TrackFlip()
+        public Task TrackFlip()
         {
-
+            return Task.CompletedTask;
         }
     }
 }
