@@ -201,6 +201,32 @@ namespace Coflnet.Sky.Commands.MC
                 Task.Run(async () => await UpdateAccountInfo(AccountInfo));
             else
                 Console.WriteLine("accountinfo is default");
+
+            _ = ApplyFlipSettings(FlipSettings.Value, ConSpan);
+        }
+
+        /// <summary>
+        /// Makes sure given settings are applied
+        /// </summary>
+        /// <param name="settings"></param>
+        private async Task ApplyFlipSettings(FlipSettings settings, OpenTracing.ISpan span)
+        {
+            if (settings == null)
+                return;
+            try
+            {
+                if (FlipSettings.Value?.ModSettings?.Chat ?? false)
+                    await ChatCommand.MakeSureChatIsConnected(socket);
+                if (settings.BasedOnLBin && settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
+                {
+                    socket.SendMessage(new DialogBuilder().Msg(McColorCodes.RED + "Your profit is based on lbin, therefore you should only use the `sniper` flip finder to maximise speed"));
+                }
+                span.Log(JSON.Stringify(settings));
+            }
+            catch (Exception e)
+            {
+                socket.Error(e, "applying flip settings");
+            }
         }
 
         /// <summary>
@@ -215,14 +241,8 @@ namespace Coflnet.Sky.Commands.MC
             if (string.IsNullOrWhiteSpace(changed))
                 changed = "Settings changed";
             SendMessage($"{COFLNET} {changed}");
-            if (settings.ModSettings?.Chat ?? false)
-                ChatCommand.MakeSureChatIsConnected(socket).Wait();
 
-            if (settings.BasedOnLBin && settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
-            {
-                socket.SendMessage(new DialogBuilder().Msg(McColorCodes.RED + "Your profit is based on lbin, therefore you should only use the `sniper` flip finder to maximise speed"));
-            }
-            span.Span.Log(JSON.Stringify(settings));
+            ApplyFlipSettings(settings,span.Span).Wait();
         }
 
         protected virtual async Task UpdateAccountInfo(AccountInfo info)
