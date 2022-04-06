@@ -89,6 +89,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<TrackCommand>();
             Commands.Add<ResetCommand>();
             Commands.Add<OnlineCommand>();
+            Commands.Add<DelayCommand>();
             Commands.Add<BlacklistCommand>();
             Commands.Add<FastCommand>();
             Commands.Add<VoidCommand>();

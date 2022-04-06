@@ -7,10 +7,10 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            socket.SendMessage(COFLNET + $"There are {McColorCodes.AQUA}{FlipperService.Instance.PremiumUserCount}{McColorCodes.GRAY} users connected to this server", 
+            socket.SendMessage(COFLNET + $"There are {McColorCodes.AQUA}{FlipperService.Instance.PremiumUserCount}{McColorCodes.GRAY} users connected to this server",
                     null, McColorCodes.GRAY + "there is more than one server");
             var count = await socket.GetService<Commands.FlipTrackingService>().ActiveFlipperCount();
-            socket.SendMessage(COFLNET + $"{McColorCodes.AQUA}{count}{McColorCodes.GRAY} players clicked on a flip in the last 3 minutes.", 
+            socket.SendMessage(COFLNET + $"{McColorCodes.AQUA}{count}{McColorCodes.GRAY} players clicked on a flip in the last 3 minutes.",
                     null, McColorCodes.GRAY + "accross all plans (free included)");
         }
     }
