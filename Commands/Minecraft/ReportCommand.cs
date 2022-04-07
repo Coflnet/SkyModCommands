@@ -24,6 +24,7 @@ namespace Coflnet.Sky.Commands.MC
                         .WithTag("uuid", JsonConvert.SerializeObject(socket.SessionInfo.McUuid))
                         .WithTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
                         .WithTag("workerThreads", workerThreads)
+                        .WithTag("timestamp", DateTime.UtcNow.ToLongTimeString())
                         .WithTag("completionPortThreads", completionPortThreads)
                         .AsChildOf(socket.ConSpan).StartActive();
 
