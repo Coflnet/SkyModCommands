@@ -58,9 +58,9 @@ namespace Coflnet.Sky.Commands.MC
 
         public string FormatFlip(FlipInstance flip)
         {
-            if(Settings.Visibility == null)
+            if (Settings.Visibility == null)
                 Settings.Visibility = new VisibilitySettings();
-            if(Settings.ModSettings == null)
+            if (Settings.ModSettings == null)
                 Settings.ModSettings = new ModSettings();
 
             Settings.GetPrice(flip, out long targetPrice, out long profit);
@@ -127,6 +127,7 @@ namespace Coflnet.Sky.Commands.MC
                     throw new Exception("connection is null " + profit, e);
                 if (Settings == null)
                     throw new Exception("settings are null " + profit, e);
+                con.Log(e.ToString(), Microsoft.Extensions.Logging.LogLevel.Error);
                 throw new Exception(JSON.Stringify(Settings), e);
             }
             return builder.ToString();
