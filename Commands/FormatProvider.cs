@@ -128,7 +128,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (Settings == null)
                     throw new Exception("settings are null " + profit, e);
                 con.Log(e.ToString(), Microsoft.Extensions.Logging.LogLevel.Error);
-                throw new Exception(JSON.Stringify(Settings), e);
+                throw new Exception(e.ToString() + Environment.NewLine + JSON.Stringify(Settings), e);
             }
             return builder.ToString();
         }
