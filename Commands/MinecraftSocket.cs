@@ -339,7 +339,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     var auctionUuid = JsonConvert.DeserializeObject<string>(a.data).Trim('"').Replace("/viewauction ", "");
                     var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
-                    if (flip != null && flip.Auction.Context != null)
+                    if (flip != null && flip.Auction.Context != null && !flip.AdditionalProps.ContainsKey("clickT"))
                         flip.AdditionalProps["clickT"] = (DateTime.Now - flip.Auction.FindTime).ToString();
                     await GetService<FlipTrackingService>().ClickFlip(auctionUuid, SessionInfo.McUuid);
 
