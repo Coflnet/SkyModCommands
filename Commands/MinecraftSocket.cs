@@ -585,6 +585,8 @@ namespace Coflnet.Sky.Commands.MC
                 Send(Response.Create("ping", 0));
                 return;
             }
+            if (Settings?.ModSettings?.DisplayTimer ?? false)
+                sessionLifesycle.StartTimer(9.9);
             SendMessage(
                 COFLNET + "Flips in 10 seconds",
                 null,

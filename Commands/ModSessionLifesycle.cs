@@ -428,6 +428,11 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        public void StartTimer(double seconds = 10, string prefix = "§c")
+        {
+            socket.Send(Response.Create("countdown", new { seconds = seconds, widthPercent = 10, heightPercent = 10, scale = 2, prefix = prefix, maxPercision = 3 }));
+        }
+
         private void UpdateExtraDelay()
         {
             _ = Task.Run(async () =>
