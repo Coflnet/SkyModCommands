@@ -13,7 +13,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         static ChatService chat;
         public static string CHAT_PREFIX = "[§1C§6hat§f]";
-        private static string[] BadWords = new string[] { "my ah", "nigger" };
+        private static string[] BadWords = new string[] { "my ah", "nigger", " /ah " };
         private static HashSet<string> MutedUsers = new HashSet<string>() { "850cfa6e7f184ed4b72a8c304734bcbe" };
 
         public override async Task Execute(MinecraftSocket socket, string arguments)
