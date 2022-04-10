@@ -11,6 +11,8 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             var greenHeard = McColorCodes.DARK_GREEN + "❤" + McColorCodes.GRAY;
             var timingMessage = $"{McColorCodes.WHITE} ⌛{McColorCodes.GRAY}   Get own timings";
             return New().MsgLine("What do you want to do?")
+                .Msg(flip.AdditionalProps.TryGetValue("match",out string details) && details.Contains("whitelist") ? 
+                        "\n" + McColorCodes.GREEN + "matched your whitelist" : "")
                 .CoflCommand<RateCommand>(
                     $" {redX}  downvote / report",
                     $"{flip.Auction.Uuid} {flip.Finder} down", 
