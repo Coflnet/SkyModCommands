@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -22,5 +23,10 @@ namespace Coflnet.Sky.Commands.MC
         /// Speed penalty for various bad actions eg botting
         /// </summary>
         public TimeSpan Penalty;
+        /// <summary>
+        /// Keeps track of which players a mute note message was already sent
+        /// </summary>
+        /// <returns></returns>
+        public HashSet<string> SentMutedNoteFor { get; set; } = new ();
     }
 }

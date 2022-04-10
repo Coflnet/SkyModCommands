@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 using Newtonsoft.Json;
 
@@ -24,6 +25,17 @@ namespace Coflnet.Sky.Commands.MC
             }
             var maxMsgLength = 150;
             var message = JsonConvert.DeserializeObject<string>(arguments);
+
+            if (string.IsNullOrEmpty(message))
+            {
+                var settings = socket.sessionLifesycle.FlipSettings;
+                if(settings == null)
+                    throw new CoflnetException("no_settings", "could not toggle the cofl chat likely because you are not logged in");
+                settings.Value.ModSettings.Chat = !settings.Value.ModSettings.Chat;
+                await settings.Update(settings.Value);
+                socket.SendMessage(CHAT_PREFIX + $"Toggled the chat {(settings.Value.ModSettings.Chat ? "on" : "off")}", null, "this currently doesn't persist if the website is open");
+                return;
+            }
             await MakeSureChatIsConnected(socket);
             if (DateTime.Now - TimeSpan.FromSeconds(1) < socket.SessionInfo.LastMessage)
             {
@@ -60,19 +72,26 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (!socket.SessionInfo.ListeningToChat)
             {
-                if(chat == null)
+                if (chat == null)
                 {
                     chat = socket.GetService<ChatService>();
                 }
                 var sub = await chat.Subscribe(m =>
                 {
+                    if (!(socket.sessionLifesycle.FlipSettings?.Value?.ModSettings?.Chat ?? false))
+                    {
+                        socket.SessionInfo.ListeningToChat = false;
+                        return false;
+                    }
                     try
                     {
-
-                        if (socket.Settings?.BlackList?.Any(b => b.filter.Where(f => f.Key == "Seller" && f.Value == m.Uuid).Any()) ?? false)
+                        if (socket.sessionLifesycle.AccountSettings?.Value?.MutedUsers?.Where(mu => mu.Uuid == m.Uuid).Any() ?? false)
                         {
-                            Console.WriteLine("blacklist " + m.Message);
-                            socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player on your blacklist", null, $"You blacklisted {m.Name}"));
+                            if (socket.SessionInfo.SentMutedNoteFor.Contains(m.Uuid))
+                                return true;
+                            socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player you muted", null,
+                                $"You muted {m.Name}. \nThis message is displayed once per session and player\nto avoid confusion why messages are not shown to you"));
+                            socket.SessionInfo.SentMutedNoteFor.Add(m.Uuid);
                             return true;
                         }
                         Console.WriteLine("got message " + m.Message);
@@ -80,7 +99,8 @@ namespace Coflnet.Sky.Commands.MC
                         return socket.SendMessage(
                             new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.Name} {m.ClientName} {m.Message}", $"click to report message from {m.ClientName}"),
                             new ChatPart("", "/cofl void"));
-                    } catch(Exception e)
+                    }
+                    catch (Exception e)
                     {
                         dev.Logger.Instance.Error(e, "chat message");
                     }

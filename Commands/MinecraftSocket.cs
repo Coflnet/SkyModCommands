@@ -53,10 +53,11 @@ namespace Coflnet.Sky.Commands.MC
         public static event Action NextUpdateStart;
 
         int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId ?? "0");
-        public string UserId {
-            get 
+        public string UserId
+        {
+            get
             {
-                if(sessionLifesycle?.UserId == null)
+                if (sessionLifesycle?.UserId == null)
                     throw new NullReferenceException("no user set");
                 return sessionLifesycle.UserId.Value;
             }
@@ -91,6 +92,8 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<OnlineCommand>();
             Commands.Add<DelayCommand>();
             Commands.Add<BlacklistCommand>();
+            Commands.Add<MuteCommand>();
+            Commands.Add<UnMuteCommand>();
             Commands.Add<FastCommand>();
             Commands.Add<VoidCommand>();
             Commands.Add<BlockedCommand>();
@@ -241,6 +244,19 @@ namespace Coflnet.Sky.Commands.MC
             return (await Shared.DiHandler.ServiceProvider.GetRequiredService<PlayerName.Client.Api.PlayerNameApi>()
                     .PlayerNameNameUuidGetAsync(uuid))?.Trim('"');
         }
+        public async Task<string> GetPlayerUuid(string name)
+        {
+            try
+            {
+                return (await Shared.DiHandler.ServiceProvider.GetRequiredService<PlayerName.Client.Api.PlayerNameApi>()
+                        .PlayerNameUuidNameGetAsync(name)).Trim('"');
+            }
+            catch (Exception e)
+            {
+                Error(e, "loading name for uuid");
+                throw new CoflnetException("name_retrieve", "Could not find the player " + name);
+            }
+        }
 
         public T GetService<T>()
         {
@@ -361,7 +377,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             base.Close();
             ConSpan.Log("force close");
-            
+
         }
 
         public void SendMessage(string text, string clickAction = null, string hoverText = null)

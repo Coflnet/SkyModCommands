@@ -25,6 +25,7 @@ namespace Coflnet.Sky.Commands.MC
         public SelfUpdatingValue<FlipSettings> FlipSettings;
         public SelfUpdatingValue<string> UserId;
         public SelfUpdatingValue<AccountInfo> AccountInfo;
+        public SelfUpdatingValue<AccountSettings> AccountSettings;
         public OpenTracing.ISpan ConSpan => socket.ConSpan;
         public System.Threading.Timer PingTimer;
 
@@ -203,6 +204,7 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine("accountinfo is default");
 
             _ = ApplyFlipSettings(FlipSettings.Value, ConSpan);
+            AccountSettings = SelfUpdatingValue<AccountSettings>.Create(val, "accuntSettings").Result;
         }
 
         /// <summary>
