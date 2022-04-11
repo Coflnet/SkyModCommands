@@ -245,7 +245,7 @@ namespace Coflnet.Sky.Commands.MC
                 changed = "Settings changed";
             SendMessage($"{COFLNET} {changed}");
 
-            ApplyFlipSettings(settings,span.Span).Wait();
+            ApplyFlipSettings(settings, span.Span).Wait();
         }
 
         protected virtual async Task UpdateAccountInfo(AccountInfo info)
@@ -430,7 +430,10 @@ namespace Coflnet.Sky.Commands.MC
 
         public void StartTimer(double seconds = 10, string prefix = "§c")
         {
-            socket.Send(Response.Create("countdown", new { seconds = seconds, widthPercent = 10, heightPercent = 10, scale = 2, prefix = prefix, maxPrecision = 3 }));
+            if (socket.Version == "1.3-Alpha")
+                socket.SendMessage(COFLNET + "You have to update your mod to support the timer");
+            else
+                socket.Send(Response.Create("countdown", new { seconds = seconds, widthPercent = 10, heightPercent = 10, scale = 2, prefix = prefix, maxPrecision = 3 }));
         }
 
         private void UpdateExtraDelay()
