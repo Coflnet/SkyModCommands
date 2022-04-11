@@ -184,7 +184,7 @@ namespace Coflnet.Sky.Commands.MC
             if (args["SId"] != null)
                 SessionInfo.clientSessionId = args["SId"].Truncate(60);
             if (args["version"] != null)
-                Version = args["version"].Truncate(10);
+                Version = args["version"].Truncate(14);
 
             ModAdapter = Version switch
             {
