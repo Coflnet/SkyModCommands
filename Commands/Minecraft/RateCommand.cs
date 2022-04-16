@@ -28,7 +28,8 @@ namespace Coflnet.Sky.Commands.MC
                     new ChatPart(" * it isn't I mis-clicked \n", "/cofl dialog echo okay, have a nice day "),
                     new ChatPart(" * This flip is overpriced\n", "/cofl dialog overpriced ", "overpriced/bad flip"),
                     new ChatPart(" * This item sells slowly\n", "/cofl dialog slowsell"),
-                    new ChatPart(" * I blacklisted this before\n", "/cofl report blacklist broken"));
+                    new ChatPart(" * I blacklisted this before\n", "/cofl report blacklist broken"),
+                    new ChatPart(" * Something else \n", null, "please send /cofl report with further information"));
                 await socket.GetService<Commands.FlipTrackingService>().DownVote(uuid, socket.SessionInfo.McUuid);
             }
             else if (rating == "up")

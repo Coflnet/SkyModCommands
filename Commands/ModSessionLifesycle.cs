@@ -377,15 +377,8 @@ namespace Coflnet.Sky.Commands.MC
         protected virtual async Task SendAuthorizedHello(AccountInfo accountInfo)
         {
             var user = UserService.Instance.GetUserById(accountInfo.UserId);
-            var length = user.Email.Length < 10 ? 3 : 6;
-            var builder = new StringBuilder(user.Email);
-            for (int i = 0; i < builder.Length - 5; i++)
-            {
-                if (builder[i] == '@' || i < 3)
-                    continue;
-                builder[i] = '*';
-            }
-            var anonymisedEmail = builder.ToString();
+            var email = user.Email;
+            string anonymisedEmail = UserService.Instance.AnonymiseEmail(email);
             if (this.SessionInfo.McName == null)
                 await Task.Delay(800); // allow another half second for the playername to be loaded
             var messageStart = $"Hello {this.SessionInfo.McName} ({anonymisedEmail}) \n";
