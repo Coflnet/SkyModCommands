@@ -139,7 +139,6 @@ namespace Coflnet.Sky.Commands.MC
         {
             Task.Run(async () =>
             {
-
                 DateTime next = await GetNextUpdateTime();
                 updateTimer.Change(next - DateTime.Now, TimeSpan.FromMinutes(1));
             });
