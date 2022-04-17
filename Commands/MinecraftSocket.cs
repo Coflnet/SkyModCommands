@@ -124,7 +124,7 @@ namespace Coflnet.Sky.Commands.MC
                     try
                     {
                         NextUpdateStart?.Invoke();
-                        if (DateTime.Now.Minute % 10 == 0)
+                        if (DateTime.Now.Minute % 2 == 0)
                             UpdateTimer();
                     }
                     catch (Exception ex)
