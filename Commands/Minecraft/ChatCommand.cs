@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Coflnet.Sky.Chat.Client.Model;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
@@ -76,36 +77,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     chat = socket.GetService<ChatService>();
                 }
-                var sub = await chat.Subscribe(m =>
-                {
-                    if (!(socket.sessionLifesycle.FlipSettings?.Value?.ModSettings?.Chat ?? false))
-                    {
-                        socket.SessionInfo.ListeningToChat = false;
-                        return false;
-                    }
-                    try
-                    {
-                        if (socket.sessionLifesycle.AccountSettings?.Value?.MutedUsers?.Where(mu => mu.Uuid == m.Uuid).Any() ?? false)
-                        {
-                            if (socket.SessionInfo.SentMutedNoteFor.Contains(m.Uuid))
-                                return true;
-                            socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player you muted", null,
-                                $"You muted {m.Name}. \nThis message is displayed once per session and player\nto avoid confusion why messages are not shown to you"));
-                            socket.SessionInfo.SentMutedNoteFor.Add(m.Uuid);
-                            return true;
-                        }
-                        Console.WriteLine("got message " + m.Message);
-                        var color = m.Prefix;
-                        return socket.SendMessage(
-                            new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatreport {m.Name} {m.ClientName} {m.Message}", $"click to report message from {m.ClientName}"),
-                            new ChatPart("", "/cofl void"));
-                    }
-                    catch (Exception e)
-                    {
-                        dev.Logger.Instance.Error(e, "chat message");
-                    }
-                    return false;
-                });
+                var sub = await chat.Subscribe(OnMessage(socket));
                 socket.SessionInfo.ListeningToChat = true;
 
                 socket.OnConClose += () =>
@@ -113,6 +85,40 @@ namespace Coflnet.Sky.Commands.MC
                     sub.Unsubscribe();
                 };
             }
+        }
+
+        private static Func<ChatMessage, bool> OnMessage(MinecraftSocket socket)
+        {
+            return m =>
+            {
+                if (!(socket.sessionLifesycle.FlipSettings?.Value?.ModSettings?.Chat ?? false))
+                {
+                    socket.SessionInfo.ListeningToChat = false;
+                    return false;
+                }
+                try
+                {
+                    if (socket.sessionLifesycle.AccountSettings?.Value?.MutedUsers?.Where(mu => mu.Uuid == m.Uuid).Any() ?? false)
+                    {
+                        if (socket.SessionInfo.SentMutedNoteFor.Contains(m.Uuid))
+                            return true;
+                        socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player you muted", null,
+                            $"You muted {m.Name}. \nThis message is displayed once per session and player\nto avoid confusion why messages are not shown to you"));
+                        socket.SessionInfo.SentMutedNoteFor.Add(m.Uuid);
+                        return true;
+                    }
+                    Console.WriteLine("got message " + m.Message);
+                    var color = m.Prefix;
+                    return socket.SendMessage(
+                        new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatoptions {m.Name} {m.ClientName} {m.Message}", $"click for more options"),
+                        new ChatPart("", "/cofl void"));
+                }
+                catch (Exception e)
+                {
+                    dev.Logger.Instance.Error(e, "chat message");
+                }
+                return false;
+            };
         }
     }
 

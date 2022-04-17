@@ -16,6 +16,7 @@ namespace Coflnet.Sky.ModCommands.Services
             Dialogs.Add<ReferencesWrongDialog>();
             Dialogs.Add<SlowSellDialog>();
             Dialogs.Add<ChatReportDialog>();
+            Dialogs.Add<ChatOptionsDialog>();
             Dialogs.Add<NoBestFlipDialog>();
             Dialogs.Add<FlipOptionsDialog>();
         }
