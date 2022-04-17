@@ -11,7 +11,7 @@ namespace Coflnet.Sky.Commands.MC
                     null, McColorCodes.GRAY + "there is more than one server");
             var count = await socket.GetService<Commands.FlipTrackingService>().ActiveFlipperCount();
             socket.SendMessage(COFLNET + $"{McColorCodes.AQUA}{count}{McColorCodes.GRAY} players clicked on a flip in the last 3 minutes.",
-                    null, McColorCodes.GRAY + "accross all plans (free included)");
+                    null, McColorCodes.GRAY + "across all plans (free included)");
         }
     }
 }

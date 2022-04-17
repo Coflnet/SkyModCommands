@@ -44,7 +44,7 @@ namespace Coflnet.Sky.Commands.MC
             if (tfm > 0 || stonks > 0)
                 hover += $"\n {FormatPrice(socket, coflnet)} from the {COFLNET} mod";
             socket.SendMessage(COFLNET + $"According to our data you made {FormatPrice(socket, response.TotalProfit)} "
-                + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days accross {FormatPrice(socket, response.Flips.Length)} auctions",
+                + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions",
                 null, hover);
             var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
             var best = sorted.FirstOrDefault();
