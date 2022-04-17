@@ -117,7 +117,7 @@ namespace Coflnet.Sky.Commands.MC
                     Console.WriteLine("next update");
                     GC.Collect();
                 };
-                DateTime next = await GetNextUpdateTime();
+                DateTime next = await GetNext10SecTime();
                 Console.WriteLine($"started timer to start at {next} now its {DateTime.Now}");
                 updateTimer = new System.Threading.Timer((e) =>
                 {
@@ -139,14 +139,14 @@ namespace Coflnet.Sky.Commands.MC
         {
             Task.Run(async () =>
             {
-                DateTime next = await GetNextUpdateTime();
+                DateTime next = await GetNext10SecTime();
                 updateTimer.Change(next - DateTime.Now, TimeSpan.FromMinutes(1));
             });
         }
 
-        private static async Task<DateTime> GetNextUpdateTime()
+        private static async Task<DateTime> GetNext10SecTime()
         {
-            return await new NextUpdateRetriever().Get();
+            return (await new NextUpdateRetriever().Get()) - TimeSpan.FromSeconds(10);
         }
 
         protected override void OnOpen()
