@@ -149,7 +149,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private static async Task<DateTime> GetNext10SecTime()
         {
-            return (await new NextUpdateRetriever().Get()) - TimeSpan.FromSeconds(10);
+            return (await new NextUpdateRetriever().Get()) - TimeSpan.FromSeconds(9); // one second processing time
         }
 
         protected override void OnOpen()

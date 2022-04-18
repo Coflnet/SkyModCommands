@@ -29,6 +29,10 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                     $"{McColorCodes.WHITE}[?]{McColorCodes.GRAY} Get references", 
                     $"{flip.Auction.Uuid}", 
                     "Find out why this was deemed a flip").Break
+                .CoflCommand<BlacklistCommand>(
+                    $" {redX}  Blacklist this item", 
+                    $"{flip.Auction.Tag}", 
+                    $"Don't show this {McColorCodes.AQUA}{Sky.Core.ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GRAY} anymore").Break
                 .CoflCommand<ReferenceCommand>(
                     " ➹  Open on website", 
                     $"https://sky.coflnet.com/a/{flip.Auction.Uuid}", 

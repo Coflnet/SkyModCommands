@@ -9,12 +9,13 @@ namespace Coflnet.Sky.Commands.MC
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
             var response = DialogService.GetResponse(socket, arguments.Trim('"'));
-            socket.SendMessage(response);
+            if (response != null)
+                socket.SendMessage(response);
 
             return Task.CompletedTask;
         }
 
     }
 
-    
+
 }

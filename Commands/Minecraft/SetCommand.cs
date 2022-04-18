@@ -14,21 +14,26 @@ namespace Coflnet.Sky.Commands.MC
         {
             try
             {
-                var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();
                 if (arguments.Length > 300)
                     throw new CoflnetException("to_long", "the settings value is too long");
-                arguments = JsonConvert.DeserializeObject<string>(arguments).Replace('$','§');
+                arguments = JsonConvert.DeserializeObject<string>(arguments).Replace('$', '§');
                 var name = arguments.Split(' ')[0];
                 if (arguments.Length == 0)
                 {
                     socket.SendMessage(COFLNET + "Available settings are:\n" + String.Join(",\n", updater.Options()));
                     return;
                 }
-                var newValue = arguments.Substring(name.Length + 1);
-                await updater.Update(socket, name, newValue);
+                var newValue = arguments.Substring(name.Length).Trim();
+                var finalValue = await updater.Update(socket, name, newValue);
                 //socket.LatestSettings.Settings.Changer = "mod-" + socket.SessionInfo.sessionId;
-                await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
-                socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{name}{DEFAULT_COLOR} to {McColorCodes.WHITE}{newValue}"));
+                if (string.IsNullOrEmpty(socket.sessionLifesycle.UserId))
+                    socket.SendMessage(new ChatPart($"{COFLNET}You are not logged in, setting will reset when you stop the connection"));
+                else
+                {
+                    var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();
+                    await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
+                }
+                socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{name}{DEFAULT_COLOR} to {McColorCodes.WHITE}{finalValue}"));
             }
             catch (CoflnetException e)
             {
@@ -38,6 +43,8 @@ namespace Coflnet.Sky.Commands.MC
             catch (Exception e)
             {
                 dev.Logger.Instance.Error(e, "set setting");
+                socket.SendMessage(new ChatPart(COFLNET + "an error occured while executing that"));
+
             }
         }
     }
@@ -49,7 +56,7 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();
-                await service.UpdateSetting("1", "flipSettings", new FlipSettings(){Changer = arguments});
+                await service.UpdateSetting("1", "flipSettings", new FlipSettings() { Changer = arguments });
                 //socket.SendMessage(new ChatPart($"{COFLNET}val is {socket.SettingsTest.Value.Changer}"));
             }
             catch (CoflnetException e)

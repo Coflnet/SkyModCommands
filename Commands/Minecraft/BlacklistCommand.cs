@@ -8,13 +8,13 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var tag = Newtonsoft.Json.JsonConvert.DeserializeObject<string>(arguments);
-            await socket.UpdateSettings(settings =>
-            {
-                if (settings.Settings.BlackList == null)
-                    settings.Settings.BlackList = new System.Collections.Generic.List<ListEntry>();
-                settings.Settings.BlackList.Add(new ListEntry() { ItemTag = tag });
-                return settings;
-            });
+            var settings = socket.sessionLifesycle.FlipSettings;
+            if(settings.Value == null)
+                throw new Coflnet.Sky.Core.CoflnetException("login","Login is required to use this command");
+            if(settings.Value.BlackList == null)
+                settings.Value.BlackList = new System.Collections.Generic.List<ListEntry>();
+            settings.Value.BlackList.Add(new ListEntry() { ItemTag = tag });
+            await settings.Update(settings.Value);
             socket.SendMessage(COFLNET + $"You blacklisted all {arguments} from appearing");
         }
     }
