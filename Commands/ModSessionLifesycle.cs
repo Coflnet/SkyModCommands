@@ -196,6 +196,10 @@ namespace Coflnet.Sky.Commands.MC
             FlipSettings = SelfUpdatingValue<FlipSettings>.Create(val, "flipSettings", () => DEFAULT_SETTINGS).Result;
             AccountInfo = SelfUpdatingValue<AccountInfo>.Create(val, "accountInfo").Result;
 
+            // make sure there is only one connection
+            AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
+            _ = AccountInfo.Update(AccountInfo.Value);
+
             FlipSettings.OnChange += UpdateSettings;
             AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai));
             if (AccountInfo.Value != default)
@@ -258,6 +262,16 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             try
             {
+                if (info.ActiveConnectionId != SessionInfo.ConnectionId)
+                {
+                    // another connection of this account was opened, close this one
+                    SendMessage("\n\n" +COFLNET + McColorCodes.GREEN + "We closed this connection because you opened another one", null, 
+                        "To protect against your mod opening\nmultiple connections which you can't stop,\nwe closed this one.\nThe latest one you opened should still be active");
+                    socket.ExecuteCommand("/cofl stop");
+                    socket.Close();
+                    return;
+                }
+
                 if (info.ConIds.Contains("logout"))
                 {
                     SendMessage("You have been logged out");

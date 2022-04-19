@@ -28,5 +28,9 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <returns></returns>
         public HashSet<string> SentMutedNoteFor { get; set; } = new ();
+        /// <summary>
+        /// Random id for this connection to identify different ones
+        /// </summary>
+        public string ConnectionId = Guid.NewGuid().ToString();
     }
 }

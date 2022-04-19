@@ -400,6 +400,11 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        public void SendCommand<T>(string type, T value = default)
+        {
+            this.Send(Response.Create("writeToChat", value));
+        }
+
         /// <summary>
         /// Execute a command on the client
         /// use with CAUTION
