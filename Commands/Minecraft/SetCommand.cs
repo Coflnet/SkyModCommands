@@ -4,6 +4,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -18,9 +19,11 @@ namespace Coflnet.Sky.Commands.MC
                     throw new CoflnetException("to_long", "the settings value is too long");
                 arguments = JsonConvert.DeserializeObject<string>(arguments).Replace('$', '§');
                 var name = arguments.Split(' ')[0];
-                if (arguments.Length == 0)
+                int page = 0;
+                if (arguments.Length == 0 || int.TryParse(arguments.Split(' ')[0], out page))
                 {
-                    socket.SendMessage(COFLNET + "Available settings are:\n" + String.Join(",\n", updater.Options()));
+                    var pageSize = 12;
+                    socket.SendMessage($"{COFLNET}Available settings are (page {page}):\n" + String.Join(",\n", updater.Options().Skip(page * pageSize).Take(pageSize)));
                     return;
                 }
                 var newValue = arguments.Substring(name.Length).Trim();

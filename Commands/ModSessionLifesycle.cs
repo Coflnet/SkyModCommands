@@ -262,7 +262,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             try
             {
-                if (info.ActiveConnectionId != SessionInfo.ConnectionId)
+                if (info.ActiveConnectionId != SessionInfo.ConnectionId && string.IsNullOrEmpty(info.ActiveConnectionId))
                 {
                     // another connection of this account was opened, close this one
                     SendMessage("\n\n" +COFLNET + McColorCodes.GREEN + "We closed this connection because you opened another one", null, 
