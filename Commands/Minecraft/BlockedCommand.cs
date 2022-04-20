@@ -18,7 +18,7 @@ namespace Coflnet.Sky.Commands.MC
             var r = new Random();
             var grouped = socket.TopBlocked.OrderBy(e => r.Next()).GroupBy(f=>f.Reason).OrderByDescending(f=>f.Count());
             var flipsToSend = new List<MinecraftSocket.BlockedElement>();
-            flipsToSend.AddRange(grouped.First().Take(5 - grouped.Count()));
+            flipsToSend.AddRange(grouped.First().Take(7 - grouped.Count()));
             flipsToSend.AddRange(grouped.Skip(1).Select(g=>g.First()));
             socket.SendMessage(flipsToSend.Take(5).SelectMany(b =>
                 {
