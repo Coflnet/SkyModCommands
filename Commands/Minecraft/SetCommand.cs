@@ -23,7 +23,16 @@ namespace Coflnet.Sky.Commands.MC
                 if (arguments.Length == 0 || int.TryParse(arguments.Split(' ')[0], out page))
                 {
                     var pageSize = 12;
-                    socket.SendMessage($"{COFLNET}Available settings are (page {page}):\n" + String.Join(",\n", updater.Options().Skip(page * pageSize).Take(pageSize)));
+                    Func<string, string> formatSh = v => MC.McColorCodes.GRAY + " (" + MC.McColorCodes.GREEN + v + MC.McColorCodes.GRAY + ")";
+                    var options = updater.ModOptions.Where(o => !o.Value.Hide).Select(o =>
+                    {
+                        var shortHandAddition = !string.IsNullOrEmpty(o.Value.ShortHand) ? formatSh(o.Value.ShortHand) : "";
+                        return $"{MC.McColorCodes.AQUA}{o.Key}{shortHandAddition}: {MC.McColorCodes.GRAY}{o.Value.Info}";
+                    });
+                    socket.SendMessage($"{COFLNET}Available settings are (page {page}):\n" + String.Join("\n", options.Skip(page * pageSize).Take(pageSize)),
+                        "/cofl set " + (page + 1),
+                        $"These are available settings, the format is:\n{MC.McColorCodes.AQUA}key{formatSh("shortVersion")}{MC.McColorCodes.GRAY} Description\n"
+                        + "click to get next page");
                     return;
                 }
                 var newValue = arguments.Substring(name.Length).Trim();

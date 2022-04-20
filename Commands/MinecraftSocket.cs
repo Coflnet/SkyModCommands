@@ -594,7 +594,19 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             if (Settings?.ModSettings?.DisplayTimer ?? false)
-                sessionLifesycle.StartTimer(9.9);
+            {
+                var mod = Settings.ModSettings;
+                if (mod.TimerSeconds == 0)
+                    sessionLifesycle.StartTimer(10);
+                else
+                {
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(60 - mod.TimerSeconds + 10));
+                        sessionLifesycle.StartTimer(mod.TimerSeconds);
+                    });
+                }
+            }
             SendMessage(
                 COFLNET + "Flips in 10 seconds",
                 null,

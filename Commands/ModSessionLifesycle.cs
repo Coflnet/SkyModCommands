@@ -437,10 +437,17 @@ namespace Coflnet.Sky.Commands.MC
 
         public void StartTimer(double seconds = 10, string prefix = "§c")
         {
+            var mod = this.FlipSettings.Value?.ModSettings;
             if (socket.Version == "1.3-Alpha")
                 socket.SendMessage(COFLNET + "You have to update your mod to support the timer");
             else
-                socket.Send(Response.Create("countdown", new { seconds = seconds, widthPercent = 10, heightPercent = 10, scale = 2, prefix = prefix, maxPrecision = 3 }));
+                socket.Send(Response.Create("countdown", new { 
+                    seconds = seconds, 
+                    widthPercent = (mod?.TimerX ?? 0) == 0 ? 10 : mod.TimerX, 
+                    heightPercent = (mod?.TimerY ?? 0) == 0 ? 10 : mod.TimerY, 
+                    scale = (mod?.TimerScale ?? 0) == 0 ? 2 : mod.TimerScale, 
+                    prefix = mod?.TimerPrefix ?? prefix, 
+                    maxPrecision = (mod?.TimerPercision ?? 0) == 0 ? 3 : mod.TimerPercision }));
         }
 
         private void UpdateExtraDelay()
