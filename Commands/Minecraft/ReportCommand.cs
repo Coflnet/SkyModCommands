@@ -11,7 +11,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class ReportCommand : McCommand
     {
-        public override Task Execute(MinecraftSocket socket, string arguments)
+        public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             if (string.IsNullOrEmpty(arguments) || arguments.Length < 3)
             {
@@ -19,33 +19,34 @@ namespace Coflnet.Sky.Commands.MC
             }
             string spanId;
             using var singleReportSpan = socket.tracer.BuildSpan("report").StartActive();
-            CreateReport(socket, arguments, singleReportSpan.Span, out string generalspanId);
             CreateReport(socket, arguments, socket.ConSpan, out spanId);
 
-            dev.Logger.Instance.Error($"Report with id {spanId} {generalspanId} {arguments}");
+            dev.Logger.Instance.Error($"Report with id {spanId} {arguments}");
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.TopBlocked?.Take(10)));
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.Settings));
 
-            socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + singleReportSpan.Span.Context.TraceId);
-            return Task.CompletedTask;
+            socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + singleReportSpan.Span.Context.TraceId, "click to get full link");
+            await Task.Delay(5);
+            // repost 
+            CreateReport(socket, arguments, singleReportSpan.Span, out string generalspanId);
         }
 
         private static void CreateReport(MinecraftSocket socket, string arguments, ISpan parentSpan,  out string spanId)
         {
-            IScope reportSpan;
-            System.Threading.ThreadPool.GetAvailableThreads(out int workerThreads, out int completionPortThreads);
-            reportSpan = socket.tracer.BuildSpan("report")
+            using IScope reportSpan = socket.tracer.BuildSpan("report")
                                     .WithTag("message", arguments.Truncate(150))
                                     .WithTag("error", "true")
                                     .WithTag("mcId", JsonConvert.SerializeObject(socket.SessionInfo.McName))
                                     .WithTag("uuid", JsonConvert.SerializeObject(socket.SessionInfo.McUuid))
                                     .WithTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
-                                    .WithTag("workerThreads", workerThreads)
                                     .WithTag("timestamp", DateTime.UtcNow.ToLongTimeString())
-                                    .WithTag("completionPortThreads", completionPortThreads)
                                     .AsChildOf(parentSpan).StartActive();
-            reportSpan.Span.Log(JsonConvert.SerializeObject(socket.Settings));
-            reportSpan.Span.Log(JsonConvert.SerializeObject(socket.TopBlocked?.Take(80)));
+            using var settingsSpan = socket.tracer.BuildSpan("settings").AsChildOf(reportSpan.Span.Context).StartActive();
+            settingsSpan.Span.Log(JsonConvert.SerializeObject(socket.Settings,Formatting.Indented));
+            using var blockedSpan = socket.tracer.BuildSpan("blocked").AsChildOf(reportSpan.Span.Context).StartActive();
+            blockedSpan.Span.Log(JsonConvert.SerializeObject(socket.TopBlocked?.Take(80),Formatting.Indented));
+            using var lastSentSpan = socket.tracer.BuildSpan("lastSent").AsChildOf(reportSpan.Span.Context).StartActive();
+            lastSentSpan.Span.Log(JsonConvert.SerializeObject(socket.LastSent.OrderByDescending(s=>s.Auction.Start).Take(20),Formatting.Indented));
             reportSpan.Span.Log("session info " + JsonConvert.SerializeObject(socket.SessionInfo));
             spanId = reportSpan.Span.Context.SpanId.Truncate(6);
             reportSpan.Span.SetTag("id", spanId);
