@@ -30,6 +30,8 @@ namespace Coflnet.Sky.Commands.MC
                     new ChatPart(" * This item sells slowly\n", "/cofl dialog slowsell"),
                     new ChatPart(" * I blacklisted this before\n", "/cofl report blacklist broken"),
                     new ChatPart(" * Something else \n", null, "please send /cofl report with further information"));
+                dev.Logger.Instance.Info(JSON.Stringify(bad));
+                dev.Logger.Instance.Info(JSON.Stringify(bad?.AdditionalProps));
                 await socket.GetService<Commands.FlipTrackingService>().DownVote(uuid, socket.SessionInfo.McUuid);
             }
             else if (rating == "up")
