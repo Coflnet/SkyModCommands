@@ -128,7 +128,7 @@ namespace Coflnet.Sky.Commands.MC
             }).ConfigureAwait(false);
 
             if (verbose)
-                ConSpan.Log("exiting " + DateTime.Now);
+                ConSpan?.Log("exiting " + DateTime.Now);
             return true;
         }
 

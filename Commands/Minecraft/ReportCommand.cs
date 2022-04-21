@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Newtonsoft.Json;
+using OpenTracing;
 using OpenTracing.Util;
 
 namespace Coflnet.Sky.Commands.MC
@@ -16,22 +17,37 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.SendMessage(COFLNET + "Please add some information to the report, ie. what happened, what do you think should have happened.");
             }
-            System.Threading.ThreadPool.GetAvailableThreads(out int workerThreads, out int completionPortThreads);
-            using var reportSpan = socket.tracer.BuildSpan("report")
-                        .WithTag("message", arguments.Truncate(150))
-                        .WithTag("error", "true")
-                        .WithTag("mcId", JsonConvert.SerializeObject(socket.SessionInfo.McName))
-                        .WithTag("uuid", JsonConvert.SerializeObject(socket.SessionInfo.McUuid))
-                        .WithTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
-                        .WithTag("workerThreads", workerThreads)
-                        .WithTag("timestamp", DateTime.UtcNow.ToLongTimeString())
-                        .WithTag("completionPortThreads", completionPortThreads)
-                        .AsChildOf(socket.ConSpan).StartActive();
+            string spanId;
+            using var singleReportSpan = socket.tracer.BuildSpan("report").StartActive();
+            CreateReport(socket, arguments, singleReportSpan.Span, out string generalspanId);
+            CreateReport(socket, arguments, socket.ConSpan, out spanId);
 
+            dev.Logger.Instance.Error($"Report with id {spanId} {generalspanId} {arguments}");
+            dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.TopBlocked?.Take(10)));
+            dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.Settings));
+
+            socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + spanId);
+            return Task.CompletedTask;
+        }
+
+        private static void CreateReport(MinecraftSocket socket, string arguments, ISpan parentSpan,  out string spanId)
+        {
+            IScope reportSpan;
+            System.Threading.ThreadPool.GetAvailableThreads(out int workerThreads, out int completionPortThreads);
+            reportSpan = socket.tracer.BuildSpan("report")
+                                    .WithTag("message", arguments.Truncate(150))
+                                    .WithTag("error", "true")
+                                    .WithTag("mcId", JsonConvert.SerializeObject(socket.SessionInfo.McName))
+                                    .WithTag("uuid", JsonConvert.SerializeObject(socket.SessionInfo.McUuid))
+                                    .WithTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
+                                    .WithTag("workerThreads", workerThreads)
+                                    .WithTag("timestamp", DateTime.UtcNow.ToLongTimeString())
+                                    .WithTag("completionPortThreads", completionPortThreads)
+                                    .AsChildOf(parentSpan).StartActive();
             reportSpan.Span.Log(JsonConvert.SerializeObject(socket.Settings));
             reportSpan.Span.Log(JsonConvert.SerializeObject(socket.TopBlocked?.Take(80)));
             reportSpan.Span.Log("session info " + JsonConvert.SerializeObject(socket.SessionInfo));
-            var spanId = reportSpan.Span.Context.SpanId.Truncate(6);
+            spanId = reportSpan.Span.Context.SpanId.Truncate(6);
             reportSpan.Span.SetTag("id", spanId);
             try
             {
@@ -41,13 +57,6 @@ namespace Coflnet.Sky.Commands.MC
             {
                 reportSpan.Span.Log(e.Message + "\n" + e.StackTrace);
             }
-
-            dev.Logger.Instance.Error($"Report with id {spanId} {arguments}");
-            dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.TopBlocked?.Take(10)));
-            dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.Settings));
-
-            socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + spanId);
-            return Task.CompletedTask;
         }
 
         private static void AddAllSettings(OpenTracing.IScope reportSpan)
