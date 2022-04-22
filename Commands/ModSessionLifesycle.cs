@@ -164,12 +164,12 @@ namespace Coflnet.Sky.Commands.MC
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
             if (UserId.Value == default)
             {
-                UserId.OnChange += SubToSettings;
+                UserId.OnChange += (newset) => Task.Run(async()=>await SubToSettings(newset) );
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.Create("mod", "flipSettings", () => DEFAULT_SETTINGS);
                 Console.WriteLine("waiting for load");
             }
             else
-                SubToSettings(UserId);
+                await SubToSettings(UserId);
 
             loadSpan.Span.Finish();
             UpdateExtraDelay();
@@ -191,10 +191,12 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        protected virtual void SubToSettings(string val)
+        protected virtual async Task SubToSettings(string val)
         {
-            FlipSettings = SelfUpdatingValue<FlipSettings>.Create(val, "flipSettings", () => DEFAULT_SETTINGS).Result;
-            AccountInfo = SelfUpdatingValue<AccountInfo>.Create(val, "accountInfo").Result;
+            var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(val, "flipSettings", () => DEFAULT_SETTINGS);
+            var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(val, "accuntSettings");
+            AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(val, "accountInfo");
+            FlipSettings = await flipSettingsTask;
 
             // make sure there is only one connection
             AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
@@ -203,12 +205,12 @@ namespace Coflnet.Sky.Commands.MC
             FlipSettings.OnChange += UpdateSettings;
             AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai));
             if (AccountInfo.Value != default)
-                Task.Run(async () => await UpdateAccountInfo(AccountInfo));
+                await UpdateAccountInfo(AccountInfo);
             else
                 Console.WriteLine("accountinfo is default");
 
-            _ = ApplyFlipSettings(FlipSettings.Value, ConSpan);
-            AccountSettings = SelfUpdatingValue<AccountSettings>.Create(val, "accuntSettings").Result;
+            AccountSettings = await accountSettingsTask;
+            await ApplyFlipSettings(FlipSettings.Value, ConSpan);
         }
 
         /// <summary>
