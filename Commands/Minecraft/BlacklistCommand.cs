@@ -50,11 +50,12 @@ namespace Coflnet.Sky.Commands.MC
         protected override async Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)
         {
             var result = await socket.GetService<Items.Client.Api.IItemsApi>().ItemsSearchTermGetAsync(val);
+            var isTag = val.ToUpper() == val && !val.Contains(' ');
 
             return result.Select(r => new CreationOption()
             {
                 Element = new ListEntry() { ItemTag = r.Tag, DisplayName = r.Text }
-            });
+            }).Where(e=>!isTag || e.Element.ItemTag == val);
         }
     }
 }

@@ -16,6 +16,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 case "list":
                 case "l":
+                case "ls":
                 case "":
                     await List(socket, subArgs);
                     break;
@@ -110,9 +111,16 @@ namespace Coflnet.Sky.Commands.MC
             var list = await GetList(socket);
             var pageSize = 12;
             int.TryParse(subArgs, out int page);
+            var totalPages = list.Count / pageSize;
+            if(totalPages < page)
+            {
+                socket.SendMessage(new DialogBuilder()
+                .MsgLine($"There are only {McColorCodes.YELLOW}{totalPages}{McColorCodes.WHITE} pages in total (starting from 0)", null, $"Try running it without or a smaller number"));
+                return;
+            }
 
             socket.SendMessage(new DialogBuilder()
-                .MsgLine($"Content (page {page}):", $"/cofl {Slug} ls {page + 1}", $"This is page {page} \nthere are {list.Count / pageSize} pages\nclick this to show the next page")
+                .MsgLine($"Content (page {page}):", $"/cofl {Slug} ls {page + 1}", $"This is page {page} \nthere are {totalPages} pages\nclick this to show the next page")
                 .ForEach(list.Skip(page * pageSize).Take(pageSize), (d, e) =>
                 {
                     var formatted = Format(e);
