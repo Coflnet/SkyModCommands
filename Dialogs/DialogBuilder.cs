@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Coflnet.Sky.Commands.MC;
 using System.Linq;
 using Coflnet.Sky.Commands.Shared;
+using System;
 
 namespace Coflnet.Sky.ModCommands.Dialogs
 {
@@ -19,6 +20,14 @@ namespace Coflnet.Sky.ModCommands.Dialogs
         public DialogBuilder MsgLine(string message, string onClick = null, string hover = null)
         {
             Parts.Add(new ChatPart(message + "\n", onClick == null ? CurrentUrl : onClick, hover));
+            return this;
+        }
+        public DialogBuilder ForEach<T>(IEnumerable<T> collection, Action<DialogBuilder,T> action)
+        {
+            foreach (var item in collection)
+            {
+                action(this, item);
+            }
             return this;
         }
 

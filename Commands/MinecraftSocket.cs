@@ -93,6 +93,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<OnlineCommand>();
             Commands.Add<DelayCommand>();
             Commands.Add<BlacklistCommand>();
+            Commands.Add<WhitelistCommand>();
             Commands.Add<MuteCommand>();
             Commands.Add<UnMuteCommand>();
             Commands.Add<FastCommand>();
