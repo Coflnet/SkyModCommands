@@ -31,7 +31,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                     "Find out why this was deemed a flip").Break
                 .CoflCommand<BlacklistCommand>(
                     $" {redX}  Blacklist this item", 
-                    $"{flip.Auction.Tag}", 
+                    $"add {flip.Auction.Tag}",
                     $"Don't show this {McColorCodes.AQUA}{Sky.Core.ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GRAY} anymore").Break
                 .CoflCommand<ReferenceCommand>(
                     " ➹  Open on website", 
