@@ -249,7 +249,7 @@ namespace Coflnet.Sky.Commands.MC
             var changed = socket.FindWhatsNew(FlipSettings.Value, settings);
             if (string.IsNullOrWhiteSpace(changed))
                 changed = "Settings changed";
-            SendMessage($"{COFLNET} {changed}");
+            SendMessage($"{COFLNET}{changed}");
 
             ApplyFlipSettings(settings, span.Span).Wait();
         }
