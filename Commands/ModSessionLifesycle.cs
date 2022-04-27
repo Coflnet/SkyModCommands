@@ -79,6 +79,8 @@ namespace Coflnet.Sky.Commands.MC
                 if (flip.AdditionalProps == null)
                     flip.AdditionalProps = new Dictionary<string, string>();
                 flip.AdditionalProps["match"] = isMatch.Item2;
+                if(isMatch.Item2.StartsWith("whitelist"))
+                    flipInstance.Interesting.Insert(0, "WL");
             }
             catch (Exception e)
             {
