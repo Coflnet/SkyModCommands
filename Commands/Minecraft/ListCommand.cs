@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -32,10 +33,46 @@ namespace Coflnet.Sky.Commands.MC
                 case "add":
                     await Add(socket, subArgs);
                     break;
+                case "e":
+                case "edit":
+                    await Edit(socket, subArgs);
+                    break;
                 default:
                     await DefaultAction(socket, args);
                     break;
             }
+        }
+
+        private async Task Edit(MinecraftSocket socket, string subArgs)
+        {
+            var targetElem = await Find(socket, subArgs.Split('|').FirstOrDefault());
+            if (targetElem.Count == 0)
+            {
+                socket.SendMessage(new DialogBuilder().MsgLine($"Could not find {McColorCodes.AQUA}{subArgs}{DEFAULT_COLOR} in list"));
+                return;
+            }
+            if (targetElem.Count > 1)
+            {
+                socket.SendMessage(new DialogBuilder()
+                    .MsgLine($"To many matches for {McColorCodes.AQUA}{subArgs}{DEFAULT_COLOR} please select")
+                    .ForEach(targetElem, (d, o) => d.MsgLine(
+                        $"{Format(o)} {McColorCodes.YELLOW}[REMOVE]",
+                        $"/cofl {Slug} rm {GetId(o)}",
+                        $"Remove {LongFormat(o)}")));
+            }
+
+            var list = await GetList(socket);
+            var elem = targetElem.First();
+            list.Remove(elem);
+            var editArgs = subArgs.Split('|').Skip(1).FirstOrDefault();
+            await UpdateElem(socket, targetElem.First(), editArgs);
+            socket.SendMessage(new DialogBuilder().MsgLine($"Removed {Format(elem)}"));
+
+        }
+
+        protected virtual Task<TElem> UpdateElem(MinecraftSocket socket, TElem current, string args)
+        {
+            return Task.FromResult(current);
         }
 
         protected virtual Task DefaultAction(MinecraftSocket socket, string args)
@@ -66,12 +103,18 @@ namespace Coflnet.Sky.Commands.MC
             }
             socket.SendMessage(new DialogBuilder()
                 .MsgLine($"Could not create a new entry, to many possible matches, please select one:")
-                .ForEach(options, (d, o) => d.MsgLine($"{Format(o.Element)} {McColorCodes.YELLOW}[ADD]", $"/cofl {Slug} add {"!json" + JsonConvert.SerializeObject(o.Element)}", $"Add {LongFormat(o.Element)}")));
+                .ForEach(options, (d, o) => d.MsgLine($"{Format(o.Element)} {McColorCodes.YELLOW}[ADD]", $"/cofl {Slug} add !json{JsonConvert.SerializeObject(o.Element)}", $"Add {LongFormat(o.Element)}")));
         }
 
         protected virtual async Task AddEntry(MinecraftSocket socket, TElem newEntry)
         {
             var list = await GetList(socket);
+            if ((await Find(socket, GetId(newEntry))).Count > 0)
+            {
+                socket.SendMessage(new DialogBuilder()
+                .MsgLine($"{Format(newEntry)}{DEFAULT_COLOR} was already added, not adding again"));
+                return;
+            }
             list.Add(newEntry);
             await Update(socket, list);
             socket.SendMessage(new DialogBuilder()
@@ -103,6 +146,15 @@ namespace Coflnet.Sky.Commands.MC
                 await Update(socket, list);
                 socket.SendMessage(new DialogBuilder().MsgLine($"Removed {Format(elem)}"));
             }
+            else
+            {
+                socket.SendMessage(new DialogBuilder()
+                    .MsgLine($"To many matches for {McColorCodes.AQUA}{arguments}{DEFAULT_COLOR} please select")
+                    .ForEach(toRemove, (d, o) => d.MsgLine(
+                        $"{Format(o)} {McColorCodes.YELLOW}[REMOVE]",
+                        $"/cofl {Slug} rm {GetId(o)}",
+                        $"Remove {LongFormat(o)}")));
+            }
 
         }
 
@@ -112,7 +164,7 @@ namespace Coflnet.Sky.Commands.MC
             var pageSize = 12;
             int.TryParse(subArgs, out int page);
             var totalPages = list.Count / pageSize;
-            if(totalPages < page)
+            if (totalPages < page)
             {
                 socket.SendMessage(new DialogBuilder()
                 .MsgLine($"There are only {McColorCodes.YELLOW}{totalPages}{McColorCodes.WHITE} pages in total (starting from 0)", null, $"Try running it without or a smaller number"));

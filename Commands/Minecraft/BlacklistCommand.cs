@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -49,13 +50,66 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override async Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)
         {
+            var filters = new Dictionary<string, string>();
+            var allFilters = FlipFilter.AllFilters;
+            if (val.Contains('='))
+            {
+                // has filter
+                var parts = val.Split(' ').Reverse().ToList();
+                for (int i = 0; i < parts.Count; i++)
+                {
+                    var part = parts[i];
+                    if (part.Contains('='))
+                    {
+                        var filterParts = part.Split('=');
+                        var filterName = allFilters.Where(f=>f.ToLower() ==filterParts[0]).FirstOrDefault();
+                        if(filterName == null)
+                        {
+                            filterName = allFilters.OrderBy(f => Fastenshtein.Levenshtein.Distance(f.ToLower(), filterParts[0].ToLower())).First();
+                            socket.SendMessage(new DialogBuilder().MsgLine($"{McColorCodes.RED}Could not find {McColorCodes.AQUA}{filterParts[0]}{McColorCodes.WHITE}, using closest match {McColorCodes.AQUA}{ filterName}{McColorCodes.WHITE} instead"));
+                        }
+                        var filterVal = filterParts[1];
+                        if (FlipFilter.AdditionalFilters.TryGetValue(filterName, out DetailedFlipFilter dff))
+                        {
+                            if (dff.FilterType.HasFlag(Filter.FilterType.NUMERICAL) && !NumberDetailedFlipFilter.IsValidInput(filterVal))
+                                throw new Coflnet.Sky.Core.CoflnetException("invalid_value",$"The provided filter value {filterVal} is not valid for {filterName}");
+                        }
+                        filters.Add(filterName, filterVal);
+                        // remove filter from search
+                        val = val.Substring(0, val.Length - part.Length - 1).Trim();
+                    }
+                }
+            }
             var result = await socket.GetService<Items.Client.Api.IItemsApi>().ItemsSearchTermGetAsync(val);
             var isTag = val.ToUpper() == val && !val.Contains(' ');
 
-            return result.Select(r => new CreationOption()
+            return result.Select(r =>
             {
-                Element = new ListEntry() { ItemTag = r.Tag, DisplayName = r.Text }
-            }).Where(e=>!isTag || e.Element.ItemTag == val);
+                var entry = new ListEntry() { ItemTag = r.Tag, DisplayName = r.Text, filter = filters };
+                entry.GetExpression().Compile().Invoke(new FlipInstance()
+                {
+                    Auction = new Core.SaveAuction()
+                    {
+                        ItemName = "test",
+                        Tag = r.Tag,
+                        NBTLookup = new List<Core.NBTLookup>(),
+                        FlatenedNBT = new Dictionary<string, string>()
+                    },
+
+                });
+
+                return new CreationOption()
+                {
+                    Element = entry
+                };
+            }).Where(e => !isTag || e.Element.ItemTag == val);
+        }
+
+        protected override async Task<ListEntry> UpdateElem(MinecraftSocket socket, ListEntry current, string args)
+        {
+            var filterList = FlipFilter.AllFilters;
+
+            return current;
         }
     }
 }
