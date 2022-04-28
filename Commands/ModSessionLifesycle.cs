@@ -69,7 +69,14 @@ namespace Coflnet.Sky.Commands.MC
             if (verbose)
                 ConSpan.Log("before visibility " + DateTime.Now);
             if (!Settings.FastMode)
-                await FlipperService.FillVisibilityProbs(flipInstance, Settings);
+                try
+                {
+                    await FlipperService.FillVisibilityProbs(flipInstance, Settings);
+                }
+                catch (Exception e)
+                {
+                    socket.Error(e, "filling visibility");
+                }
 
             if (verbose)
                 ConSpan.Log("before matching " + DateTime.Now);
@@ -79,7 +86,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (flip.AdditionalProps == null)
                     flip.AdditionalProps = new Dictionary<string, string>();
                 flip.AdditionalProps["match"] = isMatch.Item2;
-                if(isMatch.Item2.StartsWith("whitelist"))
+                if (isMatch.Item2.StartsWith("whitelist"))
                     flipInstance.Interesting.Insert(0, "WL");
             }
             catch (Exception e)
@@ -166,7 +173,7 @@ namespace Coflnet.Sky.Commands.MC
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
             if (UserId.Value == default)
             {
-                UserId.OnChange += (newset) => Task.Run(async()=>await SubToSettings(newset) );
+                UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.Create("mod", "flipSettings", () => DEFAULT_SETTINGS);
                 Console.WriteLine("waiting for load");
             }
@@ -269,7 +276,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (info.ActiveConnectionId != SessionInfo.ConnectionId && !string.IsNullOrEmpty(info.ActiveConnectionId))
                 {
                     // another connection of this account was opened, close this one
-                    SendMessage("\n\n" +COFLNET + McColorCodes.GREEN + "We closed this connection because you opened another one", null, 
+                    SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "We closed this connection because you opened another one", null,
                         "To protect against your mod opening\nmultiple connections which you can't stop,\nwe closed this one.\nThe latest one you opened should still be active");
                     socket.ExecuteCommand("/cofl stop");
                     socket.Close();
@@ -445,13 +452,15 @@ namespace Coflnet.Sky.Commands.MC
             if (socket.Version == "1.3-Alpha")
                 socket.SendMessage(COFLNET + "You have to update your mod to support the timer");
             else
-                socket.Send(Response.Create("countdown", new { 
-                    seconds = seconds, 
-                    widthPercent = (mod?.TimerX ?? 0) == 0 ? 10 : mod.TimerX, 
-                    heightPercent = (mod?.TimerY ?? 0) == 0 ? 10 : mod.TimerY, 
-                    scale = (mod?.TimerScale ?? 0) == 0 ? 2 : mod.TimerScale, 
-                    prefix = mod?.TimerPrefix ?? prefix, 
-                    maxPrecision = (mod?.TimerPercision ?? 0) == 0 ? 3 : mod.TimerPercision }));
+                socket.Send(Response.Create("countdown", new
+                {
+                    seconds = seconds,
+                    widthPercent = (mod?.TimerX ?? 0) == 0 ? 10 : mod.TimerX,
+                    heightPercent = (mod?.TimerY ?? 0) == 0 ? 10 : mod.TimerY,
+                    scale = (mod?.TimerScale ?? 0) == 0 ? 2 : mod.TimerScale,
+                    prefix = mod?.TimerPrefix ?? prefix,
+                    maxPrecision = (mod?.TimerPercision ?? 0) == 0 ? 3 : mod.TimerPercision
+                }));
         }
 
         private void UpdateExtraDelay()
