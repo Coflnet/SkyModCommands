@@ -52,6 +52,7 @@ namespace Coflnet.Sky.Commands.MC
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
         public static event Action NextUpdateStart;
+        public static DateTime NextFlipTime {get; private set;}
 
         int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId ?? "0");
         public string UserId
@@ -64,7 +65,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private static System.Threading.Timer updateTimer;
+        private static System.Threading.Timer tenSecTimer;
 
         public ConcurrentQueue<BlockedElement> TopBlocked = new ConcurrentQueue<BlockedElement>();
         public ConcurrentQueue<LowPricedAuction> LastSent = new ConcurrentQueue<LowPricedAuction>();
@@ -121,11 +122,12 @@ namespace Coflnet.Sky.Commands.MC
                 };
                 DateTime next = await GetNext10SecTime();
                 Console.WriteLine($"started timer to start at {next} now its {DateTime.Now}");
-                updateTimer = new System.Threading.Timer((e) =>
+                tenSecTimer = new System.Threading.Timer((e) =>
                 {
                     try
                     {
                         NextUpdateStart?.Invoke();
+                        NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
                         if (DateTime.Now.Minute % 2 == 0)
                             UpdateTimer();
                     }
@@ -144,7 +146,7 @@ namespace Coflnet.Sky.Commands.MC
                 using var updateSpan = ModTracer.BuildSpan("refreshTimer").StartActive();
                 DateTime next = await GetNext10SecTime();
                 updateSpan.Span.SetTag("time", next.ToString());
-                updateTimer.Change(next - DateTime.Now, TimeSpan.FromMinutes(1));
+                tenSecTimer.Change(next - DateTime.Now, TimeSpan.FromMinutes(1));
             });
         }
 
@@ -598,12 +600,12 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var mod = Settings.ModSettings;
                 if (mod.TimerSeconds == 0)
-                    sessionLifesycle.StartTimer(10);
+                    sessionLifesycle.StartTimer(10 - SessionInfo.RelativeSpeed.TotalSeconds);
                 else
                 {
                     Task.Run(async () =>
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(60 - mod.TimerSeconds + 10));
+                        await Task.Delay(TimeSpan.FromSeconds(60 - mod.TimerSeconds + 10 )- SessionInfo.RelativeSpeed);
                         sessionLifesycle.StartTimer(mod.TimerSeconds);
                     });
                 }

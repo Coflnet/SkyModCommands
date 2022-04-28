@@ -110,6 +110,13 @@ namespace Coflnet.Sky.Commands.MC
             var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flip.Auction.Uuid, SessionInfo.McUuid);
             await Task.Delay(SessionInfo.Penalty);
             await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
+            if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
+            {
+                var adjustment =  MinecraftSocket.NextFlipTime - DateTime.UtcNow-  TimeSpan.FromSeconds(60);
+                if(Math.Abs(adjustment.TotalSeconds) < 10)
+                    SessionInfo.RelativeSpeed = adjustment;
+                SessionInfo.LastSpeedUpdate = DateTime.Now;
+            }
 
             if (verbose)
                 ConSpan.Log("sent flip " + DateTime.Now);

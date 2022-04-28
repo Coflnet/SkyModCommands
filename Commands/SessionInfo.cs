@@ -32,5 +32,7 @@ namespace Coflnet.Sky.Commands.MC
         /// Random id for this connection to identify different ones
         /// </summary>
         public string ConnectionId = Guid.NewGuid().ToString();
+        public TimeSpan RelativeSpeed = default;
+        public DateTime LastSpeedUpdate = default;
     }
 }
