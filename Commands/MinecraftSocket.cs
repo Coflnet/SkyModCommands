@@ -272,7 +272,6 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task LoadPlayerName(string passedId)
         {
-
             using var loadSpan = tracer.BuildSpan("nameLoad").AsChildOf(ConSpan).StartActive();
             var player = await PlayerService.Instance.GetPlayer(passedId);
             if (player == null)

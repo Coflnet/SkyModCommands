@@ -30,7 +30,7 @@ namespace Coflnet.Sky.Commands.MC
             if (string.IsNullOrEmpty(message))
             {
                 var settings = socket.sessionLifesycle.FlipSettings;
-                if(settings == null)
+                if (settings == null)
                     throw new CoflnetException("no_settings", "could not toggle the cofl chat likely because you are not logged in");
                 settings.Value.ModSettings.Chat = !settings.Value.ModSettings.Chat;
                 await settings.Update(settings.Value);
@@ -59,6 +59,8 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "Please use another chat for long messages", null, $"Messages over {maxMsgLength} characters are blocked");
                 return;
             }
+            if (string.IsNullOrEmpty(socket.SessionInfo.McName))
+                throw new CoflnetException("no_username", "Sorry we couldn't load your chat profile. Please try again in a few seconds.");
             await chat.Send(new ChatService.ModChatMessage()
             {
                 Message = message,
