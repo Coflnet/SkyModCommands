@@ -429,12 +429,13 @@ namespace Coflnet.Sky.Commands.MC
             using var span = tracer.BuildSpan("ping").AsChildOf(ConSpan.Context).WithTag("count", blockedFlipFilterCount).StartActive();
             try
             {
-                if (blockedFlipFilterCount > 0)
+                if (blockedFlipFilterCount > 0 && SessionInfo.LastBlockedMsg.AddMinutes(FlipSettings.Value.ModSettings.MinutesBetweenBlocked) < DateTime.Now)
                 {
                     socket.SendMessage(new ChatPart(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute",
                         "/cofl blocked",
                         $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips"),
                         new ChatPart(" ", "/cofl void", null));
+                    SessionInfo.LastBlockedMsg = DateTime.Now;
                 }
                 else
                 {

@@ -15,7 +15,7 @@ namespace Coflnet.Sky.Commands.MC
         public string SessionId = "";
         public bool ListeningToChat;
         public string McName;
-        public string McUuid = "00000000000000000";
+        public string McUuid = string.Empty;
         public DateTime LastMessage;
         public DateTime MutedUntil;
         public bool SentWelcome;
@@ -34,5 +34,6 @@ namespace Coflnet.Sky.Commands.MC
         public string ConnectionId = Guid.NewGuid().ToString();
         public TimeSpan RelativeSpeed = default;
         public DateTime LastSpeedUpdate = default;
+        public DateTime LastBlockedMsg = default;
     }
 }

@@ -333,6 +333,8 @@ namespace Coflnet.Sky.Commands.MC
             Task.Run(async () =>
             {
                 waiting++;
+                if(string.IsNullOrEmpty(SessionInfo?.McUuid))
+                    await Task.Delay(1200);
                 try
                 {
                     await command.Execute(this, a.data);
@@ -543,7 +545,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public string FormatPrice(long price)
         {
-            if (Settings.ModSettings?.ShortNumbers ?? false)
+            if (Settings?.ModSettings?.ShortNumbers ?? false)
                 return FormatProvider.FormatPriceShort(price);
             return string.Format("{0:n0}", price);
         }
