@@ -5,6 +5,7 @@ using Coflnet.Sky.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System.Linq;
+using static Coflnet.Sky.Commands.Shared.SettingsUpdater;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -36,7 +37,15 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 }
                 var newValue = arguments.Substring(name.Length).Trim();
-                var finalValue = await updater.Update(socket, name, newValue);
+                object finalValue;
+                try
+                {
+                    finalValue = await updater.Update(socket, name, newValue);
+                }
+                catch (UnkownSettingException e)
+                {
+                    throw new CoflnetException(e.Slug, $"the setting {e.Passed} doesn't exist, most similar is {McColorCodes.AQUA}{e.Closest}{DEFAULT_COLOR}");
+                } 
                 //socket.LatestSettings.Settings.Changer = "mod-" + socket.SessionInfo.sessionId;
                 if (string.IsNullOrEmpty(socket.sessionLifesycle.UserId))
                     socket.SendMessage(new ChatPart($"{COFLNET}You are not logged in, setting will reset when you stop the connection"));
