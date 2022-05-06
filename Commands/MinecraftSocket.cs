@@ -594,6 +594,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (Settings?.ModSettings?.BlockTenSecondsMsg ?? false)
             {
+                // ping is sent to keep the connection open (after 60 seconds inactivity its disconnected by cloudflare)
                 Send(Response.Create("ping", 0));
                 return;
             }
@@ -614,7 +615,7 @@ namespace Coflnet.Sky.Commands.MC
             SendMessage(
                 COFLNET + "Flips in 10 seconds",
                 null,
-                "The Hypixel API will update in 10 seconds. Get ready to receive the latest flips. "
+                "The Hypixel API will update in about 10 seconds. Get ready to receive the latest flips. \n"
                 + "(this is an automated message being sent 50 seconds after the last update)");
             TopBlocked.Clear();
             if (Settings?.ModSettings?.PlaySoundOnFlip ?? false)
