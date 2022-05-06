@@ -634,7 +634,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (current.BlackList?.Count < newSettings.BlackList?.Count)
                     return $"blacklisted item " + ItemDetails.TagToName(newSettings.BlackList?.Last()?.ItemTag);
                 if (current.WhiteList?.Count < newSettings.WhiteList?.Count)
-                    return $"whitelisted item " + ItemDetails.TagToName(newSettings.BlackList?.Last()?.ItemTag);
+                    return $"whitelisted item " + ItemDetails.TagToName(newSettings.WhiteList?.Last()?.ItemTag);
                 if (current.Visibility != null)
                     foreach (var prop in current.Visibility?.GetType().GetFields())
                     {
