@@ -436,6 +436,12 @@ namespace Coflnet.Sky.Commands.MC
                         $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips"),
                         new ChatPart(" ", "/cofl void", null));
                     SessionInfo.LastBlockedMsg = DateTime.Now;
+
+                    // remove blocked if clear should fail
+                    while(socket.TopBlocked.Count > 345 )
+                    {
+                        socket.TopBlocked.TryDequeue(out _);
+                    }
                 }
                 else
                 {
