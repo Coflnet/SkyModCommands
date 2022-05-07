@@ -24,6 +24,11 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "You have been muted from the chat because you repeadetly violated the rules", "I am blocked from the Coflnet chat :(", $"Click to express your sadness");
                 return;
             }
+            if(socket.sessionLifesycle.UserId.Value == null)
+            {
+                socket.SendMessage(COFLNET + "Sorry, you have to be logged in to send messages, click [HERE] to do that",socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId), "Some idiot abused the chat system so sadly this is necessary now");
+                return;
+            }
             var maxMsgLength = 150;
             var message = JsonConvert.DeserializeObject<string>(arguments);
 

@@ -325,7 +325,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             socket.SendMessage(parts);
         }
-        protected virtual string GetAuthLink(string stringId)
+        public virtual string GetAuthLink(string stringId)
         {
             return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(stringId)}";
         }
