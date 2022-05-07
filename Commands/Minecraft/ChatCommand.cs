@@ -24,10 +24,18 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "You have been muted from the chat because you repeadetly violated the rules", "I am blocked from the Coflnet chat :(", $"Click to express your sadness");
                 return;
             }
-            if(socket.sessionLifesycle.UserId.Value == null)
+            if (socket.sessionLifesycle.UserId.Value == null)
             {
-                socket.SendMessage(COFLNET + "Sorry, you have to be logged in to send messages, click [HERE] to do that",socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId), "Some idiot abused the chat system so sadly this is necessary now");
+                socket.SendMessage(COFLNET + "Sorry, you have to be logged in to send messages, click [HERE] to do that", socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId), "Some idiot abused the chat system so sadly this is necessary now");
                 return;
+            }
+            if (!socket.SessionInfo.VerifiedMc)
+            {
+                if (!await socket.sessionLifesycle.CheckVerificationStatus(socket.sessionLifesycle.AccountInfo))
+                {
+                    socket.SendMessage(COFLNET + "Sorry, you need to verify your minecraft account to write in chat", null, "Some dude abused the chat system so sadly this is necessary now.\nSee above for instructions");
+                    return;
+                }
             }
             var maxMsgLength = 150;
             var message = JsonConvert.DeserializeObject<string>(arguments);

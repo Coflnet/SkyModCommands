@@ -358,11 +358,14 @@ namespace Coflnet.Sky.Commands.MC
             return span;
         }
 
-        protected virtual async Task CheckVerificationStatus(AccountInfo settings)
+        public virtual async Task<bool> CheckVerificationStatus(AccountInfo settings)
         {
             var connect = await McAccountService.Instance.ConnectAccount(settings.UserId.ToString(), SessionInfo.McUuid);
             if (connect.IsConnected)
-                return;
+            {
+                SessionInfo.VerifiedMc = true;
+                return SessionInfo.VerifiedMc;
+            }
             using var verification = tracer.BuildSpan("Verification").AsChildOf(ConSpan.Context).StartActive();
             var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
             {
@@ -381,6 +384,7 @@ namespace Coflnet.Sky.Commands.MC
                 $"/viewauction {targetAuction?.Uuid}",
                 $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
 
+            return false;
         }
 
         public void UpdateConnectionTier(AccountInfo accountInfo, OpenTracing.ISpan span)
