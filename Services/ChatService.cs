@@ -10,6 +10,7 @@ using Coflnet.Sky.Chat.Client.Client;
 using Microsoft.Extensions.Configuration;
 using Coflnet.Sky.Chat.Client.Model;
 using Coflnet.Sky.Commands.Shared;
+using OpenTracing;
 
 namespace Coflnet.Sky.ModCommands.Services
 {
@@ -48,7 +49,7 @@ namespace Coflnet.Sky.ModCommands.Services
             }
             throw new CoflnetException("connection_failed", "connection to chat failed");
         }
-        public async Task Send(ModChatMessage message)
+        public async Task Send(ModChatMessage message, ISpan span)
         {
             for (int i = 0; i < 5; i++)
                 try
@@ -57,7 +58,9 @@ namespace Coflnet.Sky.ModCommands.Services
                         message.SenderUuid, message.SenderName,
                         (int)message.Tier > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE,
                         message.Message);
+                    span.Log("sending to service");
                     await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
+                    span.Log("writing in redis");
                     await GetCon().PublishAsync("mcChat", JsonConvert.SerializeObject(message));
                     return;
                 }

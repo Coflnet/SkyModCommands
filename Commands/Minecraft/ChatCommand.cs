@@ -80,7 +80,7 @@ namespace Coflnet.Sky.Commands.MC
                 SenderName = socket.SessionInfo.McName,
                 Tier = socket.sessionLifesycle.AccountInfo?.Value?.Tier ?? AccountTier.NONE,
                 SenderUuid = socket.SessionInfo.McUuid
-            });
+            },socket.tracer.ActiveSpan);
             socket.SessionInfo.LastMessage = DateTime.Now;
         }
 
