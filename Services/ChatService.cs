@@ -53,12 +53,12 @@ namespace Coflnet.Sky.ModCommands.Services
             for (int i = 0; i < 5; i++)
                 try
                 {
-                    await GetCon().PublishAsync("mcChat", JsonConvert.SerializeObject(message));
                     var chatMsg = new Chat.Client.Model.ChatMessage(
                         message.SenderUuid, message.SenderName,
                         (int)message.Tier > 0 ? McColorCodes.DARK_GREEN : McColorCodes.WHITE,
                         message.Message);
                     await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
+                    await GetCon().PublishAsync("mcChat", JsonConvert.SerializeObject(message));
                     return;
                 }
                 catch (RedisTimeoutException)

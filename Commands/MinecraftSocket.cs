@@ -52,7 +52,7 @@ namespace Coflnet.Sky.Commands.MC
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
         public static event Action NextUpdateStart;
-        public static DateTime NextFlipTime {get; private set;}
+        public static DateTime NextFlipTime { get; private set; }
 
         int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId ?? "0");
         public string UserId
@@ -338,8 +338,9 @@ namespace Coflnet.Sky.Commands.MC
             Task.Run(async () =>
             {
                 waiting++;
-                if(string.IsNullOrEmpty(SessionInfo?.McUuid))
+                if (string.IsNullOrEmpty(SessionInfo?.McUuid))
                     await Task.Delay(1200);
+                using var commandSpan = tracer.BuildSpan(a.type).AsChildOf(span.Span).StartActive();
                 try
                 {
                     await command.Execute(this, a.data);
@@ -613,7 +614,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     Task.Run(async () =>
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(60 - mod.TimerSeconds + 10 )- SessionInfo.RelativeSpeed);
+                        await Task.Delay(TimeSpan.FromSeconds(60 - mod.TimerSeconds + 10) - SessionInfo.RelativeSpeed);
                         sessionLifesycle.StartTimer(mod.TimerSeconds);
                     });
                 }
