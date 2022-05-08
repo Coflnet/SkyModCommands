@@ -12,7 +12,8 @@ namespace Coflnet.Sky.Commands.MC
                 CollectChat = true,
                 CollectScoreboard = true,
                 CollectChatClicks = true,
-                CommandPrefixes = new string[] { "/cofl", "/colf", "/ch" }
+                CommandPrefixes = new string[] { "/cofl", "/colf", "/ch" },
+                AutoStart = true
             }));
         }
     }
@@ -37,5 +38,6 @@ namespace Coflnet.Sky.Commands.MC
         /// Chat input starting with one of these prefixes is sent to the server
         /// </summary>
         public string[] CommandPrefixes;
+        public bool AutoStart;
     }
 }

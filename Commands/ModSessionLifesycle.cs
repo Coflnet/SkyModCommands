@@ -47,6 +47,8 @@ namespace Coflnet.Sky.Commands.MC
         public async Task<bool> SendFlip(LowPricedAuction flip)
         {
             var Settings = FlipSettings.Value;
+            if (Settings.DisableFlips)
+                return true;
             var verbose = flip.AdditionalProps.ContainsKey("long wait");
             if (verbose)
                 ConSpan.Log("Start sending " + DateTime.Now);
@@ -112,8 +114,8 @@ namespace Coflnet.Sky.Commands.MC
             await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
             if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
             {
-                var adjustment =  MinecraftSocket.NextFlipTime - DateTime.UtcNow-  TimeSpan.FromSeconds(60);
-                if(Math.Abs(adjustment.TotalSeconds) < 10)
+                var adjustment = MinecraftSocket.NextFlipTime - DateTime.UtcNow - TimeSpan.FromSeconds(60);
+                if (Math.Abs(adjustment.TotalSeconds) < 10)
                     SessionInfo.RelativeSpeed = adjustment;
                 SessionInfo.LastSpeedUpdate = DateTime.Now;
             }
@@ -393,11 +395,14 @@ namespace Coflnet.Sky.Commands.MC
             span.Log("set connection tier to " + accountInfo?.Tier.ToString());
             if (accountInfo == null)
                 return;
-            if (DateTime.Now < new DateTime(2022, 1, 22))
+
+            if (FlipSettings.Value.DisableFlips)
             {
-                FlipperService.Instance.AddConnection(socket, false);
+                SendMessage(COFLNET + "you currently don't receive flips because youdisabled them", "/cofl set disableflips false", "click to enable");
+                return;
             }
-            else if (accountInfo.Tier == AccountTier.NONE)
+
+            if (accountInfo.Tier == AccountTier.NONE)
             {
                 FlipperService.Instance.AddNonConnection(socket, false);
             }
@@ -442,7 +447,7 @@ namespace Coflnet.Sky.Commands.MC
                     SessionInfo.LastBlockedMsg = DateTime.Now;
 
                     // remove blocked if clear should fail
-                    while(socket.TopBlocked.Count > 345 )
+                    while (socket.TopBlocked.Count > 345)
                     {
                         socket.TopBlocked.TryDequeue(out _);
                     }

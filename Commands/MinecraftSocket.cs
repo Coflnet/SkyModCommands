@@ -112,6 +112,10 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<TopUpCommand>();
             Commands.Add<HelpCommand>();
             Commands.Add<LogoutCommand>();
+            Commands.Add<UpdatePurseCommand>();
+            Commands.Add<UpdateServerCommand>();
+            Commands.Add<UpdateLocationCommand>();
+            Commands.Add<UpdateBitsCommand>();
 
             Task.Run(async () =>
             {
@@ -593,7 +597,8 @@ namespace Coflnet.Sky.Commands.MC
                 NextUpdateStart -= SendTimer;
                 return;
             }
-            if (Settings?.ModSettings?.BlockTenSecondsMsg ?? false)
+            if ((this.Settings?.DisableFlips ?? false) ||
+                (Settings?.ModSettings?.BlockTenSecondsMsg ?? false))
             {
                 // ping is sent to keep the connection open (after 60 seconds inactivity its disconnected by cloudflare)
                 Send(Response.Create("ping", 0));
