@@ -12,7 +12,7 @@ namespace Coflnet.Sky.Commands.MC
                 CollectChat = true,
                 CollectScoreboard = true,
                 CollectChatClicks = true,
-                CommandPrefixes = new string[] { "/cofl", "/cofl", "/ch" }
+                CommandPrefixes = new string[] { "/cofl", "/colf", "/ch" }
             }));
         }
     }

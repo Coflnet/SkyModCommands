@@ -120,8 +120,6 @@ namespace Coflnet.Sky.Commands.MC
                     Console.WriteLine("next update");
                     GC.Collect();
                 };
-                DateTime next = await GetNext10SecTime();
-                Console.WriteLine($"started timer to start at {next} now its {DateTime.Now}");
                 tenSecTimer = new System.Threading.Timer((e) =>
                 {
                     try
@@ -135,7 +133,10 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         dev.Logger.Instance.Error(ex, "sending next update");
                     }
-                }, null, next - DateTime.Now, TimeSpan.FromMinutes(1));
+                }, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+
+                DateTime next = await GetNext10SecTime();
+                Console.WriteLine($"started timer to start at {next} now its {DateTime.Now}");
             }).ConfigureAwait(false);
         }
 
