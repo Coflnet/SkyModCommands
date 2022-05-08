@@ -175,9 +175,14 @@ namespace Coflnet.Sky.Commands.MC
                 .MsgLine($"Content (page {page}):", $"/cofl {Slug} ls {page + 1}", $"This is page {page} \nthere are {totalPages} pages\nclick this to show the next page")
                 .ForEach(list.Skip(page * pageSize).Take(pageSize), (d, e) =>
                 {
-                    var formatted = Format(e);
-                    d.MsgLine($"{formatted} {McColorCodes.YELLOW}[REMOVE]{DEFAULT_COLOR}", $"/cofl {Slug} rm {GetId(e)}", $"remove {LongFormat(e)}");
+                    FormatForList(d,e).MsgLine($" {McColorCodes.YELLOW}[REMOVE]{DEFAULT_COLOR}", $"/cofl {Slug} rm {GetId(e)}", $"remove {LongFormat(e)}");
                 }));
+        }
+
+        protected virtual DialogBuilder FormatForList(DialogBuilder d, TElem e)
+        {
+            var formatted = Format(e);
+            return d.Msg(formatted);
         }
 
         protected virtual async Task<ICollection<TElem>> Find(MinecraftSocket socket, string val)

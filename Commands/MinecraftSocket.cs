@@ -116,6 +116,8 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<UpdateServerCommand>();
             Commands.Add<UpdateLocationCommand>();
             Commands.Add<UpdateBitsCommand>();
+            Commands.Add<BackupCommand>();
+            Commands.Add<RestoreCommand>();
 
             Task.Run(async () =>
             {
