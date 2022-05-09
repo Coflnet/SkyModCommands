@@ -14,7 +14,6 @@ namespace Coflnet.Sky.Commands.MC
     {
         static ChatService chat;
         public static string CHAT_PREFIX = "[§1C§6hat§f]";
-        private static string[] BadWords = new string[] { "my ah", "nigger", " /ah " };
         private static HashSet<string> MutedUsers = new HashSet<string>() { "850cfa6e7f184ed4b72a8c304734bcbe" };
 
         public override async Task Execute(MinecraftSocket socket, string arguments)
@@ -59,12 +58,6 @@ namespace Coflnet.Sky.Commands.MC
             if (DateTime.Now < socket.SessionInfo.MutedUntil)
             {
                 socket.SendMessage(COFLNET + $"You are muted for {(int)(socket.SessionInfo.MutedUntil - DateTime.Now).TotalMinutes + 1} minutes");
-                return;
-            }
-            if (BadWords.Any(w => message.ToLower().Contains(w)))
-            {
-                socket.SendMessage(COFLNET + $"Your message violated either rule 1 or rule 2. Please don't violate any rules. You are muted for 1 hour.", null, "1. Be nice\n2. Don't advertise something nobody asked for");
-                socket.SessionInfo.MutedUntil = DateTime.Now + TimeSpan.FromHours(1);
                 return;
             }
             if (message.Length > maxMsgLength)
