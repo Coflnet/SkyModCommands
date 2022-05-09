@@ -178,7 +178,6 @@ namespace Coflnet.Sky.Commands.MC
                     break;
                 await Task.Delay(800); // backoff to give redis time to recover
             }*/
-            Console.WriteLine("conId is : " + stringId);
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
             if (UserId.Value == default)
             {
@@ -278,8 +277,10 @@ namespace Coflnet.Sky.Commands.MC
                     .WithTag("premium", info.Tier.ToString())
                     .WithTag("userId", info.UserId.ToString())
                     .StartActive();
-            if (info == null)
-                return;
+
+            var userApi = socket.GetService<PremiumService>();
+            var expires = userApi.ExpiresWhen(info.UserId);
+
             try
             {
                 if (info.ActiveConnectionId != SessionInfo.ConnectionId && !string.IsNullOrEmpty(info.ActiveConnectionId))
@@ -298,8 +299,13 @@ namespace Coflnet.Sky.Commands.MC
                     socket.Close();
                     return;
                 }
-                //MigrateSettings(cachedSettings);
-                /*ApplySetting(cachedSettings);*/
+
+
+                info.ExpiresAt = await expires;
+                if (info.ExpiresAt > DateTime.Now && info.Tier == AccountTier.NONE)
+                    info.Tier = AccountTier.PREMIUM;
+
+
                 UpdateConnectionTier(info, socket.ConSpan);
                 if (SessionInfo.SentWelcome)
                     return; // don't send hello again
