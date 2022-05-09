@@ -279,7 +279,7 @@ namespace Coflnet.Sky.Commands.MC
                     .StartActive();
 
             var userApi = socket.GetService<PremiumService>();
-            var expires = userApi.ExpiresWhen(info.UserId);
+            var expiresTask = userApi.ExpiresWhen(info.UserId);
 
             try
             {
@@ -301,10 +301,13 @@ namespace Coflnet.Sky.Commands.MC
                 }
 
 
-                info.ExpiresAt = await expires;
+                var expires = await expiresTask;
+                Console.WriteLine(info.ExpiresAt);
                 if (info.ExpiresAt > DateTime.Now && info.Tier == AccountTier.NONE)
+                {
                     info.Tier = AccountTier.PREMIUM;
-
+                    info.ExpiresAt = expires;
+                }
 
                 UpdateConnectionTier(info, socket.ConSpan);
                 if (SessionInfo.SentWelcome)
@@ -430,7 +433,7 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(800); // allow another half second for the playername to be loaded
             var messageStart = $"Hello {this.SessionInfo.McName} ({anonymisedEmail}) \n";
             if (accountInfo.Tier != AccountTier.NONE && accountInfo.ExpiresAt > DateTime.Now)
-                SendMessage(COFLNET + messageStart + $"You have {accountInfo.Tier.ToString()} until {accountInfo.ExpiresAt}");
+                SendMessage(COFLNET + messageStart + $"You have {accountInfo.Tier.ToString()} until {accountInfo.ExpiresAt.ToString("yyyy-MMM-dd hh:mm")} UTC");
             else
                 SendMessage(COFLNET + messageStart + $"You use the free version of the flip finder");
 
