@@ -33,7 +33,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                     $" {redX}  Blacklist this item", 
                     $"add {flip.Auction.Tag}",
                     $"Don't show this {McColorCodes.AQUA}{Sky.Core.ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GRAY} anymore").Break
-                .CoflCommand<ReferenceCommand>(
+                .MsgLine(
                     " ➹  Open on website", 
                     $"https://sky.coflnet.com/a/{flip.Auction.Uuid}", 
                     "Open link").Break;
