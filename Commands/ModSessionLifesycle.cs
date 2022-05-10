@@ -26,6 +26,7 @@ namespace Coflnet.Sky.Commands.MC
         public SelfUpdatingValue<string> UserId;
         public SelfUpdatingValue<AccountInfo> AccountInfo;
         public SelfUpdatingValue<AccountSettings> AccountSettings;
+        public SelfUpdatingValue<PrivacySettings> PrivacySettings;
         public OpenTracing.ISpan ConSpan => socket.ConSpan;
         public System.Threading.Timer PingTimer;
 
