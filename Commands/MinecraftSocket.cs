@@ -114,6 +114,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<LogoutCommand>();
             Commands.Add<UpdatePurseCommand>();
             Commands.Add<UpdateServerCommand>();
+            Commands.Add<ChatBatchCommand>();
             Commands.Add<UpdateLocationCommand>();
             Commands.Add<UpdateBitsCommand>();
             Commands.Add<BackupCommand>();
@@ -154,7 +155,7 @@ namespace Coflnet.Sky.Commands.MC
                 DateTime next = await GetNext10SecTime();
                 updateSpan.Span.SetTag("time", next.ToString());
                 tenSecTimer.Change(next - DateTime.Now, TimeSpan.FromMinutes(1));
-            });
+            }, new System.Threading.CancellationTokenSource(10000).Token);
         }
 
         private static async Task<DateTime> GetNext10SecTime()
