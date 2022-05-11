@@ -19,12 +19,12 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override string Format(BackupEntry elem)
         {
-            return $"{elem.Name} from {elem.CreationDate.ToString("yyyy-mmm-dd")}";
+            return $"{McColorCodes.AQUA}{elem.Name}{McColorCodes.GRAY} from {elem.CreationDate.ToString("yyyy-MMM-dd")}";
         }
 
         protected override DialogBuilder FormatForList(DialogBuilder d, BackupEntry e)
         {
-            return d.Msg(Format(e), $"/cofl restore {GetId(e)}", "click to restore these settings");
+            return d.Msg(Format(e), $"/cofl restore {GetId(e)} {McColorCodes.GREEN}[RESTORE]", "click to restore these settings");
         }
         protected override string GetId(BackupEntry elem)
         {
