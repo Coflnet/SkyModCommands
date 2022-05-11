@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Models;
 
@@ -39,6 +40,8 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override async Task Update(MinecraftSocket socket, List<BackupEntry> newCol)
         {
+            if(newCol.Count > 3)
+                throw new CoflnetException("to_many", "you can currently only create 3 different backups, please remove one before creating another");
             var settings = socket.GetService<SettingsService>();
             await settings.UpdateSetting(socket.UserId, "flipBackup", newCol);
         }
