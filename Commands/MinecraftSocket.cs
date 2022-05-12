@@ -350,6 +350,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 catch (CoflnetException e)
                 {
+                    Error(e, "mod command coflnet");
                     SendMessage(COFLNET + $"{McColorCodes.RED}{e.Message}");
                 }
                 catch (Exception ex)
@@ -488,22 +489,11 @@ namespace Coflnet.Sky.Commands.MC
         public string Error(Exception exception, string message = null, string additionalLog = null)
         {
             using var error = tracer.BuildSpan("error").WithTag("message", message).WithTag("error", "true").StartActive();
-
-            AddExceptionLog(error, exception);
+            error.Span.Log(exception.ToString());
             if (additionalLog != null)
                 error.Span.Log(additionalLog);
 
             return error.Span.Context.TraceId;
-        }
-
-        private void AddExceptionLog(OpenTracing.IScope error, Exception e)
-        {
-            error.Span.Log(e.Message);
-            error.Span.Log(e.StackTrace);
-            if (e.InnerException != null)
-                AddExceptionLog(error, e.InnerException);
-            if (System.Net.Dns.GetHostName().Contains("ekwav"))
-                Console.WriteLine(e.Message + "\n" + e.StackTrace);
         }
 
         /// <summary>
