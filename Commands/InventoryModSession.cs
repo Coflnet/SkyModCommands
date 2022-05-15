@@ -22,8 +22,21 @@ namespace Coflnet.Sky.Commands.MC
                 CollectScoreboard = true,
                 CollectChatClicks = true,
                 CommandPrefixes = new string[] { "/cofl", "/colf", "/ch" },
-                AutoStart = true
+                AutoStart = true,
+                CollectTab = true,
+                AllowProxy = true,
+                CollectLobbyChanges = true,
+                CollectInvClick = true,
+                CollectEntities = true
             });
+            socket.sessionLifesycle.PrivacySettings.AfterChange -= UpdatePrivacySettings;
+            socket.sessionLifesycle.PrivacySettings.AfterChange += UpdatePrivacySettings;
+            UpdatePrivacySettings(socket.sessionLifesycle.PrivacySettings.Value);
+        }
+
+        private void UpdatePrivacySettings(PrivacySettings settings)
+        {
+            socket.Send(Response.Create("privacySettings", settings));
         }
     }
 }
