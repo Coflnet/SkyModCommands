@@ -591,13 +591,14 @@ namespace Coflnet.Sky.Commands.MC
                 NextUpdateStart -= SendTimer;
                 return;
             }
-            if ((this.Settings?.DisableFlips ?? false) ||
-                (Settings?.ModSettings?.BlockTenSecondsMsg ?? false))
+            TopBlocked.Clear();
+            if (this.Settings?.DisableFlips ?? false)
             {
                 // ping is sent to keep the connection open (after 60 seconds inactivity its disconnected by cloudflare)
                 Send(Response.Create("ping", 0));
                 return;
             }
+
             if (Settings?.ModSettings?.DisplayTimer ?? false)
             {
                 var mod = Settings.ModSettings;
@@ -612,14 +613,17 @@ namespace Coflnet.Sky.Commands.MC
                     });
                 }
             }
-            SendMessage(
-                COFLNET + "Flips in 10 seconds",
-                null,
-                "The Hypixel API will update in about 10 seconds. Get ready to receive the latest flips. \n"
-                + "(this is an automated message being sent 50 seconds after the last update)");
-            TopBlocked.Clear();
-            if (Settings?.ModSettings?.PlaySoundOnFlip ?? false)
-                SendSound("note.hat", 1);
+            if (!(Settings?.ModSettings?.BlockTenSecondsMsg ?? false))
+            {
+                SendMessage(
+                            COFLNET + "Flips in 10 seconds",
+                            null,
+                            "The Hypixel API will update in about 10 seconds. Get ready to receive the latest flips. \n"
+                            + "(this is an automated message being sent 50 seconds after the last update)");
+
+                if (Settings?.ModSettings?.PlaySoundOnFlip ?? false)
+                    SendSound("note.hat", 1);
+            }
         }
 
         public string FindWhatsNew(FlipSettings current, FlipSettings newSettings)
