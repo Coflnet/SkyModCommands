@@ -111,7 +111,7 @@ namespace Coflnet.Sky.Commands.MC
                         if (socket.SessionInfo.SentMutedNoteFor.Contains(m.Uuid))
                             return true;
                         socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player you muted", null,
-                            $"You muted {m.Name}. \nThis message is displayed once per session and player\nto avoid confusion why messages are not shown to you"));
+                            $"You muted {m.Name}. (undo with /cofl unmute {m.Name}) \nThis message is displayed once per session and player\nto avoid confusion why messages are not shown to you"));
                         socket.SessionInfo.SentMutedNoteFor.Add(m.Uuid);
                         return true;
                     }
