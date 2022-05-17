@@ -317,6 +317,7 @@ namespace Coflnet.Sky.Commands.MC
                 var helloTask = SendAuthorizedHello(info);
                 SendMessage(socket.formatProvider.WelcomeMessage());
                 await Task.Delay(500);
+                await MakeSureUserIsVerified(info);
                 await helloTask;
                 //SendMessage(COFLNET + $"{McColorCodes.DARK_GREEN} click this to relink your account",
                 //GetAuthLink(stringId), "You don't need to relink your account. \nThis is only here to allow you to link your mod to the website again should you notice your settings aren't updated");
@@ -326,6 +327,17 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.Error(e, "loading modsocket");
                 SendMessage(COFLNET + $"Your settings could not be loaded, please relink again :)");
+            }
+        }
+
+        private async Task MakeSureUserIsVerified(AccountInfo info)
+        {
+            var isVerified = await CheckVerificationStatus(info);
+            if (!isVerified && info.Tier > 0)
+            {
+                SendMessage($"{COFLNET} You have premium but you haven't verified your account yet.");
+                await Task.Delay(1000);
+                SendMessage($"{COFLNET} You have verify your account before you receive flips at max speed.", null, "This is part of our anti macro system and required to make sure you are not connecting from a cracked account");
             }
         }
 
@@ -343,32 +355,6 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-        protected virtual async Task<OpenTracing.IScope> ModGotAuthorised(AccountInfo settings)
-        {
-            var span = tracer.BuildSpan("Authorized").AsChildOf(ConSpan.Context).StartActive();
-            try
-            {
-                await SendAuthorizedHello(settings);
-                SendMessage($"Authorized connection you can now control settings via the website");
-                await Task.Delay(TimeSpan.FromSeconds(20));
-                SendMessage($"Remember: the format of the flips is: §dITEM NAME §fCOST -> MEDIAN");
-            }
-            catch (Exception e)
-            {
-                socket.Error(e, "settings authorization");
-                span.Span.Log(e.Message);
-            }
-            try
-            {
-                await CheckVerificationStatus(settings);
-            }
-            catch (Exception e)
-            {
-                socket.Error(e, "verification failed");
-            }
-
-            return span;
-        }
 
         public virtual async Task<bool> CheckVerificationStatus(AccountInfo settings)
         {
@@ -392,7 +378,7 @@ namespace Coflnet.Sky.Commands.MC
             verification.Span.Log(JSON.Stringify(targetAuction));
 
             socket.SendMessage(new ChatPart(
-                $"{COFLNET}You connected from an unkown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction.",
+                $"{COFLNET}You connected from an unkown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. {McColorCodes.YELLOW}[CLICK TO OPEN AN AUCTION FOR A STICK]",
                 $"/viewauction {targetAuction?.Uuid}",
                 $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
 
@@ -512,6 +498,8 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     else
                         SessionInfo.Penalty = TimeSpan.Zero;
+                    if(!SessionInfo.VerifiedMc)
+                        SessionInfo.Penalty += TimeSpan.FromMilliseconds(200);
                 }
                 catch (Exception e)
                 {
