@@ -117,6 +117,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<ChatBatchCommand>();
             Commands.Add<UpdateLocationCommand>();
             Commands.Add<UpdateBitsCommand>();
+            Commands.Add<UploadTabCommand>();
             Commands.Add<BackupCommand>();
             Commands.Add<RestoreCommand>();
 
