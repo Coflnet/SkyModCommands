@@ -6,6 +6,8 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            if(socket.Settings.ModSettings.NoAdjustToPurse)
+                return;
             socket.Settings.MaxCost = int.Parse(arguments.Trim('"'));
             await socket.sessionLifesycle.FlipSettings.Update(socket.Settings);
         }
