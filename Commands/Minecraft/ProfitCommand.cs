@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC
@@ -24,8 +25,27 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.SendMessage(COFLNET + "Crunching the latest numbers for you :)", null, "this might take a few seconds");
             }
+            // replace this call with stored socket.sessionLifesycle.AccountInfo.Value.McIds
 
-            var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(socket.SessionInfo.McUuid, time);
+            var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+
+            var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, time);
+            string hover = GetHoverText(socket, response);
+            socket.SendMessage(COFLNET + $"According to our data you made {FormatPrice(socket, response.TotalProfit)} "
+                + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions"
+                + (accounts.Count() > 1 ? $" accross your {accounts.Count()} accounts" : ""),
+                null, hover);
+            var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
+            var best = sorted.FirstOrDefault();
+            if (best == null)
+                return;
+            socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier))}{best.ItemName}" +
+                            $" {FormatPrice(socket, best.PricePaid)} -> {FormatPrice(socket, best.SoldFor)} (+{FormatPrice(socket, best.Profit)})",
+                "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction");
+        }
+
+        private string GetHoverText(MinecraftSocket socket, FlipSumary response)
+        {
             var tfm = GetProfitForFinder(response, LowPricedAuction.FinderType.TFM);
             var stonks = GetProfitForFinder(response, LowPricedAuction.FinderType.STONKS);
             var other = GetProfitForFinder(response, LowPricedAuction.FinderType.EXTERNAL);
@@ -43,16 +63,7 @@ namespace Coflnet.Sky.Commands.MC
                 hover += $"\n {FormatPrice(socket, other)} from other finders";
             if (tfm > 0 || stonks > 0)
                 hover += $"\n {FormatPrice(socket, coflnet)} from the {COFLNET} mod";
-            socket.SendMessage(COFLNET + $"According to our data you made {FormatPrice(socket, response.TotalProfit)} "
-                + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions",
-                null, hover);
-            var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
-            var best = sorted.FirstOrDefault();
-            if (best == null)
-                return;
-            socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier))}{best.ItemName}" +
-                            $" {FormatPrice(socket, best.PricePaid)} -> {FormatPrice(socket, best.SoldFor)} (+{FormatPrice(socket, best.Profit)})",
-                "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction");
+            return hover;
         }
 
         private static long GetProfitForFinder(Shared.FlipSumary response, LowPricedAuction.FinderType type)

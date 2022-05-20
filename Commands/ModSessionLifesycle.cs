@@ -341,6 +341,11 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
+        {
+            return await McAccountService.Instance.GetAllAccounts(UserId.Value) ?? new string[] { SessionInfo.McUuid };
+        }
+
         protected virtual void SendMessage(string message, string click = null, string hover = null)
         {
             socket.SendMessage(message, click, hover);
@@ -489,7 +494,8 @@ namespace Coflnet.Sky.Commands.MC
                 try
                 {
 
-                    var penalty = await socket.GetService<FlipTrackingService>().GetRecommendedPenalty(SessionInfo.McUuid);
+                    var penalty = await socket.GetService<FlipTrackingService>()
+                            .GetRecommendedPenalty(await GetMinecraftAccountUuids());
                     if (penalty > TimeSpan.Zero)
                     {
                         SessionInfo.Penalty = penalty;
