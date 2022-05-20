@@ -54,7 +54,8 @@ namespace Coflnet.Sky.Commands.MC
                     var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();
                     await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
                 }
-                socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{name}{DEFAULT_COLOR} to {McColorCodes.WHITE}{finalValue}"));
+                var doc = updater.GetDocFor(name);
+                socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{doc.RealName}{DEFAULT_COLOR} to {McColorCodes.WHITE}{finalValue}", null, doc.Info));
             }
             catch (CoflnetException e)
             {
