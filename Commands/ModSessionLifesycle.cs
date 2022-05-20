@@ -343,7 +343,10 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
         {
-            return await McAccountService.Instance.GetAllAccounts(UserId.Value) ?? new string[] { SessionInfo.McUuid };
+            var result = await McAccountService.Instance.GetAllAccounts(UserId.Value);
+            if(result == null || result.Count() == 0)
+                return new string[] { SessionInfo.McUuid };
+            return result;
         }
 
         protected virtual void SendMessage(string message, string click = null, string hover = null)
