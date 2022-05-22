@@ -32,6 +32,8 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <returns></returns>
         public HashSet<string> SentMutedNoteFor { get; set; } = new ();
+        public int CaptchaFailedTimes { get; set; }
+
         public bool VerifiedMc;
 
         /// <summary>
@@ -41,6 +43,8 @@ namespace Coflnet.Sky.Commands.MC
         public TimeSpan RelativeSpeed = default;
         public DateTime LastSpeedUpdate = default;
         public DateTime LastBlockedMsg = default;
+        public DateTime LastCaptchaSolve = default;
+        public string CaptchaSolution = default;
 
         public void Dispose()
         {
