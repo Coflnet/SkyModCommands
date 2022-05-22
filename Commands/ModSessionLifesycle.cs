@@ -466,6 +466,7 @@ namespace Coflnet.Sky.Commands.MC
             using var span = tracer.BuildSpan("ping").AsChildOf(ConSpan.Context).WithTag("count", blockedFlipFilterCount).StartActive();
             try
             {
+                UpdateExtraDelay();
                 if (blockedFlipFilterCount > 0 && SessionInfo.LastBlockedMsg.AddMinutes(FlipSettings.Value.ModSettings.MinutesBetweenBlocked) < DateTime.Now)
                 {
                     socket.SendMessage(new ChatPart(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute",
@@ -488,7 +489,6 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 if (blockedFlipFilterCount > 1000)
                     span.Span.SetTag("error", true);
-                UpdateExtraDelay();
             }
             catch (Exception e)
             {
