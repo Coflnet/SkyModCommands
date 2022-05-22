@@ -15,28 +15,44 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "No blocked flips found, make sure you don't click this shortly after the 'flips in 10 seconds' message. (the list gets reset when that message appears)");
                 return Task.CompletedTask;
             }
-            var r = new Random();
-            var grouped = socket.TopBlocked.OrderBy(e => r.Next()).GroupBy(f=>f.Reason).OrderByDescending(f=>f.Count());
-            var flipsToSend = new List<MinecraftSocket.BlockedElement>();
-            flipsToSend.AddRange(grouped.First().Take(7 - grouped.Count()));
-            flipsToSend.AddRange(grouped.Skip(1).Select(g=>g.First()));
-            socket.SendMessage(flipsToSend.Take(5).SelectMany(b =>
+            List<MinecraftSocket.BlockedElement> flipsToSend;
+
+            if (arguments.Length > 2)
+            {
+                var searchVal = arguments.Trim('"').ToLower();
+                flipsToSend = socket.TopBlocked.Where(b => $"{b.Reason}{b.Flip.Auction.ItemName}{b.Flip.Auction.Tag}".ToLower().Contains(searchVal)).ToList();
+            }
+            else
+                flipsToSend = GetRandomFlips(socket);
+
+            socket.SendMessage(flipsToSend.SelectMany(b =>
+            {
+                socket.Settings.GetPrice(FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
+                return new ChatPart[]
                 {
-                    socket.Settings.GetPrice(FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
-                    return new ChatPart[]
-                    {
                         new ChatPart(
                         $"{McColorCodes.DARK_GRAY}> {socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier)}{b.Flip.Auction.ItemName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}",
                         "https://sky.coflnet.com/auction/" + b.Flip.Auction.Uuid,
                         "Open on website"),
                         new ChatPart(
-                        $" §l[ah]§r\n",
+                        $" §l[ah]§r",
                         "/viewauction " + b.Flip.Auction.Uuid,
-                        "Open in game")
-                    };
-                }).Append(new ChatPart() { text = COFLNET + "These are random examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray()
+                        "Open in game"),
+                        new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + b.Flip.Auction.Uuid, "Expand flip options")
+                };
+            }).Append(new ChatPart() { text = COFLNET + "These are examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray()
             );
             return Task.CompletedTask;
+        }
+
+        private static List<MinecraftSocket.BlockedElement> GetRandomFlips(MinecraftSocket socket)
+        {
+            var r = new Random();
+            var grouped = socket.TopBlocked.OrderBy(e => r.Next()).GroupBy(f => f.Reason).OrderByDescending(f => f.Count());
+            var flipsToSend = new List<MinecraftSocket.BlockedElement>();
+            flipsToSend.AddRange(grouped.First().Take(7 - grouped.Count()));
+            flipsToSend.AddRange(grouped.Skip(1).Select(g => g.First()));
+            return flipsToSend;
         }
     }
 }

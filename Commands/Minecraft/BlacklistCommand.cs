@@ -13,8 +13,14 @@ namespace Coflnet.Sky.Commands.MC
     {
         protected override string Format(ListEntry elem)
         {
+            return FormatEntry(elem);
+        }
+
+        public static string FormatEntry(ListEntry elem)
+        {
             return $"{elem.DisplayName ?? elem.ItemTag} {(elem.filter == null ? "" : string.Join(" & ", elem.filter.Select(f => $"{McColorCodes.AQUA}{f.Key}{DEFAULT_COLOR}={McColorCodes.GREEN}{f.Value}")))}";
         }
+
         protected override string LongFormat(ListEntry elem)
         {
             return Format(elem) + $"\nTag: {elem.ItemTag ?? McColorCodes.BOLD + "all flips are affected by this"}";
