@@ -135,9 +135,9 @@ namespace Coflnet.Sky.Commands.MC
             _ = Task.Run(async () =>
             {
                 await sendTimeTrack;
-                if (timeToSend > TimeSpan.FromSeconds(15) && AccountInfo.Value?.Tier >= AccountTier.PREMIUM)
+                if (timeToSend > TimeSpan.FromSeconds(15) && AccountInfo.Value?.Tier >= AccountTier.PREMIUM && flip.Finder != LowPricedAuction.FinderType.FLIPPER)
                 {
-                    // very bad, this flip was very slow
+                    // very bad, this flip was very slow, create a report
                     using var slowSpan = tracer.BuildSpan("slowFlip").AsChildOf(span.Span).WithTag("error", true).StartActive();
                     slowSpan.Span.Log(JsonConvert.SerializeObject(flip.Auction.Context));
                     slowSpan.Span.Log(JsonConvert.SerializeObject(flip.AdditionalProps));
