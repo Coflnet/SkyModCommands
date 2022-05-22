@@ -42,14 +42,19 @@ namespace Coflnet.Sky.Commands.MC
                                     .WithTag("timestamp", DateTime.UtcNow.ToLongTimeString())
                                     .AsChildOf(parentSpan).StartActive();
             using var settingsSpan = socket.tracer.BuildSpan("settings").AsChildOf(reportSpan.Span.Context).StartActive();
-            settingsSpan.Span.Log(JsonConvert.SerializeObject(socket.Settings,Formatting.Indented));
+            settingsSpan.Span.Log(JsonConvert.SerializeObject(socket.Settings, Formatting.Indented));
             using var blockedSpan = socket.tracer.BuildSpan("blocked").AsChildOf(reportSpan.Span.Context).StartActive();
-            blockedSpan.Span.Log(JsonConvert.SerializeObject(socket.TopBlocked?.Take(80),Formatting.Indented));
+            blockedSpan.Span.Log(JsonConvert.SerializeObject(socket.TopBlocked?.Take(80), Formatting.Indented));
             using var lastSentSpan = socket.tracer.BuildSpan("lastSent").AsChildOf(reportSpan.Span.Context).StartActive();
-            lastSentSpan.Span.Log(JsonConvert.SerializeObject(socket.LastSent.OrderByDescending(s=>s.Auction.Start).Take(20),Formatting.Indented));
+            lastSentSpan.Span.Log(JsonConvert.SerializeObject(socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20), Formatting.Indented));
             reportSpan.Span.Log("session info " + JsonConvert.SerializeObject(socket.SessionInfo));
             spanId = reportSpan.Span.Context.SpanId.Truncate(6);
             reportSpan.Span.SetTag("id", spanId);
+            TryAddingAllSettings(reportSpan);
+        }
+
+        public static void TryAddingAllSettings(IScope reportSpan)
+        {
             try
             {
                 AddAllSettings(reportSpan);

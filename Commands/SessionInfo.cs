@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using StackExchange.Redis;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    public class SessionInfo
+    public class SessionInfo : IDisposable
     {
         /// <summary>
         /// The sessionId as set by the client
@@ -23,6 +24,9 @@ namespace Coflnet.Sky.Commands.MC
         /// Speed penalty for various bad actions eg botting
         /// </summary>
         public TimeSpan Penalty;
+
+        public ChannelMessageQueue EventBrokerSub { get; internal set; }
+
         /// <summary>
         /// Keeps track of which players a mute note message was already sent
         /// </summary>
@@ -37,5 +41,10 @@ namespace Coflnet.Sky.Commands.MC
         public TimeSpan RelativeSpeed = default;
         public DateTime LastSpeedUpdate = default;
         public DateTime LastBlockedMsg = default;
+
+        public void Dispose()
+        {
+            EventBrokerSub.Unsubscribe();
+        }
     }
 }

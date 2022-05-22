@@ -116,14 +116,15 @@ namespace Coflnet.Sky.Commands.MC
             if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
             {
                 var adjustment = MinecraftSocket.NextFlipTime - DateTime.UtcNow - TimeSpan.FromSeconds(60);
-                if (Math.Abs(adjustment.TotalSeconds) < 10)
+                if (Math.Abs(adjustment.TotalSeconds) < 1)
                     SessionInfo.RelativeSpeed = adjustment;
                 SessionInfo.LastSpeedUpdate = DateTime.Now;
             }
 
             if (verbose)
                 ConSpan.Log("sent flip " + DateTime.Now);
-            flip.AdditionalProps["csend"] = (DateTime.Now - flipInstance.Auction.FindTime).ToString();
+            var timeToSend = DateTime.Now - flipInstance.Auction.FindTime;
+            flip.AdditionalProps["csend"] = (timeToSend).ToString();
 
             span.Span.Log("sent");
             socket.LastSent.Enqueue(flip);
@@ -134,6 +135,14 @@ namespace Coflnet.Sky.Commands.MC
             _ = Task.Run(async () =>
             {
                 await sendTimeTrack;
+                if(timeToSend > TimeSpan.FromSeconds(15) && AccountInfo.Value?.Tier >= AccountTier.PREMIUM)
+                {
+                    // very bad, this flip was very slow
+                    using var slowSpan = tracer.BuildSpan("slowFlip").AsChildOf(span.Span).WithTag("error", true).StartActive();
+                    slowSpan.Span.Log(JsonConvert.SerializeObject(flip.Auction.Context));
+                    slowSpan.Span.Log(JsonConvert.SerializeObject(flip.AdditionalProps));
+                    ReportCommand.TryAddingAllSettings(slowSpan);
+                }
                 // remove dupplicates
                 if (SentFlips.Count > 300)
                 {
@@ -228,6 +237,11 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine("accountinfo is default");
 
             AccountSettings = await accountSettingsTask;
+            SessionInfo.EventBrokerSub = socket.GetService<EventBrokerClient>().SubEvents(val, onchange =>
+            {
+                Console.WriteLine("received update from event");
+                SendMessage(COFLNET + onchange.Message);
+            });
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
         }
 
@@ -344,7 +358,7 @@ namespace Coflnet.Sky.Commands.MC
         public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
         {
             var result = await McAccountService.Instance.GetAllAccounts(UserId.Value);
-            if(result == null || result.Count() == 0)
+            if (result == null || result.Count() == 0)
                 return new string[] { SessionInfo.McUuid };
             return result;
         }
@@ -367,6 +381,11 @@ namespace Coflnet.Sky.Commands.MC
         public virtual async Task<bool> CheckVerificationStatus(AccountInfo settings)
         {
             var connect = await McAccountService.Instance.ConnectAccount(settings.UserId.ToString(), SessionInfo.McUuid);
+            if(connect == null)
+            {
+                socket.Log("could not get connect result");
+                return false;
+            }
             if (connect.IsConnected)
             {
                 SessionInfo.VerifiedMc = true;
@@ -486,7 +505,7 @@ namespace Coflnet.Sky.Commands.MC
                     heightPercent = (mod?.TimerY ?? 0) == 0 ? 10 : mod.TimerY,
                     scale = (mod?.TimerScale ?? 0) == 0 ? 2 : mod.TimerScale,
                     prefix = mod?.TimerPrefix ?? prefix,
-                    maxPrecision = (mod?.TimerPercision ?? 0) == 0 ? 3 : mod.TimerPercision
+                    maxPrecision = (mod?.TimerPrecision ?? 0) == 0 ? 3 : mod.TimerPrecision
                 }));
         }
 
@@ -507,7 +526,7 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     else
                         SessionInfo.Penalty = TimeSpan.Zero;
-                    if(!SessionInfo.VerifiedMc)
+                    if (!SessionInfo.VerifiedMc)
                         SessionInfo.Penalty += TimeSpan.FromMilliseconds(200);
                 }
                 catch (Exception e)
@@ -522,6 +541,7 @@ namespace Coflnet.Sky.Commands.MC
             FlipSettings.Dispose();
             UserId.Dispose();
             AccountInfo?.Dispose();
+            SessionInfo?.Dispose();
             PingTimer?.Dispose();
         }
     }
