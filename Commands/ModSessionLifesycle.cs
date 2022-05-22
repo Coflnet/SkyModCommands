@@ -135,7 +135,7 @@ namespace Coflnet.Sky.Commands.MC
             _ = Task.Run(async () =>
             {
                 await sendTimeTrack;
-                if(timeToSend > TimeSpan.FromSeconds(15) && AccountInfo.Value?.Tier >= AccountTier.PREMIUM)
+                if (timeToSend > TimeSpan.FromSeconds(15) && AccountInfo.Value?.Tier >= AccountTier.PREMIUM)
                 {
                     // very bad, this flip was very slow
                     using var slowSpan = tracer.BuildSpan("slowFlip").AsChildOf(span.Span).WithTag("error", true).StartActive();
@@ -278,10 +278,15 @@ namespace Coflnet.Sky.Commands.MC
         {
             using var span = tracer.BuildSpan("SettingsUpdate").AsChildOf(ConSpan.Context)
                     .StartActive();
-            var changed = socket.FindWhatsNew(FlipSettings.Value, settings);
-            if (string.IsNullOrWhiteSpace(changed))
-                changed = "Settings changed";
-            SendMessage($"{COFLNET}{changed}");
+            var changed = settings.LastChanged;
+            if (changed == null)
+            {
+                changed = socket.FindWhatsNew(FlipSettings.Value, settings);
+                if (changed == null)
+                    changed = "Settings changed";
+            }
+            if (changed != "preventUpdateMsg")
+                SendMessage($"{COFLNET}{changed}");
 
             ApplyFlipSettings(settings, span.Span).Wait();
         }
@@ -381,7 +386,7 @@ namespace Coflnet.Sky.Commands.MC
         public virtual async Task<bool> CheckVerificationStatus(AccountInfo settings)
         {
             var connect = await McAccountService.Instance.ConnectAccount(settings.UserId.ToString(), SessionInfo.McUuid);
-            if(connect == null)
+            if (connect == null)
             {
                 socket.Log("could not get connect result");
                 return false;

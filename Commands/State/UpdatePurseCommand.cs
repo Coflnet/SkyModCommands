@@ -9,6 +9,7 @@ namespace Coflnet.Sky.Commands.MC
             if(socket.Settings.ModSettings.NoAdjustToPurse)
                 return;
             socket.Settings.MaxCost = int.Parse(arguments.Trim('"'));
+            socket.Settings.LastChanged = "preventUpdateMsg";
             await socket.sessionLifesycle.FlipSettings.Update(socket.Settings);
         }
     }
