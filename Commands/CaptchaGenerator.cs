@@ -11,6 +11,9 @@ namespace Coflnet.Sky.Commands.MC
 
         public ChatPart[] SetupChallenge(SessionInfo info)
         {
+            // hello there, you found where I generate questions
+            // feel free to look at the implementation and create solvers
+            // I am gonna make it more complicated when someone actually breaks it :)
             var numbers = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }.OrderBy(a => random.Next()).ToList();
             var first = numbers.First();
             var second = numbers.Skip(1).First();
@@ -31,12 +34,12 @@ namespace Coflnet.Sky.Commands.MC
             info.CaptchaSolution = correct.Code;
             return new DialogBuilder()
                 .MsgLine($"What is {McColorCodes.AQUA}{first} {McColorCodes.GRAY}{word} {McColorCodes.AQUA}{second}{McColorCodes.GRAY}", null, "anti macro question, please click on the answer")
-                .ForEach(options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code));
+                .ForEach(options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, "Click to select " + o.Text));
         }
 
         private Option CreateOption(int o)
         {
-            return new Option() { Text = $"{McColorCodes.DARK_GRAY}>{McColorCodes.YELLOW}{o}\n", Code = GetCode() };
+            return new Option() { Text = $"{McColorCodes.DARK_GRAY} > {McColorCodes.YELLOW}{o}\n", Code = GetCode() };
         }
 
         private string GetCode()

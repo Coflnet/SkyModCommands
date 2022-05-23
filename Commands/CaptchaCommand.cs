@@ -24,6 +24,8 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + McColorCodes.GREEN + "Thanks for confirming that you are a real user\n");
 
                 sessionInfo.LastCaptchaSolve = DateTime.Now;
+                socket.sessionLifesycle.AccountInfo.Value.LastCaptchaSolve = DateTime.Now;
+                await socket.sessionLifesycle.AccountInfo.Update();
                 await Task.Delay(2000);
                 socket.SendMessage(COFLNET + McColorCodes.GREEN + "Your afk delay will be removed for the next update\n");
 
