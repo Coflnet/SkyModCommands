@@ -23,6 +23,23 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "You have been muted from the chat because you repeadetly violated the rules", "I am blocked from the Coflnet chat :(", $"Click to express your sadness");
                 return;
             }
+            var maxMsgLength = 150;
+            var message = JsonConvert.DeserializeObject<string>(arguments);
+
+            bool shouldToggle = string.IsNullOrEmpty(message) || message == "toggle";
+            if (shouldToggle || (!socket.sessionLifesycle.FlipSettings.Value?.ModSettings?.Chat ?? false))
+            {
+                var settings = socket.sessionLifesycle.FlipSettings;
+                if (settings == null)
+                    throw new CoflnetException("no_settings", "could not toggle the cofl chat likely because you are not logged in");
+                settings.Value.ModSettings.Chat = !settings.Value.ModSettings.Chat;
+                await settings.Update(settings.Value);
+                socket.SendMessage(CHAT_PREFIX + $"Toggled the chat {(settings.Value.ModSettings.Chat ? "on" : "off")}", null, "this currently doesn't persist if the website is open");
+
+                if (shouldToggle)
+                    return;
+            }
+
             if (socket.sessionLifesycle.UserId.Value == null)
             {
                 socket.SendMessage(COFLNET + "Sorry, you have to be logged in to send messages, click [HERE] to do that", socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId), "Some idiot abused the chat system so sadly this is necessary now");
@@ -36,19 +53,7 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 }
             }
-            var maxMsgLength = 150;
-            var message = JsonConvert.DeserializeObject<string>(arguments);
 
-            if (string.IsNullOrEmpty(message))
-            {
-                var settings = socket.sessionLifesycle.FlipSettings;
-                if (settings == null)
-                    throw new CoflnetException("no_settings", "could not toggle the cofl chat likely because you are not logged in");
-                settings.Value.ModSettings.Chat = !settings.Value.ModSettings.Chat;
-                await settings.Update(settings.Value);
-                socket.SendMessage(CHAT_PREFIX + $"Toggled the chat {(settings.Value.ModSettings.Chat ? "on" : "off")}", null, "this currently doesn't persist if the website is open");
-                return;
-            }
             await MakeSureChatIsConnected(socket);
             if (DateTime.Now - TimeSpan.FromSeconds(1) < socket.SessionInfo.LastMessage)
             {
@@ -73,7 +78,7 @@ namespace Coflnet.Sky.Commands.MC
                 SenderName = socket.SessionInfo.McName,
                 Tier = socket.sessionLifesycle.AccountInfo?.Value?.Tier ?? AccountTier.NONE,
                 SenderUuid = socket.SessionInfo.McUuid
-            },socket.tracer.ActiveSpan);
+            }, socket.tracer.ActiveSpan);
             socket.SessionInfo.LastMessage = DateTime.Now;
         }
 
