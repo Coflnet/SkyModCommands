@@ -518,6 +518,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             _ = Task.Run(async () =>
             {
+                await Task.Delay(new Random().Next(1,5000));
                 try
                 {
 
