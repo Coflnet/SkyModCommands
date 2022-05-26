@@ -15,6 +15,7 @@ namespace Coflnet.Sky.Commands.MC
             // feel free to look at the implementation and create solvers
             // I am gonna make it more complicated when someone actually breaks it :)
             var numbers = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }.OrderBy(a => random.Next()).ToList();
+            //var b = "①②③④⑤⑥⑦⑧⑨0 𝟙ϩӠ५ƼϬ7�⊘ １２３４５６７８９０ ⑴⑵⑶⑷⑸⑹⑺⑻⑼0 ₁₂₃₄₅₆₇₈₉₀ ➊➋➌➍➎➏➐➑➒⓪ ¹²³⁴⁵⁶⁷⁸⁹⁰ ➀ ➁ ➂ ➃ ➄ ➅ ➆ ➇ ➈ ➉";
             var first = numbers.First();
             var second = numbers.Skip(1).First();
             var word = new string[] { "added to", "plus", "+", "and" }.OrderBy(a => random.Next()).First();

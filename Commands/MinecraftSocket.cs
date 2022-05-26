@@ -39,8 +39,7 @@ namespace Coflnet.Sky.Commands.MC
         };
 
         public string Version { get; private set; }
-        public static OpenTracing.ITracer ModTracer = DiHandler.ServiceProvider.GetRequiredService<OpenTracing.ITracer>();// new Jaeger.Tracer.Builder("sky-commands-mod").WithSampler(new ConstSampler(true)).Build();
-        public OpenTracing.ITracer tracer => ModTracer;
+        public OpenTracing.ITracer tracer => DiHandler.ServiceProvider.GetRequiredService<OpenTracing.ITracer>();
         public OpenTracing.ISpan ConSpan { get; private set; }
         public IModVersionAdapter ModAdapter;
 
@@ -153,7 +152,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             Task.Run(async () =>
             {
-                using var updateSpan = ModTracer.BuildSpan("refreshTimer").StartActive();
+                using var updateSpan = DiHandler.ServiceProvider.GetRequiredService<OpenTracing.ITracer>().BuildSpan("refreshTimer").StartActive();
                 DateTime next = await GetNext10SecTime();
                 updateSpan.Span.SetTag("time", next.ToString());
                 tenSecTimer.Change(next - DateTime.Now, TimeSpan.FromMinutes(1));
