@@ -33,7 +33,7 @@ namespace Coflnet.Sky.Commands.MC
             var options = numbers.Skip(2).Where(n => n != solution).Take(5).Select(o => CreateOption(o)).Append(correct).OrderBy(s => random.Next());
             info.CaptchaSolution = correct.Code;
             return new DialogBuilder()
-                .MsgLine($"What is {McColorCodes.AQUA}{first} {McColorCodes.GRAY}{word} {McColorCodes.AQUA}{second}{McColorCodes.GRAY}", null, "anti macro question, please click on the answer")
+                .MsgLine($"What is {McColorCodes.AQUA}{first} {McColorCodes.GRAY}{word} {McColorCodes.AQUA}{second}{McColorCodes.GRAY} (click correct answer)", null, "anti macro question, please click on the answer")
                 .ForEach(options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, "Click to select " + o.Text));
         }
 
