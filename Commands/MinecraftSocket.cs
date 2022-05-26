@@ -39,7 +39,7 @@ namespace Coflnet.Sky.Commands.MC
         };
 
         public string Version { get; private set; }
-        public static OpenTracing.ITracer ModTracer = new Jaeger.Tracer.Builder("sky-commands-mod").WithSampler(new ConstSampler(true)).Build();
+        public static OpenTracing.ITracer ModTracer = DiHandler.ServiceProvider.GetRequiredService<OpenTracing.ITracer>();// new Jaeger.Tracer.Builder("sky-commands-mod").WithSampler(new ConstSampler(true)).Build();
         public OpenTracing.ITracer tracer => ModTracer;
         public OpenTracing.ISpan ConSpan { get; private set; }
         public IModVersionAdapter ModAdapter;
