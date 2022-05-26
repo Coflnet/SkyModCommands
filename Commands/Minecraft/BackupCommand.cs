@@ -25,7 +25,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override DialogBuilder FormatForList(DialogBuilder d, BackupEntry e)
         {
-            return d.Msg(Format(e), $"/cofl restore {GetId(e)} {McColorCodes.GREEN}[RESTORE]", "click to restore these settings");
+            return d.Msg(Format(e) + " {McColorCodes.GREEN}[RESTORE]", $"/cofl restore {GetId(e)}", "click to restore these settings");
         }
         protected override string GetId(BackupEntry elem)
         {
