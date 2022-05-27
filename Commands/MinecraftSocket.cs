@@ -445,7 +445,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public bool SendMessage(params ChatPart[] parts)
         {
-            if (ConnectionState != WebSocketState.Open)
+            if (ConnectionState != WebSocketState.Open && ConnectionState != WebSocketState.Connecting)
             {
                 RemoveMySelf();
                 ConSpan.Log("connection state was found to be " + ConnectionState);
