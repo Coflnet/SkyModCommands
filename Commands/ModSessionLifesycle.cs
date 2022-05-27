@@ -10,6 +10,7 @@ using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 using WebSocketSharp;
+using OpenTracing;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -132,7 +133,16 @@ namespace Coflnet.Sky.Commands.MC
 
             PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
 
-            _ = Task.Run(async () =>
+            _ = Task.Run(TrackFlipAndCleanup(flip, span, sendTimeTrack, timeToSend)).ConfigureAwait(false);
+
+            if (verbose)
+                ConSpan?.Log("exiting " + DateTime.Now);
+            return true;
+        }
+
+        private Func<Task> TrackFlipAndCleanup(LowPricedAuction flip, IScope span, Task sendTimeTrack, TimeSpan timeToSend)
+        {
+            return async () =>
             {
                 await sendTimeTrack;
                 if (timeToSend > TimeSpan.FromSeconds(15) && AccountInfo.Value?.Tier >= AccountTier.PREMIUM && flip.Finder != LowPricedAuction.FinderType.FLIPPER)
@@ -153,13 +163,8 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 if (socket.LastSent.Count > 30)
                     socket.LastSent.TryDequeue(out _);
-            }).ConfigureAwait(false);
-
-            if (verbose)
-                ConSpan?.Log("exiting " + DateTime.Now);
-            return true;
+            };
         }
-
 
         private bool BlockedFlip(LowPricedAuction flip, string reason)
         {
