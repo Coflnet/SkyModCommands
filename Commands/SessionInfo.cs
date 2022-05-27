@@ -23,7 +23,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <summary>
         /// Speed penalty for various bad actions eg botting
         /// </summary>
-        public TimeSpan Penalty;
+        public TimeSpan Penalty = TimeSpan.FromSeconds(2);
 
         public ChannelMessageQueue EventBrokerSub { get; internal set; }
 
@@ -49,6 +49,7 @@ namespace Coflnet.Sky.Commands.MC
         public void Dispose()
         {
             EventBrokerSub?.Unsubscribe();
+            EventBrokerSub = null;
         }
     }
 }
