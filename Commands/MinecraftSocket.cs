@@ -489,7 +489,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public string Error(Exception exception, string message = null, string additionalLog = null)
         {
-            using var error = tracer.BuildSpan("error").WithTag("message", message).WithTag("error", "true").StartActive();
+            using var error = tracer.BuildSpan("error").WithTag("message", message).AsChildOf(ConSpan).WithTag("error", "true").StartActive();
             if (System.Net.Dns.GetHostName().Contains("ekwav"))
                 dev.Logger.Instance.Error(exception, message);
             error.Span.Log(exception.ToString());
