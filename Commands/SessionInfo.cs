@@ -48,7 +48,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public void Dispose()
         {
-            EventBrokerSub.Unsubscribe();
+            EventBrokerSub?.Unsubscribe();
         }
     }
 }
