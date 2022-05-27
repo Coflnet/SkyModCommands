@@ -490,6 +490,10 @@ namespace Coflnet.Sky.Commands.MC
                 if (blockedFlipFilterCount > 1000)
                     span.Span.SetTag("error", true);
             }
+            catch (System.InvalidOperationException)
+            {
+                socket.RemoveMySelf();
+            }
             catch (Exception e)
             {
                 span.Span.Log("could not send ping");
@@ -518,7 +522,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             _ = Task.Run(async () =>
             {
-                await Task.Delay(new Random().Next(1,5000));
+                await Task.Delay(new Random().Next(1, 5000));
                 try
                 {
 

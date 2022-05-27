@@ -402,7 +402,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (ConnectionState != WebSocketState.Open)
             {
-                OpenTracing.IScope span = RemoveMySelf();
+                RemoveMySelf();
                 return;
             }
             try
