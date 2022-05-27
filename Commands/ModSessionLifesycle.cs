@@ -370,7 +370,7 @@ namespace Coflnet.Sky.Commands.MC
             var result = await McAccountService.Instance.GetAllAccounts(UserId.Value);
             if (result == null || result.Count() == 0)
                 return new string[] { SessionInfo.McUuid };
-            return result;
+            return result.Append(SessionInfo.McUuid);
         }
 
         protected virtual void SendMessage(string message, string click = null, string hover = null)
@@ -542,7 +542,7 @@ namespace Coflnet.Sky.Commands.MC
                     else
                         SessionInfo.Penalty = TimeSpan.Zero;
                     if (!SessionInfo.VerifiedMc)
-                        SessionInfo.Penalty += TimeSpan.FromMilliseconds(200);
+                        SessionInfo.Penalty += TimeSpan.FromSeconds(3);
                     if (penalty.Item2 > 3 && AccountInfo.Value.LastCaptchaSolve < DateTime.Now - TimeSpan.FromHours(1))
                     {
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
