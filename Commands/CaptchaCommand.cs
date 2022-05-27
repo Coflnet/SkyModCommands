@@ -18,7 +18,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (sessionInfo.CaptchaFailedTimes > 0)
                 {
                     socket.SendMessage(COFLNET + McColorCodes.GREEN + "You solved the captcha, but you failed too many previously so please solve another one\n");
-                    socket.SendMessage(new CaptchaGenerator().SetupChallenge(sessionInfo));
+                    socket.SendMessage(new CaptchaGenerator().SetupChallenge(socket, sessionInfo));
                     return;
                 }
                 socket.SendMessage(COFLNET + McColorCodes.GREEN + "Thanks for confirming that you are a real user\n");
@@ -33,7 +33,7 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             socket.SendMessage(COFLNET + "Your answer was not correct, lets try again");
-            socket.SendMessage(new CaptchaGenerator().SetupChallenge(sessionInfo));
+            socket.SendMessage(new CaptchaGenerator().SetupChallenge(socket, sessionInfo));
 
             sessionInfo.CaptchaFailedTimes++;
 

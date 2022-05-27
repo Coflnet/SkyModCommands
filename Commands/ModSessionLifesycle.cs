@@ -431,7 +431,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (FlipSettings.Value.DisableFlips)
             {
-                SendMessage(COFLNET + "you currently don't receive flips because youdisabled them", "/cofl set disableflips false", "click to enable");
+                SendMessage(COFLNET + "you currently don't receive flips because you disabled them", "/cofl set disableflips false", "click to enable");
                 return;
             }
 
@@ -546,7 +546,7 @@ namespace Coflnet.Sky.Commands.MC
                     if (penalty.Item2 > 3 && AccountInfo.Value.LastCaptchaSolve < DateTime.Now - TimeSpan.FromHours(1))
                     {
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
-                        SendMessage(new CaptchaGenerator().SetupChallenge(SessionInfo));
+                        SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo));
                         SessionInfo.Penalty += TimeSpan.FromSeconds(12);
                     }
 

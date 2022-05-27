@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Newtonsoft.Json;
 using WebSocketSharp;
 
 namespace Coflnet.Sky.Commands.MC
@@ -9,7 +10,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         private Random random = new();
 
-        public ChatPart[] SetupChallenge(SessionInfo info)
+        public ChatPart[] SetupChallenge(MinecraftSocket socket, SessionInfo info)
         {
             // hello there, you found where I generate questions
             // feel free to look at the implementation and create solvers
@@ -33,6 +34,10 @@ namespace Coflnet.Sky.Commands.MC
             var correct = CreateOption(solution);
             var options = numbers.Skip(2).Where(n => n != solution).Take(5).Select(o => CreateOption(o)).Append(correct).OrderBy(s => random.Next());
             info.CaptchaSolution = correct.Code;
+            
+            using var captchaSpan = socket?.tracer.BuildSpan("newCaptcha").AsChildOf(socket.ConSpan).StartActive();
+            captchaSpan?.Span.Log(JsonConvert.SerializeObject(new { solution, word, options, correct }, Formatting.Indented));
+
             return new DialogBuilder()
                 .MsgLine($"What is {McColorCodes.AQUA}{first} {McColorCodes.GRAY}{word} {McColorCodes.AQUA}{second}{McColorCodes.GRAY} (click correct answer)", null, "anti macro question, please click on the answer")
                 .ForEach(options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, "Click to select " + o.Text));
