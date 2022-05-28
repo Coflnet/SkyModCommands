@@ -63,7 +63,7 @@ namespace Coflnet.Sky.Commands.MC
             var entry = new ListEntry()
             {
                 filter = new Dictionary<string, string>(),
-                DisplayName = (await PlayerService.Instance.GetPlayer(s)).Name
+                DisplayName = s
             };
             var nameAndRarity = s.Split("_+_");
             var rarity = nameAndRarity[1];
