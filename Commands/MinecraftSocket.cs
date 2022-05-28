@@ -120,6 +120,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<BackupCommand>();
             Commands.Add<RestoreCommand>();
             Commands.Add<CaptchaCommand>();
+            Commands.Add<ImportTfmCommand>();
 
             Task.Run(async () =>
             {
