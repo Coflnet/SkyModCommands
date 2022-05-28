@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var parts = arguments.Trim('"').Split(' ');
-            if (arguments.Length != 2)
+            if (parts.Length != 2)
             {
                 socket.SendMessage($"{COFLNET}This command lets you import blacklists from tfm.\n"
                 + $"{McColorCodes.GREEN}Usage: /cofl importtfm {McColorCodes.YELLOW}<identifier> <userName>\n"
