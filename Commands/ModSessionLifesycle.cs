@@ -370,7 +370,7 @@ namespace Coflnet.Sky.Commands.MC
             var result = await McAccountService.Instance.GetAllAccounts(UserId.Value);
             if (result == null || result.Count() == 0)
                 return new string[] { SessionInfo.McUuid };
-            if(!result.Contains(SessionInfo.McUuid))
+            if (!result.Contains(SessionInfo.McUuid))
                 result = result.Append(SessionInfo.McUuid);
             return result;
         }
@@ -535,21 +535,26 @@ namespace Coflnet.Sky.Commands.MC
 
                     var penalty = await socket.GetService<FlipTrackingService>()
                             .GetRecommendedPenalty(await GetMinecraftAccountUuids());
+                    IScope span = null;
                     if (penalty.Item1 > TimeSpan.Zero)
                     {
                         SessionInfo.Penalty = penalty.Item1;
-                        using var span = tracer.BuildSpan("nerv").AsChildOf(ConSpan).StartActive();
+                        span = tracer.BuildSpan("nerv").AsChildOf(ConSpan).StartActive();
                         span.Span.SetTag("time", penalty.ToString());
                     }
                     else
                         SessionInfo.Penalty = TimeSpan.Zero;
                     if (!SessionInfo.VerifiedMc)
+                    {
                         SessionInfo.Penalty += TimeSpan.FromSeconds(3);
-                    if (penalty.Item2 > 3 && AccountInfo.Value.LastCaptchaSolve < DateTime.UtcNow - TimeSpan.FromHours(1.5))
+                        span?.Span.Log("penalty for not verified mc");
+                    }
+                    if (penalty.Item2 > 3 && GetLastCaptchaSolveTime() < DateTime.UtcNow - TimeSpan.FromHours(1.5))
                     {
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo));
                         SessionInfo.Penalty += TimeSpan.FromSeconds(12);
+                        span?.Span.Log("failed macro");
                     }
 
                 }
@@ -558,6 +563,11 @@ namespace Coflnet.Sky.Commands.MC
                     socket.Error(e, "retrieving penalty");
                 }
             });
+        }
+
+        private DateTime GetLastCaptchaSolveTime()
+        {
+            return (AccountInfo.Value.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
         }
 
         public void Dispose()
