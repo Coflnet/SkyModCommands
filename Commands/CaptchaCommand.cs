@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Coflnet.Sky.Commands.MC
@@ -8,10 +9,10 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             socket.SendMessage(COFLNET + "Checking your response");
-            await Task.Delay(2000);
-            var attempt = arguments.Trim('"');
             var sessionInfo = socket.SessionInfo;
             var solution = sessionInfo.CaptchaSolution;
+            await Task.Delay(2000);
+            var attempt = arguments.Trim('"');
             if (solution == attempt)
             {
                 sessionInfo.CaptchaFailedTimes /= 2;
@@ -23,9 +24,10 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 socket.SendMessage(COFLNET + McColorCodes.GREEN + "Thanks for confirming that you are a real user\n");
 
-                sessionInfo.LastCaptchaSolve = DateTime.Now;
-                socket.sessionLifesycle.AccountInfo.Value.LastCaptchaSolve = DateTime.Now;
+                sessionInfo.LastCaptchaSolve = DateTime.UtcNow;
+                socket.sessionLifesycle.AccountInfo.Value.LastCaptchaSolve = DateTime.UtcNow;
                 await socket.sessionLifesycle.AccountInfo.Update();
+                socket.tracer.ActiveSpan.Log("solved captcha");
                 await Task.Delay(2000);
                 socket.SendMessage(COFLNET + McColorCodes.GREEN + "Your afk delay will be removed for the next update\n");
 

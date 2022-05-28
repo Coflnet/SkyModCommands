@@ -545,7 +545,7 @@ namespace Coflnet.Sky.Commands.MC
                         SessionInfo.Penalty = TimeSpan.Zero;
                     if (!SessionInfo.VerifiedMc)
                         SessionInfo.Penalty += TimeSpan.FromSeconds(3);
-                    if (penalty.Item2 > 3 && AccountInfo.Value.LastCaptchaSolve < DateTime.Now - TimeSpan.FromHours(1))
+                    if (penalty.Item2 > 3 && AccountInfo.Value.LastCaptchaSolve < DateTime.UtcNow - TimeSpan.FromHours(1.5))
                     {
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo));
