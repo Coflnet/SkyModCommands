@@ -370,7 +370,9 @@ namespace Coflnet.Sky.Commands.MC
             var result = await McAccountService.Instance.GetAllAccounts(UserId.Value);
             if (result == null || result.Count() == 0)
                 return new string[] { SessionInfo.McUuid };
-            return result.Append(SessionInfo.McUuid);
+            if(!result.Contains(SessionInfo.McUuid))
+                result = result.Append(SessionInfo.McUuid);
+            return result;
         }
 
         protected virtual void SendMessage(string message, string click = null, string hover = null)
