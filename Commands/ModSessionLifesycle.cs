@@ -544,7 +544,7 @@ namespace Coflnet.Sky.Commands.MC
                     var penalty = await socket.GetService<FlipTrackingService>()
                             .GetRecommendedPenalty(await GetMinecraftAccountUuids());
                     IScope span = null;
-                    if (penalty.Item1 > TimeSpan.Zero)
+                    if (penalty.Item1 > TimeSpan.Zero || !SessionInfo.VerifiedMc)
                     {
                         SessionInfo.Penalty = penalty.Item1;
                         span = tracer.BuildSpan("nerv").AsChildOf(ConSpan).StartActive();
