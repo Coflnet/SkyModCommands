@@ -392,6 +392,11 @@ namespace Coflnet.Sky.Commands.MC
 
         public virtual async Task<bool> CheckVerificationStatus(AccountInfo settings)
         {
+            if (settings.McIds.Contains(SessionInfo.McUuid))
+            {
+                SessionInfo.VerifiedMc = true;
+                return SessionInfo.VerifiedMc;
+            }
             var connect = await McAccountService.Instance.ConnectAccount(settings.UserId.ToString(), SessionInfo.McUuid);
             if (connect == null)
             {
@@ -401,6 +406,8 @@ namespace Coflnet.Sky.Commands.MC
             if (connect.IsConnected)
             {
                 SessionInfo.VerifiedMc = true;
+                if (!settings.McIds.Contains(SessionInfo.McUuid))
+                    settings.McIds.Add(SessionInfo.McUuid);
                 return SessionInfo.VerifiedMc;
             }
             using var verification = tracer.BuildSpan("Verification").AsChildOf(ConSpan.Context).StartActive();
