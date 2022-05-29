@@ -15,6 +15,7 @@ using WebSocketSharp.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Coflnet.Sky.ModCommands.Dialogs;
 using System.Runtime.Serialization;
+using OpenTracing;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -314,16 +315,25 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage(COFLNET + $"You are executing to many commands please wait a bit");
                 return;
             }
-            using var span = tracer.BuildSpan("Command").AsChildOf(ConSpan.Context).StartActive();
-
             var a = JsonConvert.DeserializeObject<Response>(e.Data);
+            if (e.Data == "\"nobestflip\"")
+            {
+                HandleCommand(e, null, a);
+                return;
+            }
+            using var span = tracer.BuildSpan("Command").AsChildOf(ConSpan.Context).StartActive();
+            HandleCommand(e, span, a);
+        }
+
+        private void HandleCommand(MessageEventArgs e, IScope span, Response a)
+        {
             if (a == null || a.type == null)
             {
                 Send(new Response("error", "the payload has to have the property 'type'"));
                 return;
             }
-            span.Span.SetTag("type", a.type);
-            span.Span.SetTag("content", a.data);
+            span?.Span.SetTag("type", a.type);
+            span?.Span.SetTag("content", a.data);
             if (SessionInfo.clientSessionId.StartsWith("debug"))
                 SendMessage("executed " + a.data, "");
 
@@ -345,26 +355,36 @@ namespace Coflnet.Sky.Commands.MC
                 waiting++;
                 if (string.IsNullOrEmpty(SessionInfo?.McUuid))
                     await Task.Delay(1200);
-                using var commandSpan = tracer.BuildSpan(a.type).AsChildOf(span.Span).StartActive();
-                try
+                if (e.Data == "\"nobestflip\"")
+                    await InvokeCommand(a, command);
+                else
                 {
-                    await command.Execute(this, a.data);
-                }
-                catch (CoflnetException e)
-                {
-                    Error(e, "mod command coflnet");
-                    SendMessage(COFLNET + $"{McColorCodes.RED}{e.Message}");
-                }
-                catch (Exception ex)
-                {
-                    var id = Error(ex, "mod command");
-                    SendMessage(COFLNET + $"An error occured while processing your command. The error was recorded and will be investigated soon. You can refer to it by {id}", "http://" + id, "click to open the id as link (and be able to copy)");
-                }
-                finally
-                {
-                    waiting--;
+                    using var commandSpan = tracer.BuildSpan(a.type).AsChildOf(span.Span).StartActive();
+                    await InvokeCommand(a, command);
                 }
             });
+        }
+
+        private async Task InvokeCommand(Response a, McCommand command)
+        {
+            try
+            {
+                await command.Execute(this, a.data);
+            }
+            catch (CoflnetException e)
+            {
+                Error(e, "mod command coflnet");
+                SendMessage(COFLNET + $"{McColorCodes.RED}{e.Message}");
+            }
+            catch (Exception ex)
+            {
+                var id = Error(ex, "mod command");
+                SendMessage(COFLNET + $"An error occured while processing your command. The error was recorded and will be investigated soon. You can refer to it by {id}", "http://" + id, "click to open the id as link (and be able to copy)");
+            }
+            finally
+            {
+                waiting--;
+            }
         }
 
         private void ClickCallback(Response a)
@@ -680,7 +700,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public LowPricedAuction GetFlip(string uuid)
         {
-            return LastSent.Concat(TopBlocked.Select(b=>b.Flip)).Where(s => s.Auction.Uuid == uuid).FirstOrDefault();
+            return LastSent.Concat(TopBlocked.Select(b => b.Flip)).Where(s => s.Auction.Uuid == uuid).FirstOrDefault();
         }
 
         public async Task<bool> SendFlip(FlipInstance flip)
