@@ -316,7 +316,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             var a = JsonConvert.DeserializeObject<Response>(e.Data);
-            if (e.Data == "\"nobestflip\"")
+            if (e?.Data == "\"nobestflip\"")
             {
                 HandleCommand(e, null, a);
                 return;
