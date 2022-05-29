@@ -529,10 +529,9 @@ namespace Coflnet.Sky.Commands.MC
         {
             _ = Task.Run(async () =>
             {
-                await Task.Delay(new Random().Next(1, 5000));
+                await Task.Delay(new Random().Next(1, 3000));
                 try
                 {
-
                     var penalty = await socket.GetService<FlipTrackingService>()
                             .GetRecommendedPenalty(await GetMinecraftAccountUuids());
                     IScope span = null;
