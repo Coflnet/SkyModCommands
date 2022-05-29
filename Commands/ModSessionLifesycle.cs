@@ -564,6 +564,7 @@ namespace Coflnet.Sky.Commands.MC
                         SessionInfo.Penalty += TimeSpan.FromSeconds(12);
                         span?.Span.Log("failed macro");
                     }
+                    span.Dispose();
 
                 }
                 catch (Exception e)
