@@ -541,14 +541,16 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(new Random().Next(1, 3000));
                 try
                 {
+                    var ids = await GetMinecraftAccountUuids();
                     var penalty = await socket.GetService<FlipTrackingService>()
-                            .GetRecommendedPenalty(await GetMinecraftAccountUuids());
+                            .GetRecommendedPenalty(ids);
                     IScope span = null;
                     if (penalty.Item1 > TimeSpan.Zero || !SessionInfo.VerifiedMc)
                     {
                         SessionInfo.Penalty = penalty.Item1;
                         span = tracer.BuildSpan("nerv").AsChildOf(ConSpan).StartActive();
                         span.Span.SetTag("time", penalty.ToString());
+                        span.Span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     }
                     else
                         SessionInfo.Penalty = TimeSpan.Zero;
