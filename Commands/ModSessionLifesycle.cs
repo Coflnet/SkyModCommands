@@ -305,6 +305,7 @@ namespace Coflnet.Sky.Commands.MC
 
             var userApi = socket.GetService<PremiumService>();
             var expiresTask = userApi.ExpiresWhen(info.UserId);
+            var userIsVerifiedTask = MakeSureUserIsVerified(info);
 
             try
             {
@@ -339,9 +340,10 @@ namespace Coflnet.Sky.Commands.MC
                     return; // don't send hello again
                 SessionInfo.SentWelcome = true;
                 var helloTask = SendAuthorizedHello(info);
+
                 SendMessage(socket.formatProvider.WelcomeMessage());
                 await Task.Delay(500);
-                await MakeSureUserIsVerified(info);
+                await userIsVerifiedTask;
                 await helloTask;
                 //SendMessage(COFLNET + $"{McColorCodes.DARK_GREEN} click this to relink your account",
                 //GetAuthLink(stringId), "You don't need to relink your account. \nThis is only here to allow you to link your mod to the website again should you notice your settings aren't updated");
