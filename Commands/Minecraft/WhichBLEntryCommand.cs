@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
 
             foreach (var item in targetList)
             {
-                if (item.GetExpression().Compile().Invoke(FlipperService.LowPriceToFlip(flip)))
+                if (item.MatchesSettings(FlipperService.LowPriceToFlip(flip)))
                 {
                     var bl = BlacklistCommand.FormatEntry(item);
                     socket.SendMessage(COFLNET + "This flip matched the filter " + bl);
