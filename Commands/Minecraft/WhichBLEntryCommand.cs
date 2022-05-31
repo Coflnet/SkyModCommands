@@ -9,7 +9,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
-            var args = JsonConvert.DeserializeObject<Args>(arguments);
+            var args = JsonConvert.DeserializeObject<Args>(arguments.Trim('"'));
             var flip = socket.GetFlip(args.Uuid);
             if(flip == null)
                 flip = socket.TopBlocked.Where(b=>b.Flip.Auction.Uuid == args.Uuid).Select(b=>b.Flip).FirstOrDefault();
