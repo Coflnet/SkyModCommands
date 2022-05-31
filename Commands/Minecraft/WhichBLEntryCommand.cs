@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
@@ -24,7 +25,7 @@ namespace Coflnet.Sky.Commands.MC
 
             foreach (var item in targetList)
             {
-                if (item.MatchesSettings(FlipperService.LowPriceToFlip(flip)))
+                if (Matches(flip, item))
                 {
                     var bl = BlacklistCommand.FormatEntry(item);
                     socket.SendMessage(COFLNET + "This flip matched the filter " + bl);
@@ -33,6 +34,11 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             return Task.CompletedTask;
+        }
+
+        public static bool Matches(LowPricedAuction flip, ListEntry item)
+        {
+            return item.MatchesSettings(FlipperService.LowPriceToFlip(flip));
         }
 
         public class Args
