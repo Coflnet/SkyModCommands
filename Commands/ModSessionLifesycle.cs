@@ -561,12 +561,16 @@ namespace Coflnet.Sky.Commands.MC
                         SessionInfo.Penalty += TimeSpan.FromSeconds(3);
                         span?.Span.Log("penalty for not verified mc");
                     }
-                    if (penalty.Item2 > 3 && GetLastCaptchaSolveTime() < DateTime.UtcNow - TimeSpan.FromHours(1.5))
+                    if (penalty.Item2 > 3 && GetLastCaptchaSolveTime() < DateTime.UtcNow - TimeSpan.FromHours(1.4))
                     {
+
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo));
-                        SessionInfo.Penalty += TimeSpan.FromSeconds(12);
-                        span?.Span.Log("failed macro");
+                        if (GetLastCaptchaSolveTime() < DateTime.UtcNow - TimeSpan.FromHours(1.5))
+                        {
+                            SessionInfo.Penalty += TimeSpan.FromSeconds(12);
+                            span?.Span.Log("failed macro");
+                        }
                     }
                     span?.Dispose();
 
