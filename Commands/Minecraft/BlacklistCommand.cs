@@ -6,6 +6,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Filter;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.Items.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -62,7 +63,7 @@ namespace Coflnet.Sky.Commands.MC
             var allFilters = FlipFilter.AllFilters;
             if (val.Contains('='))
             {
-                val = ParseFilters(socket, val, filters, allFilters);
+                val = await ParseFiltersAsync(socket, val, filters, allFilters);
             }
             List<Items.Client.Model.SearchResult> result = new List<Items.Client.Model.SearchResult>();
             if (val.Length < 1)
@@ -104,7 +105,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <param name="filters"></param>
         /// <param name="allFilters"></param>
         /// <returns></returns>
-        private static string ParseFilters(MinecraftSocket socket, string val, Dictionary<string, string> filters, IEnumerable<string> allFilters)
+        private static async Task<string> ParseFiltersAsync(MinecraftSocket socket, string val, Dictionary<string, string> filters, IEnumerable<string> allFilters)
         {
             // has filter
             var parts = val.Split(' ').Reverse().ToList();
@@ -130,9 +131,10 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     else
                     {
+                        var allOptions = await DiHandler.GetService<IItemsApi>().ItemItemTagModifiersAllGetAsync("*");
                         var filter = FlipFilter.FilterEngine.AvailableFilters.Where(f => f.Name == filterName).First();
                         var type = filter.FilterType;
-                        var options = filter.Options;
+                        var options = filter.OptionsGet(new OptionValues(allOptions));
                         AssertValidNumberFilter(filterName, filterVal, type);
                         filterVal = AssertValidOptionsFilter(filterName, filterVal, type, options);
                     }
