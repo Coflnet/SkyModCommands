@@ -315,6 +315,7 @@ namespace Coflnet.Sky.Commands.MC
                     SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "We closed this connection because you opened another one", null,
                         "To protect against your mod opening\nmultiple connections which you can't stop,\nwe closed this one.\nThe latest one you opened should still be active");
                     socket.ExecuteCommand("/cofl stop");
+                    span.Span.Log("connected from somewhere else");
                     socket.Close();
                     return;
                 }
@@ -322,6 +323,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (info.ConIds.Contains("logout"))
                 {
                     SendMessage("You have been logged out");
+                    span.Span.Log("force loggout");
                     socket.Close();
                     return;
                 }
@@ -335,7 +337,8 @@ namespace Coflnet.Sky.Commands.MC
                     info.ExpiresAt = expires;
                 }
 
-                UpdateConnectionTier(info, socket.ConSpan);
+                UpdateConnectionTier(info, span.Span);
+                span.Span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (SessionInfo.SentWelcome)
                     return; // don't send hello again
                 SessionInfo.SentWelcome = true;
@@ -420,7 +423,7 @@ namespace Coflnet.Sky.Commands.MC
             foreach (var type in new List<string> { "STICK", "RABBIT_HAT", "WOOD_SWORD", "VACCINE_TALISMAN" })
             {
                 targetAuction = await NewMethod(bid, type);
-                if(targetAuction != null)
+                if (targetAuction != null)
                     break;
             }
             verification.Span.SetTag("code", bid);
