@@ -311,13 +311,18 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (info.ActiveConnectionId != SessionInfo.ConnectionId && !string.IsNullOrEmpty(info.ActiveConnectionId))
                 {
-                    // another connection of this account was opened, close this one
-                    SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "We closed this connection because you opened another one", null,
-                        "To protect against your mod opening\nmultiple connections which you can't stop,\nwe closed this one.\nThe latest one you opened should still be active");
-                    socket.ExecuteCommand("/cofl stop");
-                    span.Span.Log("connected from somewhere else");
-                    socket.Close();
-                    return;
+                    // wait for settings sync
+                    await Task.Delay(500);
+                    if (info.ActiveConnectionId != SessionInfo.ConnectionId)
+                    {
+                        // another connection of this account was opened, close this one
+                        SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "We closed this connection because you opened another one", null,
+                            "To protect against your mod opening\nmultiple connections which you can't stop,\nwe closed this one.\nThe latest one you opened should still be active");
+                        socket.ExecuteCommand("/cofl stop");
+                        span.Span.Log("connected from somewhere else");
+                        socket.Close();
+                        return;
+                    }
                 }
 
                 if (info.ConIds.Contains("logout"))
