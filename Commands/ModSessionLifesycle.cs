@@ -415,24 +415,38 @@ namespace Coflnet.Sky.Commands.MC
                 return SessionInfo.VerifiedMc;
             }
             using var verification = tracer.BuildSpan("Verification").AsChildOf(ConSpan.Context).StartActive();
-            var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
-            {
-                name = "STICK",
-            });
             var bid = connect.Code;
-            var r = new Random();
-
-            var targetAuction = activeAuction.Where(a => a.Price < bid).OrderBy(x => r.Next()).FirstOrDefault();
+            ItemPrices.AuctionPreview targetAuction = null;
+            foreach (var type in new List<string> { "STICK", "RABBIT_HAT", "WOOD_SWORD", "VACCINE_TALISMAN" })
+            {
+                targetAuction = await NewMethod(bid, type);
+                if(targetAuction != null)
+                    break;
+            }
             verification.Span.SetTag("code", bid);
-            verification.Span.Log(JSON.Stringify(activeAuction));
             verification.Span.Log(JSON.Stringify(targetAuction));
 
             socket.SendMessage(new ChatPart(
-                $"{COFLNET}You connected from an unkown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. {McColorCodes.YELLOW}[CLICK TO OPEN AN AUCTION FOR A STICK]",
-                $"/viewauction {targetAuction?.Uuid}",
+                $"{COFLNET}You connected from an unkown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. ", "/ah"));
+            if (targetAuction != null)
+                socket.SendMessage(new ChatPart($"{McColorCodes.YELLOW}[CLICK TO OPEN A RANDOM AUCTION]", $"/viewauction {targetAuction?.Uuid}",
                 $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
+            else
+                socket.SendMessage($"Sorry could not find a cheap auction to bid on. You could create an auction yourself for any item you want. The starting bid has to end with {McColorCodes.AQUA}{bid.ToString().PadLeft(3, '0')}{McCommand.DEFAULT_COLOR}");
 
             return false;
+        }
+
+        private static async Task<ItemPrices.AuctionPreview> NewMethod(int bid, string type)
+        {
+            var r = new Random();
+            var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
+            {
+                name = type,
+            });
+
+            var targetAuction = activeAuction.Where(a => a.Price < bid).OrderBy(x => r.Next()).FirstOrDefault();
+            return targetAuction;
         }
 
         public void UpdateConnectionTier(AccountInfo accountInfo, OpenTracing.ISpan span)
