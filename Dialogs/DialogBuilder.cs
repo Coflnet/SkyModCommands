@@ -12,6 +12,8 @@ namespace Coflnet.Sky.ModCommands.Dialogs
 
         private string CurrentUrl;
 
+        public static DialogBuilder New => new DialogBuilder();
+
         public DialogBuilder Msg(string message, string onClick = null, string hover = null)
         {
             Parts.Add(new ChatPart(message, onClick == null ? CurrentUrl : onClick, hover));
