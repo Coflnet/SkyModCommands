@@ -21,12 +21,12 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
             var uuid = flip.Auction.Uuid;
-
+            var bedFlip = flip.Auction.Start + TimeSpan.FromSeconds(20) > DateTime.Now;
             socket.Send(Response.Create("flip", new
             {
                 messages = await GetMessageparts(flip),
                 id = uuid,
-                worth = flip.Profit,
+                worth = bedFlip ? 0 : flip.Profit,
                 cost = flip.Auction.StartingBid,
                 sound = (string)"note.pling"
             }));
