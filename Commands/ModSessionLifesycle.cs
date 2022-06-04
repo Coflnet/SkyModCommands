@@ -11,6 +11,7 @@ using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 using WebSocketSharp;
 using OpenTracing;
+using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -151,6 +152,10 @@ namespace Coflnet.Sky.Commands.MC
                     using var slowSpan = tracer.BuildSpan("slowFlip").AsChildOf(span.Span).WithTag("error", true).StartActive();
                     slowSpan.Span.Log(JsonConvert.SerializeObject(flip.Auction.Context));
                     slowSpan.Span.Log(JsonConvert.SerializeObject(flip.AdditionalProps));
+                    foreach (var item in SnapShotService.Instance.SnapShots)
+                    {
+                        slowSpan.Span.Log(item.Time + " " + item.State);
+                    }
                     ReportCommand.TryAddingAllSettings(slowSpan);
                 }
                 // remove dupplicates

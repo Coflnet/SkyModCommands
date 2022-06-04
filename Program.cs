@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.ModCommands.MC
 {
@@ -33,6 +34,8 @@ namespace Coflnet.Sky.ModCommands.MC
             RunIsolatedForever(FlipperService.Instance.ListenForSettingsChange, "settings sync");
 
             RunIsolatedForever(FlipperService.Instance.ProcessSlowQueue, "flip process slow", 10);
+            RunIsolatedForever(async () => { await SnapShotService.Instance.Run(System.Threading.CancellationToken.None); }, "state snapshots", 2);
+            
 
             CreateHostBuilder(args).Build().Run();
         }
