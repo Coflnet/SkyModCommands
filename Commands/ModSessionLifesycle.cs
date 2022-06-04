@@ -340,8 +340,7 @@ namespace Coflnet.Sky.Commands.MC
 
 
                 var expires = await expiresTask;
-                Console.WriteLine(info.ExpiresAt);
-                if (info.ExpiresAt > DateTime.Now && info.Tier == AccountTier.NONE)
+                if (expires > DateTime.Now)
                 {
                     info.Tier = AccountTier.PREMIUM;
                     info.ExpiresAt = expires;
@@ -497,9 +496,9 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(800); // allow another half second for the playername to be loaded
             var messageStart = $"Hello {this.SessionInfo.McName} ({anonymisedEmail}) \n";
             if (accountInfo.Tier != AccountTier.NONE && accountInfo.ExpiresAt > DateTime.Now)
-                SendMessage(COFLNET + messageStart + $"You have {accountInfo.Tier.ToString()} until {accountInfo.ExpiresAt.ToString("yyyy-MMM-dd hh:mm")} UTC");
+                SendMessage(COFLNET + messageStart + $"You have {McColorCodes.GREEN}{accountInfo.Tier.ToString()} until {accountInfo.ExpiresAt.ToString("yyyy-MMM-dd hh:mm")} UTC");
             else
-                SendMessage(COFLNET + messageStart + $"You use the free version of the flip finder");
+                SendMessage(COFLNET + messageStart + $"You use the {McColorCodes.BOLD}FREE{McColorCodes.RESET} version of the flip finder");
 
             await Task.Delay(300);
         }
