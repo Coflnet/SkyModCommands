@@ -124,7 +124,8 @@ namespace Coflnet.Sky.Commands.MC
 
             PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
 
-            _ = Task.Run(TrackFlipAndCleanup(flip, span, sendTimeTrack, timeToSend)).ConfigureAwait(false);
+            
+            _ = socket.TryAsyncTimes(TrackFlipAndCleanup(flip, span, sendTimeTrack, timeToSend), "track flip and cleanup" , 2);
 
             if (verbose)
                 ConSpan?.Log("exiting " + DateTime.Now);

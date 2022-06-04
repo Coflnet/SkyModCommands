@@ -240,7 +240,7 @@ namespace Coflnet.Sky.Commands.MC
             }).ConfigureAwait(false);
         }
 
-        private Task TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3)
+        public System.Runtime.CompilerServices.ConfiguredTaskAwaitable TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3)
         {
             return Task.Run(async () =>
             {
@@ -254,7 +254,7 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         Error(e, errorMessage);
                     }
-            });
+            }).ConfigureAwait(false);
         }
 
         public async Task<string> GetPlayerName(string uuid)
