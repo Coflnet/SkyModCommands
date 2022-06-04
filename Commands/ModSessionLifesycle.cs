@@ -111,17 +111,7 @@ namespace Coflnet.Sky.Commands.MC
                 ConSpan.Log("building trace " + DateTime.Now);
             using var span = tracer.BuildSpan("Flip").WithTag("uuid", flipInstance.Uuid).AsChildOf(ConSpan.Context).StartActive();
             var settings = Settings;
-
-            var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flip.Auction.Uuid, SessionInfo.McUuid);
-            await Task.Delay(SessionInfo.Penalty);
-            await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
-            if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
-            {
-                var adjustment = MinecraftSocket.NextFlipTime - DateTime.UtcNow - TimeSpan.FromSeconds(60);
-                if (Math.Abs(adjustment.TotalSeconds) < 1)
-                    SessionInfo.RelativeSpeed = adjustment;
-                SessionInfo.LastSpeedUpdate = DateTime.Now;
-            }
+            Task sendTimeTrack = await SendAfterDelay(flipInstance).ConfigureAwait(false);
 
             if (verbose)
                 ConSpan.Log("sent flip " + DateTime.Now);
@@ -141,6 +131,41 @@ namespace Coflnet.Sky.Commands.MC
             return true;
         }
 
+        /// <summary>
+        /// Sends a new flip after delaying to account for macro/ping advantage
+        /// </summary>
+        /// <param name="flipInstance"></param>
+        /// <returns></returns>
+        private async Task<Task> SendAfterDelay(FlipInstance flipInstance)
+        {
+            var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flipInstance.Auction.Uuid, SessionInfo.McUuid);
+            if (SessionInfo.Penalty > TimeSpan.FromSeconds(0.4))
+            {
+                var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.Now;
+                if (bedTime > TimeSpan.Zero)
+                    await Task.Delay(bedTime);
+            }
+            await Task.Delay(SessionInfo.Penalty);
+            await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
+            if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
+            {
+                var adjustment = MinecraftSocket.NextFlipTime - DateTime.UtcNow - TimeSpan.FromSeconds(60);
+                if (Math.Abs(adjustment.TotalSeconds) < 1)
+                    SessionInfo.RelativeSpeed = adjustment;
+                SessionInfo.LastSpeedUpdate = DateTime.Now;
+            }
+
+            return sendTimeTrack;
+        }
+
+        /// <summary>
+        /// Stores flip timings and cleans up sent flips
+        /// </summary>
+        /// <param name="flip"></param>
+        /// <param name="span"></param>
+        /// <param name="sendTimeTrack"></param>
+        /// <param name="timeToSend"></param>
+        /// <returns></returns>
         private Func<Task> TrackFlipAndCleanup(LowPricedAuction flip, IScope span, Task sendTimeTrack, TimeSpan timeToSend)
         {
             return async () =>
