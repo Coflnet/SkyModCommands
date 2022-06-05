@@ -50,7 +50,7 @@ namespace Coflnet.Sky.Commands.MC
         public async Task<bool> SendFlip(LowPricedAuction flip)
         {
             var Settings = FlipSettings.Value;
-            if (Settings.DisableFlips)
+            if (Settings == null || Settings.DisableFlips)
                 return true;
             var verbose = flip.AdditionalProps.ContainsKey("long wait");
             if (verbose)
@@ -256,6 +256,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected virtual async Task SubToSettings(string val)
         {
+            ConSpan.Log("subbing to settings of " + val);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(val, "flipSettings", () => DEFAULT_SETTINGS);
             var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(val, "accuntSettings");
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(val, "accountInfo");
