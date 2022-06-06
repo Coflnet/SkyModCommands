@@ -59,7 +59,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             get
             {
-                if (sessionLifesycle?.UserId == null)
+                if (sessionLifesycle?.UserId?.Value == null)
                     throw new NullReferenceException("no user set");
                 return sessionLifesycle.UserId.Value;
             }

@@ -50,7 +50,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task<bool> SendFlip(LowPricedAuction flip)
         {
-            var Settings = FlipSettings.Value;
+            var Settings = FlipSettings?.Value;
             if (Settings == null || Settings.DisableFlips)
                 return true;
             var verbose = flip.AdditionalProps.ContainsKey("long wait");
@@ -436,11 +436,11 @@ namespace Coflnet.Sky.Commands.MC
 
 
 
-        public virtual async Task<bool> CheckVerificationStatus(AccountInfo settings)
+        public virtual async Task<bool> CheckVerificationStatus(AccountInfo accountInfo)
         {
             var mcUuid = SessionInfo.McUuid;
-            var userId = settings.UserId.ToString();
-            if (settings.McIds.Contains(SessionInfo.McUuid))
+            var userId = accountInfo.UserId.ToString();
+            if (accountInfo.McIds.Contains(SessionInfo.McUuid))
             {
                 SessionInfo.VerifiedMc = true;
                 return SessionInfo.VerifiedMc;
@@ -454,8 +454,8 @@ namespace Coflnet.Sky.Commands.MC
             if (connect.IsConnected)
             {
                 SessionInfo.VerifiedMc = true;
-                if (!settings.McIds.Contains(mcUuid))
-                    settings.McIds.Add(mcUuid);
+                if (!accountInfo.McIds.Contains(mcUuid))
+                    accountInfo.McIds.Add(mcUuid);
                 return SessionInfo.VerifiedMc;
             }
             using var verification = tracer.BuildSpan("Verification").AsChildOf(ConSpan.Context).StartActive();
