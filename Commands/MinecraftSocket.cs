@@ -518,6 +518,10 @@ namespace Coflnet.Sky.Commands.MC
             if (additionalLog != null)
                 error.Span.Log(additionalLog);
 
+            error.Span.Log(JsonConvert.SerializeObject(SessionInfo, Formatting.Indented));
+            error.Span.Log(JsonConvert.SerializeObject(sessionLifesycle.AccountInfo?.Value, Formatting.Indented));
+            error.Span.Log(JsonConvert.SerializeObject(Settings, Formatting.Indented));
+
             return error.Span.Context.TraceId;
         }
 
