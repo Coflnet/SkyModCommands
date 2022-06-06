@@ -31,6 +31,7 @@ namespace Coflnet.Sky.Commands.MC
         public SelfUpdatingValue<PrivacySettings> PrivacySettings;
         public OpenTracing.ISpan ConSpan => socket.ConSpan;
         public System.Threading.Timer PingTimer;
+        private SpamController spamController = new SpamController();
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
         private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
@@ -110,7 +111,12 @@ namespace Coflnet.Sky.Commands.MC
             if (verbose)
                 ConSpan.Log("building trace " + DateTime.Now);
             using var span = tracer.BuildSpan("Flip").WithTag("uuid", flipInstance.Uuid).AsChildOf(ConSpan.Context).StartActive();
-            var settings = Settings;
+
+            if (!spamController.ShouldBeSent(flipInstance))
+            {
+                span.Span.Log("Blocked spam");
+                return true;
+            }
             Task sendTimeTrack = await SendAfterDelay(flipInstance).ConfigureAwait(false);
 
             if (verbose)
@@ -124,8 +130,8 @@ namespace Coflnet.Sky.Commands.MC
 
             PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
 
-            
-            _ = socket.TryAsyncTimes(TrackFlipAndCleanup(flip, span, sendTimeTrack, timeToSend), "track flip and cleanup" , 2);
+
+            _ = socket.TryAsyncTimes(TrackFlipAndCleanup(flip, span, sendTimeTrack, timeToSend), "track flip and cleanup", 2);
 
             if (verbose)
                 ConSpan?.Log("exiting " + DateTime.Now);
@@ -225,18 +231,17 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(800); // backoff to give redis time to recover
             }*/
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
+            await SendLoginPromptMessage(stringId);
             if (UserId.Value == default)
             {
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
-                FlipSettings = await SelfUpdatingValue<FlipSettings>.Create("mod", "flipSettings", () => DEFAULT_SETTINGS);
-                Console.WriteLine("waiting for load");
+                FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DEFAULT_SETTINGS);
             }
             else
                 await SubToSettings(UserId);
 
             loadSpan.Span.Finish();
             UpdateExtraDelay();
-            await SendLoginPromptMessage(stringId);
         }
 
         private async Task SendLoginPromptMessage(string stringId)
@@ -530,6 +535,14 @@ namespace Coflnet.Sky.Commands.MC
             await Task.Delay(300);
         }
 
+        /// <summary>
+        /// Execute every minute to clear collections
+        /// </summary>
+        internal void HouseKeeping()
+        {
+            spamController.Reset();
+            socket.TopBlocked.Clear();
+        }
 
         private void SendPing()
         {
@@ -538,6 +551,7 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 UpdateExtraDelay();
+                spamController.Reset();
                 if (blockedFlipFilterCount > 0 && SessionInfo.LastBlockedMsg.AddMinutes(FlipSettings.Value.ModSettings.MinutesBetweenBlocked) < DateTime.Now)
                 {
                     socket.SendMessage(new ChatPart(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute",

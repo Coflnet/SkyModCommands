@@ -616,7 +616,7 @@ namespace Coflnet.Sky.Commands.MC
                 NextUpdateStart -= SendTimer;
                 return;
             }
-            TopBlocked.Clear();
+            sessionLifesycle.HouseKeeping();
             if (this.Settings?.DisableFlips ?? false)
             {
                 // ping is sent to keep the connection open (after 60 seconds inactivity its disconnected by cloudflare)
