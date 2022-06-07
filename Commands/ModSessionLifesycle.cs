@@ -222,14 +222,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 SendPing();
             }, null, TimeSpan.FromSeconds(50), TimeSpan.FromSeconds(50));
-            /*SettingsChange cachedSettings = null;
-            for (int i = 0; i < 3; i++)
-            {
-                cachedSettings = await CacheService.Instance.GetFromRedis<SettingsChange>(this.Id.ToString());
-                if (cachedSettings != null)
-                    break;
-                await Task.Delay(800); // backoff to give redis time to recover
-            }*/
+
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
             await SendLoginPromptMessage(stringId);
             if (UserId.Value == default)
