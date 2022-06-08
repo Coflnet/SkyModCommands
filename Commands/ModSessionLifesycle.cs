@@ -649,8 +649,8 @@ namespace Coflnet.Sky.Commands.MC
 
         public void Dispose()
         {
-            FlipSettings.Dispose();
-            UserId.Dispose();
+            FlipSettings?.Dispose();
+            UserId?.Dispose();
             AccountInfo?.Dispose();
             SessionInfo?.Dispose();
             PingTimer?.Dispose();

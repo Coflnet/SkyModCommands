@@ -54,7 +54,7 @@ namespace Coflnet.Sky.Commands.MC
         public static event Action NextUpdateStart;
         public static DateTime NextFlipTime { get; private set; }
 
-        int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId ?? "0");
+        int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId?.Value ?? "0");
         public string UserId
         {
             get
