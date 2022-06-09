@@ -45,14 +45,14 @@ namespace Coflnet.Sky.Commands.MC
         public IModVersionAdapter ModAdapter;
 
         public FormatProvider formatProvider { get; private set; }
-        public ModSessionLifesycle sessionLifesycle { get; private set; }
+        public ModSessionLifesycle sessionLifesycle { get; protected set; }
 
 
 
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
         public static event Action NextUpdateStart;
-        public static DateTime NextFlipTime { get; private set; }
+        public static DateTime NextFlipTime { get; protected set; }
 
         int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId?.Value ?? "0");
         public string UserId
@@ -635,11 +635,7 @@ namespace Coflnet.Sky.Commands.MC
                     sessionLifesycle.StartTimer(10 - SessionInfo.RelativeSpeed.TotalSeconds);
                 else
                 {
-                    Task.Run(async () =>
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(60 - mod.TimerSeconds + 10) - SessionInfo.RelativeSpeed);
-                        sessionLifesycle.StartTimer(mod.TimerSeconds);
-                    });
+                    SheduleTimer(mod);
                 }
             }
             if (!(Settings?.ModSettings?.BlockTenSecondsMsg ?? false))
@@ -655,45 +651,22 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        public string FindWhatsNew(FlipSettings current, FlipSettings newSettings)
+        public void SheduleTimer(ModSettings mod = null)
         {
-            try
+            if(mod == null)
+                mod = Settings.ModSettings;
+            Task.Run(async () =>
             {
-                if (current.MinProfit != newSettings.MinProfit)
-                    return "set min Profit to " + FormatPrice(newSettings.MinProfit);
-                if (current.MinProfit != newSettings.MinProfit)
-                    return "set max Cost to " + FormatPrice(newSettings.MaxCost);
-                if (current.MinProfitPercent != newSettings.MinProfitPercent)
-                    return "set min Profit percentage to " + FormatPrice(newSettings.MinProfitPercent);
-                if (current.BlackList?.Count < newSettings.BlackList?.Count)
-                    return $"blacklisted item " + ItemDetails.TagToName(newSettings.BlackList?.Last()?.ItemTag);
-                if (current.WhiteList?.Count < newSettings.WhiteList?.Count)
-                    return $"whitelisted item " + ItemDetails.TagToName(newSettings.WhiteList?.Last()?.ItemTag);
-                if (current.Visibility != null)
-                    foreach (var prop in current.Visibility?.GetType().GetFields())
-                    {
-                        if (prop.FieldType == typeof(string))
-                            return prop.Name + " changed";
-                        if (prop.GetValue(current.Visibility).ToString() != prop.GetValue(newSettings.Visibility).ToString())
-                        {
-                            return GetEnableMessage(newSettings.Visibility, prop);
-                        }
-                    }
-                if (current.ModSettings != null)
-                    foreach (var prop in current.ModSettings?.GetType().GetFields())
-                    {
-                        if (prop.GetValue(current.ModSettings)?.ToString() != prop.GetValue(newSettings.ModSettings)?.ToString())
-                        {
-                            return GetEnableMessage(newSettings.ModSettings, prop);
-                        }
-                    }
-            }
-            catch (Exception e)
-            {
-                Error(e, "updating settings");
-            }
-
-            return "";
+                var nextUpdateIn = NextFlipTime - DateTime.UtcNow;
+                var countdownSize = TimeSpan.FromSeconds(mod.TimerSeconds);
+                if (nextUpdateIn < countdownSize)
+                {
+                    sessionLifesycle.StartTimer(nextUpdateIn.TotalSeconds);
+                    return;
+                }
+                await Task.Delay(nextUpdateIn - countdownSize - SessionInfo.RelativeSpeed);
+                sessionLifesycle.StartTimer(mod.TimerSeconds);
+            });
         }
 
         private static string GetEnableMessage(object newSettings, System.Reflection.FieldInfo prop)

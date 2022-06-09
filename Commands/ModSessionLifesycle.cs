@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using WebSocketSharp;
 using OpenTracing;
 using Coflnet.Sky.ModCommands.Services;
+using System.Threading;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -35,6 +36,9 @@ namespace Coflnet.Sky.Commands.MC
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
         private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
+
+        private int waitingBedFlips = 0;
+
         public static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
         {
             MinProfit = 100000,
@@ -146,12 +150,24 @@ namespace Coflnet.Sky.Commands.MC
         private async Task<Task> SendAfterDelay(FlipInstance flipInstance)
         {
             var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flipInstance.Auction.Uuid, SessionInfo.McUuid);
-            if (SessionInfo.Penalty > TimeSpan.FromSeconds(0.4))
+
+            var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.Now;
+            var waitTime = bedTime - TimeSpan.FromSeconds(3);
+            if (SessionInfo.Penalty > TimeSpan.FromSeconds(0.4) && bedTime > TimeSpan.Zero)
+                await Task.Delay(bedTime);
+            else if (waitTime > TimeSpan.Zero)
             {
-                var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.Now;
-                if (bedTime > TimeSpan.Zero)
-                    await Task.Delay(bedTime);
+                Interlocked.Increment(ref waitingBedFlips);
+                StartTimer(waitTime.TotalSeconds, McColorCodes.GREEN + "Bed in: §c");
+                await Task.Delay(waitTime);
+                Interlocked.Decrement(ref waitingBedFlips);
+                if (waitingBedFlips == 0)
+                {
+                    StartTimer(0, "clear timer");
+                    socket.SheduleTimer();
+                }
             }
+
             await Task.Delay(SessionInfo.Penalty);
             await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
             if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
@@ -316,9 +332,7 @@ namespace Coflnet.Sky.Commands.MC
             var changed = settings.LastChanged;
             if (changed == null)
             {
-                changed = socket.FindWhatsNew(FlipSettings.Value, settings);
-                if (changed == null)
-                    changed = "Settings changed";
+                changed = "Settings changed";
             }
             if (changed != "preventUpdateMsg")
                 SendMessage($"{COFLNET}{changed}");
@@ -579,7 +593,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        public void StartTimer(double seconds = 10, string prefix = "§c")
+        public virtual void StartTimer(double seconds = 10, string prefix = "§c")
         {
             var mod = this.FlipSettings.Value?.ModSettings;
             if (socket.Version == "1.3-Alpha")
