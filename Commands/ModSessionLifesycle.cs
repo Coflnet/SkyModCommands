@@ -166,6 +166,8 @@ namespace Coflnet.Sky.Commands.MC
                     StartTimer(0, "clear timer");
                     socket.SheduleTimer();
                 }
+                // update interesting props because the bed time is different now
+                flipInstance.Interesting = Helper.PropertiesSelector.GetProperties(flipInstance.Auction).OrderByDescending(a => a.Rating).Select(a => a.Value).ToList();
             }
 
             await Task.Delay(SessionInfo.Penalty);
