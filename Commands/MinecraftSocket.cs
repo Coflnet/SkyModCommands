@@ -653,19 +653,22 @@ namespace Coflnet.Sky.Commands.MC
 
         public void SheduleTimer(ModSettings mod = null)
         {
-            if(mod == null)
+            if (mod == null)
                 mod = Settings.ModSettings;
+
+            var timerSeconds = mod.TimerSeconds == 0 ? 10 : mod.TimerSeconds;
+
+            var nextUpdateIn = NextFlipTime - DateTime.UtcNow;
+            var countdownSize = TimeSpan.FromSeconds(timerSeconds);
+            if (nextUpdateIn < countdownSize)
+            {
+                sessionLifesycle.StartTimer(nextUpdateIn.TotalSeconds);
+                return;
+            }
             Task.Run(async () =>
             {
-                var nextUpdateIn = NextFlipTime - DateTime.UtcNow;
-                var countdownSize = TimeSpan.FromSeconds(mod.TimerSeconds);
-                if (nextUpdateIn < countdownSize)
-                {
-                    sessionLifesycle.StartTimer(nextUpdateIn.TotalSeconds);
-                    return;
-                }
                 await Task.Delay(nextUpdateIn - countdownSize - SessionInfo.RelativeSpeed);
-                sessionLifesycle.StartTimer(mod.TimerSeconds);
+                sessionLifesycle.StartTimer(timerSeconds);
             });
         }
 
