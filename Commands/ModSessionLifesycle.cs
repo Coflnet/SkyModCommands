@@ -149,8 +149,6 @@ namespace Coflnet.Sky.Commands.MC
         /// <returns></returns>
         private async Task<Task> SendAfterDelay(FlipInstance flipInstance)
         {
-            var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flipInstance.Auction.Uuid, SessionInfo.McUuid);
-
             var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.Now;
             var waitTime = bedTime - TimeSpan.FromSeconds(3);
             if (SessionInfo.Penalty > TimeSpan.FromSeconds(0.4) && bedTime > TimeSpan.Zero)
@@ -170,6 +168,7 @@ namespace Coflnet.Sky.Commands.MC
                 flipInstance.Interesting = Helper.PropertiesSelector.GetProperties(flipInstance.Auction).OrderByDescending(a => a.Rating).Select(a => a.Value).ToList();
             }
 
+            var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flipInstance.Auction.Uuid, SessionInfo.McUuid);
             await Task.Delay(SessionInfo.Penalty);
             await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
             if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
