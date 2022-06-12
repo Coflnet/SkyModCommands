@@ -597,7 +597,9 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SendReminders()
         {
-            var reminders = AccountSettings.Value?.Reminders?.Where(r => r.TriggerTime < DateTime.Now).ToList();
+            if(AccountSettings?.Value?.Reminders == null)
+                return;
+            var reminders = AccountSettings?.Value?.Reminders?.Where(r => r.TriggerTime < DateTime.Now).ToList();
             foreach (var item in reminders)
             {
                 socket.SendSound("note.pling");
