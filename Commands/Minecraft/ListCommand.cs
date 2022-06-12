@@ -18,7 +18,6 @@ namespace Coflnet.Sky.Commands.MC
                 case "list":
                 case "l":
                 case "ls":
-                case "":
                     await List(socket, subArgs);
                     break;
                 case "remove":
@@ -127,7 +126,8 @@ namespace Coflnet.Sky.Commands.MC
                 .MsgLine($"usage of {McColorCodes.AQUA}/cofl {Slug}{DEFAULT_COLOR}")
                 .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} add{DEFAULT_COLOR} adds a new entry")
                 .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} rm{DEFAULT_COLOR} removes an entry")
-                .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} list{DEFAULT_COLOR} lists all entries"));
+                .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} list{DEFAULT_COLOR} lists all entries")
+                .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} help{DEFAULT_COLOR} display this help"));
         }
 
         protected virtual async Task Remove(MinecraftSocket socket, string arguments)

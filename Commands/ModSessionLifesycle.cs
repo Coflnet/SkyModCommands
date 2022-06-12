@@ -600,7 +600,8 @@ namespace Coflnet.Sky.Commands.MC
             var reminders = AccountSettings.Value?.Reminders?.Where(r => r.TriggerTime < DateTime.Now).ToList();
             foreach (var item in reminders)
             {
-                SendMessage("[§1R§6eminder§f]§7: " + item.Text);
+                socket.SendSound("note.pling");
+                SendMessage($"[§1R§6eminder§f]§7: " + McColorCodes.WHITE + item.Text);
                 AccountSettings.Value.Reminders.Remove(item);
             }
             if (reminders?.Count > 0)

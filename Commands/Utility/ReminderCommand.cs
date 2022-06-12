@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var args = val.Split(' ');
             if (args.Length < 2)
-                throw new Coflnet.Sky.Core.CoflnetException("inalid_format", "Reminders need a time and text");
+                throw new Coflnet.Sky.Core.CoflnetException("inalid_format", "Usage: /cofl reminder add 1h30m <message>");
             TimeSpan ts = ParseTime(args[0]);
 
             var reminder = new Reminder(val.Substring(val.IndexOf(' ') + 1), DateTime.Now + ts - TimeSpan.FromSeconds(20));
@@ -39,7 +39,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override string Format(Reminder elem)
         {
-            return McColorCodes.WHITE + elem.Text + McColorCodes.GRAY + " triggers in " + McColorCodes.YELLOW + (elem.TriggerTime - DateTime.Now).ToString(@"hh\:mm\:ss");
+            return McColorCodes.WHITE + elem.Text + McColorCodes.GRAY + " triggers in " + McColorCodes.YELLOW + (elem.TriggerTime - DateTime.Now).ToString(@"h\h mm\m");
         }
 
         protected override string GetId(Reminder elem)
@@ -74,7 +74,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var formatted = Format(e);
             return d.Msg(formatted)
-                .CoflCommand<AddReminderTimeCommand>(McColorCodes.YELLOW + "[+5m]", GenerateContext(e, TimeSpan.FromMinutes(5)), "Add 5 minutes")
+                .CoflCommand<AddReminderTimeCommand>(McColorCodes.RED + " [+5m]", GenerateContext(e, TimeSpan.FromMinutes(5)), "Add 5 minutes")
                 .CoflCommand<AddReminderTimeCommand>(McColorCodes.GREEN + "[+1h]", GenerateContext(e, TimeSpan.FromHours(1)), "Add 1 hour");
         }
 
