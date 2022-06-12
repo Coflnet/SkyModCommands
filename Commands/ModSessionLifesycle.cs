@@ -153,7 +153,7 @@ namespace Coflnet.Sky.Commands.MC
             var waitTime = bedTime - TimeSpan.FromSeconds(3);
             if (SessionInfo.Penalty > TimeSpan.FromSeconds(0.4) && bedTime > TimeSpan.Zero)
                 await Task.Delay(bedTime);
-            else if (waitTime > TimeSpan.Zero)
+            else if (waitTime > TimeSpan.Zero && !(FlipSettings.Value?.ModSettings.NoBedDelay ?? false))
             {
                 Interlocked.Increment(ref waitingBedFlips);
                 StartTimer(waitTime.TotalSeconds, McColorCodes.GREEN + "Bed in: §c");
