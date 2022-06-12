@@ -123,6 +123,8 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<CaptchaCommand>();
             Commands.Add<ImportTfmCommand>();
             Commands.Add<WhichBLEntryCommand>();
+            Commands.Add<ReminderCommand>();
+            Commands.Add<AddReminderTimeCommand>();
 
             Task.Run(async () =>
             {

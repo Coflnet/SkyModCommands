@@ -582,6 +582,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 if (blockedFlipFilterCount > 1000)
                     span.Span.SetTag("error", true);
+                SendReminders();
             }
             catch (System.InvalidOperationException)
             {
@@ -592,6 +593,18 @@ namespace Coflnet.Sky.Commands.MC
                 span.Span.Log("could not send ping");
                 socket.Error(e, "on ping"); // CloseBecauseError(e);
             }
+        }
+
+        private void SendReminders()
+        {
+            var reminders = AccountSettings.Value?.Reminders?.Where(r => r.TriggerTime < DateTime.Now).ToList();
+            foreach (var item in reminders)
+            {
+                SendMessage("[§1R§6eminder§f]§7: " + item.Text);
+                AccountSettings.Value.Reminders.Remove(item);
+            }
+            if (reminders?.Count > 0)
+                AccountSettings.Update().Wait();
         }
 
         public virtual void StartTimer(double seconds = 10, string prefix = "§c")
