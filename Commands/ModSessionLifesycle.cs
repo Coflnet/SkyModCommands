@@ -374,6 +374,8 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     SendMessage("You have been logged out");
                     span.Span.Log("force loggout");
+                    info.ConIds.Remove("logout");
+                    await this.AccountInfo.Update(info);
                     socket.Close();
                     return;
                 }
