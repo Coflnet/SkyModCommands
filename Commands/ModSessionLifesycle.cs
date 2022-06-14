@@ -551,7 +551,8 @@ namespace Coflnet.Sky.Commands.MC
         internal void HouseKeeping()
         {
             spamController.Reset();
-            socket.TopBlocked.Clear();
+            while (socket.TopBlocked.Count > 500)
+                socket.TopBlocked.TryDequeue(out _);
         }
 
         private void SendPing()
@@ -571,7 +572,7 @@ namespace Coflnet.Sky.Commands.MC
                     SessionInfo.LastBlockedMsg = DateTime.Now;
 
                     // remove blocked if clear should fail
-                    while (socket.TopBlocked.Count > 345)
+                    while (socket.TopBlocked.Count > 445)
                     {
                         socket.TopBlocked.TryDequeue(out _);
                     }
@@ -599,7 +600,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SendReminders()
         {
-            if(AccountSettings?.Value?.Reminders == null)
+            if (AccountSettings?.Value?.Reminders == null)
                 return;
             var reminders = AccountSettings?.Value?.Reminders?.Where(r => r.TriggerTime < DateTime.Now).ToList();
             foreach (var item in reminders)
