@@ -9,6 +9,7 @@ COPY SkyModCommands.csproj SkyModCommands.csproj
 RUN dotnet restore
 COPY . .
 RUN dotnet test
+RUN dotnet test ../SkyBackendForFrontend/SkyBackendForFrontend.csproj
 RUN dotnet publish -c release
 
 FROM mcr.microsoft.com/dotnet/aspnet:6.0

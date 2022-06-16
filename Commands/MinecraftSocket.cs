@@ -208,6 +208,7 @@ namespace Coflnet.Sky.Commands.MC
             ModAdapter = Version switch
             {
                 "1.4-Alpha" => new InventoryVersionAdapter(this),
+                "1.4.2-Alpha" => new InventoryVersionAdapter(this),
                 "1.3.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.2-Alpha" => new SecondVersionAdapter(this),
@@ -230,6 +231,7 @@ namespace Coflnet.Sky.Commands.MC
                     sessionLifesycle = Version switch
                     {
                         "1.4-Alpha" => new InventoryModSession(this),
+                        "1.4.2-Alpha" => new InventoryModSession(this),
                         _ => new ModSessionLifesycle(this)
                     };
                     await sessionLifesycle.SetupConnectionSettings(stringId);
