@@ -120,7 +120,7 @@ namespace Coflnet.Sky.Commands.MC
             .MsgLine($"Added {Format(newEntry)}"));
         }
 
-        protected virtual async Task Help(MinecraftSocket socket, string subArgs)
+        protected virtual Task Help(MinecraftSocket socket, string subArgs)
         {
             socket.SendMessage(new DialogBuilder()
                 .MsgLine($"usage of {McColorCodes.AQUA}/cofl {Slug}{DEFAULT_COLOR}")
@@ -128,6 +128,7 @@ namespace Coflnet.Sky.Commands.MC
                 .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} rm{DEFAULT_COLOR} removes an entry")
                 .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} list{DEFAULT_COLOR} lists all entries")
                 .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} help{DEFAULT_COLOR} display this help"));
+            return Task.CompletedTask;
         }
 
         protected virtual async Task Remove(MinecraftSocket socket, string arguments)

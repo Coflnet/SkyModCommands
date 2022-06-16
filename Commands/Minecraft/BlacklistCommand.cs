@@ -171,11 +171,10 @@ namespace Coflnet.Sky.Commands.MC
                 throw new Coflnet.Sky.Core.CoflnetException("invalid_value", $"The provided filter value {filterVal} is not valid for {filterName}");
         }
 
-        protected override async Task<ListEntry> UpdateElem(MinecraftSocket socket, ListEntry current, string args)
+        /// <inheritdoc/>
+        protected override Task<ListEntry> UpdateElem(MinecraftSocket socket, ListEntry current, string args)
         {
-            var filterList = FlipFilter.AllFilters;
-
-            return current;
+            return Task.FromResult(current);
         }
     }
 }

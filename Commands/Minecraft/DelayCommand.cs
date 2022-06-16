@@ -6,7 +6,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class DelayCommand : McCommand
     {
-        public override async Task Execute(MinecraftSocket socket, string arguments)
+        public override Task Execute(MinecraftSocket socket, string arguments)
         {
             var delayAmount = socket.SessionInfo.Penalty;
             if (delayAmount == System.TimeSpan.Zero)
@@ -27,6 +27,7 @@ namespace Coflnet.Sky.Commands.MC
                     .MsgLine(FormatTimeWithReason(12, "You haven't solved the anti afk captcha"))
                      );
             }
+            return Task.CompletedTask;
         }
 
         private static string FormatTimeWithReason(int amount, string reason)

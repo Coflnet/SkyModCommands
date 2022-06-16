@@ -7,8 +7,9 @@ namespace Coflnet.Sky.Commands.MC
     /// </summary>
     public class VoidCommand : McCommand
     {
-        public override async Task Execute(MinecraftSocket socket, string arguments)
+        public override Task Execute(MinecraftSocket socket, string arguments)
         {
+            return Task.CompletedTask;
         }
     }
 }
