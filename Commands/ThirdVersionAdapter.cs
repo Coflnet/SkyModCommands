@@ -69,7 +69,6 @@ namespace Coflnet.Sky.Commands.MC
             },
             Bin = true,
             Finder = LowPricedAuction.FinderType.TFM,
-            LastKnownCost = 5000,
             LowestBin = 800_000_000,
             MedianPrice = 945_123_456,
             Name = "Hyperion",
