@@ -10,16 +10,17 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            var maxDays = 14;
             if (!double.TryParse(arguments.Trim('"'), out double days))
             {
-                socket.SendMessage(COFLNET + "usage /cofl profit {0.5-7}");
+                socket.SendMessage(COFLNET + $"usage /cofl profit {{0.5-{maxDays}}}");
                 return;
             }
             var time = TimeSpan.FromDays(days);
-            if (time > TimeSpan.FromDays(7))
+            if (time > TimeSpan.FromDays(maxDays))
             {
                 socket.SendMessage(COFLNET + "sorry the maximum is a week currently");
-                time = TimeSpan.FromDays(7);
+                time = TimeSpan.FromDays(maxDays);
             }
             else
             {
