@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Services;
 using Newtonsoft.Json;
 using OpenTracing;
 using OpenTracing.Util;
@@ -31,7 +32,7 @@ namespace Coflnet.Sky.Commands.MC
             CreateReport(socket, arguments, singleReportSpan.Span, out string generalspanId);
         }
 
-        private static void CreateReport(MinecraftSocket socket, string arguments, ISpan parentSpan,  out string spanId)
+        private static void CreateReport(MinecraftSocket socket, string arguments, ISpan parentSpan, out string spanId)
         {
             using IScope reportSpan = socket.tracer.BuildSpan("report")
                                     .WithTag("message", arguments.Truncate(150))
@@ -50,6 +51,11 @@ namespace Coflnet.Sky.Commands.MC
             reportSpan.Span.Log("session info " + JsonConvert.SerializeObject(socket.SessionInfo));
             spanId = reportSpan.Span.Context.SpanId.Truncate(6);
             reportSpan.Span.SetTag("id", spanId);
+            using var snapshotSpan = socket.tracer.BuildSpan("snapshot").AsChildOf(reportSpan.Span.Context).StartActive();
+            foreach (var item in SnapShotService.Instance.SnapShots)
+            {
+                snapshotSpan.Span.Log(item.Time + " " + item.State);
+            }
             TryAddingAllSettings(reportSpan);
         }
 
