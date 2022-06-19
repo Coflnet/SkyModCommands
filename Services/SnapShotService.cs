@@ -14,12 +14,14 @@ namespace Coflnet.Sky.ModCommands.Services
 
         public static SnapShotService Instance = new SnapShotService();
 
-        public IEnumerable <SnapShot> SnapShots => _snapShots;
+        public IEnumerable<SnapShot> SnapShots => _snapShots;
+        public Prometheus.Gauge premUserCount = Prometheus.Metrics.CreateGauge("sky_mod_users", "How many premium users are connected");
 
         public void Take()
         {
             var otherUsers = FlipperService.Instance.Connections;
-            var result = otherUsers.Where(c=>c?.Connection != null).Select(c => new
+            premUserCount.Set(FlipperService.Instance.PremiumUserCount);
+            var result = otherUsers.Where(c => c?.Connection != null).Select(c => new
             {
                 c.ChannelCount,
                 c.Connection.Settings?.Visibility,
@@ -38,13 +40,20 @@ namespace Coflnet.Sky.ModCommands.Services
 
         public async Task Run(CancellationToken token)
         {
-            while(!token.IsCancellationRequested)
+            while (!token.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromSeconds(1));
-                Take();
-                if(_snapShots.Count > 10)
+                try
                 {
-                    _snapShots.Dequeue();
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                    if (_snapShots.Count > 10)
+                    {
+                        _snapShots.Dequeue();
+                    }
+                    Take();
+                }
+                catch (System.Exception e)
+                {
+                    dev.Logger.Instance.Error(e, "taking snapshot");
                 }
             }
         }
