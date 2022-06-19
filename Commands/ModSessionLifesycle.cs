@@ -38,6 +38,7 @@ namespace Coflnet.Sky.Commands.MC
         private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
 
         private int waitingBedFlips = 0;
+        private int blockedFlipCounter = 0;
 
         public static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
         {
@@ -227,6 +228,7 @@ namespace Coflnet.Sky.Commands.MC
                 Flip = flip,
                 Reason = reason
             });
+            Interlocked.Increment(ref blockedFlipCounter);
             return true;
         }
 
@@ -557,7 +559,8 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SendPing()
         {
-            var blockedFlipFilterCount = socket.TopBlocked.Count;
+            var blockedFlipFilterCount = blockedFlipCounter;
+            blockedFlipCounter = 0;
             using var span = tracer.BuildSpan("ping").AsChildOf(ConSpan.Context).WithTag("count", blockedFlipFilterCount).StartActive();
             try
             {
