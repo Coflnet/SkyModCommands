@@ -34,7 +34,7 @@ namespace Coflnet.Sky.Commands.MC
             string hover = GetHoverText(socket, response);
             socket.SendMessage(COFLNET + $"According to our data you made {FormatPrice(socket, response.TotalProfit)} "
                 + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions"
-                + (accounts.Count() > 1 ? $" accross your {accounts.Count()} accounts" : ""),
+                + (accounts.Count() > 1 ? $" across your {accounts.Count()} accounts" : ""),
                 null, hover);
             var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
             var best = sorted.FirstOrDefault();
