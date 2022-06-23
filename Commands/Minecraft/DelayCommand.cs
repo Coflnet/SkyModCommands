@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
             else if(delayAmount == TimeSpan.FromSeconds(0.312345))
                 socket.SendMessage(COFLNET + $"You are minimally delayed to compensate for your macro :)", null, ";)");
             else
-                socket.SendMessage(COFLNET + $"You are currently delayed by {McColorCodes.AQUA}{delayAmount.TotalSeconds}s{McColorCodes.GRAY} by the fairness system. This will decrease over time.",
+                socket.SendMessage(COFLNET + $"You are currently delayed by a maximum of {McColorCodes.AQUA}{delayAmount.TotalSeconds}s{McColorCodes.GRAY} by the fairness system. This will decrease over time and is not fully applied to all flips.",
                         null, McColorCodes.GRAY + "Your call to this has been recorded, \nattempts to trick the system will be punished.");
             if (delayAmount >= TimeSpan.FromSeconds(1))
             {
