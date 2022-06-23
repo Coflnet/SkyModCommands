@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 
 namespace Coflnet.Sky.Commands.MC
@@ -6,9 +7,12 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            if(socket.Settings == null || socket.Settings.ModSettings.NoAdjustToPurse)
+            if (socket.Settings == null || socket.Settings.ModSettings.NoAdjustToPurse)
                 return;
-            socket.Settings.MaxCost = int.Parse(arguments.Trim('"'));
+            var newVal = int.Parse(arguments.Trim('"'));
+            if (Math.Abs(newVal - socket.Settings.MaxCost) < 50)
+                return; // minimal change not relevant (reduce load on db updates)
+            socket.Settings.MaxCost = newVal;
             socket.Settings.LastChanged = "preventUpdateMsg";
             await socket.sessionLifesycle.FlipSettings.Update(socket.Settings);
         }

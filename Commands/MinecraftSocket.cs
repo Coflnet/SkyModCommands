@@ -280,7 +280,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        public T GetService<T>()
+        public virtual T GetService<T>()
         {
             return Shared.DiHandler.ServiceProvider.GetRequiredService<T>();
         }

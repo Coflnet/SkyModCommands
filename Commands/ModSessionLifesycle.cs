@@ -33,6 +33,7 @@ namespace Coflnet.Sky.Commands.MC
         public OpenTracing.ISpan ConSpan => socket.ConSpan;
         public System.Threading.Timer PingTimer;
         private SpamController spamController = new SpamController();
+        private DelayHandler delayHandler;
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
         private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
@@ -51,6 +52,7 @@ namespace Coflnet.Sky.Commands.MC
         public ModSessionLifesycle(MinecraftSocket socket)
         {
             this.socket = socket;
+            delayHandler = new DelayHandler(TimeProvider.Instance, socket.GetService<FlipTrackingService>(), this.SessionInfo);
         }
 
         public async Task<bool> SendFlip(LowPricedAuction flip)
@@ -170,7 +172,7 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flipInstance.Auction.Uuid, SessionInfo.McUuid);
-            await Task.Delay(SessionInfo.Penalty);
+            await delayHandler.AwaitDelayForFlip();
             await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
             if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
             {
@@ -447,7 +449,6 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-
         public virtual async Task<bool> CheckVerificationStatus(AccountInfo accountInfo)
         {
             var mcUuid = SessionInfo.McUuid;
@@ -641,36 +642,21 @@ namespace Coflnet.Sky.Commands.MC
                 try
                 {
                     var ids = await GetMinecraftAccountUuids();
-                    var penalty = await socket.GetService<FlipTrackingService>()
-                            .GetRecommendedPenalty(ids);
-                    IScope span = null;
-                    if (penalty.Item1 > TimeSpan.Zero || !SessionInfo.VerifiedMc)
+                    
+                    var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
+                    
+                    if (sumary.AntiMacro)
                     {
-                        SessionInfo.Penalty = penalty.Item1;
-                        span = tracer.BuildSpan("nerv").AsChildOf(ConSpan).StartActive();
-                        span.Span.SetTag("time", penalty.ToString());
-                        span.Span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
-                    }
-                    else
-                        SessionInfo.Penalty = TimeSpan.Zero;
-                    if (!SessionInfo.VerifiedMc)
-                    {
-                        SessionInfo.Penalty += TimeSpan.FromSeconds(3);
-                        span?.Span.Log("penalty for not verified mc");
-                    }
-                    if (penalty.Item2 > 3 && GetLastCaptchaSolveTime() < DateTime.UtcNow - TimeSpan.FromHours(1.4))
-                    {
-
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo));
-                        if (GetLastCaptchaSolveTime() < DateTime.UtcNow - TimeSpan.FromHours(1.5))
-                        {
-                            SessionInfo.Penalty += TimeSpan.FromSeconds(12);
-                            span?.Span.Log("failed macro");
-                        }
                     }
-                    span?.Dispose();
 
+                    if(sumary.Penalty > TimeSpan.Zero)
+                    {
+                        using var span = tracer.BuildSpan("nerv").AsChildOf(ConSpan).StartActive();
+                        span.Span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
+                        span.Span.Log(JsonConvert.SerializeObject(sumary, Formatting.Indented));                        
+                    }
                 }
                 catch (Exception e)
                 {
@@ -679,10 +665,7 @@ namespace Coflnet.Sky.Commands.MC
             });
         }
 
-        private DateTime GetLastCaptchaSolveTime()
-        {
-            return (AccountInfo.Value.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
-        }
+        private DateTime LastCaptchaSolveTime => (AccountInfo.Value.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
 
         public void Dispose()
         {
