@@ -160,6 +160,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Interlocked.Increment(ref waitingBedFlips);
                 StartTimer(waitTime.TotalSeconds, McColorCodes.GREEN + "Bed in: §c");
+                socket.SendSound("note.bass");
                 await Task.Delay(waitTime);
                 Interlocked.Decrement(ref waitingBedFlips);
                 if (waitingBedFlips == 0)
