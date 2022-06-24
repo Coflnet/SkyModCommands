@@ -9,6 +9,11 @@ namespace Coflnet.Sky.Commands.MC
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
             var delayAmount = socket.SessionInfo.Penalty;
+            if(socket.sessionLifesycle.AccountInfo.Value?.Tier == 0)
+            {
+                socket.SendMessage(COFLNET + $"You are using the free version and are delayed by multiple minutes", null, "Please consider supporting us");
+                return Task.CompletedTask;
+            }
             if (delayAmount == System.TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"You are currently not delayed at all :)", null, "Enjoy flipping at full speed☻");
             else if(delayAmount == TimeSpan.FromSeconds(0.312345))
