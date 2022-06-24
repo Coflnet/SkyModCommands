@@ -11,7 +11,7 @@ namespace Coflnet.Sky.Commands.MC
             var delayAmount = socket.SessionInfo.Penalty;
             if(socket.sessionLifesycle.AccountInfo.Value?.Tier == 0)
             {
-                socket.SendMessage(COFLNET + $"You are using the free version and are delayed by multiple minutes", null, "Please consider supporting us");
+                socket.SendMessage(COFLNET + $"You are using the {McColorCodes.WHITE} free version{DEFAULT_COLOR} and are thus delayed by multiple minutes. Click to get more info", "https://sky.coflnet.com/premium", "Please consider supporting us");
                 return Task.CompletedTask;
             }
             if (delayAmount == System.TimeSpan.Zero)
