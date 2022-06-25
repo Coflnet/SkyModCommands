@@ -422,7 +422,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 SendMessage($"{COFLNET} You have premium but you haven't verified your account yet.");
                 await Task.Delay(1000);
-                SendMessage($"{COFLNET} You have verify your account before you receive flips at max speed.", null, "This is part of our anti macro system and required to make sure you are not connecting from a cracked account");
+                SendMessage($"{COFLNET} You have to verify your account before you receive flips at max speed.", null, "This is part of our anti macro system and required to make sure you are not connecting from a cracked account");
             }
         }
 
