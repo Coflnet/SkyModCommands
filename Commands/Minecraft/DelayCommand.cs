@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + $"You are using the {McColorCodes.WHITE} free version{DEFAULT_COLOR} and are thus delayed by multiple minutes. Click to get more info", "https://sky.coflnet.com/premium", "Please consider supporting us");
                 return Task.CompletedTask;
             }
-            if (delayAmount == System.TimeSpan.Zero)
+            if (delayAmount <= System.TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"You are currently not delayed at all :)", null, "Enjoy flipping at full speed☻");
             else if(delayAmount == TimeSpan.FromSeconds(0.312345))
                 socket.SendMessage(COFLNET + $"You are minimally delayed to compensate for your macro :)", null, ";)");
