@@ -13,9 +13,11 @@ namespace Coflnet.Sky.Commands.MC;
 public class DelayHandler
 {
     private int FlipIndex = 0;
+    public static readonly TimeSpan DefaultDelay = TimeSpan.FromSeconds(2);
 
     private readonly ITimeProvider timeProvider;
-    private TimeSpan currentDelay;
+    internal TimeSpan CurrentDelay => currentDelay;
+    private TimeSpan currentDelay = DefaultDelay;
     private SessionInfo sessionInfo;
     private Random random;
     private FlipTrackingService flipTrackingService;

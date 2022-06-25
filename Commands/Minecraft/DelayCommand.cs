@@ -8,7 +8,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
-            var delayAmount = socket.SessionInfo.Penalty;
+            var delayAmount = socket.sessionLifesycle.CurrentDelay;
             if(socket.sessionLifesycle.AccountInfo.Value?.Tier == 0)
             {
                 socket.SendMessage(COFLNET + $"You are using the {McColorCodes.WHITE} free version{DEFAULT_COLOR} and are thus delayed by multiple minutes. Click to get more info", "https://sky.coflnet.com/premium", "Please consider supporting us");

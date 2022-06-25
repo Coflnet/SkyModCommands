@@ -34,6 +34,7 @@ namespace Coflnet.Sky.Commands.MC
         public System.Threading.Timer PingTimer;
         private SpamController spamController = new SpamController();
         private DelayHandler delayHandler;
+        public TimeSpan CurrentDelay => delayHandler?.CurrentDelay ?? DelayHandler.DefaultDelay;
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
         private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
@@ -154,7 +155,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.Now;
             var waitTime = bedTime - TimeSpan.FromSeconds(3);
-            if (SessionInfo.Penalty > TimeSpan.FromSeconds(0.4) && bedTime > TimeSpan.Zero)
+            if (CurrentDelay > TimeSpan.FromSeconds(0.4) && bedTime > TimeSpan.Zero)
                 await Task.Delay(bedTime);
             else if (waitTime > TimeSpan.Zero && !(FlipSettings.Value?.ModSettings.NoBedDelay ?? false))
             {
@@ -428,7 +429,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
         {
-            var result = await McAccountService.Instance.GetAllAccounts(UserId.Value);
+            var result = await McAccountService.Instance.GetAllAccounts(UserId.Value, DateTime.Now - TimeSpan.FromDays(30));
             if (result == null || result.Count() == 0)
                 return new string[] { SessionInfo.McUuid };
             if (!result.Contains(SessionInfo.McUuid))
@@ -457,6 +458,8 @@ namespace Coflnet.Sky.Commands.MC
             if (accountInfo.McIds.Contains(SessionInfo.McUuid))
             {
                 SessionInfo.VerifiedMc = true;
+                // dispatch access request to update last request time (and keep)
+                _ = socket.TryAsyncTimes(() => McAccountService.Instance.ConnectAccount(userId, mcUuid), "", 1);
                 return SessionInfo.VerifiedMc;
             }
             var connect = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
