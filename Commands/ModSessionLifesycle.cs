@@ -685,7 +685,7 @@ namespace Coflnet.Sky.Commands.MC
             });
         }
 
-        private DateTime LastCaptchaSolveTime => (AccountInfo.Value.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
+        private DateTime LastCaptchaSolveTime => (AccountInfo?.Value?.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
 
         public void Dispose()
         {
