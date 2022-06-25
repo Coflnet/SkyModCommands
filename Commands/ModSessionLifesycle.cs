@@ -423,7 +423,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 SendMessage($"{COFLNET} You have premium but you haven't verified your account yet.");
                 await Task.Delay(1000);
-                SendMessage($"{COFLNET} You have to verify your account before you receive flips at max speed.", null, "This is part of our anti macro system and required to make sure you are not connecting from a cracked account");
+                SendMessage($"{COFLNET} You have to verify your account before you receive flips at max speed. See above for how to do that.", null, "This is part of our anti macro system and required to make sure you are not connecting from a cracked account");
             }
         }
 
@@ -453,6 +453,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public virtual async Task<bool> CheckVerificationStatus(AccountInfo accountInfo)
         {
+            using var verificationSpan = tracer.BuildSpan("VerificationCheck").AsChildOf(ConSpan.Context).StartActive();
             var mcUuid = SessionInfo.McUuid;
             var userId = accountInfo.UserId.ToString();
             if (accountInfo.McIds.Contains(SessionInfo.McUuid))
@@ -462,10 +463,19 @@ namespace Coflnet.Sky.Commands.MC
                 _ = socket.TryAsyncTimes(() => McAccountService.Instance.ConnectAccount(userId, mcUuid), "", 1);
                 return SessionInfo.VerifiedMc;
             }
-            var connect = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
+            McAccountService.ConnectionRequest connect = null;
+            for (int i = 0; i < 3; i++)
+            {
+                connect = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
+                if(connect != null)
+                    break;
+                await Task.Delay(500);
+                verificationSpan.Span.Log("failed");
+            }
             if (connect == null)
             {
                 socket.Log("could not get connect result");
+                SendMessage(COFLNET + McColorCodes.RED + "We could not verify your account. Please click this to create a report and seek support on the discord server with the id", "/cofl report mcaccount link", "Click to create report\nThis helps us to fix the issue");
                 return false;
             }
             if (connect.IsConnected)
@@ -475,7 +485,14 @@ namespace Coflnet.Sky.Commands.MC
                     accountInfo.McIds.Add(mcUuid);
                 return SessionInfo.VerifiedMc;
             }
-            using var verification = tracer.BuildSpan("Verification").AsChildOf(ConSpan.Context).StartActive();
+            using IScope verification = await SendVerificationInstructions(connect);
+
+            return false;
+        }
+
+        private async Task<IScope> SendVerificationInstructions(McAccountService.ConnectionRequest connect)
+        {
+            var verification = tracer.BuildSpan("Verification").AsChildOf(ConSpan.Context).StartActive();
             var bid = connect.Code;
             ItemPrices.AuctionPreview targetAuction = null;
             foreach (var type in new List<string> { "STICK", "RABBIT_HAT", "WOOD_SWORD", "VACCINE_TALISMAN" })
@@ -490,12 +507,11 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(new ChatPart(
                 $"{COFLNET}You connected from an unkown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. ", "/ah"));
             if (targetAuction != null)
-                socket.SendMessage(new ChatPart($"{McColorCodes.YELLOW}[CLICK TO OPEN A RANDOM AUCTION]", $"/viewauction {targetAuction?.Uuid}",
+                socket.SendMessage(new ChatPart($"{McColorCodes.YELLOW}[CLICK TO {McColorCodes.BOLD}VERIFY{McColorCodes.RESET + McColorCodes.YELLOW} by BIDDING {bid}]", $"/viewauction {targetAuction?.Uuid}",
                 $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
             else
                 socket.SendMessage($"Sorry could not find a cheap auction to bid on. You could create an auction yourself for any item you want. The starting bid has to end with {McColorCodes.AQUA}{bid.ToString().PadLeft(3, '0')}{McCommand.DEFAULT_COLOR}");
-
-            return false;
+            return verification;
         }
 
         private static async Task<ItemPrices.AuctionPreview> NewMethod(int bid, string type)
@@ -646,20 +662,20 @@ namespace Coflnet.Sky.Commands.MC
                 try
                 {
                     var ids = await GetMinecraftAccountUuids();
-                    
+
                     var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
-                    
+
                     if (sumary.AntiMacro)
                     {
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo));
                     }
 
-                    if(sumary.Penalty > TimeSpan.Zero)
+                    if (sumary.Penalty > TimeSpan.Zero)
                     {
                         using var span = tracer.BuildSpan("nerv").AsChildOf(ConSpan).StartActive();
                         span.Span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
-                        span.Span.Log(JsonConvert.SerializeObject(sumary, Formatting.Indented));                        
+                        span.Span.Log(JsonConvert.SerializeObject(sumary, Formatting.Indented));
                     }
                 }
                 catch (Exception e)
