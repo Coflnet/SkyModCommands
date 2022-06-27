@@ -510,7 +510,6 @@ namespace Coflnet.Sky.Commands.MC
         {
             SendMessage(COFLNET + "Server is restarting, you may experience connection issues for a few seconds.",
                  "/cofl start", "if it doesn't auto reconnect click this");
-            System.Threading.Thread.Sleep(10);
         }
 
         public string Error(Exception exception, string message = null, string additionalLog = null)
