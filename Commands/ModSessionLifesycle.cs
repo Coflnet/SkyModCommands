@@ -61,9 +61,7 @@ namespace Coflnet.Sky.Commands.MC
             var Settings = FlipSettings?.Value;
             if (Settings == null || Settings.DisableFlips)
                 return true;
-            var verbose = flip.AdditionalProps.ContainsKey("long wait");
-            if (verbose)
-                ConSpan.Log("Start sending " + DateTime.Now);
+
             // pre check already sent flips
             if (SentFlips.ContainsKey(flip.UId))
                 return true; // don't double send
@@ -80,8 +78,6 @@ namespace Coflnet.Sky.Commands.MC
                 return BlockedFlip(flip, "MinProfit");
             var isMatch = (false, "");
 
-            if (verbose)
-                ConSpan.Log("before visibility " + DateTime.Now);
             if (!Settings.FastMode)
                 try
                 {
@@ -92,8 +88,6 @@ namespace Coflnet.Sky.Commands.MC
                     socket.Error(e, "filling visibility");
                 }
 
-            if (verbose)
-                ConSpan.Log("before matching " + DateTime.Now);
             try
             {
                 isMatch = Settings.MatchesSettings(flipInstance);
@@ -116,8 +110,6 @@ namespace Coflnet.Sky.Commands.MC
             if (!SentFlips.TryAdd(flip.UId, DateTime.Now))
                 return true; // make sure flips are not sent twice
 
-            if (verbose)
-                ConSpan.Log("building trace " + DateTime.Now);
             using var span = tracer.BuildSpan("Flip").WithTag("uuid", flipInstance.Uuid).AsChildOf(ConSpan.Context).StartActive();
 
             if (!spamController.ShouldBeSent(flipInstance))
@@ -127,8 +119,6 @@ namespace Coflnet.Sky.Commands.MC
             }
             Task sendTimeTrack = await SendAfterDelay(flipInstance).ConfigureAwait(false);
 
-            if (verbose)
-                ConSpan.Log("sent flip " + DateTime.Now);
             var timeToSend = DateTime.Now - flipInstance.Auction.FindTime;
             flip.AdditionalProps["csend"] = (timeToSend).ToString();
 
@@ -141,8 +131,6 @@ namespace Coflnet.Sky.Commands.MC
 
             _ = socket.TryAsyncTimes(TrackFlipAndCleanup(flip, span, sendTimeTrack, timeToSend), "track flip and cleanup", 2);
 
-            if (verbose)
-                ConSpan?.Log("exiting " + DateTime.Now);
             return true;
         }
 
