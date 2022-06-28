@@ -13,6 +13,8 @@ namespace Coflnet.Sky.Commands.MC
 
         protected T Convert<T>(string arguments)
         {
+            if (typeof(T) == typeof(string)) 
+                return JsonConvert.DeserializeObject<T>(arguments);
             return JsonConvert.DeserializeObject<T>(JsonConvert.DeserializeObject<string>(arguments));
         }
     }

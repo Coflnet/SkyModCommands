@@ -125,6 +125,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<WhichBLEntryCommand>();
             Commands.Add<ReminderCommand>();
             Commands.Add<AddReminderTimeCommand>();
+            Commands.Add<LoreCommand>();
 
             Task.Run(async () =>
             {
@@ -220,7 +221,7 @@ namespace Coflnet.Sky.Commands.MC
             ConSpan.SetTag("version", Version);
 
             string stringId;
-            (this.Id, stringId) = ComputeConnectionId(passedId);
+            (this.Id, stringId) = GetService<IdConverter>().ComputeConnectionId(passedId, SessionInfo.clientSessionId);
             ConSpan.SetTag("conId", stringId);
 
             FlipperService.Instance.AddNonConnection(this, false);
@@ -302,14 +303,6 @@ namespace Coflnet.Sky.Commands.MC
             loadSpan.Span.SetTag("uuid", player.UuId);
         }
 
-
-        protected (long, string) ComputeConnectionId(string passedId)
-        {
-            var bytes = Encoding.UTF8.GetBytes(passedId.ToLower() + SessionInfo.clientSessionId + DateTime.Now.RoundDown(TimeSpan.FromDays(14)).ToString());
-            var hash = System.Security.Cryptography.SHA512.Create();
-            var hashed = hash.ComputeHash(bytes);
-            return (BitConverter.ToInt64(hashed), Convert.ToBase64String(hashed, 0, 16).Replace('+', '-').Replace('/', '_'));
-        }
 
         int waiting = 0;
 
