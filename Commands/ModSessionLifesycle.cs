@@ -458,7 +458,7 @@ namespace Coflnet.Sky.Commands.MC
                 if(connect != null)
                     break;
                 await Task.Delay(500);
-                verificationSpan.Span.Log("failed");
+                verificationSpan.Span.Log($"failed {userId} {mcUuid}");
             }
             if (connect == null)
             {
