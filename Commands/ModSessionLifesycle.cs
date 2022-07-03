@@ -442,6 +442,8 @@ namespace Coflnet.Sky.Commands.MC
         public virtual async Task<bool> CheckVerificationStatus(AccountInfo accountInfo)
         {
             using var verificationSpan = tracer.BuildSpan("VerificationCheck").AsChildOf(ConSpan.Context).StartActive();
+            if (SessionInfo.McUuid == null)
+                await Task.Delay(500);
             var mcUuid = SessionInfo.McUuid;
             var userId = accountInfo.UserId.ToString();
             if (accountInfo.McIds.Contains(SessionInfo.McUuid))
@@ -454,8 +456,10 @@ namespace Coflnet.Sky.Commands.MC
             McAccountService.ConnectionRequest connect = null;
             for (int i = 0; i < 3; i++)
             {
+                if (mcUuid == null)
+                    mcUuid = SessionInfo.McUuid;
                 connect = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
-                if(connect != null)
+                if (connect != null)
                     break;
                 await Task.Delay(500);
                 verificationSpan.Span.Log($"failed {userId} {mcUuid}");
