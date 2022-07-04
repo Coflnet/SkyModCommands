@@ -22,14 +22,15 @@ namespace Coflnet.Sky.Commands.MC
             List<ChatPart> parts = await GetMessageparts(flip);
 
             SendMessage(parts.ToArray());
+            SendOutDated();
             return true;
         }
 
         private void SendOutDated()
         {
             SendMessage(new DialogBuilder().MsgLine("There is a newer mod version available. Please update as soon as possible. \nYou can click this to be redirected to the download.",
-                                        "https://discord.com/channels/267680588666896385/890682907889373257/955963133070032986",
-                                        "opens discord"));
+                                        "https://github.com/Coflnet/skyblockmod/release",
+                                        "opens github"));
         }
 
         public override void SendMessage(params ChatPart[] parts)

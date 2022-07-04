@@ -7,6 +7,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class FirstModVersionAdapter : IModVersionAdapter
     {
+        private const string LinkToRelease = "https://github.com/Coflnet/skyblockmod/release";
         MinecraftSocket socket;
 
         public FirstModVersionAdapter(MinecraftSocket socket)
@@ -17,12 +18,12 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SendUpdateMessage()
         {
-            socket.SendMessage(MinecraftSocket.COFLNET + McColorCodes.RED + "There is a newer mod version. click this to open discord and download it", "https://discord.com/channels/267680588666896385/890682907889373257/898974585318416395");
+            socket.SendMessage(MinecraftSocket.COFLNET + McColorCodes.RED + "There is a newer mod version. Click this to open it on github", LinkToRelease);
         }
 
         public Task<bool> SendFlip(FlipInstance flip)
         {
-            socket.SendMessage(socket.GetFlipMsg(flip), "/viewauction " + flip.Auction.Uuid, "UPDATE");
+            socket.SendMessage(socket.GetFlipMsg(flip), LinkToRelease, "UPDATE");
             SendUpdateMessage();
             return Task.FromResult(true);
         }
