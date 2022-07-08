@@ -5,6 +5,8 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class InventoryModSession : ModSessionLifesycle
     {
+        private const string DefaultChatRegex = @"^(�r�eSell Offer|�r�6[Bazaar]|�r�cCancelled|�r�6Bazaar!|�r�eYou collected|�6[Auction]|�r�eBIN Auction started|�r�eYou �r�ccancelled|[Test]| - | \+ |Trade completed).*";
+
         public InventoryModSession(MinecraftSocket socket) : base(socket)
         {
 
@@ -17,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 CollectInventory = true,
                 ExtendDescriptions = true,
-                ChatRegex = "^(�r�eSell Offer|�r�6[Bazaar]|�r�cCancelled|�r�6Bazaar!|�r�eYou collected|�6[Auction]|�r�eBIN Auction started|�r�eYou �r�ccancelled|[Test]| - | + |Trade completed).*",
+                ChatRegex = DefaultChatRegex,
                 CollectChat = true,
                 CollectScoreboard = true,
                 CollectChatClicks = true,
@@ -31,6 +33,8 @@ namespace Coflnet.Sky.Commands.MC
             });
             socket.sessionLifesycle.PrivacySettings.AfterChange -= UpdatePrivacySettings;
             socket.sessionLifesycle.PrivacySettings.AfterChange += UpdatePrivacySettings;
+            if(socket.sessionLifesycle.PrivacySettings.Value.ChatRegex != DefaultChatRegex)
+                socket.sessionLifesycle.PrivacySettings.Value.ChatRegex = DefaultChatRegex;
             UpdatePrivacySettings(socket.sessionLifesycle.PrivacySettings.Value);
         }
 
