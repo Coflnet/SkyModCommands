@@ -32,6 +32,9 @@ namespace Coflnet.Sky.Commands.MC
                 case "add":
                     await Add(socket, subArgs);
                     break;
+                case "addall":
+                    await AddAll(socket, subArgs);
+                    break;
                 case "e":
                 case "edit":
                     await Edit(socket, subArgs);
@@ -102,7 +105,23 @@ namespace Coflnet.Sky.Commands.MC
             }
             socket.SendMessage(new DialogBuilder()
                 .MsgLine($"Could not create a new entry, to many possible matches, please select one:")
-                .ForEach(options, (d, o) => d.MsgLine($"{Format(o.Element)} {McColorCodes.YELLOW}[ADD]", $"/cofl {Slug} add !json{JsonConvert.SerializeObject(o.Element)}", $"Add {LongFormat(o.Element)}")));
+                .ForEach(options, (d, o) => d.MsgLine($"{Format(o.Element)} {McColorCodes.YELLOW}[ADD]", $"/cofl {Slug} add !json{JsonConvert.SerializeObject(o.Element)}", $"Add {LongFormat(o.Element)}"))
+                .MsgLine($"{McColorCodes.YELLOW}[ADD ALL]", $"/cofl {Slug} addall", $"Add all the above"));
+        }
+
+        protected virtual async Task AddAll(MinecraftSocket socket, string subArgs)
+        {
+            var options = await CreateFrom(socket, subArgs);
+            if (options.Count() == 0)
+            {
+                socket.SendMessage(new DialogBuilder()
+                .MsgLine($"Could not create a new entry, please check your input and try something else"));
+                return;
+            }
+            foreach (var item in options)
+            {
+                await AddEntry(socket, item.Element);
+            }
         }
 
         protected virtual async Task AddEntry(MinecraftSocket socket, TElem newEntry)
