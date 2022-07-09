@@ -106,7 +106,7 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(new DialogBuilder()
                 .MsgLine($"Could not create a new entry, to many possible matches, please select one:")
                 .ForEach(options, (d, o) => d.MsgLine($"{Format(o.Element)} {McColorCodes.YELLOW}[ADD]", $"/cofl {Slug} add !json{JsonConvert.SerializeObject(o.Element)}", $"Add {LongFormat(o.Element)}"))
-                .MsgLine($"{McColorCodes.YELLOW}[ADD ALL]", $"/cofl {Slug} addall", $"Add all the above"));
+                .MsgLine($"{McColorCodes.YELLOW}[ADD ALL]", $"/cofl {Slug} addall {subArgs}", $"Add all the above"));
         }
 
         protected virtual async Task AddAll(MinecraftSocket socket, string subArgs)
