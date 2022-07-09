@@ -310,7 +310,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (waiting > 2)
             {
-                SendMessage(COFLNET + $"You are executing to many commands please wait a bit");
+                SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
                 return;
             }
             var a = JsonConvert.DeserializeObject<Response>(e.Data);
