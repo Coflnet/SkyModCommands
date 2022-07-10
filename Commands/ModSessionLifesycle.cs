@@ -349,7 +349,7 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 var userIsTest = info.UserId > 0 && info.UserId < 10;
-                if (info.ActiveConnectionId != SessionInfo.ConnectionId && !string.IsNullOrEmpty(info.ActiveConnectionId) && userIsTest)
+                if (info.ActiveConnectionId != SessionInfo.ConnectionId && !string.IsNullOrEmpty(info.ActiveConnectionId) && !userIsTest)
                 {
                     // wait for settings sync
                     await Task.Delay(500);
