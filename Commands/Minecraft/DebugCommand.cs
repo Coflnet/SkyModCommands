@@ -2,13 +2,14 @@ using System.Threading.Tasks;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    public class DebugCommand : McCommand
+    public class DebugSCommand : McCommand
     {
-        public override Task Execute(MinecraftSocket socket, string arguments)
+        public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            System.Console.WriteLine("debug command");
             socket.SendMessage(COFLNET + $"Debug enabled, if you didn't do this intentionally, please execute /cofl start to disable");
             socket.sessionLifesycle.PrivacySettings.Value.ChatRegex = ".*";
-            return socket.sessionLifesycle.PrivacySettings.Update();
+            await socket.sessionLifesycle.PrivacySettings.Update();
         }
     }
 }
