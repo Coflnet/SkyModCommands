@@ -457,13 +457,13 @@ namespace Coflnet.Sky.Commands.MC
             McAccountService.ConnectionRequest connect = null;
             for (int i = 0; i < 3; i++)
             {
-                if (mcUuid == null)
+                if (string.IsNullOrEmpty(mcUuid))
                     mcUuid = SessionInfo.McUuid;
                 connect = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
                 if (connect != null)
                     break;
                 await Task.Delay(500);
-                verificationSpan.Span.Log($"failed {userId} {mcUuid}");
+                verificationSpan.Span.Log($"failed {userId} {mcUuid} {mcUuid is null}");
             }
             if (connect == null)
             {
