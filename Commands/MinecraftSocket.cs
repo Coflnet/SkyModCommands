@@ -632,7 +632,7 @@ namespace Coflnet.Sky.Commands.MC
                     sessionLifesycle.StartTimer(10 - SessionInfo.RelativeSpeed.TotalSeconds);
                 else
                 {
-                    SheduleTimer(mod);
+                    SheduleTimer(mod,loadSpan);
                 }
             }
             if (!(Settings?.ModSettings?.BlockTenSecondsMsg ?? false))
@@ -648,7 +648,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        public void SheduleTimer(ModSettings mod = null)
+        public void SheduleTimer(ModSettings mod = null, IScope timerSpan = null)
         {
             if (mod == null)
                 mod = Settings.ModSettings;
@@ -660,11 +660,14 @@ namespace Coflnet.Sky.Commands.MC
             if (nextUpdateIn < countdownSize)
             {
                 sessionLifesycle.StartTimer(nextUpdateIn.TotalSeconds);
+                timerSpan?.Span.Log("sheduled timer to " + nextUpdateIn.TotalSeconds + " seconds");
                 return;
             }
+            var delay = nextUpdateIn - countdownSize - SessionInfo.RelativeSpeed;
+            timerSpan?.Span.Log($"delaying timer for {delay.TotalSeconds} seconds");
             Task.Run(async () =>
             {
-                await Task.Delay(nextUpdateIn - countdownSize - SessionInfo.RelativeSpeed);
+                await Task.Delay(delay);
                 sessionLifesycle.StartTimer(timerSeconds);
             });
         }
