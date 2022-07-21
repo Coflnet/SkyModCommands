@@ -52,6 +52,9 @@ namespace Coflnet.Sky.Commands.MC
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
         public static event Action NextUpdateStart;
+        /// <summary>
+        /// The time flips are expected to come in
+        /// </summary>
         public static DateTime NextFlipTime { get; protected set; }
 
         int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId?.Value ?? "0");
@@ -139,8 +142,8 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     try
                     {
-                        NextUpdateStart?.Invoke();
                         NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
+                        NextUpdateStart?.Invoke();
                         if (DateTime.Now.Minute % 2 == 0)
                             UpdateTimer();
                     }
@@ -669,7 +672,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 await Task.Delay(delay);
                 sessionLifesycle.StartTimer(timerSeconds);
-            });
+            }).ConfigureAwait(false);
         }
 
         private static string GetEnableMessage(object newSettings, System.Reflection.FieldInfo prop)
