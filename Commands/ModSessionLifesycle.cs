@@ -660,7 +660,7 @@ namespace Coflnet.Sky.Commands.MC
 
                     if (sumary.AntiMacro)
                     {
-                        SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
+                        SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo));
                     }
 

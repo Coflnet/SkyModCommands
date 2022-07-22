@@ -15,27 +15,34 @@ namespace Coflnet.Sky.Commands.MC
         protected override async Task SubToSettings(string val)
         {
             await base.SubToSettings(val);
-            socket.sessionLifesycle.PrivacySettings = await SelfUpdatingValue<PrivacySettings>.Create(val, "privacySettings", () => new PrivacySettings()
+            var isDefault = false;
+            socket.sessionLifesycle.PrivacySettings = await SelfUpdatingValue<PrivacySettings>.Create(val, "privacySettings", () =>
             {
-                CollectInventory = true,
-                ExtendDescriptions = true,
-                ChatRegex = DefaultChatRegex,
-                CollectChat = true,
-                CollectScoreboard = true,
-                CollectChatClicks = true,
-                CommandPrefixes = new string[] { "/cofl", "/colf", "/ch" },
-                AutoStart = true,
-                CollectTab = true,
-                AllowProxy = true,
-                CollectLobbyChanges = true,
-                CollectInvClick = true,
-                CollectEntities = true
+                isDefault = true;
+                return new PrivacySettings()
+                {
+                    CollectInventory = true,
+                    ExtendDescriptions = true,
+                    ChatRegex = DefaultChatRegex,
+                    CollectChat = true,
+                    CollectScoreboard = true,
+                    CollectChatClicks = true,
+                    CommandPrefixes = new string[] { "/cofl", "/colf", "/ch" },
+                    AutoStart = true,
+                    CollectTab = true,
+                    AllowProxy = true,
+                    CollectLobbyChanges = true,
+                    CollectInvClick = true,
+                    CollectEntities = true
+                };
             });
             socket.sessionLifesycle.PrivacySettings.AfterChange -= UpdatePrivacySettings;
             socket.sessionLifesycle.PrivacySettings.AfterChange += UpdatePrivacySettings;
-            if(socket.sessionLifesycle.PrivacySettings.Value.ChatRegex != DefaultChatRegex)
+            if (socket.sessionLifesycle.PrivacySettings.Value.ChatRegex != DefaultChatRegex)
                 socket.sessionLifesycle.PrivacySettings.Value.ChatRegex = DefaultChatRegex;
             UpdatePrivacySettings(socket.sessionLifesycle.PrivacySettings.Value);
+            //if(isDefault)
+            //    await socket.sessionLifesycle.PrivacySettings.Update();
         }
 
         private void UpdatePrivacySettings(PrivacySettings settings)

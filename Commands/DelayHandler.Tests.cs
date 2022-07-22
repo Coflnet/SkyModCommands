@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
@@ -22,20 +23,20 @@ public class DelayHandlerTests
         var flipTrackingService = new Mock<FlipTrackingService>(null);
         result = new SpeedCompResult() { Penalty = 1 };
         flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));
-        sessionInfo = new SessionInfo();
+        sessionInfo = new SessionInfo(){};
         delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, new System.Random(5));
     }
 
     public async Task RequireMc()
     {
-        var summary = await delayHandler.Update(ids, System.DateTime.UtcNow);
+        var summary = await delayHandler.Update(ids, timeProvider.Now);
         Assert.AreEqual(4, summary.Penalty.TotalSeconds, 0.00001);
     }
 
     public async Task NoDelayWhenNoPenalty()
     {
         result.Penalty = 0;
-        var summary = await delayHandler.Update(ids, System.DateTime.UtcNow);
+        var summary = await delayHandler.Update(ids, timeProvider.Now);
         Assert.AreEqual(0, summary.Penalty.TotalSeconds, 0.00001);
         var stopWatch = new Stopwatch();
         await delayHandler.AwaitDelayForFlip();
@@ -48,7 +49,7 @@ public class DelayHandlerTests
     public async Task VariesFlipDelays()
     {
         sessionInfo.VerifiedMc = true;
-        var summary = await delayHandler.Update(ids, System.DateTime.UtcNow);
+        var summary = await delayHandler.Update(ids, timeProvider.Now);
         Assert.AreEqual(1, summary.Penalty.TotalSeconds, 0.00001);
         var first = delayHandler.AwaitDelayForFlip();
         var second = delayHandler.AwaitDelayForFlip();
@@ -71,6 +72,13 @@ public class DelayHandlerTests
         Assert.IsFalse(first.IsCompleted);
         timeProvider.TickForward(System.TimeSpan.FromSeconds(0.25));
         Assert.IsTrue(first.IsCompleted);
+    }
+
+    [Test]
+    public async Task AntiMacroDelay()
+    {
+        var summary = await delayHandler.Update(ids, new DateTime());
+        Assert.AreEqual(12,summary.Penalty.TotalSeconds, 0.00001);
     }
 }
 

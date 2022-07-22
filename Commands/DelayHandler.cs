@@ -12,6 +12,7 @@ namespace Coflnet.Sky.Commands.MC;
 /// </summary>
 public class DelayHandler
 {
+    private static readonly TimeSpan AntiMacroDelay = TimeSpan.FromSeconds(12);
     private int FlipIndex = 0;
     public static readonly TimeSpan DefaultDelay = TimeSpan.FromSeconds(2);
 
@@ -63,17 +64,25 @@ public class DelayHandler
         else
             summary.VerifiedMc = true;
 
-        if (hourCount > 3 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(1.4))
+        if (HasFlippedForLong(lastCaptchaSolveTime, hourCount))
         {
             summary.AntiMacro = true;
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(1.5))
-            {
-                currentDelay += TimeSpan.FromSeconds(12);
-            }
+                currentDelay = AntiMacroDelay;
+        }
+        else if (breakdown.Penalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(28))
+        {
+            summary.AntiMacro = true;
+            if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(30))
+                currentDelay = AntiMacroDelay;
         }
         summary.Penalty = currentDelay;
-
         return summary;
+    }
+
+    private bool HasFlippedForLong(DateTime lastCaptchaSolveTime, int hourCount)
+    {
+        return hourCount > 3 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(1.4);
     }
 
     public class Summary
