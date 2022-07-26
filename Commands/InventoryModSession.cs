@@ -15,10 +15,8 @@ namespace Coflnet.Sky.Commands.MC
         protected override async Task SubToSettings(string val)
         {
             await base.SubToSettings(val);
-            var isDefault = false;
             socket.sessionLifesycle.PrivacySettings = await SelfUpdatingValue<PrivacySettings>.Create(val, "privacySettings", () =>
             {
-                isDefault = true;
                 return new PrivacySettings()
                 {
                     CollectInventory = true,

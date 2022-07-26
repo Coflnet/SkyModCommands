@@ -23,7 +23,7 @@ public class DelayHandlerTests
         var flipTrackingService = new Mock<FlipTrackingService>(null);
         result = new SpeedCompResult() { Penalty = 1 };
         flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));
-        sessionInfo = new SessionInfo(){};
+        sessionInfo = new SessionInfo() { };
         delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, new System.Random(5));
     }
 
@@ -61,7 +61,7 @@ public class DelayHandlerTests
         Assert.IsFalse(fourth.IsCompleted);
         timeProvider.TickForward(System.TimeSpan.FromSeconds(0.2));
         Assert.IsFalse(fourth.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.15));
+        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.2));
         Assert.IsTrue(fourth.IsCompleted);
         Assert.IsFalse(third.IsCompleted);
         timeProvider.TickForward(System.TimeSpan.FromSeconds(0.15));
@@ -78,7 +78,7 @@ public class DelayHandlerTests
     public async Task AntiMacroDelay()
     {
         var summary = await delayHandler.Update(ids, new DateTime());
-        Assert.AreEqual(12,summary.Penalty.TotalSeconds, 0.00001);
+        Assert.AreEqual(12, summary.Penalty.TotalSeconds, 0.00001);
     }
 }
 

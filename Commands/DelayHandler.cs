@@ -33,15 +33,19 @@ public class DelayHandler
         this.sessionInfo = sessionInfo;
     }
 
-    public async Task AwaitDelayForFlip()
+    public async Task<DateTime> AwaitDelayForFlip()
     {
         if (currentDelay <= TimeSpan.Zero)
-            return;
+            return timeProvider.Now;
         var myIndex = FlipIndex;
         Interlocked.Increment(ref FlipIndex);
         TimeSpan delay = GetCorrectDelay(myIndex);
-
-        await timeProvider.Delay(delay);
+        var part1 = delay / 4;
+        var part2 = delay - part1;
+        await timeProvider.Delay(part1).ConfigureAwait(false);
+        var time = timeProvider.Now;
+        await timeProvider.Delay(part2).ConfigureAwait(false);
+        return time;
     }
 
     public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime)

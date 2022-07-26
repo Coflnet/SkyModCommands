@@ -161,8 +161,8 @@ namespace Coflnet.Sky.Commands.MC
                 flipInstance.Interesting = Helper.PropertiesSelector.GetProperties(flipInstance.Auction).OrderByDescending(a => a.Rating).Select(a => a.Value).ToList();
             }
 
-            var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flipInstance.Auction.Uuid, SessionInfo.McUuid);
-            await delayHandler.AwaitDelayForFlip();
+            
+            var sendTime = await delayHandler.AwaitDelayForFlip().ConfigureAwait(false);
             await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
             if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
             {
@@ -171,6 +171,7 @@ namespace Coflnet.Sky.Commands.MC
                     SessionInfo.RelativeSpeed = adjustment;
                 SessionInfo.LastSpeedUpdate = DateTime.Now;
             }
+            var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flipInstance.Auction.Uuid, SessionInfo.McUuid, sendTime);
 
             return sendTimeTrack;
         }
