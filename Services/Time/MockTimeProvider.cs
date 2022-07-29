@@ -20,14 +20,13 @@ public class MockTimeProvider : ITimeProvider
 
     public void TickForward(TimeSpan span)
     {
-        Now += span;
-        foreach (var item in Tasks.ToList())
+        var existingTasks = Tasks.OrderBy(t=>t.Value);
+        while (existingTasks.Where(t=>t.Value <= Now + span).Any())
         {
-            if (item.Value <= Now)
-            {
-                item.Key.SetResult();
-                Tasks.TryRemove(item.Key, out _);
-            }
+            var task = existingTasks.First();
+            Tasks.TryRemove(task.Key, out _);
+            task.Key.SetResult();
         }
+        Now += span;
     }
 }

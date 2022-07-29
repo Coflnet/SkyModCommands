@@ -22,11 +22,17 @@ namespace Coflnet.Sky.Commands.MC
         {
             var uuid = flip.Auction.Uuid;
             var bedFlip = flip.Auction.Start + TimeSpan.FromSeconds(20) > DateTime.Now;
+            var worth = flip.Profit;
+            if(flip.Context.ContainsKey("priorityOpen"))
+                worth *= 100;
+            if(bedFlip)
+                worth = 0;
+
             socket.Send(Response.Create("flip", new
             {
                 messages = await GetMessageparts(flip),
                 id = uuid,
-                worth = bedFlip ? 0 : flip.Profit,
+                worth = worth,
                 cost = flip.Auction.StartingBid,
                 sound = (string)"note.pling"
             }));

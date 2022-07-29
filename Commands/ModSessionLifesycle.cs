@@ -162,7 +162,7 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             
-            var sendTime = await delayHandler.AwaitDelayForFlip().ConfigureAwait(false);
+            var sendTime = await delayHandler.AwaitDelayForFlip(flipInstance).ConfigureAwait(false);
             await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
             if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
             {

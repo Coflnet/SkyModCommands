@@ -19,6 +19,7 @@ public class DelayHandler
     private readonly ITimeProvider timeProvider;
     internal TimeSpan CurrentDelay => currentDelay;
     private TimeSpan currentDelay = DefaultDelay;
+    private TimeSpan macroPenalty = TimeSpan.Zero;
     private SessionInfo sessionInfo;
     private Random random;
     private FlipTrackingService flipTrackingService;
@@ -33,7 +34,7 @@ public class DelayHandler
         this.sessionInfo = sessionInfo;
     }
 
-    public async Task<DateTime> AwaitDelayForFlip()
+    public async Task<DateTime> AwaitDelayForFlip(FlipInstance flipInstance)
     {
         if (currentDelay <= TimeSpan.Zero)
             return timeProvider.Now;
@@ -45,6 +46,8 @@ public class DelayHandler
         await timeProvider.Delay(part1).ConfigureAwait(false);
         var time = timeProvider.Now;
         await timeProvider.Delay(part2).ConfigureAwait(false);
+        if (flipInstance.Profit > 5_000_000 || flipInstance.Finder == Core.LowPricedAuction.FinderType.SNIPER && flipInstance.Profit > 2_500_000)
+            await timeProvider.Delay(macroPenalty);
         return time;
     }
 
@@ -80,6 +83,10 @@ public class DelayHandler
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(30))
                 currentDelay = AntiMacroDelay;
         }
+        if (breakdown.MacroedFlips?.Count == 0)
+            macroPenalty = TimeSpan.Zero;
+        else
+            macroPenalty = TimeSpan.FromSeconds(1);
         summary.Penalty = currentDelay;
         return summary;
     }

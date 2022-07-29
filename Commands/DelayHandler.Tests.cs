@@ -15,16 +15,18 @@ public class DelayHandlerTests
     SessionInfo sessionInfo;
     DelayHandler delayHandler;
     SpeedCompResult result;
+    FlipInstance flipInstance;
     [SetUp]
     public void Setup()
     {
         timeProvider = new MockTimeProvider();
         ids = new string[] { "hi" };
         var flipTrackingService = new Mock<FlipTrackingService>(null);
+        sessionInfo = new SessionInfo() { };
         result = new SpeedCompResult() { Penalty = 1 };
         flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));
-        sessionInfo = new SessionInfo() { };
         delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, new System.Random(5));
+        flipInstance = new FlipInstance(){Auction = new ()};
     }
 
     public async Task RequireMc()
@@ -39,9 +41,9 @@ public class DelayHandlerTests
         var summary = await delayHandler.Update(ids, timeProvider.Now);
         Assert.AreEqual(0, summary.Penalty.TotalSeconds, 0.00001);
         var stopWatch = new Stopwatch();
-        await delayHandler.AwaitDelayForFlip();
-        await delayHandler.AwaitDelayForFlip();
-        await delayHandler.AwaitDelayForFlip();
+        await delayHandler.AwaitDelayForFlip(flipInstance);
+        await delayHandler.AwaitDelayForFlip(flipInstance);
+        await delayHandler.AwaitDelayForFlip(flipInstance);
         Assert.AreEqual(0, stopWatch.Elapsed.TotalSeconds, 0.00001);
     }
 
@@ -51,23 +53,23 @@ public class DelayHandlerTests
         sessionInfo.VerifiedMc = true;
         var summary = await delayHandler.Update(ids, timeProvider.Now);
         Assert.AreEqual(1, summary.Penalty.TotalSeconds, 0.00001);
-        var first = delayHandler.AwaitDelayForFlip();
-        var second = delayHandler.AwaitDelayForFlip();
-        var third = delayHandler.AwaitDelayForFlip();
-        var fourth = delayHandler.AwaitDelayForFlip();
+        var first = delayHandler.AwaitDelayForFlip(flipInstance);
+        var second = delayHandler.AwaitDelayForFlip(flipInstance);
+        var third = delayHandler.AwaitDelayForFlip(flipInstance);
+        var fourth = delayHandler.AwaitDelayForFlip(flipInstance);
         Assert.IsFalse(first.IsCompleted);
         Assert.IsFalse(second.IsCompleted);
         Assert.IsFalse(third.IsCompleted);
         Assert.IsFalse(fourth.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.2));
+        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.15));
         Assert.IsFalse(fourth.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.2));
+        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.05));
         Assert.IsTrue(fourth.IsCompleted);
         Assert.IsFalse(third.IsCompleted);
         timeProvider.TickForward(System.TimeSpan.FromSeconds(0.15));
         Assert.IsTrue(third.IsCompleted);
         Assert.IsFalse(second.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.35));
+        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.4));
         Assert.IsTrue(second.IsCompleted);
         Assert.IsFalse(first.IsCompleted);
         timeProvider.TickForward(System.TimeSpan.FromSeconds(0.25));
@@ -79,6 +81,36 @@ public class DelayHandlerTests
     {
         var summary = await delayHandler.Update(ids, new DateTime());
         Assert.AreEqual(12, summary.Penalty.TotalSeconds, 0.00001);
+    }
+    [Test]
+    public async Task LongAntiMacroDelay()
+    {
+        result.MacroedFlips = new System.Collections.Generic.List<MacroedFlip>(){
+            new ()
+            {
+                BuyTime = timeProvider.Now - System.TimeSpan.FromSeconds(10),
+                TotalSeconds = 3.6
+            },
+            new ()
+            {
+                BuyTime = timeProvider.Now - System.TimeSpan.FromSeconds(12),
+                TotalSeconds = 3.5
+            }
+        };
+        result.Penalty = 0.01;
+        sessionInfo.VerifiedMc = true;
+        var summary = await delayHandler.Update(ids, timeProvider.Now);
+        var delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
+        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.02));
+        Assert.IsTrue(delayTask.IsCompleted);
+        flipInstance.Auction.StartingBid = 5;
+        flipInstance.MedianPrice = 5_100_100;
+        flipInstance.Finder = Core.LowPricedAuction.FinderType.SNIPER_MEDIAN;
+        delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
+        Assert.IsFalse(delayTask.IsCompleted);
+        timeProvider.TickForward(System.TimeSpan.FromSeconds(1));
+        Assert.IsTrue(delayTask.IsCompleted);
+
     }
 }
 
