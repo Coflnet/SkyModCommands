@@ -73,20 +73,24 @@ public class DelayHandler
 
         if (HasFlippedForLong(lastCaptchaSolveTime, hourCount))
         {
-            summary.AntiMacro = true;
+            summary.AntiAfk = true;
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(1.5))
                 currentDelay = AntiMacroDelay;
         }
         else if (breakdown.Penalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(28))
         {
-            summary.AntiMacro = true;
+            summary.AntiAfk = true;
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(30))
                 currentDelay = AntiMacroDelay;
         }
-        if (breakdown.MacroedFlips?.Count == 0)
+        if (breakdown.MacroedFlips?.Count <= 2)
             macroPenalty = TimeSpan.Zero;
         else
+        {
             macroPenalty = TimeSpan.FromSeconds(1);
+            if (breakdown.MacroedFlips.Max(f => f.BuyTime) > DateTime.Now - TimeSpan.FromSeconds(90))
+                summary.MacroWarning = true;
+        }
         summary.Penalty = currentDelay;
         return summary;
     }
@@ -99,7 +103,8 @@ public class DelayHandler
     public class Summary
     {
         public TimeSpan Penalty { get; set; }
-        public bool AntiMacro;
+        public bool AntiAfk;
+        public bool MacroWarning;
         public bool VerifiedMc;
     }
 
