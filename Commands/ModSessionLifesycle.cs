@@ -161,7 +161,7 @@ namespace Coflnet.Sky.Commands.MC
                 flipInstance.Interesting = Helper.PropertiesSelector.GetProperties(flipInstance.Auction).OrderByDescending(a => a.Rating).Select(a => a.Value).ToList();
             }
 
-            
+
             var sendTime = await delayHandler.AwaitDelayForFlip(flipInstance).ConfigureAwait(false);
             await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
             if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
@@ -236,14 +236,18 @@ namespace Coflnet.Sky.Commands.MC
             }, null, TimeSpan.FromSeconds(50), TimeSpan.FromSeconds(50));
 
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
-            await SendLoginPromptMessage(stringId);
+            _ = Task.Run(async () => await SendLoginPromptMessage(stringId)).ConfigureAwait(false);
             if (UserId.Value == default)
             {
+                using var waitLogin = socket.tracer.BuildSpan("waitLogin").AsChildOf(ConSpan).StartActive();
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DEFAULT_SETTINGS);
             }
             else
+            {
+                using var sub2SettingsSpan = socket.tracer.BuildSpan("sub2Settings").AsChildOf(ConSpan).StartActive();
                 await SubToSettings(UserId);
+            }
 
             loadSpan.Span.Finish();
             UpdateExtraDelay();
@@ -664,7 +668,7 @@ namespace Coflnet.Sky.Commands.MC
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo));
                     }
-                    if(sumary.MacroWarning)
+                    if (sumary.MacroWarning)
                     {
                         SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
                     }
