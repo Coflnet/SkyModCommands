@@ -23,7 +23,7 @@ public class DelayHandlerTests
         ids = new string[] { "hi" };
         var flipTrackingService = new Mock<FlipTrackingService>(null);
         sessionInfo = new SessionInfo() { };
-        result = new SpeedCompResult() { Penalty = 1 };
+        result = new SpeedCompResult() { Penalty = 1,MacroedFlips = new() };
         flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));
         delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, new System.Random(5));
         flipInstance = new FlipInstance(){Auction = new ()};
