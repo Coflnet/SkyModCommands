@@ -6,7 +6,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class CaptchaCommand : McCommand
     {
-        int debugMultiplier = 0;
+        int debugMultiplier = 1;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var sessionInfo = socket.SessionInfo;
