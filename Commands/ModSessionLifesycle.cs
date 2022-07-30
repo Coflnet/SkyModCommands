@@ -670,6 +670,7 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     if (sumary.MacroWarning)
                     {
+                        using var span = tracer.BuildSpan("macroWarning").WithTag("name", SessionInfo.McName).AsChildOf(ConSpan.Context).StartActive();
                         SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
                     }
 
