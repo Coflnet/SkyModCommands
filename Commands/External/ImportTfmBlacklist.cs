@@ -58,7 +58,7 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage($"{COFLNET}{McColorCodes.GREEN}Imported {type} blacklist from {userName}");
         }
 
-        private static async Task<ListEntry> ConvertItem(string s)
+        private static Task<ListEntry> ConvertItem(string s)
         {
             var entry = new ListEntry()
             {
@@ -87,7 +87,7 @@ namespace Coflnet.Sky.Commands.MC
             else 
                 entry.ItemTag = things[0];
 
-            return entry;
+            return Task.FromResult(entry);
         }
 
         public class TfmBlacklist

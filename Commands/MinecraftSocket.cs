@@ -285,6 +285,11 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        /// <summary>
+        /// Gets a service from DI
+        /// </summary>
+        /// <typeparam name="T">The type to get</typeparam>
+        /// <returns></returns>
         public virtual T GetService<T>()
         {
             return Shared.DiHandler.ServiceProvider.GetRequiredService<T>();
