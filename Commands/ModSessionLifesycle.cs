@@ -236,7 +236,7 @@ namespace Coflnet.Sky.Commands.MC
             }, null, TimeSpan.FromSeconds(50), TimeSpan.FromSeconds(50));
 
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
-            _ = Task.Run(async () => await SendLoginPromptMessage(stringId)).ConfigureAwait(false);
+            _ = socket.TryAsyncTimes(() => SendLoginPromptMessage(stringId), "login prompt");
             if (UserId.Value == default)
             {
                 using var waitLogin = socket.tracer.BuildSpan("waitLogin").AsChildOf(ConSpan).StartActive();
@@ -278,7 +278,7 @@ namespace Coflnet.Sky.Commands.MC
 
             // make sure there is only one connection
             AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
-            _ = AccountInfo.Update(AccountInfo.Value);
+            _ = socket.TryAsyncTimes(()=>AccountInfo.Update(AccountInfo.Value), "accountInfo update");
 
             FlipSettings.OnChange += UpdateSettings;
             AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai));
