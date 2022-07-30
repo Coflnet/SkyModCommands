@@ -18,9 +18,10 @@ namespace Coflnet.Sky.Commands.MC
             // feel free to look at the implementation and create solvers
             // I am gonna make it more complicated when someone actually breaks it :)
             var captchaSpan = socket?.tracer.BuildSpan("newCaptcha").AsChildOf(socket.ConSpan).StartActive();
-            CaptchaChallenge challenge = random.Next(0, 2) switch
+            CaptchaChallenge challenge = random.Next(0, 4) switch
             {
                 0 => MinMax(socket),
+                1 => ColorBased(socket),
                 _ => MathBased(socket)
             };
 
@@ -58,6 +59,34 @@ namespace Coflnet.Sky.Commands.MC
                 Question = $"What is the {McColorCodes.AQUA}{McColorCodes.BOLD}{d}{McColorCodes.RESET} of these numbers?",
                 Options = transformed.Select(t => t.s).ToArray(),
                 Correct = correct
+            };
+        }
+
+
+        private CaptchaChallenge ColorBased(MinecraftSocket socket)
+        {
+            var colors = new Dictionary<string, string>{
+                { "red", McColorCodes.RED},
+                { "green", McColorCodes.GREEN},
+                { "yellow", McColorCodes.YELLOW},
+                { "blue", McColorCodes.BLUE},
+                { "gray", McColorCodes.GRAY},
+                { "white", McColorCodes.WHITE},
+                { "aqua", McColorCodes.AQUA}
+            };
+            
+            var transformed = colors.OrderBy(c=>random.Next()).Select(c => new
+            {
+                c,
+                s = CreateOption(c.Key)
+            }).ToArray();
+            var correct = transformed.First();
+
+            return new()
+            {
+                Question = $"{correct.c.Value}What is the color of this message?",
+                Options = transformed.Select(t => t.s).ToArray(),
+                Correct = correct.s
             };
         }
 
