@@ -68,11 +68,12 @@ namespace Coflnet.Sky.Commands.MC
             var colors = new Dictionary<string, string>{
                 { "red", McColorCodes.RED},
                 { "green", McColorCodes.GREEN},
-                { "yellow", McColorCodes.YELLOW},
+                { "bright yellow", McColorCodes.YELLOW},
                 { "blue", McColorCodes.BLUE},
                 { "gray", McColorCodes.GRAY},
                 { "white", McColorCodes.WHITE},
-                { "aqua", McColorCodes.AQUA}
+                { "purple", McColorCodes.DARK_PURPLE},
+                { "gold/orange", McColorCodes.GOLD}
             };
             
             var transformed = colors.OrderBy(c=>random.Next()).Select(c => new
