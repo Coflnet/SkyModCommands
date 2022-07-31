@@ -37,6 +37,10 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 timingMessage,
                 $"{flip.Auction.Uuid}",
                 "Get your timings for flip").Break
+            .CoflCommand<AhOpenCommand>(
+                $"{McColorCodes.GOLD} AH {McColorCodes.GRAY}open seller's ah",
+                $"{flip.Auction.AuctioneerId}",
+                "Open the sellers ah").Break
             .CoflCommand<ReferenceCommand>(
                 $"{McColorCodes.WHITE}[?]{McColorCodes.GRAY} Get references",
                 $"{flip.Auction.Uuid}",

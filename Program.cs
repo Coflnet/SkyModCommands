@@ -14,6 +14,7 @@ namespace Coflnet.Sky.ModCommands.MC
     {
         public static void Main(string[] args)
         {
+            Console.WriteLine("Starting ModCommands " + System.Net.Dns.GetHostName());
             if (!int.TryParse(args.Length > 0 ? args[0] : "", out int port))
                 port = 8008;
             System.Threading.ThreadPool.SetMinThreads(20, 8);
