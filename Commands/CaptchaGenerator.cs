@@ -37,8 +37,12 @@ namespace Coflnet.Sky.Commands.MC
         private CaptchaChallenge MinMax(MinecraftSocket socket)
         {
             var numbers = new List<int>();
-            for (var i = 0; i < 6; i++)
-                numbers.Add(random.Next(1, 100));
+            while (numbers.Count < 6)
+            {
+                var number = random.Next(0, 100);
+                if(!numbers.Contains(number))
+                    numbers.Add(number);
+            }
 
             var transformed = numbers.Select(n => new
             {
@@ -86,7 +90,7 @@ namespace Coflnet.Sky.Commands.MC
             return new()
             {
                 Question = $"{correct.c.Value}What is the color of this message?",
-                Options = transformed.Select(t => t.s).ToArray(),
+                Options = transformed.Select(t => t.s).OrderBy(s=>random.Next()).ToArray(),
                 Correct = correct.s
             };
         }
@@ -104,7 +108,7 @@ namespace Coflnet.Sky.Commands.MC
             var solution = first + second;
             if (solution > 9)
             {
-                word = new string[] { "minus", "less", "-" }.OrderBy(a => random.Next()).First();
+                word = new string[] { "minus", "subtract", "-", "reduced by" }.OrderBy(a => random.Next()).First();
                 var bigger = Math.Max(first, second);
                 var smaler = Math.Min(first, second);
                 first = bigger;
