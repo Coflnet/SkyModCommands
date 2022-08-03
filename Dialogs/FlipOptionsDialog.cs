@@ -14,8 +14,8 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             var timingMessage = $"{McColorCodes.WHITE} ⌛{McColorCodes.GRAY}   Get own timings";
             var response = New().MsgLine("What do you want to do?");
             if (flip.AdditionalProps.TryGetValue("match", out string details) && details.Contains("whitelist"))
-                response = response.CoflCommand<WhichBLEntryCommand>("\n" + McColorCodes.GREEN + "matched your whitelist, click to see which",
-                         JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid, WL = true }));
+                response = response.CoflCommand<WhichBLEntryCommand>(McColorCodes.GREEN + "matched your whitelist, click to see which",
+                         JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid, WL = true })).Break;
 
             var passed = context.socket.Settings.MatchesSettings(FlipperService.LowPriceToFlip(flip));
             if (!passed.Item1)
