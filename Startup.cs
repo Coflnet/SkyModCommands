@@ -18,6 +18,7 @@ using Microsoft.OpenApi.Models;
 using OpenTracing;
 using OpenTracing.Util;
 using Prometheus;
+using Coflnet.Sky.Api.Client.Api;
 
 namespace Coflnet.Sky.ModCommands
 {
@@ -56,6 +57,7 @@ namespace Coflnet.Sky.ModCommands
             services.AddJaeger(1,1);
             services.AddTransient<ModService>();
             services.AddSingleton<ChatService>();
+            services.AddSingleton<IFlipApi, FlipApi>(s=>new FlipApi(Configuration["API_BASE_URL"]));
             services.AddCoflService();
         }
 
