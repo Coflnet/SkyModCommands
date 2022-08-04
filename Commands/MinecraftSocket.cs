@@ -110,6 +110,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<TimeCommand>();
             Commands.Add<DialogCommand>();
             Commands.Add<ProfitCommand>();
+            Commands.Add<FlipsCommand>();
             Commands.Add<AhOpenCommand>();
             Commands.Add<SetCommand>();
             Commands.Add<GetCommand>();
