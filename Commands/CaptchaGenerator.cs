@@ -17,7 +17,7 @@ namespace Coflnet.Sky.Commands.MC
             // hello there, you found where I generate questions
             // feel free to look at the implementation and create solvers
             // I am gonna make it more complicated when someone actually breaks it :)
-            var captchaSpan = socket?.tracer.BuildSpan("newCaptcha").AsChildOf(socket.ConSpan).StartActive();
+            using var captchaSpan = socket?.tracer.BuildSpan("newCaptcha").AsChildOf(socket.ConSpan).StartActive();
             CaptchaChallenge challenge = random.Next(0, 4) switch
             {
                 0 => MinMax(socket),
