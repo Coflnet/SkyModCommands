@@ -88,7 +88,7 @@ public class DelayHandler
         else
         {
             macroPenalty = TimeSpan.FromSeconds(1);
-            if (breakdown?.MacroedFlips == null && breakdown.MacroedFlips.Max(f => f.BuyTime) > DateTime.Now - TimeSpan.FromSeconds(130))
+            if (breakdown?.MacroedFlips != null && breakdown.MacroedFlips.Max(f => f.BuyTime) > DateTime.Now - TimeSpan.FromSeconds(130))
                 summary.MacroWarning = true;
         }
         summary.Penalty = currentDelay;
