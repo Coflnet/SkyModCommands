@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Models.Mod;
 using Coflnet.Sky.Commands.Shared;
@@ -64,6 +65,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var lineNum = 0;
             var colorIndex = 0;
+            var optionsToAdd = Enum.GetValues<DescriptionField>().Where(e=>(int)e < 9000).GroupBy(e => (int)e).Select(g=>g.First()).ToList();
             var d = DialogBuilder.New.Break.ForEach(settings.Fields, (d, line) =>
             {
                 var elementInLine = 0;
@@ -79,7 +81,7 @@ namespace Coflnet.Sky.Commands.MC
                     elementInLine++;
                 }).LineBreak();
                 lineNum++;
-            }).Break.MsgLine("Add one of the following stats").ForEach(Enum.GetValues<DescriptionField>(), (d, f) =>
+            }).Break.MsgLine("Add one of the following stats").ForEach(optionsToAdd, (d, f) =>
             {
                 var color = (colorIndex++ % 3) switch
                 {
