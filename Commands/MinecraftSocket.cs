@@ -129,6 +129,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<ImportTfmCommand>();
             Commands.Add<WhichBLEntryCommand>();
             Commands.Add<ReminderCommand>();
+            Commands.Add<FiltersCommand>();
             Commands.Add<AddReminderTimeCommand>();
             Commands.Add<LoreCommand>();
 
