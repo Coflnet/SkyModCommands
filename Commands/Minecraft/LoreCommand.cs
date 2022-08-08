@@ -53,8 +53,8 @@ namespace Coflnet.Sky.Commands.MC
                         settings.Fields.RemoveAt(line);
                     break;
                 case "down":
-                    if (line >= settings.Fields.Count - 1)
-                        break;
+                    if (line == settings.Fields.Count - 1)
+                        settings.Fields.Add(new());
                     settings.Fields[line].Remove(field);
                     settings.Fields[line + 1].Add(field);
                     // remove empty lines
@@ -85,7 +85,7 @@ namespace Coflnet.Sky.Commands.MC
 
                     if (lineNum > 0)
                         d.CoflCommand<LoreCommand>(McColorCodes.GREEN + "⬆ ", $"up {lineNum} {f}", $"Move {f} up to line {lineNum}");
-                    if(lineNum < settings.Fields.Count - 2)
+                    if(lineNum < settings.Fields.Count)
                         d.CoflCommand<LoreCommand>(McColorCodes.GREEN + "⬇", $"down {lineNum} {f}", $"Move {f} down to line {lineNum + 2}");
                     if (elementInLine > 0)
                         d.CoflCommand<LoreCommand>(McColorCodes.YELLOW + "<-", $"left {lineNum} {f}", $"Move {f} to the left");
