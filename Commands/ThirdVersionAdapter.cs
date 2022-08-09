@@ -22,9 +22,9 @@ namespace Coflnet.Sky.Commands.MC
         {
             var uuid = flip.Auction.Uuid;
             var bedFlip = flip.Auction.Start + TimeSpan.FromSeconds(20) > DateTime.Now;
-            var worth = flip.Profit;
+            var worth = flip.Profit / 1024;
             if(flip.Context.ContainsKey("priorityOpen"))
-                worth *= 100;
+                worth *= 64;
             if(bedFlip)
                 worth = 0;
 
