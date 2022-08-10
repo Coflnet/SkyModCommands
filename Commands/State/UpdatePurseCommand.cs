@@ -9,10 +9,10 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (socket.Settings == null || socket.Settings.ModSettings.NoAdjustToPurse)
                 return;
-            var newVal = int.Parse(arguments.Trim('"'));
+            var newVal = double.Parse(arguments.Trim('"'));
             if (Math.Abs(newVal - socket.Settings.MaxCost) < 50)
                 return; // minimal change not relevant (reduce load on db updates)
-            socket.Settings.MaxCost = newVal;
+            socket.Settings.MaxCost = (long)newVal;
             socket.Settings.LastChanged = "preventUpdateMsg";
             await socket.sessionLifesycle.FlipSettings.Update(socket.Settings);
         }
