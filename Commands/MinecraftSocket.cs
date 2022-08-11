@@ -354,7 +354,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (!Commands.TryGetValue(a.type.ToLower(), out McCommand command))
             {
-                SendMessage($"The command '{a.type}' is not know. Please check your spelling ;)");
+                SendMessage($"The command '{a.type}' is not known. Please check your spelling ;)");
                 return;
             }
 
