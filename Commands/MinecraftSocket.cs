@@ -354,7 +354,9 @@ namespace Coflnet.Sky.Commands.MC
 
             if (!Commands.TryGetValue(a.type.ToLower(), out McCommand command))
             {
-                SendMessage($"The command '{a.type}' is not known. Please check your spelling ;)");
+                var closest = Commands.Keys.OrderBy(x => Fastenshtein.Levenshtein.Distance(x.ToLower(), a.type)).FirstOrDefault();
+                SendMessage($"{COFLNET}The command '{McColorCodes.ITALIC + a.type + McColorCodes.RESET + McCommand.DEFAULT_COLOR}' is not known.\n",
+                            $"Did you mean '{McColorCodes.ITALIC + closest + McColorCodes.RESET + McCommand.DEFAULT_COLOR}'?");
                 return;
             }
 
