@@ -24,7 +24,6 @@ namespace Coflnet.Sky.Commands.MC
                 if (arguments.Length == 0 || int.TryParse(arguments.Split(' ')[0], out page))
                 {
                     var pageSize = 12;
-                    page++;
                     if(page < 1)
                         page = 1;
                     Func<string, string> formatSh = v => MC.McColorCodes.GRAY + " (" + MC.McColorCodes.GREEN + v + MC.McColorCodes.GRAY + ")";
