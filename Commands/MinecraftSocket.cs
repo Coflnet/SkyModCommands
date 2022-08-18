@@ -97,6 +97,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<OnlineCommand>();
             Commands.Add<DelayCommand>();
             Commands.Add<DebugSCommand>();
+            Commands.Add<DerpyCommand>();
             Commands.Add<BlacklistCommand>("bl");
             Commands.Add<WhitelistCommand>("wl");
             Commands.Add<MuteCommand>();
