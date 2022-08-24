@@ -38,6 +38,13 @@ public class DelayHandler
     {
         if (currentDelay <= TimeSpan.Zero)
             return timeProvider.Now;
+        // flips likely to get bottet have no delay 
+        var tag = flipInstance.Auction.Tag;
+        var profit = flipInstance.ProfitPercentage;
+        if ((tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE") && profit > 100
+            || (tag.Contains("CRIMSON") || tag.Contains("ASPECT")) && profit > 200
+            || profit > 900)
+            return timeProvider.Now;
         var myIndex = FlipIndex;
         Interlocked.Increment(ref FlipIndex);
         TimeSpan delay = GetCorrectDelay(myIndex);
