@@ -278,7 +278,7 @@ namespace Coflnet.Sky.Commands.MC
 
             // make sure there is only one connection
             AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
-            _ = socket.TryAsyncTimes(()=>AccountInfo.Update(AccountInfo.Value), "accountInfo update");
+            _ = socket.TryAsyncTimes(() => AccountInfo.Update(AccountInfo.Value), "accountInfo update");
 
             FlipSettings.OnChange += UpdateSettings;
             AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai));
@@ -348,7 +348,7 @@ namespace Coflnet.Sky.Commands.MC
                     .StartActive();
 
             var userApi = socket.GetService<PremiumService>();
-            var expiresTask = userApi.ExpiresWhen(info.UserId);
+            var expiresTask = userApi.GetCurrentTier(info.UserId);
             var userIsVerifiedTask = MakeSureUserIsVerified(info);
 
             try
@@ -382,11 +382,8 @@ namespace Coflnet.Sky.Commands.MC
 
 
                 var expires = await expiresTask;
-                if (expires > DateTime.Now)
-                {
-                    info.Tier = AccountTier.PREMIUM;
-                    info.ExpiresAt = expires;
-                }
+                info.Tier = expires.Item1;
+                info.ExpiresAt = expires.Item2;
 
                 UpdateConnectionTier(info, span.Span);
                 span.Span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
@@ -663,7 +660,7 @@ namespace Coflnet.Sky.Commands.MC
 
                     var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
 
-                    if (sumary.AntiAfk)
+                    if (sumary.AntiAfk && !FlipSettings.Value.DisableFlips)
                     {
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo));
