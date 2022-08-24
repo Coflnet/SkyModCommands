@@ -23,10 +23,10 @@ public class DelayHandlerTests
         ids = new string[] { "hi" };
         var flipTrackingService = new Mock<FlipTrackingService>(null);
         sessionInfo = new SessionInfo() { };
-        result = new SpeedCompResult() { Penalty = 1,MacroedFlips = new() };
+        result = new SpeedCompResult() { Penalty = 1, MacroedFlips = new() };
         flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));
         delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, new System.Random(5));
-        flipInstance = new FlipInstance(){Auction = new ()};
+        flipInstance = new FlipInstance() { Auction = new() { StartingBid = 5 } };
     }
 
     public async Task RequireMc()
@@ -103,8 +103,8 @@ public class DelayHandlerTests
         var delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
         timeProvider.TickForward(System.TimeSpan.FromSeconds(0.02));
         Assert.IsTrue(delayTask.IsCompleted);
-        flipInstance.Auction.StartingBid = 5;
-        flipInstance.MedianPrice = 5_100_100;
+        flipInstance.Auction.StartingBid = 5_000_000;
+        flipInstance.MedianPrice = 10_100_100;
         flipInstance.Finder = Core.LowPricedAuction.FinderType.SNIPER_MEDIAN;
         delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
         Assert.IsFalse(delayTask.IsCompleted);

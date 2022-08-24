@@ -41,8 +41,8 @@ public class DelayHandler
         // flips likely to get bottet have no delay 
         var tag = flipInstance.Auction.Tag;
         var profit = flipInstance.ProfitPercentage;
-        if ((tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE") && profit > 100
-            || (tag.Contains("CRIMSON") || tag.Contains("ASPECT")) && profit > 200
+        if (tag != null && ((tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE") && profit > 100
+            || (tag.Contains("CRIMSON") || tag.Contains("ASPECT")) && profit > 200)
             || profit > 900)
             return timeProvider.Now;
         var myIndex = FlipIndex;
