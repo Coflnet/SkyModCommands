@@ -6,13 +6,13 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class DelayCommand : McCommand
     {
-        public override Task Execute(MinecraftSocket socket, string arguments)
+        public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var delayAmount = socket.sessionLifesycle.CurrentDelay;
-            if (socket.sessionLifesycle.AccountInfo.Value?.Tier == 0)
+            if (await socket.UserAccountTier() == 0)
             {
                 socket.SendMessage(COFLNET + $"You are using the {McColorCodes.WHITE} free version{DEFAULT_COLOR} and are thus delayed by multiple minutes. Click to get more info", "https://sky.coflnet.com/premium", "Please consider supporting us");
-                return Task.CompletedTask;
+                return;
             }
             if (delayAmount <= System.TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"You are currently not delayed at all :)", null, "Enjoy flipping at full speed☻");
@@ -51,7 +51,6 @@ namespace Coflnet.Sky.Commands.MC
                                 "The delay will be removed after you solve the captcha 10 seconds before the next api update"))
                      );
             }
-            return Task.CompletedTask;
         }
 
         private static string FormatLines(params string[] lines)
