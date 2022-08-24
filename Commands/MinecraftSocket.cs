@@ -720,5 +720,13 @@ namespace Coflnet.Sky.Commands.MC
 
             return true;
         }
+
+        public Task<AccountTier> UserAccountTier()
+        {
+            var tier = sessionLifesycle.AccountInfo?.Value?.Tier;
+            if(tier == null || sessionLifesycle.AccountInfo?.Value?.ExpiresAt < DateTime.Now)
+                tier = AccountTier.NONE;
+            return Task.FromResult(tier.Value);
+        }
     }
 }
