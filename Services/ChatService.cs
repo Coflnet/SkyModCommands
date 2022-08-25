@@ -56,7 +56,7 @@ namespace Coflnet.Sky.ModCommands.Services
                 {
                     var chatMsg = new Chat.Client.Model.ChatMessage(
                         message.SenderUuid, message.SenderName,
-                        (int)message.Tier > 0 ? McColorCodes.DARK_GREEN : McColorCodes.GRAY,
+                        (int)message.Tier > 0 ? McColorCodes.DARK_GREEN : McColorCodes.GRAY + (message.Tier == AccountTier.PREMIUM_PLUS ? "+" : ""),
                         message.Message);
                     span.Log("sending to service");
                     await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
