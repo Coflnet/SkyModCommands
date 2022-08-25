@@ -179,7 +179,9 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnOpen()
         {
             ConSpan = tracer.BuildSpan("connection").Start();
-            SendMessage(COFLNET + "§fNOTE §7This is a development preview, it is NOT stable/bugfree", $"https://discord.gg/wvKXfTgCfb", "Attempting to load your settings on " + System.Net.Dns.GetHostName());
+            SendMessage(COFLNET + "§fNOTE §7This is a development preview, it is NOT stable/bugfree", 
+                        $"https://discord.gg/wvKXfTgCfb", 
+                        "Attempting to load your settings on " + System.Net.Dns.GetHostName() + " conId: " + ConSpan.Context.TraceId);
             formatProvider = new FormatProvider(this);
             base.OnOpen();
             Task.Run(() =>
