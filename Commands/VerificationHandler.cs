@@ -12,7 +12,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         private MinecraftSocket socket;
         private SessionInfo SessionInfo;
-        private ITracer tracer;
+        private ITracer tracer => socket.tracer;
 
         private DateTime LastVerificationRequest = default;
 
@@ -22,7 +22,6 @@ namespace Coflnet.Sky.Commands.MC
         {
             this.socket = socket;
             SessionInfo = socket.SessionInfo;
-            tracer = socket.tracer;
             ConSpan = socket.ConSpan;
         }
 
