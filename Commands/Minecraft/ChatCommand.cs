@@ -121,7 +121,6 @@ namespace Coflnet.Sky.Commands.MC
                         socket.SessionInfo.SentMutedNoteFor.Add(m.Uuid);
                         return true;
                     }
-                    Console.WriteLine("got message " + m.Message);
                     var color = m.Prefix;
                     return socket.SendMessage(
                         new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatoptions {m.Name} {m.ClientName} {m.Message}", $"click for more options"),
