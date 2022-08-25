@@ -34,6 +34,7 @@ namespace Coflnet.Sky.Commands.MC
         public System.Threading.Timer PingTimer;
         private SpamController spamController = new SpamController();
         private DelayHandler delayHandler;
+        public VerificationHandler VerificationHandler;
         public TimeSpan CurrentDelay => delayHandler?.CurrentDelay ?? DelayHandler.DefaultDelay;
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
@@ -54,6 +55,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             this.socket = socket;
             delayHandler = new DelayHandler(TimeProvider.Instance, socket.GetService<FlipTrackingService>(), this.SessionInfo);
+            VerificationHandler = new VerificationHandler(socket);
         }
 
         public async Task<bool> SendFlip(LowPricedAuction flip)
@@ -237,6 +239,8 @@ namespace Coflnet.Sky.Commands.MC
 
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
             _ = socket.TryAsyncTimes(() => SendLoginPromptMessage(stringId), "login prompt");
+            if (MinecraftSocket.IsDevMode)
+                await UserId.Update("1");
             if (UserId.Value == default)
             {
                 using var waitLogin = socket.tracer.BuildSpan("waitLogin").AsChildOf(ConSpan).StartActive();
@@ -349,7 +353,7 @@ namespace Coflnet.Sky.Commands.MC
 
             var userApi = socket.GetService<PremiumService>();
             var expiresTask = userApi.GetCurrentTier(info.UserId);
-            var userIsVerifiedTask = MakeSureUserIsVerified(info);
+            var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
 
             try
             {
@@ -394,8 +398,8 @@ namespace Coflnet.Sky.Commands.MC
 
                 SendMessage(socket.formatProvider.WelcomeMessage());
                 await Task.Delay(500);
-                await userIsVerifiedTask;
                 await helloTask;
+                await userIsVerifiedTask;
                 //SendMessage(COFLNET + $"{McColorCodes.DARK_GREEN} click this to relink your account",
                 //GetAuthLink(stringId), "You don't need to relink your account. \nThis is only here to allow you to link your mod to the website again should you notice your settings aren't updated");
                 return;
@@ -407,16 +411,6 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private async Task MakeSureUserIsVerified(AccountInfo info)
-        {
-            var isVerified = await CheckVerificationStatus(info);
-            if (!isVerified && info.Tier > 0)
-            {
-                SendMessage($"{COFLNET} You have premium but you haven't verified your account yet.");
-                await Task.Delay(1000);
-                SendMessage($"{COFLNET} You have to verify your account before you receive flips at max speed. See above for how to do that.", null, "This is part of our anti macro system and required to make sure you are not connecting from a cracked account");
-            }
-        }
 
         public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
         {
@@ -442,84 +436,7 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-        public virtual async Task<bool> CheckVerificationStatus(AccountInfo accountInfo)
-        {
-            using var verificationSpan = tracer.BuildSpan("VerificationCheck").AsChildOf(ConSpan.Context).StartActive();
-            if (SessionInfo.McUuid == null)
-                await Task.Delay(500);
-            var mcUuid = SessionInfo.McUuid;
-            var userId = accountInfo.UserId.ToString();
-            if (accountInfo.McIds.Contains(SessionInfo.McUuid))
-            {
-                SessionInfo.VerifiedMc = true;
-                // dispatch access request to update last request time (and keep)
-                _ = socket.TryAsyncTimes(() => McAccountService.Instance.ConnectAccount(userId, mcUuid), "", 1);
-                return SessionInfo.VerifiedMc;
-            }
-            McAccountService.ConnectionRequest connect = null;
-            for (int i = 0; i < 3; i++)
-            {
-                if (string.IsNullOrEmpty(mcUuid))
-                    mcUuid = SessionInfo.McUuid;
-                connect = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
-                if (connect != null)
-                    break;
-                await Task.Delay(500);
-                verificationSpan.Span.Log($"failed {userId} {mcUuid} {mcUuid is null}");
-            }
-            if (connect == null)
-            {
-                socket.Log("could not get connect result");
-                SendMessage(COFLNET + McColorCodes.RED + "We could not verify your account. Please click this to create a report and seek support on the discord server with the id", "/cofl report mcaccount link", "Click to create report\nThis helps us to fix the issue");
-                return false;
-            }
-            if (connect.IsConnected)
-            {
-                SessionInfo.VerifiedMc = true;
-                if (!accountInfo.McIds.Contains(mcUuid))
-                    accountInfo.McIds.Add(mcUuid);
-                return SessionInfo.VerifiedMc;
-            }
-            using IScope verification = await SendVerificationInstructions(connect);
 
-            return false;
-        }
-
-        private async Task<IScope> SendVerificationInstructions(McAccountService.ConnectionRequest connect)
-        {
-            var verification = tracer.BuildSpan("Verification").AsChildOf(ConSpan.Context).StartActive();
-            var bid = connect.Code;
-            ItemPrices.AuctionPreview targetAuction = null;
-            foreach (var type in new List<string> { "STICK", "RABBIT_HAT", "WOOD_SWORD", "VACCINE_TALISMAN" })
-            {
-                targetAuction = await NewMethod(bid, type);
-                if (targetAuction != null)
-                    break;
-            }
-            verification.Span.SetTag("code", bid);
-            verification.Span.Log(JSON.Stringify(targetAuction));
-
-            socket.SendMessage(new ChatPart(
-                $"{COFLNET}You connected from an unkown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. ", "/ah"));
-            if (targetAuction != null)
-                socket.SendMessage(new ChatPart($"{McColorCodes.YELLOW}[CLICK TO {McColorCodes.BOLD}VERIFY{McColorCodes.RESET + McColorCodes.YELLOW} by BIDDING {bid}]", $"/viewauction {targetAuction?.Uuid}",
-                $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
-            else
-                socket.SendMessage($"Sorry could not find a cheap auction to bid on. You could create an auction yourself for any item you want. The starting bid has to end with {McColorCodes.AQUA}{bid.ToString().PadLeft(3, '0')}{McCommand.DEFAULT_COLOR}");
-            return verification;
-        }
-
-        private static async Task<ItemPrices.AuctionPreview> NewMethod(int bid, string type)
-        {
-            var r = new Random();
-            var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
-            {
-                name = type,
-            });
-
-            var targetAuction = activeAuction.Where(a => a.Price < bid).OrderBy(x => r.Next()).FirstOrDefault();
-            return targetAuction;
-        }
 
         public void UpdateConnectionTier(AccountInfo accountInfo, OpenTracing.ISpan span)
         {

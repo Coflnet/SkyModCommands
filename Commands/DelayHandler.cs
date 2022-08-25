@@ -62,7 +62,8 @@ public class DelayHandler
     {
         var breakdown = await flipTrackingService.GetSpeedComp(ids);
         var hourCount = breakdown?.Times?.Where(t => t.TotalSeconds > 1).GroupBy(t => System.TimeSpan.Parse(t.Age).Hours).Count() ?? 0;
-        currentDelay = TimeSpan.FromSeconds(breakdown.Penalty);
+        var recommendedPenalty = breakdown?.Penalty ?? 2;
+        currentDelay = TimeSpan.FromSeconds(recommendedPenalty);
 
         var summary = new Summary();
 
@@ -84,13 +85,13 @@ public class DelayHandler
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(1.5))
                 currentDelay = AntiMacroDelay;
         }
-        else if (breakdown.Penalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(28))
+        else if (recommendedPenalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(28))
         {
             summary.AntiAfk = true;
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(30))
                 currentDelay = AntiMacroDelay;
         }
-        if (breakdown.MacroedFlips?.Count <= 2)
+        if (breakdown?.MacroedFlips?.Count <= 2)
             macroPenalty = TimeSpan.Zero;
         else
         {

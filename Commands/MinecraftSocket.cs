@@ -521,7 +521,7 @@ namespace Coflnet.Sky.Commands.MC
         public string Error(Exception exception, string message = null, string additionalLog = null)
         {
             using var error = tracer.BuildSpan("error").WithTag("message", message).AsChildOf(ConSpan).WithTag("error", "true").StartActive();
-            if (System.Net.Dns.GetHostName().Contains("ekwav") || SessionInfo.McUuid == "384a029294fc445e863f2c42fe9709cb")
+            if (IsDevMode || SessionInfo.McUuid == "384a029294fc445e863f2c42fe9709cb")
                 dev.Logger.Instance.Error(exception, message);
             error.Span.Log(exception.ToString());
             if (additionalLog != null)
@@ -533,6 +533,8 @@ namespace Coflnet.Sky.Commands.MC
 
             return error.Span.Context.TraceId;
         }
+
+        public static bool IsDevMode => System.Net.Dns.GetHostName().Contains("ekwav");
 
         /// <summary>
         /// Log a message to the connection

@@ -47,7 +47,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (!socket.SessionInfo.VerifiedMc)
             {
-                if (!await socket.sessionLifesycle.CheckVerificationStatus(socket.sessionLifesycle.AccountInfo))
+                if (!await socket.sessionLifesycle.VerificationHandler.CheckVerificationStatus(socket.sessionLifesycle.AccountInfo))
                 {
                     socket.SendMessage(COFLNET + "Sorry, you need to verify your minecraft account to write in chat", null, "Some dude abused the chat system so sadly this is necessary now.\nSee above for instructions");
                     return;

@@ -11,7 +11,6 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            Console.WriteLine(arguments);
             var uuid = arguments.Trim('"');
             var flip = socket.GetFlip(uuid);
             if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ?? false)
