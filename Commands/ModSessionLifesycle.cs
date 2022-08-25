@@ -397,7 +397,7 @@ namespace Coflnet.Sky.Commands.MC
                 var helloTask = SendAuthorizedHello(info);
 
                 SendMessage(socket.formatProvider.WelcomeMessage());
-                await Task.Delay(500);
+                await Task.Delay(200);
                 await helloTask;
                 await userIsVerifiedTask;
                 //SendMessage(COFLNET + $"{McColorCodes.DARK_GREEN} click this to relink your account",
