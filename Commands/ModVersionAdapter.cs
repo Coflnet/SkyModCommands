@@ -36,16 +36,24 @@ namespace Coflnet.Sky.Commands.MC
             };
 
 
-            if (socket.Settings.Visibility?.Seller ?? false && flip.SellerName != null)
+            if ((socket.Settings.Visibility?.Seller ?? false) && !NoSeller(seller))
             {
-                parts.Insert(1, new ChatPart(McColorCodes.GRAY + " From: " + McColorCodes.AQUA + flip.SellerName, $"/ah {flip.SellerName}", $"{McColorCodes.GRAY}Open the ah for {McColorCodes.AQUA} {flip.SellerName}"));
+                parts.Insert(1, new ChatPart(McColorCodes.GRAY + " From: " + McColorCodes.AQUA + seller, $"/ah {seller}", $"{McColorCodes.GRAY}Open the ah for {McColorCodes.AQUA} {flip.SellerName}"));
             }
-            else if (socket.Settings.Visibility?.SellerOpenButton ?? false)
+            else if ((socket.Settings.Visibility?.SellerOpenButton ?? false) || NoSeller(seller))
             {
-                parts.Insert(1, new ChatPart(McColorCodes.GRAY + " sellers ah", $"/cofl ahopen {flip.Auction.AuctioneerId}", $"{McColorCodes.GRAY}Open the ah for the seller"));
+                var hover = $"{McColorCodes.GRAY}Open the ah for the seller";
+                if (seller == "not-found")
+                    hover = $"The seller name could not be found. Click to try openening their ah anyways. \nYou can also permanently activate this button instead of the name to improve flip speeds.";
+                parts.Insert(1, new ChatPart(McColorCodes.GRAY + " sellers ah", $"/cofl ahopen {flip.Auction.AuctioneerId}", hover));
             }
 
             return parts;
+
+            static bool NoSeller(string seller)
+            {
+                return seller == "not-found" || string.IsNullOrEmpty(seller);
+            }
         }
     }
 }

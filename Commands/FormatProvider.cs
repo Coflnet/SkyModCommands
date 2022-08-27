@@ -170,11 +170,12 @@ namespace Coflnet.Sky.Commands.MC
                                     + $"{McColorCodes.GRAY} MinProfit: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfit)}  "
                                     + $"{McColorCodes.GRAY} MaxCost: {McColorCodes.AQUA}{FormatPrice(Settings.MaxCost)}"
                                     + $"{McColorCodes.GRAY} Blacklist-Size: {McColorCodes.AQUA}{Settings?.BlackList?.Count ?? 0}\n "
-                                    + $"{McColorCodes.AQUA}: click this if you want to change a setting \n"
                                     + "§8: nothing else to do have a nice day :)";
             var hover = $"{McColorCodes.GRAY} Volume: {McColorCodes.AQUA}{Settings.MinVolume}\n"
                         + $"{McColorCodes.GRAY} MinProfitPercent: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfitPercent)}";
-            return new DialogBuilder().Msg(text, "https://sky.coflnet.com/flipper", hover);
+            return new DialogBuilder().MsgLine(text, "https://sky.coflnet.com/flipper", hover)
+                    .MsgLine($"{McColorCodes.AQUA}: click this if you want to change a setting", null, 
+                            $"Opens the website.\nalternatively you can use the {McColorCodes.AQUA}/cofl set{McColorCodes.WHITE} command to change settings in game");
         }
 
 
