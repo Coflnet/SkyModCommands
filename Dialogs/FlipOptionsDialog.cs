@@ -1,5 +1,6 @@
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.ModCommands.Dialogs
@@ -16,18 +17,8 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             if (flip.AdditionalProps.TryGetValue("match", out string details) && details.Contains("whitelist"))
                 response = response.CoflCommand<WhichBLEntryCommand>(McColorCodes.GREEN + "matched your whitelist, click to see which",
                          JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid, WL = true })).Break;
-
-            var flipInstance = FlipperService.LowPriceToFlip(flip);
-            var passed = context.socket.Settings.MatchesSettings(flipInstance);
-            if (!passed.Item1)
-                if (flip.AdditionalProps.TryGetValue("match", out details) && details.Contains("blacklist"))
-                    response = response.CoflCommand<WhichBLEntryCommand>(McColorCodes.RED + "matched your blacklist, click to see which",
-                             JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid })).Break;
-                else
-                    if (passed.Item2 == "profit Percentage")
-                    response = response.MsgLine($"{McColorCodes.RED} Blocked because of {passed.Item2} - {context.FormatNumber(flipInstance.ProfitPercentage)}%");
-                else
-                    response = response.MsgLine($"{McColorCodes.RED} Blocked because of {passed.Item2}");
+            
+            response = AddBlockedReason(context, flip, response);
 
             response = response.CoflCommand<RateCommand>(
                 $" {redX}  downvote / report",
@@ -57,6 +48,22 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 " ➹  Open on website",
                 $"https://sky.coflnet.com/a/{flip.Auction.Uuid}",
                 "Open link").Break;
+            return response;
+        }
+
+        private static DialogBuilder AddBlockedReason(DialogArgs context, LowPricedAuction flip, DialogBuilder response)
+        {
+            var flipInstance = FlipperService.LowPriceToFlip(flip);
+            var passed = context.socket.Settings.MatchesSettings(flipInstance);
+            if (!passed.Item1)
+                if (flip.AdditionalProps.TryGetValue("match", out string bldetails) && bldetails.Contains("blacklist"))
+                    response = response.CoflCommand<WhichBLEntryCommand>(McColorCodes.RED + "matched your blacklist, click to see which",
+                             JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid })).Break;
+                else
+                    if (passed.Item2 == "profit Percentage")
+                    response = response.MsgLine($"{McColorCodes.RED} Blocked because of {passed.Item2} - {context.FormatNumber(flipInstance.ProfitPercentage)}%");
+                else
+                    response = response.MsgLine($"{McColorCodes.RED} Blocked because of {passed.Item2}");
             return response;
         }
     }
