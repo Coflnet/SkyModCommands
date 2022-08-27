@@ -17,12 +17,16 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 response = response.CoflCommand<WhichBLEntryCommand>(McColorCodes.GREEN + "matched your whitelist, click to see which",
                          JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid, WL = true })).Break;
 
-            var passed = context.socket.Settings.MatchesSettings(FlipperService.LowPriceToFlip(flip));
+            var flipInstance = FlipperService.LowPriceToFlip(flip);
+            var passed = context.socket.Settings.MatchesSettings(flipInstance);
             if (!passed.Item1)
                 if (flip.AdditionalProps.TryGetValue("match", out details) && details.Contains("blacklist"))
                     response = response.CoflCommand<WhichBLEntryCommand>(McColorCodes.RED + "matched your blacklist, click to see which",
                              JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid })).Break;
-                else 
+                else
+                    if (passed.Item2 == "profit Percentage")
+                    response = response.MsgLine($"{McColorCodes.RED} Blocked because of {passed.Item2} - {context.FormatNumber(flipInstance.ProfitPercentage)}%");
+                else
                     response = response.MsgLine($"{McColorCodes.RED} Blocked because of {passed.Item2}");
 
             response = response.CoflCommand<RateCommand>(
