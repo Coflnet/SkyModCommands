@@ -143,8 +143,8 @@ namespace Coflnet.Sky.Commands.MC
         /// <returns></returns>
         private async Task<Task> SendAfterDelay(FlipInstance flipInstance)
         {
-            var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(19.5) - DateTime.Now;
-            var waitTime = bedTime - TimeSpan.FromSeconds(3.9);
+            var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(19.9) - DateTime.Now;
+            var waitTime = bedTime - TimeSpan.FromSeconds(3.1);
             if (CurrentDelay > TimeSpan.FromSeconds(0.4) && bedTime > TimeSpan.Zero)
                 await Task.Delay(bedTime);
             else if (waitTime > TimeSpan.Zero && !(FlipSettings.Value?.ModSettings.NoBedDelay ?? false))
