@@ -115,7 +115,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SetCommand>();
             Commands.Add<GetCommand>();
             Commands.Add<TopUpCommand>();
-            Commands.Add<PurchaseCommand>();
+            Commands.Add<PurchaseCommand>("buy");
             Commands.Add<HelpCommand>();
             Commands.Add<LogoutCommand>();
             Commands.Add<UpdatePurseCommand>();

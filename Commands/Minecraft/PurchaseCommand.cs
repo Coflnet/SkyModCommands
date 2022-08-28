@@ -19,9 +19,9 @@ namespace Coflnet.Sky.Commands.MC
             if(string.IsNullOrEmpty(productSlug))
             {
                 socket.Dialog(db => db.MsgLine($"What plan do you want to purchase/extend")
-                        .CoflCommand<PurchaseCommand>($" premium+", "premium_plus 1", "Purchase prem+")
-                        .CoflCommand<PurchaseCommand>($" premium", "premium 1", "purchase premium")
-                        .CoflCommand<PurchaseCommand>($" starter", "starter_premium 1", "purchase starter"));
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+", "premium_plus 1", $"Purchase {McColorCodes.GOLD}prem+")
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GREEN}premium", "premium 1", $"purchase {McColorCodes.GREEN}premium")
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter", "starter_premium 1", "purchase starter"));
                 return;
             }
 
