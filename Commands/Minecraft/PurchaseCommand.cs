@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Sky.ModCommands.Dialogs;
@@ -15,6 +16,15 @@ namespace Coflnet.Sky.Commands.MC
             var parts = arguments.Trim('"').Split(' ');
             var productSlug = parts[0];
 
+            if(string.IsNullOrEmpty(productSlug))
+            {
+                socket.Dialog(db => db.MsgLine($"What plan do you want to purchase/extend")
+                        .CoflCommand<PurchaseCommand>($" premium+", "premium_plus 1", "Purchase prem+")
+                        .CoflCommand<PurchaseCommand>($" premium", "premium 1", "purchase premium")
+                        .CoflCommand<PurchaseCommand>($" starter", "starter_premium 1", "purchase starter"));
+                return;
+            }
+
             var product = await productApi.ProductsPProductSlugGetAsync(productSlug);
             if (product == null)
             {
@@ -31,9 +41,15 @@ namespace Coflnet.Sky.Commands.MC
                 }
             if (parts.Length < 3 || parts[2] != socket.SessionInfo.ConnectionId)
             {
-                socket.SendMessage(new DialogBuilder()
-                    .MsgLine($"Do you want to buy the product {product.Title} {count}x for a total of {socket.FormatPrice((long)product.Cost)} cofl coins")
-                    .CoflCommand<PurchaseCommand>($"  {McColorCodes.GREEN}Yes  ", $"{productSlug} {count} {socket.SessionInfo.ConnectionId}", $"Confirm purchase (paying {socket.FormatPrice((long)product.Cost)} cofl coins)")
+                var totalDays = (int)TimeSpan.FromSeconds(product.OwnershipSeconds * count).TotalDays;
+            socket.SendMessage(new DialogBuilder()
+                    .Msg($"Do you want to buy the {McColorCodes.AQUA}{product.Title}{McColorCodes.GRAY} service {McColorCodes.AQUA}{count}x{McColorCodes.GRAY} ")
+                    .Msg($"for a total of {McColorCodes.AQUA}{socket.FormatPrice((long)product.Cost)}{McColorCodes.GRAY} cofl coins ")
+                    .MsgLine($"lasting {McColorCodes.AQUA}{totalDays}{McColorCodes.GRAY} days")
+                    .CoflCommand<PurchaseCommand>(
+                            $"  {McColorCodes.GREEN}Yes  ", 
+                            $"{productSlug} {count} {socket.SessionInfo.ConnectionId}", 
+                            $"Confirm purchase (paying {socket.FormatPrice((long)product.Cost)} cofl coins)")
                     .DialogLink<EchoDialog>($"  {McColorCodes.RED}No  ", $"Purchase Canceled", $"{McColorCodes.RED}Cancel purchase"));
                 return;
             }
@@ -45,7 +61,7 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 var userInfo = await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, productSlug, socket.SessionInfo.ConnectionId, count);
-                socket.Dialog(db => db.MsgLine($"Successfully purchased {productSlug}"));
+                socket.Dialog(db => db.MsgLine($"Successfully started purchase of {productSlug} you should receive a confirmation in a few seconds"));
             } catch (Coflnet.Payments.Client.Client.ApiException e)
             {
                 socket.SendMessage(e.ToString());
