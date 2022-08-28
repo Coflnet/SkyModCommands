@@ -115,6 +115,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SetCommand>();
             Commands.Add<GetCommand>();
             Commands.Add<TopUpCommand>();
+            Commands.Add<PurchaseCommand>();
             Commands.Add<HelpCommand>();
             Commands.Add<LogoutCommand>();
             Commands.Add<UpdatePurseCommand>();
@@ -447,6 +448,11 @@ namespace Coflnet.Sky.Commands.MC
             {
                 CloseBecauseError(e);
             }
+        }
+
+        public void Dialog(Func<DialogBuilder,DialogBuilder> creation)
+        {
+            SendMessage(creation.Invoke(DialogBuilder.New));
         }
 
         public void SendCommand<T>(string type, T value = default)

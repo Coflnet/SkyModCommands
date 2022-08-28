@@ -12,7 +12,10 @@ namespace Coflnet.Sky.Commands.MC
             var topUpApi = socket.GetService<TopUpApi>();
             var userApi = socket.GetService<UserApi>();
 
-            var info = await topUpApi.TopUpStripePostAsync(socket.UserId, "s_cc_1800");
+            var info = await topUpApi.TopUpStripePostAsync(socket.UserId, "s_cc_1800", new()
+            {
+
+            });
             socket.SendMessage(new DialogBuilder().Msg("Click this to start the payment", info.DirctLink, "open link"));
         }
     }
