@@ -21,7 +21,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.MsgLine($"What plan do you want to purchase/extend")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+", "premium_plus 1", $"Purchase {McColorCodes.GOLD}prem+")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.GREEN}premium", "premium 1", $"purchase {McColorCodes.GREEN}premium")
-                        .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter", "starter_premium 1", "purchase starter"));
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter", "starter_premium 1", "purchase starter").LineBreak());
                 return;
             }
 
@@ -43,9 +43,9 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var totalDays = (int)TimeSpan.FromSeconds(product.OwnershipSeconds * count).TotalDays;
             socket.SendMessage(new DialogBuilder()
-                    .Msg($"Do you want to buy the {McColorCodes.AQUA}{product.Title}{McColorCodes.GRAY} service {McColorCodes.AQUA}{count}x{McColorCodes.GRAY} ")
-                    .Msg($"for a total of {McColorCodes.AQUA}{socket.FormatPrice((long)product.Cost)}{McColorCodes.GRAY} cofl coins ")
-                    .MsgLine($"lasting {McColorCodes.AQUA}{totalDays}{McColorCodes.GRAY} days")
+                    .Msg($"Do you want to buy the {McColorCodes.AQUA}{product.Title}{McColorCodes.WHITE} service {McColorCodes.AQUA}{count}x ")
+                    .Msg($"for a total of {McColorCodes.AQUA}{socket.FormatPrice((long)product.Cost)}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
+                    .MsgLine($"lasting {McColorCodes.AQUA}{totalDays} days")
                     .CoflCommand<PurchaseCommand>(
                             $"  {McColorCodes.GREEN}Yes  ", 
                             $"{productSlug} {count} {socket.SessionInfo.ConnectionId}", 
