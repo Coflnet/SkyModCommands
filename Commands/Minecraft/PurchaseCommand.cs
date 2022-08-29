@@ -21,6 +21,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.MsgLine($"What plan do you want to purchase/extend")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+", "premium_plus 1", $"Purchase {McColorCodes.GOLD}prem+")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.GREEN}premium", "premium 1", $"purchase {McColorCodes.GREEN}premium")
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GREEN}premium(derpy)", "premium-derpy 1", $"purchase {McColorCodes.GREEN}premium{McColorCodes.WHITE} for the time derpy was mayor")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter", "starter_premium 1", "purchase starter").LineBreak());
                 return;
             }
