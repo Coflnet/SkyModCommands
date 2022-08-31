@@ -103,7 +103,7 @@ namespace Coflnet.Sky.Commands.MC
                     flip.Volume.ToString("0.#")  // this is {10}
                 );
             }
-            var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice(flip.ProfitPercentage)}%{priceColor}" : "";
+            var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice((profit * 100 / cost))}%{priceColor}" : "";
 
             var builder = new StringBuilder(80);
 
