@@ -66,8 +66,6 @@ namespace Coflnet.Sky.ModCommands.Services
                         message.Message);
                     span.Log("sending to service");
                     await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
-                    span.Log("writing in redis");
-                    await GetCon().PublishAsync("mcChat", JsonConvert.SerializeObject(message));
                     return;
                 }
                 catch (RedisTimeoutException)
