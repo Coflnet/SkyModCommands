@@ -29,12 +29,6 @@ namespace Coflnet.Sky.ModCommands.MC
             server.Start();
             System.Threading.ThreadPool.SetMinThreads(10, 10);
 
-            RunIsolatedForever(FlipperService.Instance.ListentoUnavailableTopics, "flip wait");
-            RunIsolatedForever(FlipperService.Instance.ListenToNewFlips, "flip wait");
-            RunIsolatedForever(FlipperService.Instance.ListenToLowPriced, "low priced auctions");
-            RunIsolatedForever(FlipperService.Instance.ListenForSettingsChange, "settings sync");
-
-            RunIsolatedForever(FlipperService.Instance.ProcessSlowQueue, "flip process slow", 10);
             RunIsolatedForever(async () => { await SnapShotService.Instance.Run(System.Threading.CancellationToken.None); }, "state snapshots", 2);
             
 

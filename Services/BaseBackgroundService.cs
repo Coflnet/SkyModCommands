@@ -57,19 +57,22 @@ namespace Coflnet.Sky.ModCommands.Services
             }
             redis.GetSubscriber().Subscribe("snipes", (chan, val) =>
             {
-                try
+                Task.Run(async () =>
                 {
-                    var flip = MessagePackSerializer.Deserialize<LowPricedAuction>(val);
-                    if (flip.Auction.Context.ContainsKey("cname"))
-                        flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
-                    flip.AdditionalProps?.TryAdd("bfcs", "redis");
-                    FlipperService.Instance.DeliverLowPricedAuction(flip);
-                    logger.LogInformation($"sheduled bfcs {flip.Auction.UId} {DateTime.Now.Second}.{DateTime.Now.Millisecond}");
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e, "bfcs error");
-                }
+                    try
+                    {
+                        var flip = MessagePackSerializer.Deserialize<LowPricedAuction>(val);
+                        if (flip.Auction.Context.ContainsKey("cname"))
+                            flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
+                        flip.AdditionalProps?.TryAdd("bfcs", "redis");
+                        await FlipperService.Instance.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
+                        logger.LogInformation($"sheduled bfcs {flip.Auction.UId} {DateTime.Now.Second}.{DateTime.Now.Millisecond}");
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError(e, "bfcs error");
+                    }
+                }).ConfigureAwait(false);
             });
             logger.LogInformation("set up fast track flipper");
             await Task.Delay(Timeout.Infinite, stoppingToken);

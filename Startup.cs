@@ -54,6 +54,7 @@ namespace Coflnet.Sky.ModCommands
                     .EnableDetailedErrors()       // <-- with debugging (remove for production).
             );
             services.AddHostedService<BaseBackgroundService>();
+            services.AddHostedService<FlipperService>();
             services.AddJaeger(1,1);
             services.AddTransient<ModService>();
             services.AddSingleton<ChatService>();
