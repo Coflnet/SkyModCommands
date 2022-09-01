@@ -29,7 +29,7 @@ namespace Coflnet.Sky.Commands.MC
         private void SendOutDated()
         {
             SendMessage(new DialogBuilder().MsgLine("There is a newer mod version available. Please update as soon as possible. \nYou can click this to be redirected to the download.",
-                                        "https://github.com/Coflnet/skyblockmod/release",
+                                        "https://github.com/Coflnet/skyblockmod/releases",
                                         "opens github"));
         }
 

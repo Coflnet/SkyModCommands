@@ -7,7 +7,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class FirstModVersionAdapter : IModVersionAdapter
     {
-        private const string LinkToRelease = "https://github.com/Coflnet/skyblockmod/release";
+        private const string LinkToRelease = "https://github.com/Coflnet/skyblockmod/releases";
         MinecraftSocket socket;
 
         public FirstModVersionAdapter(MinecraftSocket socket)
