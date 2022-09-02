@@ -12,88 +12,84 @@ using Coflnet.Sky.Chat.Client.Model;
 using Coflnet.Sky.Commands.Shared;
 using OpenTracing;
 
-namespace Coflnet.Sky.ModCommands.Services
+namespace Coflnet.Sky.ModCommands.Services;
+
+public class ChatService
 {
-    public class ChatService
+    Chat.Client.Api.ChatApi api;
+    string chatAuthKey;
+
+    public ChatService(IConfiguration config)
     {
-        Chat.Client.Api.ChatApi api;
-        string chatAuthKey;
-
-        public ChatService(IConfiguration config)
+        api = new(config["CHAT:BASE_URL"]);
+        chatAuthKey = config["CHAT:API_KEY"];
+    }
+    public async Task<ChannelMessageQueue> Subscribe(Func<ChatMessage, bool> OnMessage)
+    {
+        for (int i = 0; i < 3; i++)
         {
-            api = new(config["CHAT:BASE_URL"]);
-            chatAuthKey = config["CHAT:API_KEY"];
-        }
-        public async Task<ChannelMessageQueue> Subscribe(Func<ChatMessage, bool> OnMessage)
-        {
-            for (int i = 0; i < 3; i++)
+            try
             {
-                try
-                {
-                    var sub = await GetCon().SubscribeAsync("chat");
+                var sub = await GetCon().SubscribeAsync("chat");
 
-                    sub.OnMessage((value) =>
-                    {
-                        var message = JsonConvert.DeserializeObject<ChatMessage>(value.Message);
-                        if (!OnMessage(message))
-                            sub.Unsubscribe();
-                    });
-                    return sub;
-                }
-                catch (Exception)
+                sub.OnMessage((value) =>
                 {
-                    if (i >= 2)
-                        throw;
-                    await Task.Delay(300);
-                }
+                    var message = JsonConvert.DeserializeObject<ChatMessage>(value.Message);
+                    if (!OnMessage(message))
+                        sub.Unsubscribe();
+                });
+                return sub;
             }
-            throw new CoflnetException("connection_failed", "connection to chat failed");
+            catch (Exception)
+            {
+                if (i >= 2)
+                    throw;
+                await Task.Delay(300);
+            }
         }
-        public async Task Send(ModChatMessage message, ISpan span)
-        {
-            for (int i = 0; i < 5; i++)
-                try
-                {
-                    var chatMsg = new Chat.Client.Model.ChatMessage(
-                        message.SenderUuid, message.SenderName,
-                        message.Tier switch
-                        {
-                            AccountTier.PREMIUM_PLUS => McColorCodes.GOLD,
-                            AccountTier.PREMIUM => McColorCodes.DARK_GREEN,
-                            AccountTier.STARTER_PREMIUM => McColorCodes.WHITE,
-                            _ => McColorCodes.GRAY
-                        },
-                        message.Message);
-                    span.Log("sending to service");
-                    await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
-                    return;
-                }
-                catch (RedisTimeoutException)
-                {
+        throw new CoflnetException("connection_failed", "connection to chat failed");
+    }
 
-                }
-                catch (ApiException e)
+    public async Task Send(ModChatMessage message, ISpan span)
+    {
+        try
+        {
+            var chatMsg = new Chat.Client.Model.ChatMessage(
+                message.SenderUuid, message.SenderName,
+                message.Tier switch
                 {
-                    throw JsonConvert.DeserializeObject<CoflnetException>(e.Message.Replace("Error calling ApiChatSendPost: ", ""));
-                }
+                    AccountTier.PREMIUM_PLUS => McColorCodes.GOLD,
+                    AccountTier.PREMIUM => McColorCodes.DARK_GREEN,
+                    AccountTier.STARTER_PREMIUM => McColorCodes.WHITE,
+                    _ => McColorCodes.GRAY
+                },
+                message.Message);
+            span.Log("sending to service");
+            await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
+            return;
         }
-
-        [MessagePackObject]
-        public class ModChatMessage
+        catch (ApiException e)
         {
-            [Key(0)]
-            public string SenderName;
-            [Key(1)]
-            public string Message;
-            [Key(2)]
-            public AccountTier Tier;
-            [Key(3)]
-            public string SenderUuid;
-        }
-
-        private static ISubscriber GetCon()
-        {
-            return CacheService.Instance.RedisConnection.GetSubscriber();
+            throw JsonConvert.DeserializeObject<CoflnetException>(e.Message.Replace("Error calling ApiChatSendPost: ", ""));
         }
     }
+
+    [MessagePackObject]
+    public class ModChatMessage
+    {
+        [Key(0)]
+        public string SenderName;
+        [Key(1)]
+        public string Message;
+        [Key(2)]
+        public AccountTier Tier;
+        [Key(3)]
+        public string SenderUuid;
+    }
+
+    private static ISubscriber GetCon()
+    {
+        return CacheService.Instance.RedisConnection.GetSubscriber();
+    }
 }
+
