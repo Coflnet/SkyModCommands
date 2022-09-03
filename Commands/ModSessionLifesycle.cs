@@ -452,19 +452,17 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             if (accountInfo.Tier == AccountTier.NONE)
-            {
                 FlipperService.Instance.AddNonConnection(socket, false);
-            }
-            if ((accountInfo.Tier.HasFlag(AccountTier.PREMIUM) || accountInfo.Tier.HasFlag(AccountTier.STARTER_PREMIUM)) && accountInfo.ExpiresAt > DateTime.Now)
-            {
+            if (accountInfo.Tier == AccountTier.PREMIUM)
                 FlipperService.Instance.AddConnection(socket, false);
-            }
             else if (accountInfo.Tier == AccountTier.PREMIUM_PLUS)
-                FlipperService.Instance.AddConnectionPlus(socket, false);
-            else if(accountInfo.Tier == AccountTier.STARTER_PREMIUM)
             {
-                FlipperService.Instance.AddStarterConnection(socket, false);
+                if(SessionInfo.McName == "Ekwav")
+                    socket.SendMessage("hi me, this is prem+");
+                FlipperService.Instance.AddConnectionPlus(socket, false);
             }
+            else if(accountInfo.Tier == AccountTier.STARTER_PREMIUM)
+                FlipperService.Instance.AddStarterConnection(socket, false);
         }
 
 
