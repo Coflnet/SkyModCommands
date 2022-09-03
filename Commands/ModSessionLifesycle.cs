@@ -145,7 +145,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(19.9) - DateTime.Now;
             var waitTime = bedTime - TimeSpan.FromSeconds(3.1);
-            if (CurrentDelay > TimeSpan.FromSeconds(0.4) && bedTime > TimeSpan.Zero)
+            if (CurrentDelay > TimeSpan.FromSeconds(0.6) && bedTime > TimeSpan.Zero)
                 await Task.Delay(bedTime);
             else if (waitTime > TimeSpan.Zero && !(FlipSettings.Value?.ModSettings.NoBedDelay ?? false))
             {
