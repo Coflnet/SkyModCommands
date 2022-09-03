@@ -15,6 +15,8 @@ namespace Coflnet.Sky.Commands.MC
 
             var parts = arguments.Trim('"').Split(' ');
             var productSlug = parts[0];
+            if(productSlug == "prem+" || productSlug == "premium+")
+                productSlug = "premium_plus";
 
             if(string.IsNullOrEmpty(productSlug))
             {
