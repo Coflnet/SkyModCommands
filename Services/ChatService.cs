@@ -4,7 +4,6 @@ using Coflnet.Sky.Core;
 using MessagePack;
 using Newtonsoft.Json;
 using StackExchange.Redis;
-using Coflnet.Sky.Chat.Client;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Chat.Client.Client;
 using Microsoft.Extensions.Configuration;
