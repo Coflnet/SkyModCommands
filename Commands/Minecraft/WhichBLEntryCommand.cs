@@ -19,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "Sorry this flip wasn't found in the recently sent list on your connection, can't determine which filter it matched");
                 return Task.CompletedTask;
             }
-            var targetList = socket.Settings.BlackList;
+            var targetList = socket.Settings.GetForceBlacklist().Concat(socket.Settings.BlackList);
             if (args.WL)
                 targetList = socket.Settings.WhiteList;
 
