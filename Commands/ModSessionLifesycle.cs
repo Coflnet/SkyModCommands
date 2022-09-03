@@ -457,8 +457,6 @@ namespace Coflnet.Sky.Commands.MC
                 FlipperService.Instance.AddConnection(socket, false);
             else if (accountInfo.Tier == AccountTier.PREMIUM_PLUS)
             {
-                if(SessionInfo.McName == "Ekwav")
-                    socket.SendMessage("hi me, this is prem+");
                 FlipperService.Instance.AddConnectionPlus(socket, false);
             }
             else if(accountInfo.Tier == AccountTier.STARTER_PREMIUM)

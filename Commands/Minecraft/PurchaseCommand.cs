@@ -67,7 +67,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.MsgLine($"Successfully started purchase of {productSlug} you should receive a confirmation in a few seconds"));
             } catch (Coflnet.Payments.Client.Client.ApiException e)
             {
-                socket.SendMessage(DialogBuilder.New.MsgLine(McColorCodes.RED + "An error occured").Msg(e.Message.Substring(40)));
+                socket.SendMessage(DialogBuilder.New.MsgLine(McColorCodes.RED + "An error occured").Msg(e.Message.Substring(68).Trim('}','"')));
             }
 
         }
