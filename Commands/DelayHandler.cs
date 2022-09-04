@@ -39,11 +39,7 @@ public class DelayHandler
         if (currentDelay <= TimeSpan.Zero)
             return timeProvider.Now;
         // flips likely to get bottet have no delay 
-        var tag = flipInstance.Auction.Tag;
-        var profit = flipInstance.ProfitPercentage;
-        if (tag != null && ((tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE") && profit > 100
-            || (tag.Contains("CRIMSON") || tag.Contains("ASPECT")) && profit > 200)
-            || profit > 900)
+        if (IsLikelyBot(flipInstance))
             return timeProvider.Now;
         var myIndex = FlipIndex;
         Interlocked.Increment(ref FlipIndex);
@@ -56,6 +52,15 @@ public class DelayHandler
         if (flipInstance.Profit > 5_000_000 || flipInstance.Finder == Core.LowPricedAuction.FinderType.SNIPER && flipInstance.Profit > 2_500_000)
             await timeProvider.Delay(macroPenalty);
         return time;
+    }
+
+    public bool IsLikelyBot(FlipInstance flipInstance)
+    {
+        var tag = flipInstance.Auction.Tag;
+        var profit = flipInstance.ProfitPercentage;
+        return tag != null && ((tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE") && profit > 100
+                    || (tag.Contains("CRIMSON") || tag.Contains("ASPECT")) && profit > 200)
+                    || profit > 900;
     }
 
     public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime)
