@@ -64,7 +64,7 @@ public class DelayHandler
                         && profit > 100
                     || (tag.Contains("CRIMSON") || tag.Contains("ASPECT")
                         || tag == "BAT_WAND" || tag == "DWARF_TURTLE_SHELMET" || tag == "JUJU_SHORTBOW"
-                        || tag == "GEMSTONE_GAUNTLET" || tag.StartsWith("FINAL_DESTINATION"))
+                        || tag.Contains("GEMSTONE") || tag.StartsWith("FINAL_DESTINATION"))
                         && profit > 200)
                     || profit > 900;
     }
