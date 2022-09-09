@@ -46,7 +46,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 catch (UnkownSettingException e)
                 {
-                    throw new CoflnetException(e.Slug, $"the setting {e.Passed} doesn't exist, most similar is {McColorCodes.AQUA}{e.Closest}{DEFAULT_COLOR}");
+                    throw new CoflnetException(e.Slug, $"the setting {McColorCodes.DARK_RED}{e.Passed}{DEFAULT_COLOR} doesn't exist, most similar is {McColorCodes.AQUA}{e.Closest}{DEFAULT_COLOR}");
                 } 
                 //socket.LatestSettings.Settings.Changer = "mod-" + socket.SessionInfo.sessionId;
                 if (string.IsNullOrEmpty(socket.sessionLifesycle.UserId))
