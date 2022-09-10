@@ -180,8 +180,8 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnOpen()
         {
             ConSpan = tracer.BuildSpan("connection").Start();
-            SendMessage(COFLNET + "§fNOTE §7This is a development preview, it is NOT stable/bugfree", 
-                        $"https://discord.gg/wvKXfTgCfb", 
+            SendMessage(COFLNET + "§fNOTE §7This is a development preview, it is NOT stable/bugfree",
+                        $"https://discord.gg/wvKXfTgCfb",
                         "Attempting to load your settings on " + System.Net.Dns.GetHostName() + " conId: " + ConSpan.Context.TraceId);
             formatProvider = new FormatProvider(this);
             base.OnOpen();
@@ -450,7 +450,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        public void Dialog(Func<DialogBuilder,DialogBuilder> creation)
+        public void Dialog(Func<DialogBuilder, DialogBuilder> creation)
         {
             SendMessage(creation.Invoke(DialogBuilder.New));
         }
@@ -654,7 +654,7 @@ namespace Coflnet.Sky.Commands.MC
                     sessionLifesycle.StartTimer(10 - SessionInfo.RelativeSpeed.TotalSeconds);
                 else
                 {
-                    SheduleTimer(mod,loadSpan);
+                    SheduleTimer(mod, loadSpan);
                 }
             }
             if (!(Settings?.ModSettings?.BlockTenSecondsMsg ?? false))
@@ -731,12 +731,18 @@ namespace Coflnet.Sky.Commands.MC
             return true;
         }
 
-        public Task<AccountTier> UserAccountTier()
+        public async Task<AccountTier> UserAccountTier()
         {
             var tier = sessionLifesycle.AccountInfo?.Value?.Tier;
-            if(tier == null || sessionLifesycle.AccountInfo?.Value?.ExpiresAt < DateTime.Now)
+            var expiresAt = sessionLifesycle.AccountInfo?.Value?.ExpiresAt;
+            if (tier >= AccountTier.NONE && expiresAt < DateTime.Now && expiresAt > DateTime.Now - TimeSpan.FromHours(1))
+            {
+                // refresh tier
+                tier = await sessionLifesycle.UpdateAccountTier(sessionLifesycle.AccountInfo?.Value);
+            }
+            else if (tier == null || expiresAt < DateTime.Now)
                 tier = AccountTier.NONE;
-            return Task.FromResult(tier.Value);
+            return tier.Value;
         }
     }
 }

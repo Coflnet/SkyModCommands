@@ -350,8 +350,6 @@ namespace Coflnet.Sky.Commands.MC
                     .WithTag("userId", info.UserId.ToString())
                     .StartActive();
 
-            var userApi = socket.GetService<PremiumService>();
-            var expiresTask = userApi.GetCurrentTier(info.UserId);
             var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
 
             try
@@ -383,10 +381,7 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 }
 
-
-                var expires = await expiresTask;
-                info.Tier = expires.Item1;
-                info.ExpiresAt = expires.Item2;
+                await UpdateAccountTier(info);
 
                 UpdateConnectionTier(info, span.Span);
                 span.Span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
@@ -410,6 +405,15 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        public async Task<AccountTier> UpdateAccountTier(AccountInfo info)
+        {
+            var userApi = socket.GetService<PremiumService>();
+            var expiresTask = userApi.GetCurrentTier(info.UserId);
+            var expires = await expiresTask;
+            info.Tier = expires.Item1;
+            info.ExpiresAt = expires.Item2;
+            return info.Tier;
+        }
 
         public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
         {
@@ -458,7 +462,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 FlipperService.Instance.AddConnectionPlus(socket, false);
             }
-            else if(accountInfo.Tier == AccountTier.STARTER_PREMIUM)
+            else if (accountInfo.Tier == AccountTier.STARTER_PREMIUM)
                 FlipperService.Instance.AddStarterConnection(socket, false);
         }
 
