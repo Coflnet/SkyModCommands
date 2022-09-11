@@ -34,7 +34,7 @@ namespace Coflnet.Sky.Commands.MC
                     throw new CoflnetException("no_settings", "could not toggle the cofl chat likely because you are not logged in");
                 settings.Value.ModSettings.Chat = !settings.Value.ModSettings.Chat;
                 await settings.Update(settings.Value);
-                socket.SendMessage(CHAT_PREFIX + $"Toggled the chat {(settings.Value.ModSettings.Chat ? "on" : "off")}", null, "this currently doesn't persist if the website is open");
+                socket.SendMessage(CHAT_PREFIX + $"Toggled the chat {(settings.Value.ModSettings.Chat ? "on" : "off")}");
 
                 if (shouldToggle)
                     return;

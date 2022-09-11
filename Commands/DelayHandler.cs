@@ -60,9 +60,9 @@ public class DelayHandler
         var profit = flipInstance.ProfitPercentage;
         return tag != null && (
                     (tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE" || tag.StartsWith("SORROW_")
-                    || tag.StartsWith("NECROMANCER_LORD_"))
+                    || tag.StartsWith("NECROMANCER_LORD_") || tag.Contains("ASPECT"))
                         && profit > 100
-                    || (tag.Contains("CRIMSON") || tag.Contains("ASPECT")
+                    || (tag.Contains("CRIMSON")
                         || tag == "BAT_WAND" || tag == "DWARF_TURTLE_SHELMET" || tag == "JUJU_SHORTBOW"
                         || tag.Contains("GEMSTONE") || tag.StartsWith("FINAL_DESTINATION"))
                         && profit > 200)
