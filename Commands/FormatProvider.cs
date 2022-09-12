@@ -29,7 +29,7 @@ namespace Coflnet.Sky.Commands.MC
             if (num <= 0) // there was an issue with flips attempting to be devided by 0
                 return "0";
             // Ensure number has max 3 significant digits (no rounding up can happen)
-            long i = (long)Math.Pow(10, (int)Math.Max(0, Math.Log10(num) - 2));
+            long i = (long)Math.Pow(10, (long)Math.Max(0, Math.Log10(num) - 2));
             num = num / i * i;
 
             if (num >= 1000000000)
