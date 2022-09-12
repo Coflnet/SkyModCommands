@@ -22,7 +22,7 @@ public class MinecraftSocketTests
         var socket = new TestSocket(session.Object);
         socket.SetNextFlipTime(DateTime.UtcNow + TimeSpan.FromSeconds(updateIn));
         socket.SheduleTimer(new Commands.Shared.ModSettings() {TimerSeconds = countdown});
-        await Task.Delay(10);
+        await Task.Delay(10).ConfigureAwait(false);
         session.Verify(s => s.StartTimer( It.Is<double>(v=> Math.Round(v, 1) == expected), It.IsAny<string>()), Times.Once);
     }
 

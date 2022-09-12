@@ -368,7 +368,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 waiting++;
                 if (string.IsNullOrEmpty(SessionInfo?.McUuid))
-                    await Task.Delay(1200);
+                    await Task.Delay(1200).ConfigureAwait(false);
                 if (e.Data == "\"nobestflip\"")
                     await InvokeCommand(a, command);
                 else
@@ -477,7 +477,7 @@ namespace Coflnet.Sky.Commands.MC
             sessionLifesycle.Dispose();
             Task.Run(async () =>
             {
-                await Task.Delay(1000);
+                await Task.Delay(1000).ConfigureAwait(false);
                 span.Span.Finish();
             });
             return span;
@@ -689,7 +689,7 @@ namespace Coflnet.Sky.Commands.MC
             timerSpan?.Span.Log($"delaying timer for {delay.TotalSeconds} seconds");
             Task.Run(async () =>
             {
-                await Task.Delay(delay);
+                await Task.Delay(delay).ConfigureAwait(false);
                 sessionLifesycle.StartTimer(timerSeconds);
             }).ConfigureAwait(false);
         }

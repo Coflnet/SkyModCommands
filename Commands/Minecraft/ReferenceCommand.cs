@@ -41,7 +41,7 @@ namespace Coflnet.Sky.Commands.MC
                     .ToArray());
             }
 
-            await Task.Delay(200);
+            await Task.Delay(200).ConfigureAwait(false);
             socket.ModAdapter.SendMessage(new ChatPart(MinecraftSocket.COFLNET + "click this to open the auction on the website (in case you want to report an error or share it)", "https://sky.coflnet.com/auction/" + uuid, "please give it a second"));
         }
 

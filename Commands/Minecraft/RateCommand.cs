@@ -45,7 +45,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.SendMessage(COFLNET + $"Thanks for your feedback, you voted this flip " + rating, "/cofl undo", "We will try to improve the flips accordingly");
             }
-            await Task.Delay(3000);
+            await Task.Delay(3000).ConfigureAwait(false);
             var based = await CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
             if (based == null)
                 span.Span.Log("based not available");

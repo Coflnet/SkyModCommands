@@ -23,7 +23,7 @@ namespace Coflnet.Sky.ModCommands.MC
             server.AddWebSocketService<MinecraftSocket>("/modsocket");
             server.OnGet += async (s, e) =>
             {
-                await Task.Delay(1);
+                await Task.Delay(1).ConfigureAwait(false);
                 e.Response.StatusCode = 201;
             };
             server.Start();
@@ -57,9 +57,9 @@ namespace Coflnet.Sky.ModCommands.MC
                     {
                         Console.WriteLine();
                         Console.WriteLine($"{message}: {e.Message} {e.StackTrace}\n {e.InnerException?.Message} {e.InnerException?.StackTrace} {e.InnerException?.InnerException?.Message} {e.InnerException?.InnerException?.StackTrace}");
-                        await Task.Delay(2000);
+                        await Task.Delay(2000).ConfigureAwait(false);
                     }
-                    await Task.Delay(backoff);
+                    await Task.Delay(backoff).ConfigureAwait(false);
                 }
             }, TaskCreationOptions.LongRunning).ConfigureAwait(false);
         }

@@ -148,13 +148,13 @@ namespace Coflnet.Sky.Commands.MC
             var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(19.9) - DateTime.Now;
             var waitTime = bedTime - TimeSpan.FromSeconds(3.1);
             if (CurrentDelay > TimeSpan.FromSeconds(0.6) && bedTime > TimeSpan.Zero && !delayHandler.IsLikelyBot(flipInstance))
-                await Task.Delay(bedTime);
+                await Task.Delay(bedTime).ConfigureAwait(false);
             else if (waitTime > TimeSpan.Zero && !(FlipSettings.Value?.ModSettings.NoBedDelay ?? false))
             {
                 Interlocked.Increment(ref waitingBedFlips);
                 StartTimer(waitTime.TotalSeconds, McColorCodes.GREEN + "Bed in: §c");
                 socket.SendSound("note.bass");
-                await Task.Delay(waitTime);
+                await Task.Delay(waitTime).ConfigureAwait(false);
                 Interlocked.Decrement(ref waitingBedFlips);
                 if (waitingBedFlips == 0)
                 {
@@ -266,7 +266,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 SendMessage(COFLNET + $"Please {McColorCodes.WHITE}§lclick this [LINK] to login {McColorCodes.GRAY}and configure your flip filters §8(you won't receive real time flips until you do)",
                     GetAuthLink(stringId));
-                await Task.Delay(TimeSpan.FromSeconds(60 * index++));
+                await Task.Delay(TimeSpan.FromSeconds(60 * index++)).ConfigureAwait(false);
 
                 if (UserId.Value != default)
                     return;
@@ -361,7 +361,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (info.ActiveConnectionId != SessionInfo.ConnectionId && !string.IsNullOrEmpty(info.ActiveConnectionId) && !userIsTest)
                 {
                     // wait for settings sync
-                    await Task.Delay(500);
+                    await Task.Delay(500).ConfigureAwait(false);
                     if (info.ActiveConnectionId != SessionInfo.ConnectionId)
                     {
                         // another connection of this account was opened, close this one
@@ -394,7 +394,7 @@ namespace Coflnet.Sky.Commands.MC
                 var helloTask = SendAuthorizedHello(info);
 
                 SendMessage(socket.formatProvider.WelcomeMessage());
-                await Task.Delay(200);
+                await Task.Delay(200).ConfigureAwait(false);
                 await helloTask;
                 await userIsVerifiedTask;
                 //SendMessage(COFLNET + $"{McColorCodes.DARK_GREEN} click this to relink your account",
@@ -476,14 +476,14 @@ namespace Coflnet.Sky.Commands.MC
             var email = user.Email;
             string anonymisedEmail = UserService.Instance.AnonymiseEmail(email);
             if (this.SessionInfo.McName == null)
-                await Task.Delay(800); // allow another half second for the playername to be loaded
+                await Task.Delay(800).ConfigureAwait(false); // allow another half second for the playername to be loaded
             var messageStart = $"Hello {this.SessionInfo.McName} ({anonymisedEmail}) \n";
             if (accountInfo.Tier != AccountTier.NONE && accountInfo.ExpiresAt > DateTime.Now)
                 SendMessage(COFLNET + messageStart + $"You have {McColorCodes.GREEN}{accountInfo.Tier.ToString()} until {accountInfo.ExpiresAt.ToString("yyyy-MMM-dd hh:mm")} UTC");
             else
                 SendMessage(COFLNET + messageStart + $"You use the {McColorCodes.BOLD}FREE{McColorCodes.RESET} version of the flip finder");
 
-            await Task.Delay(300);
+            await Task.Delay(300).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -576,7 +576,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             _ = Task.Run(async () =>
             {
-                await Task.Delay(new Random().Next(1, 3000));
+                await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
                 try
                 {
                     var ids = await GetMinecraftAccountUuids();

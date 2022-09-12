@@ -75,7 +75,7 @@ namespace Coflnet.Sky.ModCommands.Services
                 }).ConfigureAwait(false);
             });
             logger.LogInformation("set up fast track flipper");
-            await Task.Delay(Timeout.Infinite, stoppingToken);
+            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
         }
 
         private ModService GetService()

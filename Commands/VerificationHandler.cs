@@ -35,7 +35,7 @@ namespace Coflnet.Sky.Commands.MC
             if (!isVerified && info.Tier > 0)
             {
                 SendMessage("You have premium but you haven't verified your account yet.");
-                await Task.Delay(2000);
+                await Task.Delay(2000).ConfigureAwait(false);
                 SendMessage("You have to verify your account before you receive flips at max speed. See above for how to do that.", null, "This is part of our anti macro system and required to make sure you are not connecting from a cracked account");
             }
         }
@@ -49,7 +49,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             using var verificationSpan = tracer.BuildSpan("VerificationCheck").AsChildOf(ConSpan.Context).StartActive();
             if (SessionInfo.McUuid == null)
-                await Task.Delay(500);
+                await Task.Delay(500).ConfigureAwait(false);
             var mcUuid = SessionInfo.McUuid;
             var userId = accountInfo.UserId.ToString();
             if (accountInfo.McIds.Contains(SessionInfo.McUuid))
@@ -74,7 +74,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
 
                 }
-                await Task.Delay(500);
+                await Task.Delay(500).ConfigureAwait(false);
                 verificationSpan.Span.Log($"failed {userId} {mcUuid} {mcUuid is null}");
             }
             if (connect == null)

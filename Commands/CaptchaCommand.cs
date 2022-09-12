@@ -16,7 +16,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + McColorCodes.BLUE + "You requested to get a new captcha. Have fun.");
             else
                 socket.SendMessage(COFLNET + "Checking your response");
-            await Task.Delay(2000 * debugMultiplier);
+            await Task.Delay(2000 * debugMultiplier).ConfigureAwait(false);
             if (solution == attempt)
             {
                 sessionInfo.CaptchaFailedTimes--;
@@ -32,12 +32,12 @@ namespace Coflnet.Sky.Commands.MC
                 socket.sessionLifesycle.AccountInfo.Value.LastCaptchaSolve = DateTime.UtcNow;
                 await socket.sessionLifesycle.AccountInfo.Update();
                 socket.tracer.ActiveSpan.Log("solved captcha");
-                await Task.Delay(2000);
+                await Task.Delay(2000).ConfigureAwait(false);
                 socket.SendMessage(COFLNET + McColorCodes.GREEN + "Your afk delay will be removed for the next update\n");
 
                 return;
             }
-            await Task.Delay(sessionInfo.CaptchaFailedTimes * 1000 * debugMultiplier);
+            await Task.Delay(sessionInfo.CaptchaFailedTimes * 1000 * debugMultiplier).ConfigureAwait(false);
 
             if (!string.IsNullOrEmpty(attempt))
                 socket.SendMessage(COFLNET + "Your answer was not correct, lets try again");

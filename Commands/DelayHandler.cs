@@ -50,7 +50,7 @@ public class DelayHandler
         var time = timeProvider.Now;
         await timeProvider.Delay(part2).ConfigureAwait(false);
         if (flipInstance.Profit > 5_000_000 || flipInstance.Finder == Core.LowPricedAuction.FinderType.SNIPER && flipInstance.Profit > 2_500_000)
-            await timeProvider.Delay(macroPenalty);
+            await timeProvider.Delay(macroPenalty).ConfigureAwait(false);
         return time;
     }
 

@@ -27,7 +27,7 @@ namespace Coflnet.Sky.Commands.MC
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.Settings));
 
             socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + singleReportSpan.Span.Context.TraceId, "click to get full link");
-            await Task.Delay(5);
+            await Task.Delay(2000).ConfigureAwait(false);
             // repost 
             CreateReport(socket, arguments, singleReportSpan.Span, out string generalspanId);
         }
@@ -48,7 +48,7 @@ namespace Coflnet.Sky.Commands.MC
                 blockedSpan.Span.Log(JsonConvert.SerializeObject(socket.TopBlocked?.Take(80), Formatting.Indented));
             using (var lastSentSpan = socket.tracer.BuildSpan("lastSent").AsChildOf(reportSpan.Span.Context).StartActive())
                 lastSentSpan.Span.Log(JsonConvert.SerializeObject(socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20), Formatting.Indented));
-            reportSpan.Span.Log("session info " + JsonConvert.SerializeObject(socket.SessionInfo));
+            reportSpan.Span.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo));
             spanId = reportSpan.Span.Context.SpanId.Truncate(6);
             reportSpan.Span.SetTag("id", spanId);
             using var snapshotSpan = socket.tracer.BuildSpan("snapshot").AsChildOf(reportSpan.Span.Context).StartActive();

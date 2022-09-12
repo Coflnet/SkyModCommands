@@ -43,7 +43,7 @@ public class ChatService
             {
                 if (i >= 2)
                     throw;
-                await Task.Delay(300);
+                await Task.Delay(300).ConfigureAwait(false);
             }
         }
         throw new CoflnetException("connection_failed", "connection to chat failed");
