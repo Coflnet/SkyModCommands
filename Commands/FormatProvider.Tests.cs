@@ -17,7 +17,7 @@ public class FormatProviderTests
             Auction = new() { StartingBid = 2500000000 },
             MedianPrice = 2500000000
         });
-        Assert.AreEqual("\nFLIP:  §82.500.000.000 -> 2.500.000.000 (+-50.000.000) ", output);
+        Assert.AreEqual("\nFLIP:  §82,500,000,000 -> 2,500,000,000 (+-50,000,000) ", output);
     }
 
 }

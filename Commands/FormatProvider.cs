@@ -5,6 +5,7 @@ using System.Text;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Core;
+using System.Globalization;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -160,7 +161,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (Settings?.ModSettings?.ShortNumbers ?? false)
                 return FormatProvider.FormatPriceShort(price);
-            return string.Format("{0:n0}", price);
+            return string.Format(CultureInfo.InvariantCulture, "{0:n0}", price);
         }
 
 
