@@ -11,6 +11,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var sessionInfo = socket.SessionInfo;
             var solution = sessionInfo.CaptchaSolution;
+            sessionInfo.CaptchaSolution += Random.Shared.Next();
             var attempt = arguments.Trim('"');
             if (string.IsNullOrEmpty(attempt))
                 socket.SendMessage(COFLNET + McColorCodes.BLUE + "You requested to get a new captcha. Have fun.");
