@@ -85,7 +85,7 @@ namespace Coflnet.Sky.Commands.MC
             if (!Settings.FastMode)
                 try
                 {
-                    await FlipperService.FillVisibilityProbs(flipInstance, Settings);
+                    await FlipperService.FillVisibilityProbs(flipInstance, Settings).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
