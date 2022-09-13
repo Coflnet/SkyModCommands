@@ -1,13 +1,13 @@
-using System.Threading.Tasks;
 using Moq;
 using NUnit.Framework;
 
 namespace Coflnet.Sky.Commands.MC;
 
+#pragma warning disable CS0101 
 public class FormatProviderTests
 {
     [Test]
-    public async Task UserFlipProfit()
+    public void UserFlipProfit()
     {
         var flipCon = new Mock<IFlipConnection>();
         flipCon.SetupGet(con => con.Settings).Returns(new Shared.FlipSettings(){Visibility=new(){Profit=true}});
@@ -21,3 +21,4 @@ public class FormatProviderTests
     }
 
 }
+#pragma warning restore CS0101
