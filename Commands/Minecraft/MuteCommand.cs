@@ -32,6 +32,7 @@ namespace Coflnet.Sky.Commands.MC
             if (uuid == socket.SessionInfo.McUuid)
             {
                 socket.SendMessage(COFLNET + $"You can't mute yourself");
+                return;
             }
 
             if (val.MutedUsers == null)

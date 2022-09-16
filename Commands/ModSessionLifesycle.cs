@@ -319,11 +319,11 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     socket.SendMessage(new DialogBuilder().CoflCommand<SetCommand>(McColorCodes.RED + "Your profit is based on lbin, therefore you should only use the `sniper` flip finder to maximise speed", "finder sniper", "Click to only use the sniper"));
                 }
-                if(settings.Visibility.LowestBin && settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
+                if (settings.Visibility.LowestBin && settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
                     socket.SendMessage(new DialogBuilder().CoflCommand<SetCommand>(McColorCodes.RED + "You enabled display of lbin on a flip finder that is not based on lbin (but median). "
-                        +"That slows down flips because the lbin has to be searched for before the flip is sent to you." 
-                        +"If you are okay with that, ignore this warning. If you want flips faster click this to disable displaying the lbin", 
-                        "showlbin false", 
+                        + "That slows down flips because the lbin has to be searched for before the flip is sent to you."
+                        + "If you are okay with that, ignore this warning. If you want flips faster click this to disable displaying the lbin",
+                        "showlbin false",
                         $"You can also enable only lbin based flips \nby executing {McColorCodes.AQUA}/cofl set finders sniper.\nClicking this will hide lbin in flip messages. \nYou can still see lbin in item descriptions."));
                 span.Log(JSON.Stringify(settings));
             }
