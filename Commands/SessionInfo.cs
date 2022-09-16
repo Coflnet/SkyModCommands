@@ -33,6 +33,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <returns></returns>
         public HashSet<string> SentMutedNoteFor { get; set; } = new ();
         public int CaptchaFailedTimes { get; set; }
+        public bool LbinWarningSent { get; internal set; }
 
         public bool VerifiedMc;
 
