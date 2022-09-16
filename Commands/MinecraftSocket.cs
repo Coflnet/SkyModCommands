@@ -261,7 +261,7 @@ namespace Coflnet.Sky.Commands.MC
                 for (int i = 0; i < times; i++)
                     try
                     {
-                        await action();
+                        await action().ConfigureAwait(false);
                         return;
                     }
                     catch (System.Exception e)
@@ -720,7 +720,7 @@ namespace Coflnet.Sky.Commands.MC
                 Finder = flip.Finder,
                 TargetPrice = flip.MedianPrice,
                 AdditionalProps = props
-            });
+            }).ConfigureAwait(false);
             if (!result)
             {
                 Log("failed");
