@@ -81,6 +81,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             public LowPricedAuction Flip;
             public string Reason;
+            public DateTime Now = DateTime.Now;
         }
 
         static MinecraftSocket()
