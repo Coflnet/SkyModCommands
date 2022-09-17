@@ -328,6 +328,8 @@ namespace Coflnet.Sky.Commands.MC
                         "showlbin false",
                         $"You can also enable only lbin based flips \nby executing {McColorCodes.AQUA}/cofl set finders sniper.\nClicking this will hide lbin in flip messages. \nYou can still see lbin in item descriptions."));
                 }
+                // preload flip settings
+                settings.MatchesSettings(new FlipInstance(){Auction = new SaveAuction()});
                 span.Log(JSON.Stringify(settings));
             }
             catch (Exception e)
