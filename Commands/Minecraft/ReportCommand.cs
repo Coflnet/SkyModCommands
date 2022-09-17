@@ -47,7 +47,7 @@ namespace Coflnet.Sky.Commands.MC
             using (var blockedSpan = socket.tracer.BuildSpan("blocked").AsChildOf(reportSpan.Span.Context).StartActive())
                 for (int i = 0; i < 20; i++)
                     blockedSpan.Span.Log(JsonConvert.SerializeObject(socket.TopBlocked?.OrderByDescending(b => b.Now).Skip(i * 20).Take(20), Formatting.Indented));
-            reportSpan.Span.Log("blocked "+JsonConvert.SerializeObject(socket.TopBlocked?.OrderByDescending(b => b.Now).Take(300), Formatting.Indented));
+            reportSpan.Span.Log("blocked "+JsonConvert.SerializeObject(socket.TopBlocked?.OrderByDescending(b => b.Now).Select(b=>b.Now + b.Reason + "\n").Take(200), Formatting.Indented));
             using (var lastSentSpan = socket.tracer.BuildSpan("lastSent").AsChildOf(reportSpan.Span.Context).StartActive())
                 lastSentSpan.Span.Log(JsonConvert.SerializeObject(socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20), Formatting.Indented));
             reportSpan.Span.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo));
