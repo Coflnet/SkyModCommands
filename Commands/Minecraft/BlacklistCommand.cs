@@ -118,7 +118,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (part.Contains('='))
                 {
                     var filterParts = part.Split('=');
-                    var filterName = allFilters.Where(f => f.ToLower() == filterParts[0]).FirstOrDefault();
+                    var filterName = allFilters.Where(f => f.ToLower() == filterParts[0].ToLower()).FirstOrDefault();
                     if (filterName == null)
                     {
                         filterName = allFilters.OrderBy(f => Fastenshtein.Levenshtein.Distance(f.ToLower(), filterParts[0].ToLower())).First();
