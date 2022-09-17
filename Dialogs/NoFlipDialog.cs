@@ -10,7 +10,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             if(shouldBeHidden)
                 return null;
             return New()
-                .Msg("No best flip available keep holding to open next")
+                .Msg("No best flip available. Keep holding to open next")
             ;
         }
     } 
