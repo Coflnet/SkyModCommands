@@ -360,8 +360,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var closest = Commands.Keys.OrderBy(x => Fastenshtein.Levenshtein.Distance(x.ToLower(), a.type)).FirstOrDefault();
                 var altCommand = $"/cofl {closest} {a.data}";
-                SendMessage($"{COFLNET}The command '{McColorCodes.ITALIC + a.type + McColorCodes.RESET + McCommand.DEFAULT_COLOR}' is not known.\n",
-                            altCommand,
+                SendMessage($"{COFLNET}The command '{McColorCodes.ITALIC + a.type + McColorCodes.RESET + McCommand.DEFAULT_COLOR}' is not known. Hover for info\n",
+                            altCommand.Trim('"'),
                             $"Did you mean '{McColorCodes.ITALIC + closest + McColorCodes.RESET + McCommand.DEFAULT_COLOR}'?\nClick to execute\n{McColorCodes.WHITE + altCommand}");
                 return;
             }
