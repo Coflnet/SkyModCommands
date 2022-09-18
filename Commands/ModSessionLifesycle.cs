@@ -82,7 +82,7 @@ namespace Coflnet.Sky.Commands.MC
                 return BlockedFlip(flip, "MinProfit");
             var isMatch = (false, "");
 
-            if (!Settings.FastMode)
+            if (!Settings.FastMode && (Settings.BasedOnLBin || ((Settings.Visibility?.LowestBin ?? false) || (Settings.Visibility?.Seller ?? false))))
                 try
                 {
                     await FlipperService.FillVisibilityProbs(flipInstance, Settings).ConfigureAwait(false);

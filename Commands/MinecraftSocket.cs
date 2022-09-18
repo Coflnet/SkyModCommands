@@ -577,7 +577,7 @@ namespace Coflnet.Sky.Commands.MC
                     return false;
                 }
                 var start = DateTime.Now;
-                await sessionLifesycle.SendFlip(flip).ConfigureAwait(false);
+                await sessionLifesycle.SendFlip(flip);
                 var took = DateTime.Now - start;
                 if (took - sessionLifesycle?.CurrentDelay > TimeSpan.FromSeconds(0.5))
                     using (var error = tracer.BuildSpan("slowFlipTest").AsChildOf(ConSpan).WithTag("error", "true").StartActive())
