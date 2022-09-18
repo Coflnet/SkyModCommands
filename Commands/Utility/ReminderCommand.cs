@@ -27,7 +27,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public static TimeSpan ParseTime(string args)
         {
-            string[] formats = { @"m\m", @"h\h\m\m" };
+            string[] formats = { @"m\m", @"h\hm\m" };
             TimeSpan ts;
             if (!TimeSpan.TryParseExact(args, formats, null, out ts))
             {
