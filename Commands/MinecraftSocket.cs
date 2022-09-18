@@ -579,7 +579,7 @@ namespace Coflnet.Sky.Commands.MC
                 var start = DateTime.Now;
                 await sessionLifesycle.SendFlip(flip).ConfigureAwait(false);
                 var took = DateTime.Now - start;
-                if (took > TimeSpan.FromSeconds(0.5))
+                if (took - sessionLifesycle?.CurrentDelay > TimeSpan.FromSeconds(0.5))
                     using (var error = tracer.BuildSpan("slowFlipTest").AsChildOf(ConSpan).WithTag("error", "true").StartActive())
                         error.Span.Log("flip took long " + JsonConvert.SerializeObject(flip, Formatting.Indented));
             }
