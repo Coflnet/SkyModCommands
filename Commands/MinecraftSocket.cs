@@ -576,7 +576,12 @@ namespace Coflnet.Sky.Commands.MC
                     Log("con check was false");
                     return false;
                 }
+                var start = DateTime.Now;
                 await sessionLifesycle.SendFlip(flip).ConfigureAwait(false);
+                var took = DateTime.Now - start;
+                if (took > TimeSpan.FromSeconds(0.5))
+                    using (var error = tracer.BuildSpan("slowFlipTest").AsChildOf(ConSpan).WithTag("error", "true").StartActive())
+                        error.Span.Log("flip took long " + JsonConvert.SerializeObject(flip, Formatting.Indented));
             }
             catch (Exception e)
             {
