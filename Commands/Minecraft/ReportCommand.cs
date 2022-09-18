@@ -55,7 +55,8 @@ namespace Coflnet.Sky.Commands.MC
             using var snapshotSpan = socket.tracer.BuildSpan("snapshot").AsChildOf(reportSpan.Span.Context).StartActive();
             foreach (var item in SnapShotService.Instance.SnapShots)
             {
-                snapshotSpan.Span.Log(item.Time + " " + item.State);
+                using var singlesnapshotSpan = socket.tracer.BuildSpan("snapshot").AsChildOf(snapshotSpan.Span.Context).StartActive();
+                singlesnapshotSpan.Span.Log(item.Time + " " + item.State);
             }
             TryAddingAllSettings(reportSpan);
         }
