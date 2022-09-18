@@ -38,6 +38,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
         private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
+        private static Prometheus.Histogram flipSendTiming = Prometheus.Metrics.CreateHistogram("sky_mod_send_time", "Full run through time of flips");
 
         private int waitingBedFlips = 0;
         private int blockedFlipCounter = 0;
@@ -145,6 +146,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <returns></returns>
         private async Task<Task> SendAfterDelay(FlipInstance flipInstance)
         {
+            flipSendTiming.Observe((DateTime.UtcNow - flipInstance.Auction.FindTime).TotalSeconds);
             var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(19.9) - DateTime.Now;
             var waitTime = bedTime - TimeSpan.FromSeconds(3.1);
             if (CurrentDelay > TimeSpan.FromSeconds(0.6) && bedTime > TimeSpan.Zero && !delayHandler.IsLikelyBot(flipInstance))
