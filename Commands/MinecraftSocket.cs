@@ -32,12 +32,7 @@ namespace Coflnet.Sky.Commands.MC
         public SessionInfo SessionInfo { get; protected set; } = new SessionInfo();
 
         public FlipSettings Settings => sessionLifesycle.FlipSettings;
-        public SettingsChange LatestSettings => new SettingsChange()
-        {
-            Settings = sessionLifesycle.FlipSettings,
-            Tier = sessionLifesycle.AccountInfo.Value.Tier,
-            UserId = sessionLifesycle.AccountInfo.Value.UserId
-        };
+        public AccountInfo AccountInfo => sessionLifesycle?.AccountInfo;
 
         public string Version { get; private set; }
         public OpenTracing.ITracer tracer => DiHandler.ServiceProvider.GetRequiredService<OpenTracing.ITracer>();
@@ -235,16 +230,11 @@ namespace Coflnet.Sky.Commands.MC
             ConSpan.SetTag("conId", stringId);
 
             FlipperService.Instance.AddNonConnection(this, false);
+            SetLifecycleVersion(Version);
             System.Threading.Tasks.Task.Run(async () =>
             {
                 try
                 {
-                    sessionLifesycle = Version switch
-                    {
-                        "1.4-Alpha" => new InventoryModSession(this),
-                        "1.4.2-Alpha" => new InventoryModSession(this),
-                        _ => new ModSessionLifesycle(this)
-                    };
                     await sessionLifesycle.SetupConnectionSettings(stringId);
                 }
                 catch (Exception e)
@@ -253,6 +243,16 @@ namespace Coflnet.Sky.Commands.MC
                     SendMessage(new DialogBuilder().CoflCommand<ReportCommand>("Whoops, we are very sorry but the connection setup failed. If this persists please click this message to create a report.", "failed to setup connection", "create a report"));
                 }
             }).ConfigureAwait(false);
+        }
+
+        public void SetLifecycleVersion(string version)
+        {
+            sessionLifesycle = version switch
+            {
+                "1.4-Alpha" => new InventoryModSession(this),
+                "1.4.2-Alpha" => new InventoryModSession(this),
+                _ => new ModSessionLifesycle(this)
+            };
         }
 
         public System.Runtime.CompilerServices.ConfiguredTaskAwaitable TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3)
@@ -558,7 +558,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 using var error = tracer.BuildSpan("error").WithTag("message", message).AsChildOf(ConSpan).WithTag("error", "true").StartActive();
             }
-            ConSpan.Log(message);
+            ConSpan?.Log(message);
         }
 
         public void Send(Response response)
