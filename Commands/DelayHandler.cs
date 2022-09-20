@@ -56,7 +56,7 @@ public class DelayHandler
 
     public bool IsLikelyBot(FlipInstance flipInstance)
     {
-        var tag = flipInstance.Auction.Tag;
+        var tag = flipInstance.Auction?.Tag;
         var profit = flipInstance.ProfitPercentage;
         return tag != null && (
                     (tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE" || tag.StartsWith("SORROW_")

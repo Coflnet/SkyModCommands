@@ -60,13 +60,13 @@ namespace Coflnet.Sky.Commands.MC
                 .WithTag("batchSize", matches.Count)
                 .AsChildOf(socket.ConSpan.Context).StartActive();
 
-            var toSend = matches.Where(f => BlockedForSpam(f.instance, span));
+            var toSend = matches.Where(f => NotBlockedForSpam(f.instance, span)).ToList();
 
             await SendAfterDelay(toSend.ToList());
 
             while (SentFlips.Count > 700)
             {
-                foreach (var item in SentFlips.Where(i => i.Value < DateTime.Now - TimeSpan.FromMinutes(2)).ToList())
+                foreach (var item in SentFlips.Where(i => i.Value < DateTime.UtcNow - TimeSpan.FromMinutes(2)).ToList())
                 {
                     SentFlips.TryRemove(item.Key, out DateTime value);
                 }
@@ -99,20 +99,18 @@ namespace Coflnet.Sky.Commands.MC
             return this.Settings == null || this.Settings.DisableFlips;
         }
 
-        private bool BlockedForSpam(FlipInstance flipInstance, IScope span)
+        private bool NotBlockedForSpam(FlipInstance flipInstance, IScope span)
         {
-            if (!spamController.ShouldBeSent(flipInstance))
-            {
-                span.Span.Log("Blocked spam");
+            if (spamController.ShouldBeSent(flipInstance))
                 return true;
-            }
+            span.Span.Log("Blocked spam");
             return false;
         }
 
         private bool IsNoDupplicate(LowPricedAuction flip)
         {
             // this check is down here to avoid filling up the list
-            if (!SentFlips.TryAdd(flip.UId, DateTime.Now))
+            if (!SentFlips.TryAdd(flip.UId, DateTime.UtcNow))
                 return true; // make sure flips are not sent twice
             return false;
         }
@@ -161,7 +159,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendAfterDelay(IEnumerable<(Coflnet.Sky.Core.LowPricedAuction f, Coflnet.Sky.Commands.Shared.FlipInstance instance)> flips)
         {
-            var flipsWithTime = flips.Select(f => (f.instance, f.f.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.Now, lp: f.f));
+            var flipsWithTime = flips.Select(f => (f.instance, f.f.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow, lp: f.f));
             var bedsToWaitFor = flipsWithTime.Where(f => f.Item2 > TimeSpan.FromSeconds(3.1) && !(Settings?.ModSettings.NoBedDelay ?? false));
             var noBed = flipsWithTime.Except(bedsToWaitFor).Select(f => (f.instance, f.lp));
             var toSendInstant = noBed.Where(f => delayHandler.IsLikelyBot(f.instance)).ToList();
@@ -172,14 +170,10 @@ namespace Coflnet.Sky.Commands.MC
 
             foreach (var item in toSendInstant)
             {
-                await SendAndTrackFlip(item.instance, item.lp, DateTime.Now).ConfigureAwait(false);
+                await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow).ConfigureAwait(false);
             }
             var toSendDelayed = noBed.Except(toSendInstant);
-            var sendTime = await delayHandler.AwaitDelayForFlip(noBed.Select(f => f.instance).MaxBy(f => f.Profit));
-            foreach (var item in toSendDelayed)
-            {
-                await SendAndTrackFlip(item.instance, item.lp, sendTime).ConfigureAwait(false);
-            }
+            await NewMethod(noBed, toSendDelayed).ConfigureAwait(false);
 
             // beds
             foreach (var item in bedsToWaitFor.OrderBy(b => b.Item2))
@@ -187,7 +181,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (socket.sessionLifesycle.CurrentDelay > TimeSpan.FromSeconds(0.6))
                 {
                     await Task.Delay(item.Item2).ConfigureAwait(false);
-                    await SendAndTrackFlip(item.instance, item.lp, DateTime.Now).ConfigureAwait(false);
+                    await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow).ConfigureAwait(false);
                     continue;
                 }
                 await WaitForBedToSend(item).ConfigureAwait(false);
@@ -195,11 +189,24 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        private async Task NewMethod(IEnumerable<(FlipInstance instance, LowPricedAuction lp)> noBed, IEnumerable<(FlipInstance instance, LowPricedAuction lp)> toSendDelayed)
+        {
+            var bestFlip = noBed.Select(f => f.instance).MaxBy(f => f.Profit);
+            if (bestFlip == null)
+                return;
+
+            var sendTime = await delayHandler.AwaitDelayForFlip(bestFlip);
+            foreach (var item in toSendDelayed)
+            {
+                await SendAndTrackFlip(item.instance, item.lp, sendTime).ConfigureAwait(false);
+            }
+        }
+
         private async Task WaitForBedToSend((FlipInstance instance, TimeSpan, LowPricedAuction lp) item)
         {
             Interlocked.Increment(ref waitingBedFlips);
             var flip = item.instance;
-            var endsIn = flip.Auction.Start + TimeSpan.FromSeconds(17) - DateTime.Now;
+            var endsIn = flip.Auction.Start + TimeSpan.FromSeconds(17) - DateTime.UtcNow;
             socket.sessionLifesycle.StartTimer(endsIn.TotalSeconds, McColorCodes.GREEN + "Bed in: §c");
             socket.SendSound("note.bass");
             await Task.Delay(endsIn).ConfigureAwait(false);
@@ -213,7 +220,7 @@ namespace Coflnet.Sky.Commands.MC
             flip.Interesting = Helper.PropertiesSelector.GetProperties(flip.Auction)
                             .OrderByDescending(a => a.Rating).Select(a => a.Value).ToList();
 
-            await SendAndTrackFlip(flip, item.lp, DateTime.Now).ConfigureAwait(false);
+            await SendAndTrackFlip(flip, item.lp, DateTime.UtcNow).ConfigureAwait(false);
         }
 
         private async Task SendAndTrackFlip(FlipInstance item, LowPricedAuction flip, DateTime sendTime)
@@ -224,7 +231,7 @@ namespace Coflnet.Sky.Commands.MC
             await socket.GetService<FlipTrackingService>()
                 .ReceiveFlip(item.Auction.Uuid, socket.sessionLifesycle.SessionInfo.McUuid, sendTime);
 
-            var timeToSend = DateTime.Now - item.Auction.FindTime;
+            var timeToSend = DateTime.UtcNow - item.Auction.FindTime;
             flip.AdditionalProps["csend"] = (timeToSend).ToString();
 
             socket.LastSent.Enqueue(flip);
@@ -255,12 +262,12 @@ namespace Coflnet.Sky.Commands.MC
         {
 
             throw new Exception();
-            /*if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
+            /*if (SessionInfo.LastSpeedUpdate < DateTime.UtcNow - TimeSpan.FromSeconds(50))
             {
                 var adjustment = MinecraftSocket.NextFlipTime - DateTime.UtcNow - TimeSpan.FromSeconds(60);
                 if (Math.Abs(adjustment.TotalSeconds) < 1)
                     SessionInfo.RelativeSpeed = adjustment;
-                SessionInfo.LastSpeedUpdate = DateTime.Now;
+                SessionInfo.LastSpeedUpdate = DateTime.UtcNow;
             }*/
 
         }
@@ -283,6 +290,8 @@ namespace Coflnet.Sky.Commands.MC
         public void MinuteCleanup()
         {
             _blockedFlipCounter = 0;
+            spamController.Reset();
+            Console.WriteLine("housekeeping");
         }
     }
 }

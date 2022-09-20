@@ -332,7 +332,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         internal void HouseKeeping()
         {
-            spamController.Reset();
+            flipProcesser.MinuteCleanup();
             while (socket.TopBlocked.Count > 500)
                 socket.TopBlocked.TryDequeue(out _);
         }
@@ -340,7 +340,6 @@ namespace Coflnet.Sky.Commands.MC
         private void SendPing()
         {
             var blockedFlipFilterCount = flipProcesser.BlockedFlipCount;
-            flipProcesser.MinuteCleanup();
             using var span = tracer.BuildSpan("ping").AsChildOf(ConSpan.Context).WithTag("count", blockedFlipFilterCount).StartActive();
             try
             {
