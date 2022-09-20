@@ -426,7 +426,7 @@ namespace Coflnet.Sky.Commands.MC
 
             ConSpan.Finish();
             OnConClose?.Invoke();
-            sessionLifesycle.Dispose();
+            sessionLifesycle?.Dispose();
         }
 
         public new void Close()
@@ -577,7 +577,7 @@ namespace Coflnet.Sky.Commands.MC
                     return false;
                 }
                 var start = DateTime.Now;
-                await sessionLifesycle.SendFlip(flip);
+                await sessionLifesycle.SendFlipBatch(new LowPricedAuction[] { flip });
                 var took = DateTime.Now - start;
                 if (took - sessionLifesycle?.CurrentDelay > TimeSpan.FromSeconds(0.5))
                     using (var error = tracer.BuildSpan("slowFlipTest").AsChildOf(ConSpan).WithTag("error", "true").StartActive())
@@ -751,6 +751,11 @@ namespace Coflnet.Sky.Commands.MC
             else if (tier == null || expiresAt < DateTime.Now)
                 tier = AccountTier.NONE;
             return tier.Value;
+        }
+
+        public Task SendBatch(IEnumerable<LowPricedAuction> flips)
+        {
+            return sessionLifesycle.SendFlipBatch(flips);
         }
     }
 }

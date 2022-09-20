@@ -34,14 +34,11 @@ namespace Coflnet.Sky.Commands.MC
         private SpamController spamController = new SpamController();
         private DelayHandler delayHandler;
         public VerificationHandler VerificationHandler;
+        public FlipProcesser flipProcesser;
         public TimeSpan CurrentDelay => delayHandler?.CurrentDelay ?? DelayHandler.DefaultDelay;
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
-        private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
-        private static Prometheus.Histogram flipSendTiming = Prometheus.Metrics.CreateHistogram("sky_mod_send_time", "Full run through time of flips");
 
-        private int waitingBedFlips = 0;
-        private int blockedFlipCounter = 0;
 
         public static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
         {
@@ -55,181 +52,12 @@ namespace Coflnet.Sky.Commands.MC
         {
             this.socket = socket;
             delayHandler = new DelayHandler(TimeProvider.Instance, socket.GetService<FlipTrackingService>(), this.SessionInfo);
+
+            flipProcesser = new FlipProcesser(socket, spamController, delayHandler);
             VerificationHandler = new VerificationHandler(socket);
         }
 
-        public async Task<bool> SendFlip(LowPricedAuction flip)
-        {
-            var Settings = FlipSettings?.Value;
-            if (Settings == null || Settings.DisableFlips)
-                return true;
-
-            // pre check already sent flips
-            if (SentFlips.ContainsKey(flip.UId))
-                return true; // don't double send
-
-            if (flip.AdditionalProps?.ContainsKey("sold") ?? false)
-                return BlockedFlip(flip, "sold");
-            if (Settings.IsFinderBlocked(flip.Finder))
-                if (flip.Finder == LowPricedAuction.FinderType.USER)
-                    return true;
-                else
-                    return BlockedFlip(flip, "finder " + flip.Finder);
-
-            var flipInstance = FlipperService.LowPriceToFlip(flip);
-            // fast match before fill
-            Settings.GetPrice(flipInstance, out _, out long profit);
-            if (!Settings.BasedOnLBin && Settings.MinProfit > profit)
-                return BlockedFlip(flip, "MinProfit");
-            var isMatch = (false, "");
-
-            if (!Settings.FastMode && (Settings.BasedOnLBin || ((Settings.Visibility?.LowestBin ?? false) || (Settings.Visibility?.Seller ?? false))))
-                try
-                {
-                    await FlipperService.FillVisibilityProbs(flipInstance, Settings).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    socket.Error(e, "filling visibility");
-                }
-
-            try
-            {
-                isMatch = Settings.MatchesSettings(flipInstance);
-                if (flip.AdditionalProps == null)
-                    flip.AdditionalProps = new Dictionary<string, string>();
-                flip.AdditionalProps["match"] = isMatch.Item2;
-                if (isMatch.Item2.StartsWith("whitelist"))
-                    flipInstance.Interesting.Insert(0, "WL");
-            }
-            catch (Exception e)
-            {
-                var id = socket.Error(e, "matching flip settings", JSON.Stringify(flip) + "\n" + JSON.Stringify(Settings));
-                dev.Logger.Instance.Error(e, "minecraft socket flip settings matching " + id);
-                return BlockedFlip(flip, "Error " + e.Message);
-            }
-            if (Settings != null && !isMatch.Item1)
-                return BlockedFlip(flip, isMatch.Item2);
-
-            // this check is down here to avoid filling up the list
-            if (!SentFlips.TryAdd(flip.UId, DateTime.Now))
-                return true; // make sure flips are not sent twice
-
-            using var span = tracer.BuildSpan("Flip").WithTag("uuid", flipInstance.Uuid).AsChildOf(ConSpan.Context).StartActive();
-
-            if (!spamController.ShouldBeSent(flipInstance))
-            {
-                span.Span.Log("Blocked spam");
-                return true;
-            }
-            Task sendTimeTrack = await SendAfterDelay(flipInstance).ConfigureAwait(false);
-
-            var timeToSend = DateTime.Now - flipInstance.Auction.FindTime;
-            flip.AdditionalProps["csend"] = (timeToSend).ToString();
-
-            span.Span.Log("sent");
-            socket.LastSent.Enqueue(flip);
-            sentFlipsCount.Inc();
-
-            PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
-
-
-            _ = socket.TryAsyncTimes(TrackFlipAndCleanup(flip, span, sendTimeTrack, timeToSend), "track flip and cleanup", 2);
-
-            return true;
-        }
-
-        /// <summary>
-        /// Sends a new flip after delaying to account for macro/ping advantage
-        /// </summary>
-        /// <param name="flipInstance"></param>
-        /// <returns></returns>
-        private async Task<Task> SendAfterDelay(FlipInstance flipInstance)
-        {
-            flipSendTiming.Observe((DateTime.UtcNow - flipInstance.Auction.FindTime).TotalSeconds);
-            var bedTime = flipInstance.Auction.Start + TimeSpan.FromSeconds(19.9) - DateTime.Now;
-            var waitTime = bedTime - TimeSpan.FromSeconds(3.1);
-            if (CurrentDelay > TimeSpan.FromSeconds(0.6) && bedTime > TimeSpan.Zero && !delayHandler.IsLikelyBot(flipInstance))
-                await Task.Delay(bedTime).ConfigureAwait(false);
-            else if (waitTime > TimeSpan.Zero && !(FlipSettings.Value?.ModSettings.NoBedDelay ?? false))
-            {
-                Interlocked.Increment(ref waitingBedFlips);
-                StartTimer(waitTime.TotalSeconds, McColorCodes.GREEN + "Bed in: §c");
-                socket.SendSound("note.bass");
-                await Task.Delay(waitTime).ConfigureAwait(false);
-                Interlocked.Decrement(ref waitingBedFlips);
-                if (waitingBedFlips == 0)
-                {
-                    StartTimer(0, "clear timer");
-                    socket.SheduleTimer();
-                }
-                // update interesting props because the bed time is different now
-                flipInstance.Interesting = Helper.PropertiesSelector.GetProperties(flipInstance.Auction).OrderByDescending(a => a.Rating).Select(a => a.Value).ToList();
-            }
-
-
-            var sendTime = await delayHandler.AwaitDelayForFlip(flipInstance).ConfigureAwait(false);
-            await socket.ModAdapter.SendFlip(flipInstance).ConfigureAwait(false);
-            if (SessionInfo.LastSpeedUpdate < DateTime.Now - TimeSpan.FromSeconds(50))
-            {
-                var adjustment = MinecraftSocket.NextFlipTime - DateTime.UtcNow - TimeSpan.FromSeconds(60);
-                if (Math.Abs(adjustment.TotalSeconds) < 1)
-                    SessionInfo.RelativeSpeed = adjustment;
-                SessionInfo.LastSpeedUpdate = DateTime.Now;
-            }
-            var sendTimeTrack = socket.GetService<FlipTrackingService>().ReceiveFlip(flipInstance.Auction.Uuid, SessionInfo.McUuid, sendTime);
-
-            return sendTimeTrack;
-        }
-
-        /// <summary>
-        /// Stores flip timings and cleans up sent flips
-        /// </summary>
-        /// <param name="flip"></param>
-        /// <param name="span"></param>
-        /// <param name="sendTimeTrack"></param>
-        /// <param name="timeToSend"></param>
-        /// <returns></returns>
-        private Func<Task> TrackFlipAndCleanup(LowPricedAuction flip, IScope span, Task sendTimeTrack, TimeSpan timeToSend)
-        {
-            return async () =>
-            {
-                await sendTimeTrack;
-                if (timeToSend > TimeSpan.FromSeconds(15) && AccountInfo.Value?.Tier >= AccountTier.PREMIUM && flip.Finder != LowPricedAuction.FinderType.FLIPPER)
-                {
-                    // very bad, this flip was very slow, create a report
-                    using var slowSpan = tracer.BuildSpan("slowFlip").AsChildOf(span.Span).WithTag("error", true).StartActive();
-                    slowSpan.Span.Log(JsonConvert.SerializeObject(flip.Auction.Context));
-                    slowSpan.Span.Log(JsonConvert.SerializeObject(flip.AdditionalProps));
-                    foreach (var item in SnapShotService.Instance.SnapShots)
-                    {
-                        slowSpan.Span.Log(item.Time + " " + item.State);
-                    }
-                    ReportCommand.TryAddingAllSettings(slowSpan);
-                }
-                // remove dupplicates
-                if (SentFlips.Count > 300)
-                {
-                    foreach (var item in SentFlips.Where(i => i.Value < DateTime.Now - TimeSpan.FromMinutes(2)).ToList())
-                    {
-                        SentFlips.TryRemove(item.Key, out DateTime value);
-                    }
-                }
-                if (socket.LastSent.Count > 30)
-                    socket.LastSent.TryDequeue(out _);
-            };
-        }
-
-        private bool BlockedFlip(LowPricedAuction flip, string reason)
-        {
-            socket.TopBlocked.Enqueue(new MinecraftSocket.BlockedElement()
-            {
-                Flip = flip,
-                Reason = reason
-            });
-            Interlocked.Increment(ref blockedFlipCounter);
-            return true;
-        }
+       
 
         public async Task SetupConnectionSettings(string stringId)
         {
@@ -511,8 +339,8 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SendPing()
         {
-            var blockedFlipFilterCount = blockedFlipCounter;
-            blockedFlipCounter = 0;
+            var blockedFlipFilterCount = flipProcesser.BlockedFlipCount;
+            flipProcesser.MinuteCleanup();
             using var span = tracer.BuildSpan("ping").AsChildOf(ConSpan.Context).WithTag("count", blockedFlipFilterCount).StartActive();
             try
             {
@@ -622,6 +450,11 @@ namespace Coflnet.Sky.Commands.MC
         }
 
         private DateTime LastCaptchaSolveTime => (AccountInfo?.Value?.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
+
+        internal async Task SendFlipBatch(IEnumerable<LowPricedAuction> flips)
+        {
+            await flipProcesser.NewFlips(flips);
+        }
 
         public void Dispose()
         {
