@@ -61,7 +61,7 @@ namespace Coflnet.Sky.Commands.MC
                 .WithTag("batchSize", matches.Count)
                 .AsChildOf(socket.ConSpan.Context).StartActive();
 
-            var toSend = matches.Where(f => NotBlockedForSpam(f.instance, span)).ToList();
+            var toSend = matches.Where(f => NotBlockedForSpam(f.instance, f.f, span)).ToList();
             foreach (var item in toSend)
             {
 
@@ -107,12 +107,11 @@ namespace Coflnet.Sky.Commands.MC
             return this.Settings == null || this.Settings.DisableFlips;
         }
 
-        private bool NotBlockedForSpam(FlipInstance flipInstance, IScope span)
+        private bool NotBlockedForSpam(FlipInstance flipInstance, LowPricedAuction f, IScope span)
         {
             if (spamController.ShouldBeSent(flipInstance))
                 return true;
-            Console.WriteLine("Blocked spam " + flipInstance.Profit);
-            return false;
+            return BlockedFlip(f, "spam");
         }
 
         private bool IsNoDupplicate(LowPricedAuction flip)

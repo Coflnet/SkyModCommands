@@ -11,6 +11,7 @@ namespace Coflnet.Sky.Commands.MC
             if (account == null)
                 return;
             var list = account.ConIds;
+            list.Add(socket.sessionLifesycle.SessionInfo.SessionId);
             foreach (var item in list)
             {
                 System.Console.WriteLine("logging out " + item);
