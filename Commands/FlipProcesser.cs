@@ -168,7 +168,8 @@ namespace Coflnet.Sky.Commands.MC
         {
             var flipsWithTime = flips.Select(f => (f.instance, f.f.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow, lp: f.f));
             var bedsToWaitFor = flipsWithTime.Where(f => f.Item2 > TimeSpan.FromSeconds(3.1) && !(Settings?.ModSettings.NoBedDelay ?? false));
-            var noBed = flipsWithTime.Except(bedsToWaitFor).Select(f => (f.instance, f.lp));
+            var noBed = flipsWithTime.ExceptBy<(FlipInstance instance, TimeSpan timeSpan, LowPricedAuction lp), string>(
+                                bedsToWaitFor.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid).Select(f => (f.instance, f.lp));
             var toSendInstant = noBed.Where(f => delayHandler.IsLikelyBot(f.instance)).ToList();
             foreach (var item in flips)
             {
