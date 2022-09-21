@@ -25,6 +25,9 @@ namespace Coflnet.Sky.Commands.MC
                 .AddTime(context, "Flipper Receive", "frec")
                 .AddTime(context, "Flipper Send", "fsend")
                 .AddTime(context, "Command Receive", "crec")
+                .AddTime(context, "Shedule", "csh")
+                .AddTime(flip.AdditionalProps, "Filter", "da")
+                .AddTime(flip.AdditionalProps, "Delay", "dl")
                 .AddTime(flip.AdditionalProps, "Command Send", "csend")
                 .AddTime(flip.AdditionalProps, "Click ", "clickT")
             ;
@@ -39,7 +42,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public static DialogBuilder AddTime(this DialogBuilder msg, Dictionary<string, string> context, string label, string key)
         {
-            return msg.MsgLine($"{McColorCodes.GRAY}{label}: {McColorCodes.WHITE}" + context?.GetValueOrDefault(key, "§onotavailable§r"));
+            return msg.MsgLine($"{McColorCodes.GRAY}{label.PadRight(15)}: {McColorCodes.WHITE}" + context?.GetValueOrDefault(key, "§onotavailable§r"));
         }
     }
 }

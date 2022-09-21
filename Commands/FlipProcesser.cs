@@ -53,6 +53,7 @@ namespace Coflnet.Sky.Commands.MC
                 && IsNoDupplicate(f.f)).ToList();
             if (matches.Count == 0)
                 return;
+            Console.WriteLine($"Filtered {flips.Count()} to {prefiltered.Count} of which {matches.Count} fit the filter");
 
 
             using var span = socket.tracer.BuildSpan("Flip")
@@ -61,8 +62,15 @@ namespace Coflnet.Sky.Commands.MC
                 .AsChildOf(socket.ConSpan.Context).StartActive();
 
             var toSend = matches.Where(f => NotBlockedForSpam(f.instance, span)).ToList();
+            foreach (var item in toSend)
+            {
+
+                var timeToSend = DateTime.UtcNow - item.f.Auction.FindTime;
+                item.f.AdditionalProps["dl"] = (timeToSend).ToString();
+            }
 
             await SendAfterDelay(toSend.ToList());
+            Console.WriteLine($"Sent {toSend.Count()} after " + (DateTime.UtcNow - toSend.FirstOrDefault().f?.Auction.FindTime));
 
             while (SentFlips.Count > 700)
             {
@@ -103,14 +111,14 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (spamController.ShouldBeSent(flipInstance))
                 return true;
-            span.Span.Log("Blocked spam");
+            Console.WriteLine("Blocked spam " + flipInstance.Profit);
             return false;
         }
 
         private bool IsNoDupplicate(LowPricedAuction flip)
         {
             // this check is down here to avoid filling up the list
-            if (!SentFlips.TryAdd(flip.UId, DateTime.UtcNow))
+            if (SentFlips.TryAdd(flip.UId, DateTime.UtcNow))
                 return true; // make sure flips are not sent twice
             return false;
         }
@@ -227,30 +235,34 @@ namespace Coflnet.Sky.Commands.MC
         {
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
 
-            // this is actually syncronous
-            await socket.GetService<FlipTrackingService>()
-                .ReceiveFlip(item.Auction.Uuid, socket.sessionLifesycle.SessionInfo.McUuid, sendTime);
-
-            var timeToSend = DateTime.UtcNow - item.Auction.FindTime;
-            flip.AdditionalProps["csend"] = (timeToSend).ToString();
-
-            socket.LastSent.Enqueue(flip);
-            sentFlipsCount.Inc();
-
-            socket.sessionLifesycle.PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
-
-            if (timeToSend > TimeSpan.FromSeconds(15) && socket.AccountInfo?.Tier >= AccountTier.PREMIUM && flip.Finder != LowPricedAuction.FinderType.FLIPPER)
+            _ = socket.TryAsyncTimes(async () =>
             {
-                // very bad, this flip was very slow, create a report
-                using var slowSpan = socket.tracer.BuildSpan("slowFlip").AsChildOf(socket.ConSpan).WithTag("error", true).StartActive();
-                slowSpan.Span.Log(JsonConvert.SerializeObject(flip.Auction.Context));
-                slowSpan.Span.Log(JsonConvert.SerializeObject(flip.AdditionalProps));
-                foreach (var snapshot in SnapShotService.Instance.SnapShots)
+
+                // this is actually syncronous
+                await socket.GetService<FlipTrackingService>()
+                    .ReceiveFlip(item.Auction.Uuid, socket.sessionLifesycle.SessionInfo.McUuid, sendTime);
+
+                var timeToSend = DateTime.UtcNow - item.Auction.FindTime;
+                flip.AdditionalProps["csend"] = (timeToSend).ToString();
+
+                socket.LastSent.Enqueue(flip);
+                sentFlipsCount.Inc();
+
+                socket.sessionLifesycle.PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
+
+                if (timeToSend > TimeSpan.FromSeconds(15) && socket.AccountInfo?.Tier >= AccountTier.PREMIUM && flip.Finder != LowPricedAuction.FinderType.FLIPPER)
                 {
-                    slowSpan.Span.Log(snapshot.Time + " " + snapshot.State);
+                    // very bad, this flip was very slow, create a report
+                    using var slowSpan = socket.tracer.BuildSpan("slowFlip").AsChildOf(socket.ConSpan).WithTag("error", true).StartActive();
+                    slowSpan.Span.Log(JsonConvert.SerializeObject(flip.Auction.Context));
+                    slowSpan.Span.Log(JsonConvert.SerializeObject(flip.AdditionalProps));
+                    foreach (var snapshot in SnapShotService.Instance.SnapShots)
+                    {
+                        slowSpan.Span.Log(snapshot.Time + " " + snapshot.State);
+                    }
+                    ReportCommand.TryAddingAllSettings(slowSpan);
                 }
-                ReportCommand.TryAddingAllSettings(slowSpan);
-            }
+            }, "tracking flip");
         }
 
         /// <summary>
