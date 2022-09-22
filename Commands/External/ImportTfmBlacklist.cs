@@ -10,7 +10,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class ImportTfmCommand : McCommand
     {
-        IRestClient client = new RestClient("https://tfm.thom.club/");
+        RestClient client = new RestClient("https://tfm.thom.club/");
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var parts = arguments.Trim('"').Split(' ');
@@ -23,7 +23,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             var type = parts[0].ToLower();
             var userName = parts[1];
-            var request = new RestRequest($"get_blacklist?blacklist_id={userName}&type={type}", Method.GET);
+            var request = new RestRequest($"get_blacklist?blacklist_id={userName}&type={type}", Method.Get);
             var response = await client.ExecuteAsync(request);
             if (!response.IsSuccessful)
             {
