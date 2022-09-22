@@ -86,7 +86,6 @@ namespace Coflnet.Sky.Commands.MC
                 c.Connection.UserId
             });
             reportSpan.Span.Log(JsonConvert.SerializeObject(result, Formatting.Indented));
-            System.Console.WriteLine(JsonConvert.SerializeObject(result));
         }
     }
 }

@@ -168,7 +168,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var flipsWithTime = flips.Select(f => (f.instance, f.f.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow, lp: f.f));
             var bedsToWaitFor = flipsWithTime.Where(f => f.Item2 > TimeSpan.FromSeconds(3.1) && !(Settings?.ModSettings.NoBedDelay ?? false));
-            var noBed = Except(flipsWithTime, bedsToWaitFor);
+            var noBed = flipsWithTime.ExceptBy(bedsToWaitFor.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid).Select(f => (f.instance, f.lp));
             var toSendInstant = noBed.Where(f => delayHandler.IsLikelyBot(f.instance)).ToList();
             foreach (var item in flips)
             {
@@ -194,11 +194,6 @@ namespace Coflnet.Sky.Commands.MC
                 await WaitForBedToSend(item).ConfigureAwait(false);
 
             }
-        }
-
-        private static IEnumerable<(FlipInstance instance, LowPricedAuction lp)> Except(IEnumerable<(FlipInstance instance, TimeSpan, LowPricedAuction lp)> flipsWithTime, IEnumerable<(FlipInstance instance, TimeSpan, LowPricedAuction lp)> bedsToWaitFor)
-        {
-            return flipsWithTime.ExceptBy(bedsToWaitFor.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid).Select(f => (f.instance, f.lp));
         }
 
         private async Task NewMethod(IEnumerable<(FlipInstance instance, LowPricedAuction lp)> noBed, IEnumerable<(FlipInstance instance, LowPricedAuction lp)> toSendDelayed)
@@ -254,7 +249,8 @@ namespace Coflnet.Sky.Commands.MC
 
                 socket.sessionLifesycle.PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
 
-                if (timeToSend > TimeSpan.FromSeconds(15) && socket.AccountInfo?.Tier >= AccountTier.PREMIUM && flip.Finder != LowPricedAuction.FinderType.FLIPPER)
+                if (timeToSend > TimeSpan.FromSeconds(15) && socket.AccountInfo?.Tier >= AccountTier.PREMIUM 
+                    && flip.Finder != LowPricedAuction.FinderType.FLIPPER && !(item.Interesting.FirstOrDefault()?.StartsWith("Bed") ?? false))
                 {
                     // very bad, this flip was very slow, create a report
                     using var slowSpan = socket.tracer.BuildSpan("slowFlip").AsChildOf(socket.ConSpan).WithTag("error", true).StartActive();
