@@ -69,7 +69,7 @@ public class ChatService
         }
         catch (ApiException e)
         {
-            throw JsonConvert.DeserializeObject<CoflnetException>(e.Message.Replace("Error calling ApiChatSendPost: ", ""));
+            throw JsonConvert.DeserializeObject<CoflnetException>(e.Message?.Replace("Error calling ApiChatSendPost: ", ""));
         }
     }
 
