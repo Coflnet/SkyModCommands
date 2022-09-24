@@ -52,7 +52,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
-            socket.Dialog(d => d.ForEach(Emoji, (d, em) => d.Msg($"{em.Key} ", $"/fc {em.Key}", $"Send {em.Value}")));
+            socket.Dialog(d => d.ForEach(Emoji, (d, em) => d.Msg($"{em.Key.Replace(":", McColorCodes.GRAY + ":" + McColorCodes.WHITE)} ", $"/fc {em.Key}", $"Send {em.Value}")));
             return Task.CompletedTask;
         }
     }
