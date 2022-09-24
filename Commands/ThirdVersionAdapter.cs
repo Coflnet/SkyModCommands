@@ -25,7 +25,7 @@ namespace Coflnet.Sky.Commands.MC
             var worth = flip.Profit / 1024;
             if(flip.Context.ContainsKey("priorityOpen"))
                 worth *= 64;
-            if(bedFlip)
+            if(bedFlip || flip.Context.ContainsKey("notOpen"))
                 worth = 0;
 
             socket.Send(Response.Create("flip", new
