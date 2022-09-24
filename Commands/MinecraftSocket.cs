@@ -127,6 +127,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<WhichBLEntryCommand>();
             Commands.Add<ReminderCommand>();
             Commands.Add<FiltersCommand>();
+            Commands.Add<EmojiCommand>();
             Commands.Add<AddReminderTimeCommand>();
             Commands.Add<LoreCommand>();
 
