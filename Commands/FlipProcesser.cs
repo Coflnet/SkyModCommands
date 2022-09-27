@@ -68,7 +68,6 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             await SendAfterDelay(toSend.ToList());
-            Console.WriteLine($"Sent {toSend.Count()} after " + (DateTime.UtcNow - toSend.FirstOrDefault().f?.Auction.FindTime));
 
             while (SentFlips.Count > 700)
             {
