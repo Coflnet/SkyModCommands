@@ -53,8 +53,6 @@ namespace Coflnet.Sky.Commands.MC
                 && IsNoDupplicate(f.f)).ToList();
             if (matches.Count == 0)
                 return;
-            Console.WriteLine($"Filtered {flips.Count()} to {prefiltered.Count} of which {matches.Count} fit the filter");
-
 
             using var span = socket.tracer.BuildSpan("Flip")
                 .WithTag("uuid", matches.First().f.Auction.Uuid)
