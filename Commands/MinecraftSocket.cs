@@ -58,7 +58,7 @@ namespace Coflnet.Sky.Commands.MC
             get
             {
                 if (sessionLifesycle?.UserId?.Value == null)
-                    throw new NullReferenceException("no user set");
+                    throw new CoflnetException("no_login", "We could not determine your user account. Please make sure to login and try again.");
                 return sessionLifesycle.UserId.Value;
             }
         }
