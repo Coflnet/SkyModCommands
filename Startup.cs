@@ -57,6 +57,7 @@ namespace Coflnet.Sky.ModCommands
             services.AddHostedService<FlipperService>();
             services.AddJaeger(1,1);
             services.AddTransient<ModService>();
+            services.AddSingleton<ModeratorService>();
             services.AddSingleton<ChatService>();
             services.AddSingleton<IFlipApi, FlipApi>(s=>new FlipApi(Configuration["API_BASE_URL"]));
             services.AddCoflService();

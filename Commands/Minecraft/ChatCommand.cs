@@ -123,7 +123,7 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     var color = m.Prefix;
                     return socket.SendMessage(
-                        new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatoptions {m.Name} {m.ClientName} {m.Message}", $"click for more options"),
+                        new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatoptions {m.Name} {m.ClientName} {m.Message} {m.Uuid}", $"click for more options"),
                         new ChatPart("", "/cofl void"));
                 }
                 catch (Exception e)

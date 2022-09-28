@@ -73,6 +73,11 @@ public class ChatService
         }
     }
 
+    public async Task Mute(Mute mute)
+    {
+        await api.ApiChatMutePostAsync(chatAuthKey, mute);
+    }
+
     [MessagePackObject]
     public class ModChatMessage
     {

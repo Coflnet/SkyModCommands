@@ -82,6 +82,14 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             return CoflCommand<DialogCommand>(message, $"{dialogName} {context}", hover);
         }
 
+
+        public DialogBuilder If(Func<bool> condition, Action<DialogBuilder> builder)
+        {
+            if(condition())
+                builder(this);
+            return this;
+        }
+
         /// <summary>
         /// Creates a onclik to another command
         /// </summary>
