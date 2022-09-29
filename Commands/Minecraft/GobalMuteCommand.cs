@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC
@@ -11,6 +12,9 @@ namespace Coflnet.Sky.Commands.MC
             var args = arguments.Trim('"');
             var parts = args.Split(' ');
             var uuid = parts.Last();
+            var isModerator = socket.GetService<ModeratorService>().IsModerator(socket);
+            if(!isModerator)
+                throw new CoflnetException("forbiden", "Whops, you don't seem to be a moderator. Therefore you can't mute other users");
 
             await socket.GetService<ChatService>().Mute(new()
             {

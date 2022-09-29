@@ -130,6 +130,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<EmojiCommand>();
             Commands.Add<AddReminderTimeCommand>();
             Commands.Add<LoreCommand>();
+            Commands.Add<GobalMuteCommand>();
 
             Task.Run(async () =>
             {
