@@ -253,6 +253,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 "1.4-Alpha" => new InventoryModSession(this),
                 "1.4.2-Alpha" => new InventoryModSession(this),
+                "1.4.3-Alpha" => new InventoryModSession(this),
                 _ => new ModSessionLifesycle(this)
             };
         }
@@ -331,7 +332,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             var a = JsonConvert.DeserializeObject<Response>(e.Data);
-            if (e?.Data == "\"nobestflip\"")
+            if (e.Data.Contains(":\"nobestflip\""))
             {
                 HandleCommand(e, null, a);
                 return;
