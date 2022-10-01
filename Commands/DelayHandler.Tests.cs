@@ -21,7 +21,7 @@ public class DelayHandlerTests
     {
         timeProvider = new MockTimeProvider();
         ids = new string[] { "hi" };
-        var flipTrackingService = new Mock<FlipTrackingService>(null);
+        var flipTrackingService = new Mock<FlipTrackingService>(null,null);
         sessionInfo = new SessionInfo() { };
         result = new SpeedCompResult() { Penalty = 1, MacroedFlips = new() };
         flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));
