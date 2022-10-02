@@ -42,7 +42,7 @@ namespace Coflnet.Sky.Commands.MC
         public FormatProvider formatProvider { get; private set; }
         public ModSessionLifesycle sessionLifesycle { get; protected set; }
 
-
+        public static bool IsDevMode { get; } = System.Net.Dns.GetHostName().Contains("ekwav");
 
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
@@ -547,8 +547,6 @@ namespace Coflnet.Sky.Commands.MC
 
             return error.Span.Context.TraceId;
         }
-
-        public static bool IsDevMode => System.Net.Dns.GetHostName().Contains("ekwav");
 
         /// <summary>
         /// Log a message to the connection

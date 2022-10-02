@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
                 Reason = args,
                 Uuid = uuid
             });
-            socket.Dialog(db => db.Msg(McColorCodes.AQUA + mcName).MsgLine("was muted").AsGray());
+            socket.Dialog(db => db.Msg(McColorCodes.AQUA + mcName).MsgLine(" was muted successfully").AsGray());
         }
     }
 }

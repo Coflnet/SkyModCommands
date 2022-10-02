@@ -78,6 +78,7 @@ namespace Coflnet.Sky.Commands.MC
                 using var waitLogin = socket.tracer.BuildSpan("waitLogin").AsChildOf(ConSpan).StartActive();
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DEFAULT_SETTINGS);
+                SubSessionToEventsFor(SessionInfo.McUuid);
             }
             else
             {
@@ -124,12 +125,18 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine("accountinfo is default");
 
             AccountSettings = await accountSettingsTask;
+            SubSessionToEventsFor(val);
+            await ApplyFlipSettings(FlipSettings.Value, ConSpan);
+        }
+
+        private void SubSessionToEventsFor(string val)
+        {
+            SessionInfo.EventBrokerSub?.Unsubscribe();
             SessionInfo.EventBrokerSub = socket.GetService<EventBrokerClient>().SubEvents(val, onchange =>
             {
                 Console.WriteLine("received update from event");
                 SendMessage(COFLNET + onchange.Message);
             });
-            await ApplyFlipSettings(FlipSettings.Value, ConSpan);
         }
 
         /// <summary>
