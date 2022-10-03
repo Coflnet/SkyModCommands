@@ -217,6 +217,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 "1.4-Alpha" => new InventoryVersionAdapter(this),
                 "1.4.2-Alpha" => new InventoryVersionAdapter(this),
+                "1.4.3-Alpha" => new InventoryVersionAdapter(this),
                 "1.3.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.2-Alpha" => new SecondVersionAdapter(this),
