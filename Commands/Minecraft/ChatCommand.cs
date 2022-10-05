@@ -27,7 +27,7 @@ namespace Coflnet.Sky.Commands.MC
             var message = JsonConvert.DeserializeObject<string>(arguments);
 
             bool shouldToggle = string.IsNullOrEmpty(message) || message == "toggle";
-            if (shouldToggle || (!socket.sessionLifesycle.FlipSettings.Value?.ModSettings?.Chat ?? false))
+            if (shouldToggle || (!socket.sessionLifesycle.FlipSettings?.Value?.ModSettings?.Chat ?? false))
             {
                 var settings = socket.sessionLifesycle.FlipSettings;
                 if (settings == null)
