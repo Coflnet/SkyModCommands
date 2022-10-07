@@ -15,7 +15,7 @@ namespace Coflnet.Sky.Commands.MC
             var mcName = parts.Skip(1).First();
             var isModerator = socket.GetService<ModeratorService>().IsModerator(socket);
             if (!isModerator)
-                throw new CoflnetException("forbiden", "Whops, you don't seem to be a moderator. Therefore you can't mute other users");
+                throw new CoflnetException("forbidden", "Whoops, you don't seem to be a moderator. Therefore you can't mute other users");
 
             await socket.GetService<ChatService>().Mute(new()
             {
