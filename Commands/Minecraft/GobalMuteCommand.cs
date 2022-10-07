@@ -19,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
 
             await socket.GetService<ChatService>().Mute(new()
             {
-                Message = $"Violating rule {args[0]} with {args.Replace(uuid, "").Substring(2)}",
+                Message = $"Violating rule {args[0]} with \"{args.Replace(" "+uuid, "").Substring(args.IndexOf(parts.Skip(3).First()))}\"",
                 Muter = socket.SessionInfo.McUuid,
                 Reason = args,
                 Uuid = uuid
