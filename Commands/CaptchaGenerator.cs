@@ -122,7 +122,6 @@ namespace Coflnet.Sky.Commands.MC
             var secondAsString = altFonts.OrderBy(f => random.Next()).First()[(second + 9) % 10];
             var firstAsString = NumberToWords(first);
             var question = $"What is {McColorCodes.AQUA}{firstAsString} {McColorCodes.GRAY}{word} {McColorCodes.AQUA}{secondAsString}{McColorCodes.GRAY}";
-            Console.WriteLine(question);
 
             return new CaptchaChallenge()
             {
