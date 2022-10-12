@@ -32,7 +32,8 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     if (isNull)
                         return Random.Shared.Next() % pcount;
-                    return new Partition((key[0] << 8 + key[1]) % pcount);
+                    int partition = Math.Abs((int)key[0] << 8 | key[1] | key[2]) % pcount;
+                    return partition;
                 }).Build();
             }
         }
@@ -53,7 +54,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 producer.Produce(config["TOPICS:STATE_UPDATE"], new()
                 {
-                    Key = string.IsNullOrEmpty(playerId) ? null : playerId.Substring(0, 4) + batch[0].Truncate(10),
+                    Key = string.IsNullOrEmpty(playerId) ? null : playerId.Truncate(4).PadRight(4) + batch[0].Truncate(10),
                     Value = new()
                     {
                         ChatBatch = batch,
