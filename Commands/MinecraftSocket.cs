@@ -108,7 +108,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<ProfitCommand>();
             Commands.Add<FlipsCommand>();
             Commands.Add<AhOpenCommand>();
-            Commands.Add<SetCommand>();
+            Commands.Add<SetCommand>("s");
             Commands.Add<GetCommand>();
             Commands.Add<TopUpCommand>();
             Commands.Add<PurchaseCommand>("buy");
@@ -131,6 +131,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<AddReminderTimeCommand>();
             Commands.Add<LoreCommand>();
             Commands.Add<GobalMuteCommand>();
+            Commands.Add<FactCommand>();
 
             Task.Run(async () =>
             {
