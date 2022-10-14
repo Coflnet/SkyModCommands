@@ -10,7 +10,7 @@ namespace Coflnet.Sky.Commands.MC
         List<Func<MinecraftSocket, string>> facts = new() {
             s=>"You are reading this right now",
             s=>"1 + 1 is 2",
-            s=>"Your max cost is " + s.Settings.MaxCost,
+            s=>"Your max cost is " + s.formatProvider.FormatPrice(s.Settings.MaxCost),
             s=>"You use the flip finders " + s.Settings.AllowedFinders.ToString(),
             s=>$"Your whitelist has {s.Settings.WhiteList.Count} entries",
             s=>$"Your blacklist has {s.Settings.BlackList.Count} entries",
@@ -23,11 +23,13 @@ namespace Coflnet.Sky.Commands.MC
             s=> $"Rule 1 is: Be nice",
             s=> $"Rule 2 is: Don't advertise something nobody asked for",
             s=> $"There aren't a lot of cofl rules",
-            s=> $"Do a barrel roll!"
+            s=> $"Do a barrel roll!",
+            s=> $"The cofl discord has a politics channel. You should come and start an argument ;)"
         };
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
-            throw new System.NotImplementedException();
+            socket.Dialog(db => db.Msg(facts.OrderBy(a => Random.Shared.Next()).First().Invoke(socket)));
+            return Task.CompletedTask;
         }
     }
 }
