@@ -189,7 +189,6 @@ namespace Coflnet.Sky.Commands.MC
                     continue;
                 }
                 await WaitForBedToSend(item).ConfigureAwait(false);
-
             }
         }
 
@@ -261,26 +260,6 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }, "tracking flip");
         }
-
-        /// <summary>
-        /// Sends a new flip after delaying to account for macro/ping advantage
-        /// </summary>
-        /// <param name="flipInstance"></param>
-        /// <returns></returns>
-        private async Task<Task> SendAfterDelay(FlipInstance flipInstance)
-        {
-
-            throw new Exception();
-            /*if (SessionInfo.LastSpeedUpdate < DateTime.UtcNow - TimeSpan.FromSeconds(50))
-            {
-                var adjustment = MinecraftSocket.NextFlipTime - DateTime.UtcNow - TimeSpan.FromSeconds(60);
-                if (Math.Abs(adjustment.TotalSeconds) < 1)
-                    SessionInfo.RelativeSpeed = adjustment;
-                SessionInfo.LastSpeedUpdate = DateTime.UtcNow;
-            }*/
-
-        }
-
 
         private bool BlockedFlip(LowPricedAuction flip, string reason)
         {
