@@ -21,10 +21,12 @@ namespace Coflnet.Sky.Commands.MC
             if(string.IsNullOrEmpty(productSlug))
             {
                 socket.Dialog(db => db.MsgLine($"What plan do you want to purchase/extend")
-                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+", "premium_plus 1", $"Purchase {McColorCodes.GOLD}prem+")
-                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GREEN}premium", "premium 1", $"purchase {McColorCodes.GREEN}premium")
-                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GREEN}premium(derpy)", "premium-derpy 1", $"purchase {McColorCodes.GREEN}premium{McColorCodes.WHITE} for the time derpy was mayor")
-                        .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter", "starter_premium 1", "purchase starter").LineBreak());
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (week)", "premium_plus 1", $"Purchase {McColorCodes.GOLD}prem+")
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GREEN}premium (month)", "premium 1", $"purchase {McColorCodes.GREEN}premium")
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter (180 days)", "starter_premium 1", $"purchase starter premium for {McColorCodes.AQUA}half a year").LineBreak()
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (hour)", "premium_plus-hour 1", $"Purchase {McColorCodes.GOLD}prem+{McColorCodes.WHITE} for 60 minutes")
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GREEN}premium(derpy)", "premium-derpy 1", $"purchase {McColorCodes.GREEN}premium{McColorCodes.WHITE} for the time derpy was mayor (5 days)")
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter (a day)", "starter_premium-day 1", $"purchase starter premium for a {McColorCodes.AQUA}single day").LineBreak());
                 return;
             }
 
