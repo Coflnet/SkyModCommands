@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
+using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
@@ -15,12 +16,12 @@ namespace Coflnet.Sky.Commands.MC
 
             var parts = arguments.Trim('"').Split(' ');
             var productSlug = parts[0];
-            if(productSlug == "prem+" || productSlug == "premium+")
+            if (productSlug == "prem+" || productSlug == "premium+")
                 productSlug = "premium_plus";
 
-            if(string.IsNullOrEmpty(productSlug))
+            if (string.IsNullOrEmpty(productSlug))
             {
-                socket.Dialog(db => db.MsgLine($"What plan do you want to purchase/extend")
+                socket.Dialog(db => db.MsgLine($"What plan do you want to purchase/extend {McColorCodes.GRAY}(click on it)")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (week)", "premium_plus 1", $"Purchase {McColorCodes.GOLD}prem+")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.GREEN}premium (month)", "premium 1", $"purchase {McColorCodes.GREEN}premium")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter (180 days)", "starter_premium 1", $"purchase starter premium for {McColorCodes.AQUA}half a year").LineBreak()
@@ -46,16 +47,17 @@ namespace Coflnet.Sky.Commands.MC
                 }
             if (parts.Length < 3 || parts[2] != socket.SessionInfo.ConnectionId)
             {
-                var totalDays = (int)TimeSpan.FromSeconds(product.OwnershipSeconds * count).TotalDays;
-            socket.SendMessage(new DialogBuilder()
-                    .Msg($"Do you want to buy the {McColorCodes.AQUA}{product.Title}{McColorCodes.WHITE} service {McColorCodes.AQUA}{count}x ")
-                    .Msg($"for a total of {McColorCodes.AQUA}{socket.FormatPrice((long)product.Cost)}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
-                    .MsgLine($"lasting {McColorCodes.AQUA}{totalDays} days")
-                    .CoflCommand<PurchaseCommand>(
-                            $"  {McColorCodes.GREEN}Yes  ", 
-                            $"{productSlug} {count} {socket.SessionInfo.ConnectionId}", 
-                            $"Confirm purchase (paying {socket.FormatPrice((long)product.Cost)} cofl coins)")
-                    .DialogLink<EchoDialog>($"  {McColorCodes.RED}No  ", $"Purchase Canceled", $"{McColorCodes.RED}Cancel purchase"));
+                var timeString = GetLenghtInWords(product, count);
+
+                socket.SendMessage(new DialogBuilder()
+                        .Msg($"Do you want to buy the {McColorCodes.AQUA}{product.Title}{McColorCodes.WHITE} service {McColorCodes.AQUA}{count}x ")
+                        .Msg($"for a total of {McColorCodes.AQUA}{socket.FormatPrice((long)product.Cost)}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
+                        .MsgLine($"lasting {timeString}")
+                        .CoflCommand<PurchaseCommand>(
+                                $"  {McColorCodes.GREEN}Yes  ",
+                                $"{productSlug} {count} {socket.SessionInfo.ConnectionId}",
+                                $"Confirm purchase (paying {socket.FormatPrice((long)product.Cost)} cofl coins)")
+                        .DialogLink<EchoDialog>($"  {McColorCodes.RED}No  ", $"Purchase Canceled", $"{McColorCodes.RED}Cancel purchase"));
                 return;
             }
 
@@ -67,11 +69,21 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var userInfo = await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, productSlug, socket.SessionInfo.ConnectionId, count);
                 socket.Dialog(db => db.MsgLine($"Successfully started purchase of {productSlug} you should receive a confirmation in a few seconds"));
-            } catch (Coflnet.Payments.Client.Client.ApiException e)
+            }
+            catch (Coflnet.Payments.Client.Client.ApiException e)
             {
-                socket.SendMessage(DialogBuilder.New.MsgLine(McColorCodes.RED + "An error occured").Msg(e.Message.Substring(68).Trim('}','"')));
+                socket.SendMessage(DialogBuilder.New.MsgLine(McColorCodes.RED + "An error occured").Msg(e.Message.Substring(68).Trim('}', '"')));
             }
 
+        }
+
+        private static string GetLenghtInWords(PurchaseableProduct product, int count)
+        {
+            var timeSpan = TimeSpan.FromSeconds(product.OwnershipSeconds * count);
+            var timeString = $"{McColorCodes.AQUA}{(int)timeSpan.TotalDays} days";
+            if (timeSpan < TimeSpan.FromDays(1))
+                timeString = $"{McColorCodes.AQUA}{(int)timeSpan.TotalHours} hour" + (timeSpan == TimeSpan.FromHours(1) ? "" : "s");
+            return timeString;
         }
     }
 }
