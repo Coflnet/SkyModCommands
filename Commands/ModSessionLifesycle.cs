@@ -292,10 +292,10 @@ namespace Coflnet.Sky.Commands.MC
 
 
 
-        public void UpdateConnectionTier(AccountInfo accountInfo, OpenTracing.ISpan span)
+        public void UpdateConnectionTier(AccountInfo accountInfo, OpenTracing.ISpan span = null)
         {
             this.ConSpan.SetTag("tier", accountInfo?.Tier.ToString());
-            span.Log("set connection tier to " + accountInfo?.Tier.ToString());
+            span?.Log("set connection tier to " + accountInfo?.Tier.ToString());
             if (accountInfo == null)
                 return;
 

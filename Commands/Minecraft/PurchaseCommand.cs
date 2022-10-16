@@ -71,6 +71,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.MsgLine($"Successfully started purchase of {productSlug} you should receive a confirmation in a few seconds"));
                 await Task.Delay(TimeSpan.FromSeconds(2));
                 await socket.sessionLifesycle.UpdateAccountTier(socket.sessionLifesycle.AccountInfo);
+                socket.sessionLifesycle.UpdateConnectionTier(socket.AccountInfo);
             }
             catch (Coflnet.Payments.Client.Client.ApiException e)
             {
