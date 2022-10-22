@@ -96,13 +96,13 @@ public class DelayHandler
         if (HasFlippedForLong(lastCaptchaSolveTime, hourCount))
         {
             summary.AntiAfk = true;
-            if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(1.5))
+            if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(3))
                 currentDelay = AntiAfkDelay;
         }
-        else if (recommendedPenalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(28))
+        else if (recommendedPenalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(118))
         {
             summary.AntiAfk = true;
-            if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(30))
+            if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(120))
                 currentDelay = AntiAfkDelay;
         }
         if (breakdown?.MacroedFlips?.Count <= 2)
@@ -119,7 +119,7 @@ public class DelayHandler
 
     private bool HasFlippedForLong(DateTime lastCaptchaSolveTime, int hourCount)
     {
-        return hourCount > 3 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(1.4);
+        return hourCount > 4 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(2.4);
     }
 
     public class Summary
