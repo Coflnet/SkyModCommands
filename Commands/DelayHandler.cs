@@ -12,7 +12,7 @@ namespace Coflnet.Sky.Commands.MC;
 /// </summary>
 public class DelayHandler
 {
-    private static readonly TimeSpan AntiMacroDelay = TimeSpan.FromSeconds(12);
+    private static readonly TimeSpan AntiAfkDelay = TimeSpan.FromSeconds(12);
     private int FlipIndex = 0;
     public static readonly TimeSpan DefaultDelay = TimeSpan.FromSeconds(2);
 
@@ -56,6 +56,9 @@ public class DelayHandler
 
     public bool IsLikelyBot(FlipInstance flipInstance)
     {
+        if(currentDelay == AntiAfkDelay)
+            return false; // afk users don't get instant flips
+
         var tag = flipInstance.Auction?.Tag;
         var profit = flipInstance.ProfitPercentage;
         return tag != null && (
@@ -94,13 +97,13 @@ public class DelayHandler
         {
             summary.AntiAfk = true;
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(1.5))
-                currentDelay = AntiMacroDelay;
+                currentDelay = AntiAfkDelay;
         }
         else if (recommendedPenalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(28))
         {
             summary.AntiAfk = true;
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(30))
-                currentDelay = AntiMacroDelay;
+                currentDelay = AntiAfkDelay;
         }
         if (breakdown?.MacroedFlips?.Count <= 2)
             macroPenalty = TimeSpan.Zero;

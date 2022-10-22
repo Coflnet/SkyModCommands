@@ -1,3 +1,4 @@
+using System.Linq;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -11,7 +12,7 @@ namespace Coflnet.Sky.Commands.MC
             var generator = new CaptchaGenerator();
             var session = new SessionInfo();
             var response = generator.SetupChallenge(null, session);
-            Assert.IsTrue(JsonConvert.SerializeObject(response).Contains(session.CaptchaSolution));
+            Assert.IsTrue(JsonConvert.SerializeObject(response).Contains(session.CaptchaSolutions.First()));
         }   
     }
 }
