@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Newtonsoft.Json;
 using OpenTracing;
@@ -18,8 +19,9 @@ namespace Coflnet.Sky.Commands.MC
             // feel free to look at the implementation and create solvers
             // I am gonna make it more complicated when someone actually breaks it :)
             using var captchaSpan = socket?.tracer.BuildSpan("newCaptcha").AsChildOf(socket.ConSpan).StartActive();
-            CaptchaChallenge challenge = random.Next(0, 4) switch
+            CaptchaChallenge challenge = random.Next(0, 4000) switch
             {
+                > 2 => AsciBaded(socket),
                 0 => MinMax(socket),
                 1 => ColorBased(socket),
                 _ => MathBased(socket)
@@ -28,7 +30,7 @@ namespace Coflnet.Sky.Commands.MC
 
             captchaSpan?.Span.Log(JsonConvert.SerializeObject(new { info.CaptchaSolution, challenge.Options, challenge.Correct }, Formatting.Indented));
 
-            info.CaptchaSolution = challenge.Correct.Code;
+            info.CaptchaSolutions = challenge.Correct.Select(c => c.Code).ToList();
             return new DialogBuilder()
                 .MsgLine($"{challenge.Question} (click correct answer)", null, "anti macro question, please click on the answer")
                 .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, "Click to select " + o.Text));
@@ -40,7 +42,7 @@ namespace Coflnet.Sky.Commands.MC
             while (numbers.Count < 6)
             {
                 var number = random.Next(0, 100);
-                if(!numbers.Contains(number))
+                if (!numbers.Contains(number))
                     numbers.Add(number);
             }
 
@@ -62,10 +64,77 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Question = $"What is the {McColorCodes.AQUA}{McColorCodes.BOLD}{d}{McColorCodes.RESET} of these numbers?",
                 Options = transformed.Select(t => t.s).ToArray(),
-                Correct = correct
+                Correct = new Option[] { correct }
             };
         }
 
+        private CaptchaChallenge AsciBaded(MinecraftSocket socket)
+        {
+            var alphaBet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".OrderBy(r=>random.Next()).ToList();
+            var letter = alphaBet.Last();
+            var lines = RenderCharLines(letter);
+            var chars = new List<List<Option>>();
+            chars.Add(lines);
+            var index = 0;
+            while (chars.Sum(c => c.First().Text.Length) < 55)
+                chars.Add(RenderCharLines(alphaBet[index++]));
+
+            //socket.Dialog(db => db.LineBreak().Lines(lines.Select(m => m + "|").ToArray()));
+            var challenge = new CaptchaChallenge() { Question = "Select the letter " + letter };
+            var bigger = chars.Max(l => l.Count);
+            chars = chars.OrderBy(r => random.Next()).ToList();
+            List<Option> parts = new();
+            for (int i = 0; i < bigger; i++)
+            {
+                parts.Add(new() { Text = "|\n" });
+                foreach (var item in chars)
+                {
+                    AddLineOrEmpty(item, parts, i);
+                }
+                if(chars.All(c=>c.Count <= i || string.IsNullOrWhiteSpace(c[i].Text)))
+                    break;
+            }
+            challenge.Correct = lines;
+            challenge.Options = parts;
+            return challenge;
+        }
+
+        private static void AddLineOrEmpty(List<Option> lines, List<Option> parts, int i)
+        {
+            if (lines.Count > i && !string.IsNullOrWhiteSpace(lines[i].Text))
+                parts.Add(lines[i]);
+            else
+            {
+                var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length);
+                var padding = "".PadLeft(length);
+                if (Random.Shared.Next(8) == 0)
+                    padding = padding.Remove(1, 1).Insert(Random.Shared.Next(0, length - 1), "🇧🇾".First().ToString());
+                else
+                    padding = padding.Insert(Random.Shared.Next(0, length - 1), "🇧🇾");
+                parts.Add(new() { Text = padding, Hover = "spacing" });
+            }
+        }
+
+        private static List<Option> RenderCharLines(char letter)
+        {
+            // Figgle.FiggleFonts.Acrobatic, Figgle.FiggleFonts.Alligator, Figgle.FiggleFonts.Alligator2, Figgle.FiggleFonts.Alligator3, Figgle.FiggleFonts.Alphabet, Figgle.FiggleFonts.AmcAaa01
+            var readableFonts = new Figgle.FiggleFont[] { Figgle.FiggleFonts.Acrobatic, Figgle.FiggleFonts.Alligator, Figgle.FiggleFonts.Alligator2, Figgle.FiggleFonts.Alligator3, Figgle.FiggleFonts.Alphabet, Figgle.FiggleFonts.AmcAaa01 };
+            var rendered = readableFonts.OrderBy(r => Random.Shared.Next()).First().Render(letter.ToString());
+            var builder = new System.Text.StringBuilder(rendered.Length);
+            foreach (var item in rendered)
+            {
+                if (item == ' ' || item == '\n')
+                    builder.Append(item);
+                else
+                    builder.Append("🇧🇾".First());
+            }
+            var lines = builder.ToString().Split('\n');
+            return lines.Select(l => new Option()
+            {
+                Text = l,
+                Hover = letter.ToString()
+            }).ToList();
+        }
 
         private CaptchaChallenge ColorBased(MinecraftSocket socket)
         {
@@ -79,8 +148,8 @@ namespace Coflnet.Sky.Commands.MC
                 { "purple", McColorCodes.DARK_PURPLE},
                 { "gold/orange", McColorCodes.GOLD}
             };
-            
-            var transformed = colors.OrderBy(c=>random.Next()).Select(c => new
+
+            var transformed = colors.OrderBy(c => random.Next()).Select(c => new
             {
                 c,
                 s = CreateOption(c.Key)
@@ -90,8 +159,8 @@ namespace Coflnet.Sky.Commands.MC
             return new()
             {
                 Question = $"{correct.c.Value}What is the color of this message?",
-                Options = transformed.Select(t => t.s).OrderBy(s=>random.Next()).ToArray(),
-                Correct = correct.s
+                Options = transformed.Select(t => t.s).OrderBy(s => random.Next()).ToArray(),
+                Correct = new Option[] { correct.s }
             };
         }
 
@@ -127,7 +196,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Question = question,
                 Options = options.ToArray(),
-                Correct = correct
+                Correct = new Option[] { correct }
             };
         }
 
@@ -145,12 +214,13 @@ namespace Coflnet.Sky.Commands.MC
         {
             public string Text;
             public string Code = GetCode();
+            public string Hover;
         }
 
         public class CaptchaChallenge
         {
             public IEnumerable<Option> Options;
-            public Option Correct;
+            public IEnumerable<Option> Correct;
             public string Question;
         }
 

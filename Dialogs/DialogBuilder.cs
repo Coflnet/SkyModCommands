@@ -38,6 +38,14 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             Parts.Add(new ChatPart("\n"));
             return this;
         }
+        public DialogBuilder Lines(params string[] lines)
+        {
+            foreach (var item in lines)
+            {
+                Parts.Add(new ChatPart(item + "\n"));
+            }
+            return this;
+        }
 
         public DialogBuilder Break => LineBreak();
 

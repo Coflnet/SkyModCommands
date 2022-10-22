@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Coflnet.Sky.Commands.MC
@@ -10,18 +11,18 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var sessionInfo = socket.SessionInfo;
-            var solution = sessionInfo.CaptchaSolution;
-            sessionInfo.CaptchaSolution += Random.Shared.Next();
+            var solution = sessionInfo.CaptchaSolutions;
+            sessionInfo.CaptchaSolutions = new List<string>();
             var attempt = arguments.Trim('"');
             if (string.IsNullOrEmpty(attempt))
                 socket.SendMessage(COFLNET + McColorCodes.BLUE + "You requested to get a new captcha. Have fun.");
             else
                 socket.SendMessage(COFLNET + "Checking your response");
             await Task.Delay(2000 * debugMultiplier).ConfigureAwait(false);
-            if (solution == attempt)
+            if (solution.Contains(attempt))
             {
                 sessionInfo.CaptchaFailedTimes--;
-                if(sessionInfo.CaptchaFailedTimes <0)
+                if (sessionInfo.CaptchaFailedTimes < 0)
                     sessionInfo.CaptchaFailedTimes = 0;
                 if (sessionInfo.CaptchaFailedTimes > 0)
                 {

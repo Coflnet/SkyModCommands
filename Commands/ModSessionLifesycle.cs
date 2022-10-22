@@ -12,6 +12,7 @@ using WebSocketSharp;
 using OpenTracing;
 using Coflnet.Sky.ModCommands.Services;
 using System.Threading;
+using System.Text;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -61,6 +62,16 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task SetupConnectionSettings(string stringId)
         {
+        /*    socket.Dialog(db => db.Lines("The welcome pig greets you",
+"           __,---.__",
+"        ,-'          `-.__",
+@"      &/           `._\ _\",
+"       /               ' '._",
+@"      |   ,               ("")",
+@"      |__,'`-..--|__|--''"));
+
+            socket.Dialog(db => db.ForEach("abcopqrstuf 🤨🤔🇧🇾", (db, c) => db.ForEach("091111111111111", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
+*/
             using var loadSpan = socket.tracer.BuildSpan("load").AsChildOf(ConSpan).StartActive();
             SessionInfo.SessionId = stringId;
 

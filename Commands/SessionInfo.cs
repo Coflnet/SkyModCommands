@@ -46,6 +46,7 @@ namespace Coflnet.Sky.Commands.MC
         public DateTime LastBlockedMsg = default;
         public DateTime LastCaptchaSolve = default;
         public string CaptchaSolution = default;
+        public IEnumerable<string> CaptchaSolutions = new List<string>();
 
         public void Dispose()
         {
