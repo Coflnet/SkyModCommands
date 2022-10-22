@@ -21,7 +21,6 @@
     <Compile Remove="**\*.Tests.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Release'">
-    <PackageReference Include="Figgle" Version="0.4.0" />
     <PackageReference Include="Moq" Version="4.18.1" />
     <PackageReference Include="nunit" Version="3.13.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
@@ -30,6 +29,7 @@
 
 
   <ItemGroup>
+    <PackageReference Include="Figgle" Version="0.4.0" />
     <PackageReference Include="Coflnet.Sky.Chat.Client" Version="0.1.0" />
     <PackageReference Include="Confluent.Kafka" Version="1.7.0" />
     <PackageReference Include="Jaeger.Core" Version="1.0.3" />
