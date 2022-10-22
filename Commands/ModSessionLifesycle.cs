@@ -70,7 +70,7 @@ namespace Coflnet.Sky.Commands.MC
 @"      |   ,               ("")",
 @"      |__,'`-..--|__|--''"));
 
-            socket.Dialog(db => db.ForEach("abcopqrstuf 🤨🤔🇧🇾", (db, c) => db.ForEach("091111111111111", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
+            socket.Dialog(db => db.ForEach("abcopqrstuf 🤨🤔🇧🇾:|,:-.#ä+´`!^°~", (db, c) => db.ForEach("091111111111111", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
 */
             using var loadSpan = socket.tracer.BuildSpan("load").AsChildOf(ConSpan).StartActive();
             SessionInfo.SessionId = stringId;

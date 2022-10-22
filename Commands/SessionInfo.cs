@@ -47,6 +47,7 @@ namespace Coflnet.Sky.Commands.MC
         public DateTime LastCaptchaSolve = default;
         public string CaptchaSolution = default;
         public IEnumerable<string> CaptchaSolutions = new List<string>();
+        public int ChatWidth = 55;
 
         public void Dispose()
         {

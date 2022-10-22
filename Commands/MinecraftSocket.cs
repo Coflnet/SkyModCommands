@@ -16,14 +16,59 @@ using Microsoft.Extensions.DependencyInjection;
 using Coflnet.Sky.ModCommands.Dialogs;
 using System.Runtime.Serialization;
 using OpenTracing;
+using System.Runtime.CompilerServices;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    public interface IMinecraftSocket
+    {
+        long Id { get; }
+        SessionInfo SessionInfo { get; }
+        FlipSettings Settings { get; }
+        AccountInfo AccountInfo { get; }
+        string Version { get; }
+        ITracer tracer { get; }
+        ISpan ConSpan { get; }
+        FormatProvider formatProvider { get; }
+        ModSessionLifesycle sessionLifesycle { get; }
+        string UserId { get; }
+
+        event Action OnConClose;
+
+        void Close();
+        void Dialog(Func<DialogBuilder, DialogBuilder> creation);
+        string Error(Exception exception, string message = null, string additionalLog = null);
+        void ExecuteCommand(string command);
+        string FormatPrice(long price);
+        LowPricedAuction GetFlip(string uuid);
+        string GetFlipMsg(FlipInstance flip);
+        Task<string> GetPlayerName(string uuid);
+        Task<string> GetPlayerUuid(string name);
+        T GetService<T>();
+        void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information);
+        IScope RemoveMySelf();
+        void Send(Response response);
+        Task SendBatch(IEnumerable<LowPricedAuction> flips);
+        void SendCommand<T>(string type, T value = default);
+        Task<bool> SendFlip(LowPricedAuction flip);
+        Task<bool> SendFlip(FlipInstance flip);
+        void SendMessage(string text, string clickAction = null, string hoverText = null);
+        bool SendMessage(params ChatPart[] parts);
+        Task<bool> SendSold(string uuid);
+        void SendSound(string soundId, float pitch = 1);
+        void SetLifecycleVersion(string version);
+        void SheduleTimer(ModSettings mod = null, IScope timerSpan = null);
+        ConfiguredTaskAwaitable TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3);
+        void UpdateSettings(SettingsChange settings);
+        Task UpdateSettings(Func<SettingsChange, SettingsChange> updatingFunc);
+        Task<AccountTier> UserAccountTier();
+    }
+
     /// <summary>
     /// Main connection point for the mod.
     /// Handles establishing, authorization and handling of messages for a session
     /// </summary>
-    public partial class MinecraftSocket : WebSocketBehavior, IFlipConnection
+    public partial class MinecraftSocket : WebSocketBehavior, IFlipConnection, IMinecraftSocket
     {
         public static string COFLNET = "[§1C§6oflnet§f]§7: ";
 

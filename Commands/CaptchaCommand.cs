@@ -14,6 +14,10 @@ namespace Coflnet.Sky.Commands.MC
             var solution = sessionInfo.CaptchaSolutions;
             sessionInfo.CaptchaSolutions = new List<string>();
             var attempt = arguments.Trim('"');
+            if(attempt == "small")
+                socket.SessionInfo.ChatWidth = 19;
+            if(attempt == "big")
+                socket.SessionInfo.ChatWidth = 55;
             if (string.IsNullOrEmpty(attempt))
                 socket.SendMessage(COFLNET + McColorCodes.BLUE + "You requested to get a new captcha. Have fun.");
             else

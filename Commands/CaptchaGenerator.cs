@@ -28,15 +28,17 @@ namespace Coflnet.Sky.Commands.MC
             };
 
 
-            captchaSpan?.Span.Log(JsonConvert.SerializeObject(new { info.CaptchaSolution, challenge.Options, challenge.Correct }, Formatting.Indented));
+            captchaSpan?.Span.Log(JsonConvert.SerializeObject(new { info.CaptchaSolutions, challenge.Options, challenge.Correct }, Formatting.Indented));
 
             info.CaptchaSolutions = challenge.Correct.Select(c => c.Code).ToList();
             return new DialogBuilder()
                 .MsgLine($"{challenge.Question} (click correct answer)", null, "anti macro question, please click on the answer")
-                .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, "Click to select " + o.Text));
+                .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, "Click to select " + o.Text))
+                .If(() => info.ChatWidth > 20, db => db.CoflCommand<CaptchaCommand>("Small chat", "small", "Use small chat (you will need to solve one more)"))
+                .If(() => info.ChatWidth <= 20, db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use big chat"));
         }
 
-        private CaptchaChallenge MinMax(MinecraftSocket socket)
+        private CaptchaChallenge MinMax(IMinecraftSocket socket)
         {
             var numbers = new List<int>();
             while (numbers.Count < 6)
@@ -70,7 +72,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private CaptchaChallenge AsciBaded(MinecraftSocket socket)
         {
-            var alphaBet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".OrderBy(r=>random.Next()).ToList();
+            var alphaBet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".OrderBy(r => random.Next()).ToList();
             var letter = alphaBet.Last();
             var lines = RenderCharLines(letter);
             var chars = new List<List<Option>>();
@@ -84,16 +86,27 @@ namespace Coflnet.Sky.Commands.MC
             var bigger = chars.Max(l => l.Count);
             chars = chars.OrderBy(r => random.Next()).ToList();
             List<Option> parts = new();
-            for (int i = 0; i < bigger; i++)
-            {
-                parts.Add(new() { Text = "|\n" });
-                foreach (var item in chars)
+            var small = socket.SessionInfo.ChatWidth < 20;
+            if (!small)
+                for (int i = 0; i < bigger; i++)
                 {
-                    AddLineOrEmpty(item, parts, i);
+                    parts.Add(new() { Text = "|\n" });
+                    foreach (var item in chars)
+                    {
+                        AddLineOrEmpty(item, parts, i);
+                    }
+                    if (chars.All(c => c.Count <= i || string.IsNullOrWhiteSpace(c[i].Text)))
+                        break;
                 }
-                if(chars.All(c=>c.Count <= i || string.IsNullOrWhiteSpace(c[i].Text)))
-                    break;
-            }
+            else
+                foreach (var letterAsci in chars)
+                {
+                    for (int i = 0; i < letterAsci.Count; i++)
+                    {
+                        AddLineOrEmpty(letterAsci, parts, i);
+                        parts.Add(new() { Text = "|\n" });
+                    }
+                }
             challenge.Correct = lines;
             challenge.Options = parts;
             return challenge;
@@ -105,7 +118,7 @@ namespace Coflnet.Sky.Commands.MC
                 parts.Add(lines[i]);
             else
             {
-                var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length);
+                var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length - l.Text.Count(c=>c== '´')/2);
                 var padding = "".PadLeft(length);
                 if (Random.Shared.Next(8) == 0)
                     padding = padding.Remove(1, 1).Insert(Random.Shared.Next(0, length - 1), "🇧🇾".First().ToString());
@@ -117,14 +130,23 @@ namespace Coflnet.Sky.Commands.MC
 
         private static List<Option> RenderCharLines(char letter)
         {
-            // Figgle.FiggleFonts.Acrobatic, Figgle.FiggleFonts.Alligator, Figgle.FiggleFonts.Alligator2, Figgle.FiggleFonts.Alligator3, Figgle.FiggleFonts.Alphabet, Figgle.FiggleFonts.AmcAaa01
-            var readableFonts = new Figgle.FiggleFont[] { Figgle.FiggleFonts.Acrobatic, Figgle.FiggleFonts.Alligator, Figgle.FiggleFonts.Alligator2, Figgle.FiggleFonts.Alligator3, Figgle.FiggleFonts.Alphabet, Figgle.FiggleFonts.AmcAaa01 };
-            var rendered = readableFonts.OrderBy(r => Random.Shared.Next()).First().Render(letter.ToString());
+            // Figgle.FiggleFonts.BarbWire,Figgle.FiggleFonts.Banner4,Figgle.FiggleFonts.Banner3D, Figgle.FiggleFonts.Banner3, Figgle.FiggleFonts.Banner, Figgle.FiggleFonts.Arrows, Figgle.FiggleFonts.AmcTubes, Figgle.FiggleFonts.Acrobatic, Figgle.FiggleFonts.Alligator, Figgle.FiggleFonts.Alligator2, Figgle.FiggleFonts.Alligator3, Figgle.FiggleFonts.Alphabet, Figgle.FiggleFonts.AmcAaa01, Figgle.FiggleFonts.AmcSlash, Figgle.FiggleFonts.AmcSlder
+            var readableFonts = new Figgle.FiggleFont[] {Figgle.FiggleFonts.Banner4, Figgle.FiggleFonts.Banner3, Figgle.FiggleFonts.Banner, Figgle.FiggleFonts.Arrows, Figgle.FiggleFonts.AmcTubes, Figgle.FiggleFonts.Acrobatic, Figgle.FiggleFonts.Alligator, Figgle.FiggleFonts.Alligator2, Figgle.FiggleFonts.Alligator3, Figgle.FiggleFonts.Alphabet, Figgle.FiggleFonts.AmcAaa01, Figgle.FiggleFonts.AmcSlash, Figgle.FiggleFonts.AmcSlder};
+            var selectedRenderer = readableFonts.OrderBy(r => Random.Shared.Next()).First();
+            var rendered = selectedRenderer.Render(letter.ToString());
+
+            //Console.WriteLine(rendered);
+
             var builder = new System.Text.StringBuilder(rendered.Length);
+            var hasSpaceEnd = rendered.Split('\n').All(l => string.IsNullOrEmpty(l) || l.Last() == ' ');
             foreach (var item in rendered)
             {
+                if(!hasSpaceEnd && item == '\n')
+                    builder.Append(' ');
                 if (item == ' ' || item == '\n')
                     builder.Append(item);
+                else if(item == ':' || item == '\'' || item == '.')
+                    builder.Append("´´");
                 else
                     builder.Append("🇧🇾".First());
             }
@@ -132,7 +154,7 @@ namespace Coflnet.Sky.Commands.MC
             return lines.Select(l => new Option()
             {
                 Text = l,
-                Hover = letter.ToString()
+                Hover = letter.ToString() + " " + selectedRenderer.GetType().Name
             }).ToList();
         }
 
