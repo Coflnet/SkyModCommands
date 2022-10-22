@@ -13,12 +13,12 @@ namespace Coflnet.Sky.Commands.MC
     {
         private static Random random = new();
 
-        public ChatPart[] SetupChallenge(MinecraftSocket socket, SessionInfo info)
+        public ChatPart[] SetupChallenge(IMinecraftSocket socket, SessionInfo info)
         {
             // hello there, you found where I generate questions
             // feel free to look at the implementation and create solvers
             // I am gonna make it more complicated when someone actually breaks it :)
-            using var captchaSpan = socket?.tracer.BuildSpan("newCaptcha").AsChildOf(socket.ConSpan).StartActive();
+            using var captchaSpan = socket.tracer?.BuildSpan("newCaptcha").AsChildOf(socket.ConSpan).StartActive();
             CaptchaChallenge challenge = random.Next(0, 4000) switch
             {
                 > 2 => AsciBaded(socket),
@@ -70,7 +70,7 @@ namespace Coflnet.Sky.Commands.MC
             };
         }
 
-        private CaptchaChallenge AsciBaded(MinecraftSocket socket)
+        private CaptchaChallenge AsciBaded(IMinecraftSocket socket)
         {
             var alphaBet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".OrderBy(r => random.Next()).ToList();
             var letter = alphaBet.Last();
@@ -158,7 +158,7 @@ namespace Coflnet.Sky.Commands.MC
             }).ToList();
         }
 
-        private CaptchaChallenge ColorBased(MinecraftSocket socket)
+        private CaptchaChallenge ColorBased(IMinecraftSocket socket)
         {
             var colors = new Dictionary<string, string>{
                 { "red", McColorCodes.RED},
@@ -186,7 +186,7 @@ namespace Coflnet.Sky.Commands.MC
             };
         }
 
-        private CaptchaChallenge MathBased(MinecraftSocket socket)
+        private CaptchaChallenge MathBased(IMinecraftSocket socket)
         {
             var numbers = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }.OrderBy(a => random.Next()).ToList();
             var altFonts = new string[] {
