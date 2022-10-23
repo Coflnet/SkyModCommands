@@ -31,8 +31,8 @@ namespace Coflnet.Sky.Commands.MC
         /// Keeps track of which players a mute note message was already sent
         /// </summary>
         /// <returns></returns>
-        public HashSet<string> SentMutedNoteFor { get; set; } = new ();
-        public int CaptchaFailedTimes { get; set; }
+        public HashSet<string> SentMutedNoteFor { get; set; } = new();
+        public int CaptchaFailedTimes => captchaInfo.RequireSolves;
         public bool LbinWarningSent { get; internal set; }
 
         public bool VerifiedMc;
@@ -44,15 +44,30 @@ namespace Coflnet.Sky.Commands.MC
         public TimeSpan RelativeSpeed = default;
         public DateTime LastSpeedUpdate = default;
         public DateTime LastBlockedMsg = default;
-        public DateTime LastCaptchaSolve = default;
-        public string CaptchaSolution = default;
-        public IEnumerable<string> CaptchaSolutions = new List<string>();
-        public int ChatWidth = 55;
+        public DateTime LastCaptchaSolve => captchaInfo.LastSolve;
+        public IEnumerable<string> CaptchaSolutions => captchaInfo.CurrentSolutions;
+        public CaptchaInfo captchaInfo = new();
 
         public void Dispose()
         {
             EventBrokerSub?.Unsubscribe();
             EventBrokerSub = null;
         }
+    }
+
+    public class CaptchaInfo
+    {
+        public IEnumerable<string> CurrentSolutions = new List<string>();
+        public DateTime LastGenerated = DateTime.UtcNow;
+        public DateTime LastSolve = default;
+        /// <summary>
+        /// How many solves are requird, defaults to 1
+        /// </summary>
+        public int RequireSolves = 1;
+        /// <summary>
+        /// How many captchas were requested so far
+        /// </summary>
+        public int CaptchaRequests = 0;
+        public int ChatWidth = 55;
     }
 }

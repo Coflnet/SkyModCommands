@@ -444,7 +444,7 @@ namespace Coflnet.Sky.Commands.MC
                     if (sumary.AntiAfk && !FlipSettings.Value.DisableFlips)
                     {
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
-                        SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo));
+                        SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
                     }
                     if (sumary.MacroWarning)
                     {

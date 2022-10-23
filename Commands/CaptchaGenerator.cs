@@ -13,7 +13,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         private static Random random = new();
 
-        public ChatPart[] SetupChallenge(IMinecraftSocket socket, SessionInfo info)
+        public ChatPart[] SetupChallenge(IMinecraftSocket socket, CaptchaInfo info)
         {
             // hello there, you found where I generate questions
             // feel free to look at the implementation and create solvers
@@ -28,14 +28,16 @@ namespace Coflnet.Sky.Commands.MC
             };
 
 
-            captchaSpan?.Span.Log(JsonConvert.SerializeObject(new { info.CaptchaSolutions, challenge.Options, challenge.Correct }, Formatting.Indented));
+            captchaSpan?.Span.Log(JsonConvert.SerializeObject(new { info.CurrentSolutions, challenge.Options, challenge.Correct }, Formatting.Indented));
 
-            info.CaptchaSolutions = challenge.Correct.Select(c => c.Code).ToList();
+            info.CurrentSolutions = challenge.Correct.Select(c => c.Code).ToList();
             return new DialogBuilder()
                 .MsgLine($"{challenge.Question} (click correct answer)", null, "anti macro question, please click on the answer")
-                .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, "Click to select " + o.Text))
-                .If(() => info.ChatWidth > 20, db => db.CoflCommand<CaptchaCommand>("Small chat", "small", "Use small chat (you will need to solve one more)"))
-                .If(() => info.ChatWidth <= 20, db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use big chat"));
+                .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text))
+                .If(() => info.ChatWidth > 20, db => db.LineBreak()
+                            .CoflCommand<CaptchaCommand>(McColorCodes.AQUA + "Small chat", "small", "Use small chat \n(you will need to solve one more)"))
+                .If(() => info.ChatWidth <= 20, db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use big chat"))
+                .CoflCommand<CaptchaCommand>(McColorCodes.ITALIC + " Another", "another", "Too difficult?\nGet another captcha");
         }
 
         private CaptchaChallenge MinMax(IMinecraftSocket socket)
@@ -86,14 +88,15 @@ namespace Coflnet.Sky.Commands.MC
             var bigger = chars.Max(l => l.Count);
             chars = chars.OrderBy(r => random.Next()).ToList();
             List<Option> parts = new();
-            var small = socket.SessionInfo.ChatWidth < 20;
+            var small = socket.SessionInfo.captchaInfo.ChatWidth < 20;
+            HashSet<Option> solutions = new();
             if (!small)
                 for (int i = 0; i < bigger; i++)
                 {
                     parts.Add(new() { Text = "|\n" });
                     foreach (var item in chars)
                     {
-                        AddLineOrEmpty(item, parts, i);
+                        AddLineOrEmpty(item, parts, i, lines, solutions);
                     }
                     if (chars.All(c => c.Count <= i || string.IsNullOrWhiteSpace(c[i].Text)))
                         break;
@@ -103,35 +106,62 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     for (int i = 0; i < letterAsci.Count; i++)
                     {
-                        AddLineOrEmpty(letterAsci, parts, i);
+                        AddLineOrEmpty(letterAsci, parts, i, lines, solutions);
                         parts.Add(new() { Text = "|\n" });
                     }
                 }
-            challenge.Correct = lines;
+            challenge.Correct = solutions;
             challenge.Options = parts;
             return challenge;
         }
 
-        private static void AddLineOrEmpty(List<Option> lines, List<Option> parts, int i)
+        private void AddLineOrEmpty(List<Option> letterAsci, List<Option> parts, int i, List<Option> lines, HashSet<Option> solutions)
+        {
+            foreach (var item in GetSplitParts(letterAsci, i))
+            {
+                parts.Add(item);
+                if (letterAsci == lines)
+                    solutions.Add(item);
+            }
+        }
+
+        private static IEnumerable<Option> GetSplitParts(List<Option> lines, int i)
         {
             if (lines.Count > i && !string.IsNullOrWhiteSpace(lines[i].Text))
-                parts.Add(lines[i]);
+                return AddParts(lines[i].Text);
             else
             {
-                var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length - l.Text.Count(c=>c== '´')/2);
+                var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length - l.Text.Count(c => c == '´') / 2);
                 var padding = "".PadLeft(length);
                 if (Random.Shared.Next(8) == 0)
                     padding = padding.Remove(1, 1).Insert(Random.Shared.Next(0, length - 1), "🇧🇾".First().ToString());
-                else
-                    padding = padding.Insert(Random.Shared.Next(0, length - 1), "🇧🇾");
-                parts.Add(new() { Text = padding, Hover = "spacing" });
+                return AddParts(padding);
             }
+        }
+
+        private static IEnumerable<Option> AddParts(string padding)
+        {
+            foreach (var item in Split(padding, random.Next(2, 5)))
+            {
+                if (item.IsNullOrEmpty())
+                    continue;
+                var piece = item;
+                if (Random.Shared.Next(3) == 0)
+                    piece = item.Insert(Random.Shared.Next(0, item.Length - 1), string.Join(null, Enumerable.Range(0, random.Next(1, 10)).Select(x => "🇧🇾")));
+                yield return new() { Text = piece };
+            }
+        }
+
+        static IEnumerable<string> Split(string str, int chunkSize)
+        {
+            return Enumerable.Range(0, str.Length / chunkSize)
+                .Select(i => str.Substring(i * chunkSize, chunkSize)).Append(str.Substring((str.Length / chunkSize) * chunkSize));
         }
 
         private static List<Option> RenderCharLines(char letter)
         {
             // Figgle.FiggleFonts.BarbWire,Figgle.FiggleFonts.Banner4,Figgle.FiggleFonts.Banner3D, Figgle.FiggleFonts.Banner3, Figgle.FiggleFonts.Banner, Figgle.FiggleFonts.Arrows, Figgle.FiggleFonts.AmcTubes, Figgle.FiggleFonts.Acrobatic, Figgle.FiggleFonts.Alligator, Figgle.FiggleFonts.Alligator2, Figgle.FiggleFonts.Alligator3, Figgle.FiggleFonts.Alphabet, Figgle.FiggleFonts.AmcAaa01, Figgle.FiggleFonts.AmcSlash, Figgle.FiggleFonts.AmcSlder
-            var readableFonts = new Figgle.FiggleFont[] {Figgle.FiggleFonts.Banner4, Figgle.FiggleFonts.Banner3, Figgle.FiggleFonts.Banner, Figgle.FiggleFonts.Arrows, Figgle.FiggleFonts.AmcTubes, Figgle.FiggleFonts.Acrobatic, Figgle.FiggleFonts.Alligator, Figgle.FiggleFonts.Alligator2, Figgle.FiggleFonts.Alligator3, Figgle.FiggleFonts.Alphabet, Figgle.FiggleFonts.AmcAaa01, Figgle.FiggleFonts.AmcSlash, Figgle.FiggleFonts.AmcSlder};
+            var readableFonts = new Figgle.FiggleFont[] { Figgle.FiggleFonts.Banner4, Figgle.FiggleFonts.Banner3, Figgle.FiggleFonts.Banner, Figgle.FiggleFonts.Arrows, Figgle.FiggleFonts.AmcTubes, Figgle.FiggleFonts.Acrobatic, Figgle.FiggleFonts.Alligator, Figgle.FiggleFonts.Alligator2, Figgle.FiggleFonts.Alligator3, Figgle.FiggleFonts.Alphabet, Figgle.FiggleFonts.AmcAaa01, Figgle.FiggleFonts.AmcSlash, Figgle.FiggleFonts.AmcSlder };
             var selectedRenderer = readableFonts.OrderBy(r => Random.Shared.Next()).First();
             var rendered = selectedRenderer.Render(letter.ToString());
 
@@ -141,11 +171,11 @@ namespace Coflnet.Sky.Commands.MC
             var hasSpaceEnd = rendered.Split('\n').All(l => string.IsNullOrEmpty(l) || l.Last() == ' ');
             foreach (var item in rendered)
             {
-                if(!hasSpaceEnd && item == '\n')
+                if (!hasSpaceEnd && item == '\n')
                     builder.Append(' ');
                 if (item == ' ' || item == '\n')
                     builder.Append(item);
-                else if(item == ':' || item == '\'' || item == '.')
+                else if (item == ':' || item == '\'' || item == '.')
                     builder.Append("´´");
                 else
                     builder.Append("🇧🇾".First());

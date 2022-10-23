@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
             var session = new SessionInfo();
             var socket = new Mock<IMinecraftSocket>();
             socket.SetupGet(s => s.SessionInfo).Returns(session);
-            var response = generator.SetupChallenge(socket.Object, session);
+            var response = generator.SetupChallenge(socket.Object, session.captchaInfo);
             Assert.IsTrue(JsonConvert.SerializeObject(response).Contains(session.CaptchaSolutions.First()));
         }   
     }
