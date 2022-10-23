@@ -18,6 +18,7 @@ namespace Coflnet.Sky.Commands.MC
             if (attempt == "another")
             {
                 await RequireAnotherSolve(socket, info);
+                info.CaptchaRequests++;
                 return;
             }
             if (attempt == "small")
@@ -64,8 +65,13 @@ namespace Coflnet.Sky.Commands.MC
         private async Task RequireAnotherSolve(MinecraftSocket socket, CaptchaInfo info)
         {
             socket.SendMessage(COFLNET + "Generating captcha");
-            await Task.Delay(Math.Max(info.RequireSolves, 1) * 1000 * debugMultiplier).ConfigureAwait(false);
+            await Task.Delay(Math.Max(Math.Max(info.RequireSolves, 1), info.CaptchaRequests) * 1000 * debugMultiplier).ConfigureAwait(false);
             socket.SendMessage(new CaptchaGenerator().SetupChallenge(socket, info));
+            if(info.CaptchaRequests > 10)
+            {
+                info.CaptchaRequests = 0;
+                info.RequireSolves++;
+            }
         }
     }
 }

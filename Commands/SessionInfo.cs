@@ -68,6 +68,6 @@ namespace Coflnet.Sky.Commands.MC
         /// How many captchas were requested so far
         /// </summary>
         public int CaptchaRequests = 0;
-        public int ChatWidth = 55;
+        public int ChatWidth = 90;
     }
 }
