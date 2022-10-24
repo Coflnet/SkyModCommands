@@ -7,7 +7,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class CaptchaCommand : McCommand
     {
-        int debugMultiplier = 0;
+        int debugMultiplier = 1;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var info = socket.SessionInfo.captchaInfo;
@@ -37,7 +37,7 @@ namespace Coflnet.Sky.Commands.MC
             else
             {
                 socket.SendMessage(COFLNET + "Checking your response");
-                await Task.Delay(1000 * debugMultiplier).ConfigureAwait(false);
+                await Task.Delay(500 * debugMultiplier).ConfigureAwait(false);
             }
             if (solution.Contains(attempt))
             {
@@ -78,7 +78,7 @@ namespace Coflnet.Sky.Commands.MC
         private async Task RequireAnotherSolve(MinecraftSocket socket, CaptchaInfo info)
         {
             socket.SendMessage(COFLNET + "Generating captcha");
-            await Task.Delay(Math.Max(Math.Max(info.RequireSolves, 1), info.CaptchaRequests) * 1000 * debugMultiplier).ConfigureAwait(false);
+            await Task.Delay(Math.Max(Math.Max(info.RequireSolves, 1), info.CaptchaRequests) * 800 * debugMultiplier).ConfigureAwait(false);
             socket.SendMessage(new CaptchaGenerator().SetupChallenge(socket, info));
             if (info.CaptchaRequests > 10)
             {
