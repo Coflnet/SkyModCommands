@@ -119,7 +119,7 @@ public class DelayHandler
 
     private bool HasFlippedForLong(DateTime lastCaptchaSolveTime, int hourCount)
     {
-        return hourCount > 4 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(2.4);
+        return hourCount > 3 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(2.4);
     }
 
     public class Summary

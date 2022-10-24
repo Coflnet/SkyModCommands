@@ -60,6 +60,12 @@ namespace Coflnet.Sky.Commands.MC
             await RequireAnotherSolve(socket, info);
 
             info.RequireSolves++;
+            info.FaildCount++;
+            if (info.FaildCount <= 2 && info.ChatWidth > 20)
+                return;
+            socket.SendMessage($"{McColorCodes.DARK_GREEN}NOTE:{McColorCodes.YELLOW} "
+                + $"Please make sure that the vertical green lines ({McColorCodes.GREEN}|{McColorCodes.YELLOW}) at the end of the captcha line up continuasly.\n"
+                + $"{McColorCodes.YELLOW}If they don't line up click on {McColorCodes.AQUA}Vertical{McColorCodes.YELLOW} to get a simpler captcha");
         }
 
         private async Task RequireAnotherSolve(MinecraftSocket socket, CaptchaInfo info)
@@ -67,7 +73,7 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(COFLNET + "Generating captcha");
             await Task.Delay(Math.Max(Math.Max(info.RequireSolves, 1), info.CaptchaRequests) * 1000 * debugMultiplier).ConfigureAwait(false);
             socket.SendMessage(new CaptchaGenerator().SetupChallenge(socket, info));
-            if(info.CaptchaRequests > 10)
+            if (info.CaptchaRequests > 10)
             {
                 info.CaptchaRequests = 0;
                 info.RequireSolves++;

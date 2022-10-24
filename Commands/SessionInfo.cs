@@ -64,6 +64,7 @@ namespace Coflnet.Sky.Commands.MC
         /// How many solves are requird, defaults to 1
         /// </summary>
         public int RequireSolves = 1;
+        public int FaildCount = 0;
         /// <summary>
         /// How many captchas were requested so far
         /// </summary>

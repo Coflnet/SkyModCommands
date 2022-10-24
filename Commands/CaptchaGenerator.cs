@@ -36,7 +36,9 @@ namespace Coflnet.Sky.Commands.MC
                 .MsgLine($"{challenge.Question}", null, "anti macro question, please click on the answer")
                 .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text))
                 .If(() => info.ChatWidth > 20, db => db.LineBreak()
-                            .CoflCommand<CaptchaCommand>(McColorCodes.AQUA + "Small chat", "small", "Use small chat \n(you will need to solve one more)"))
+                            .CoflCommand<CaptchaCommand>(McColorCodes.AQUA + "Vertical |", "small",
+                                $"{McColorCodes.GREEN}Use vertical captcha \n{McColorCodes.GRAY}this will print the letters below one another\n"
+                                + "and helps if the green lines don't match up\nbecause you use a different font\n(you may need to solve one more captcha)"))
                 .If(() => info.ChatWidth <= 20, db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use big chat"))
                 .CoflCommand<CaptchaCommand>(McColorCodes.ITALIC + " Another", "another", "Too difficult?\nGet another captcha");
         }
@@ -85,8 +87,11 @@ namespace Coflnet.Sky.Commands.MC
                 chars.Add(RenderCharLines(alphaBet[index++]));
 
             //socket.Dialog(db => db.LineBreak().Lines(lines.Select(m => m + "|").ToArray()));
-            var challenge = new CaptchaChallenge() { Question = "Select the letter " + McColorCodes.AQUA + letter + 
-                    $"\n{McColorCodes.GRAY}Click what looks the most like the letter" + McColorCodes.AQUA + letter};
+            var challenge = new CaptchaChallenge()
+            {
+                Question = "Select the letter " + McColorCodes.AQUA + letter +
+                    $"\n{McColorCodes.GRAY}Click what looks the most like the letter" + McColorCodes.AQUA + letter
+            };
             var bigger = chars.Max(l => l.Count);
             chars = chars.OrderBy(r => random.Next()).ToList();
             List<Option> parts = new();
@@ -96,7 +101,7 @@ namespace Coflnet.Sky.Commands.MC
                 for (int i = 0; i < bigger; i++)
                 {
                     if (i != 0)
-                        parts.Add(new() { Text = "|\n" });
+                        parts.Add(new() { Text = McColorCodes.GREEN + "|\n" });
                     foreach (var item in chars)
                     {
                         AddLineOrEmpty(item, parts, i, lines, solutions);
