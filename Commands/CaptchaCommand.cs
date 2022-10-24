@@ -7,7 +7,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class CaptchaCommand : McCommand
     {
-        int debugMultiplier = 01;
+        int debugMultiplier = 0;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var info = socket.SessionInfo.captchaInfo;
@@ -15,6 +15,13 @@ namespace Coflnet.Sky.Commands.MC
             info.CurrentSolutions = new List<string>();
             var receivedAt = DateTime.UtcNow;
             var attempt = arguments.Trim('"');
+            if(attempt == "optifine")
+            {
+                info.Optifine = !info.Optifine;
+                await RequireAnotherSolve(socket, info);
+                info.CaptchaRequests++;
+                return;
+            }
             if (attempt == "another")
             {
                 await RequireAnotherSolve(socket, info);
@@ -64,7 +71,7 @@ namespace Coflnet.Sky.Commands.MC
             if (info.FaildCount <= 2 && info.ChatWidth > 20)
                 return;
             socket.SendMessage($"{McColorCodes.DARK_GREEN}NOTE:{McColorCodes.YELLOW} "
-                + $"Please make sure that the vertical green lines ({McColorCodes.GREEN}|{McColorCodes.YELLOW}) at the end of the captcha line up continuasly.\n"
+                + $"Please make sure that the vertical green lines ({McColorCodes.GREEN}|{McColorCodes.YELLOW}) at the end of the captcha line up continuously.\n"
                 + $"{McColorCodes.YELLOW}If they don't line up click on {McColorCodes.AQUA}Vertical{McColorCodes.YELLOW} to get a simpler captcha");
         }
 

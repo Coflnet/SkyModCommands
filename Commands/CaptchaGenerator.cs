@@ -40,7 +40,9 @@ namespace Coflnet.Sky.Commands.MC
                                 $"{McColorCodes.GREEN}Use vertical captcha \n{McColorCodes.GRAY}this will print the letters below one another\n"
                                 + "and helps if the green lines don't match up\nbecause you use a different font\n(you may need to solve one more captcha)"))
                 .If(() => info.ChatWidth <= 20, db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use big chat"))
-                .CoflCommand<CaptchaCommand>(McColorCodes.ITALIC + " Another", "another", "Too difficult?\nGet another captcha");
+                .CoflCommand<CaptchaCommand>(McColorCodes.ITALIC + " Another", "another", "Too difficult?\nGet another captcha")
+                .CoflCommand<CaptchaCommand>(McColorCodes.LIGHT_PURPLE + " I use optifine", "optifine", 
+                        McColorCodes.GREEN + "The green lines don't allign \nand you use optifine?\ntry this :) or one of the\noptions to the left");
         }
 
         private CaptchaChallenge MinMax(IMinecraftSocket socket)
@@ -79,12 +81,12 @@ namespace Coflnet.Sky.Commands.MC
         {
             var alphaBet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".OrderBy(r => random.Next()).ToList();
             var letter = alphaBet.Last();
-            var lines = RenderCharLines(letter);
+            var lines = RenderCharLines(letter, socket.SessionInfo.captchaInfo);
             var chars = new List<List<Option>>();
             chars.Add(lines);
             var index = 0;
             while (chars.Sum(c => c.First().Text.Length) < 70)
-                chars.Add(RenderCharLines(alphaBet[index++]));
+                chars.Add(RenderCharLines(alphaBet[index++], socket.SessionInfo.captchaInfo));
 
             //socket.Dialog(db => db.LineBreak().Lines(lines.Select(m => m + "|").ToArray()));
             var challenge = new CaptchaChallenge()
@@ -140,7 +142,7 @@ namespace Coflnet.Sky.Commands.MC
                 return AddParts(lines[i].Text);
             else
             {
-                var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length - l.Text.Count(c => c == '´' || c == '!' || c == '|') / 2);
+                var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length - (l.Text.Count(c => c == '´' || c == '!' || c == '|') / 2 + l.Text.Count(c => c == ';') / 3));
                 var padding = "".PadLeft(length);
                 if (Random.Shared.Next(6) == 0)
                     padding = padding.Remove(1, 1).Insert(Random.Shared.Next(0, length - 1), "🇧🇾".First().ToString());
@@ -178,7 +180,7 @@ namespace Coflnet.Sky.Commands.MC
             //     .Select(i => str.Substring(i * chunkSize, chunkSize)).Append(str.Substring((str.Length / chunkSize) * chunkSize));
         }
 
-        private static List<Option> RenderCharLines(char letter)
+        private static List<Option> RenderCharLines(char letter, CaptchaInfo info)
         {
             var readableFonts = new Figgle.FiggleFont[] { FiggleFonts.Diamond, FiggleFonts.Contrast, FiggleFonts.BarbWire, FiggleFonts.Colossal, FiggleFonts.Banner4, FiggleFonts.Banner3, FiggleFonts.Banner, FiggleFonts.Arrows, FiggleFonts.AmcTubes, FiggleFonts.Acrobatic, FiggleFonts.Alligator, FiggleFonts.Alligator2, FiggleFonts.Alligator3, FiggleFonts.Alphabet, FiggleFonts.AmcAaa01, FiggleFonts.AmcSlash, FiggleFonts.AmcSlder };
             var selectedRenderer = readableFonts.OrderBy(r => Random.Shared.Next()).First();
@@ -213,7 +215,28 @@ namespace Coflnet.Sky.Commands.MC
                 if (lastAtStart == last)
                     last = item;
             }
-            var lines = builder.ToString().Split('\n');
+            string[] lines = null;
+            if (info.Optifine)
+            {
+                builder.Replace("!!", "`")
+                .Replace("🇧🇾"[0], '`')
+                .Replace("🇧🇾"[1], '`')
+                .Replace("``", ";;;")
+                .Replace("´´´´´", "´´´´");
+
+                lines = builder.ToString().Split("\n").Select(l =>
+                {
+                    var count = l.Count(c => c == '´');
+                    for (int i = 0; i < count / 5 + random.Next(2); i++)
+                    {
+                        if (count > 0 && l.Length > i * 4 + 2)
+                            l = l.Remove(l.IndexOf('´', i * 2), 1);
+                    }
+                    return l;
+                }).ToArray();
+            }
+            else
+                lines = builder.ToString().Split('\n');
             return lines.Select(l => new Option()
             {
                 Text = l,
