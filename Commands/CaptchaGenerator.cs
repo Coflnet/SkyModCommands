@@ -181,7 +181,7 @@ namespace Coflnet.Sky.Commands.MC
             //     .Select(i => str.Substring(i * chunkSize, chunkSize)).Append(str.Substring((str.Length / chunkSize) * chunkSize));
         }
 
-        private static List<Option> RenderCharLines(char letter, CaptchaInfo info)
+        private List<Option> RenderCharLines(char letter, CaptchaInfo info)
         {
             var selectedRenderer = readableFonts.OrderBy(r => Random.Shared.Next()).First();
             var rendered = selectedRenderer.Render(letter.ToString());
