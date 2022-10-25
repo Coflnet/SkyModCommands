@@ -14,6 +14,7 @@ namespace Coflnet.Sky.Commands.MC
     public class CaptchaGenerator
     {
         private static Random random = new();
+        Figgle.FiggleFont[] readableFonts = new[] { FiggleFonts.Diamond, FiggleFonts.Contrast, FiggleFonts.BarbWire, FiggleFonts.Colossal, FiggleFonts.Banner4, FiggleFonts.Banner3, FiggleFonts.Banner, FiggleFonts.Arrows, FiggleFonts.AmcTubes, FiggleFonts.Acrobatic, FiggleFonts.Alligator, FiggleFonts.Alligator2, FiggleFonts.Alligator3, FiggleFonts.Alphabet, FiggleFonts.AmcAaa01, FiggleFonts.AmcSlash, FiggleFonts.AmcSlder };
 
         public ChatPart[] SetupChallenge(IMinecraftSocket socket, CaptchaInfo info)
         {
@@ -41,7 +42,7 @@ namespace Coflnet.Sky.Commands.MC
                                 + "and helps if the green lines don't match up\nbecause you use a different font\n(you may need to solve one more captcha)"))
                 .If(() => info.ChatWidth <= 20, db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use big chat"))
                 .CoflCommand<CaptchaCommand>(McColorCodes.ITALIC + " Another", "another", "Too difficult?\nGet another captcha")
-                .CoflCommand<CaptchaCommand>(McColorCodes.LIGHT_PURPLE + " I use optifine", "optifine", 
+                .CoflCommand<CaptchaCommand>(McColorCodes.LIGHT_PURPLE + " I use optifine", "optifine",
                         McColorCodes.GREEN + "The green lines don't allign \nand you use optifine?\ntry this :) or one of the\noptions to the left");
         }
 
@@ -182,7 +183,6 @@ namespace Coflnet.Sky.Commands.MC
 
         private static List<Option> RenderCharLines(char letter, CaptchaInfo info)
         {
-            var readableFonts = new Figgle.FiggleFont[] { FiggleFonts.Diamond, FiggleFonts.Contrast, FiggleFonts.BarbWire, FiggleFonts.Colossal, FiggleFonts.Banner4, FiggleFonts.Banner3, FiggleFonts.Banner, FiggleFonts.Arrows, FiggleFonts.AmcTubes, FiggleFonts.Acrobatic, FiggleFonts.Alligator, FiggleFonts.Alligator2, FiggleFonts.Alligator3, FiggleFonts.Alphabet, FiggleFonts.AmcAaa01, FiggleFonts.AmcSlash, FiggleFonts.AmcSlder };
             var selectedRenderer = readableFonts.OrderBy(r => Random.Shared.Next()).First();
             var rendered = selectedRenderer.Render(letter.ToString());
 
