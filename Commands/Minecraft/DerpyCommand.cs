@@ -13,7 +13,7 @@ namespace Coflnet.Sky.Commands.MC
                 var userApi = socket.GetService<UserApi>();
                 try
                 {
-                    await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.sessionLifesycle.UserId, "premium-derpy", "modCommand" + DateTime.Now.Date.ToShortDateString());
+                    await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.sessionLifesycle.UserId, "premium-derpy", "modCommand" + DateTime.UtcNow.Date.ToShortDateString());
                     socket.SendMessage(COFLNET + $"You purchased 5 days of premium with your derpy compensation");
                 }
                 catch (Payments.Client.Client.ApiException e)

@@ -34,7 +34,7 @@ namespace Coflnet.Sky.ModCommands.Services
             _snapShots.Enqueue(new SnapShot()
             {
                 State = state,
-                Time = DateTime.Now
+                Time = DateTime.UtcNow
             });
         }
 

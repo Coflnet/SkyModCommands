@@ -55,14 +55,14 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             await MakeSureChatIsConnected(socket);
-            if (DateTime.Now - TimeSpan.FromSeconds(1) < socket.SessionInfo.LastMessage)
+            if (DateTime.UtcNow - TimeSpan.FromSeconds(1) < socket.SessionInfo.LastMessage)
             {
                 socket.SendMessage(COFLNET + "You are writing to fast please slow down");
                 return;
             }
-            if (DateTime.Now < socket.SessionInfo.MutedUntil)
+            if (DateTime.UtcNow < socket.SessionInfo.MutedUntil)
             {
-                socket.SendMessage(COFLNET + $"You are muted for {(int)(socket.SessionInfo.MutedUntil - DateTime.Now).TotalMinutes + 1} minutes");
+                socket.SendMessage(COFLNET + $"You are muted for {(int)(socket.SessionInfo.MutedUntil - DateTime.UtcNow).TotalMinutes + 1} minutes");
                 return;
             }
             if (message.Length > maxMsgLength)
@@ -80,7 +80,7 @@ namespace Coflnet.Sky.Commands.MC
                 Tier = tier,
                 SenderUuid = socket.SessionInfo.McUuid
             }, socket.tracer.ActiveSpan);
-            socket.SessionInfo.LastMessage = DateTime.Now;
+            socket.SessionInfo.LastMessage = DateTime.UtcNow;
         }
 
         public static async Task MakeSureChatIsConnected(MinecraftSocket socket)

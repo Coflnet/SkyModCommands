@@ -17,7 +17,7 @@ namespace Coflnet.Sky.Commands.MC
                 throw new Coflnet.Sky.Core.CoflnetException("inalid_format", "Usage: /cofl reminder add 1h30m <message>");
             TimeSpan ts = ParseTime(args[0]);
 
-            var reminder = new Reminder(val.Substring(val.IndexOf(' ') + 1), DateTime.Now + ts - TimeSpan.FromSeconds(20));
+            var reminder = new Reminder(val.Substring(val.IndexOf(' ') + 1), DateTime.UtcNow + ts - TimeSpan.FromSeconds(20));
             return Task.FromResult(new List<CreationOption>(){
                 new CreationOption(){
                     Element = reminder
@@ -39,7 +39,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override string Format(Reminder elem)
         {
-            return McColorCodes.WHITE + elem.Text + McColorCodes.GRAY + " triggers in " + McColorCodes.YELLOW + (elem.TriggerTime - DateTime.Now).ToString(@"h\h mm\m");
+            return McColorCodes.WHITE + elem.Text + McColorCodes.GRAY + " triggers in " + McColorCodes.YELLOW + (elem.TriggerTime - DateTime.UtcNow).ToString(@"h\h mm\m");
         }
 
         protected override string GetId(Reminder elem)

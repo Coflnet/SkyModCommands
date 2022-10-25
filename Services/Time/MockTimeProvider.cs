@@ -8,7 +8,7 @@ namespace Coflnet.Sky.Commands.Shared;
 
 public class MockTimeProvider : ITimeProvider
 {
-    public DateTime Now { get; set; } = DateTime.Now;
+    public DateTime Now { get; set; } = DateTime.UtcNow;
     public ConcurrentDictionary<TaskCompletionSource, DateTime> Tasks { get; set; } = new();
 
     public Task Delay(TimeSpan timeSpan)

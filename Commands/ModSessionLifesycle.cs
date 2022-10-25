@@ -70,7 +70,9 @@ namespace Coflnet.Sky.Commands.MC
 @"      |   ,               ("")",
 @"      |__,'`-..--|__|--''"));
 
-            socket.Dialog(db => db.ForEach("abcopqrstuf 🤨🤔🇧🇾:|,:-.#ä+´`!^°~", (db, c) => db.ForEach("091111111111111", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
+            socket.Dialog(db => db.ForEach("ayz🤨🤔🇧🇾:|,:-.#ä+!^°~´` ", (db, c) => db.ForEach("01234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
+            socket.Dialog(db => db.LineBreak().ForEach(":;", (db, c) => db.ForEach("012345678901234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
+            socket.Dialog(db => db.LineBreak().ForEach("´", (db, c) => db.ForEach("012345678901234567890123", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
 */
             using var loadSpan = socket.tracer.BuildSpan("load").AsChildOf(ConSpan).StartActive();
             SessionInfo.SessionId = stringId;
@@ -279,7 +281,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
         {
-            var result = await McAccountService.Instance.GetAllAccounts(UserId.Value, DateTime.Now - TimeSpan.FromDays(30));
+            var result = await McAccountService.Instance.GetAllAccounts(UserId.Value, DateTime.UtcNow - TimeSpan.FromDays(30));
             if (result == null || result.Count() == 0)
                 return new string[] { SessionInfo.McUuid };
             if (!result.Contains(SessionInfo.McUuid))
@@ -337,8 +339,11 @@ namespace Coflnet.Sky.Commands.MC
             if (this.SessionInfo.McName == null)
                 await Task.Delay(800).ConfigureAwait(false); // allow another half second for the playername to be loaded
             var messageStart = $"Hello {this.SessionInfo.McName} ({anonymisedEmail}) \n";
-            if (accountInfo.Tier != AccountTier.NONE && accountInfo.ExpiresAt > DateTime.Now)
-                SendMessage(COFLNET + messageStart + $"You have {McColorCodes.GREEN}{accountInfo.Tier.ToString()} until {accountInfo.ExpiresAt.ToString("yyyy-MMM-dd hh:mm")} UTC");
+            if (accountInfo.Tier != AccountTier.NONE && accountInfo.ExpiresAt > DateTime.UtcNow)
+                SendMessage(
+                    COFLNET + messageStart + $"You have {McColorCodes.GREEN}{accountInfo.Tier.ToString()} until {accountInfo.ExpiresAt.ToString("yyyy-MMM-dd HH:mm")} UTC", null, 
+                    $"That is in {McColorCodes.GREEN + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("d'd 'h'h 'm'm 's's'")}"
+                );
             else
                 SendMessage(COFLNET + messageStart + $"You use the {McColorCodes.BOLD}FREE{McColorCodes.RESET} version of the flip finder");
 
@@ -363,13 +368,13 @@ namespace Coflnet.Sky.Commands.MC
             {
                 UpdateExtraDelay();
                 spamController.Reset();
-                if (blockedFlipFilterCount > 0 && SessionInfo.LastBlockedMsg.AddMinutes(FlipSettings.Value.ModSettings.MinutesBetweenBlocked) < DateTime.Now)
+                if (blockedFlipFilterCount > 0 && SessionInfo.LastBlockedMsg.AddMinutes(FlipSettings.Value.ModSettings.MinutesBetweenBlocked) < DateTime.UtcNow)
                 {
                     socket.SendMessage(new ChatPart(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute",
                         "/cofl blocked",
                         $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips"),
                         new ChatPart(" ", "/cofl void", null));
-                    SessionInfo.LastBlockedMsg = DateTime.Now;
+                    SessionInfo.LastBlockedMsg = DateTime.UtcNow;
 
                     // remove blocked if clear should fail
                     while (socket.TopBlocked.Count > 445)
@@ -402,7 +407,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (AccountSettings?.Value?.Reminders == null)
                 return;
-            var reminders = AccountSettings?.Value?.Reminders?.Where(r => r.TriggerTime < DateTime.Now).ToList();
+            var reminders = AccountSettings?.Value?.Reminders?.Where(r => r.TriggerTime < DateTime.UtcNow).ToList();
             foreach (var item in reminders)
             {
                 socket.SendSound("note.pling");

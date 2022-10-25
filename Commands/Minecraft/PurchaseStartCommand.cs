@@ -16,7 +16,7 @@ namespace Coflnet.Sky.Commands.MC
                 return; // currently no handling
             var flip = socket.GetFlip(auctionUuid);
             if (flip != null && flip.Auction.Context != null)
-                flip.AdditionalProps[StatName] = (DateTime.Now - flip.Auction.FindTime).ToString();
+                flip.AdditionalProps[StatName] = (DateTime.UtcNow - flip.Auction.FindTime).ToString();
             await ExecuteTrack(socket, auctionUuid);
         }
 

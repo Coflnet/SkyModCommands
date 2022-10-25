@@ -66,7 +66,7 @@ namespace Coflnet.Sky.ModCommands.Services
                             flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
                         flip.AdditionalProps?.TryAdd("bfcs", "redis");
                         await FlipperService.Instance.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
-                        logger.LogInformation($"sheduled bfcs {flip.Auction.UId} {DateTime.Now.Second}.{DateTime.Now.Millisecond}");
+                        logger.LogInformation($"sheduled bfcs {flip.Auction.UId} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond}");
                     }
                     catch (Exception e)
                     {

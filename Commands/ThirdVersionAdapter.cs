@@ -11,7 +11,7 @@ namespace Coflnet.Sky.Commands.MC
         public Prometheus.Counter aprilJoke = Prometheus.Metrics.CreateCounter("sky_commands_april_flips", "How many april fools flips were sent");
         private Random rng = new Random();
 
-        private DateTime lastSound = DateTime.Now;
+        private DateTime lastSound = DateTime.UtcNow;
 
         public ThirdVersionAdapter(MinecraftSocket socket)
         {
@@ -21,7 +21,7 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
             var uuid = flip.Auction.Uuid;
-            var bedFlip = flip.Auction.Start + TimeSpan.FromSeconds(20) > DateTime.Now;
+            var bedFlip = flip.Auction.Start + TimeSpan.FromSeconds(20) > DateTime.UtcNow;
             var worth = flip.Profit / 1024;
             if(flip.Context.ContainsKey("priorityOpen"))
                 worth *= 64;
@@ -36,7 +36,7 @@ namespace Coflnet.Sky.Commands.MC
                 cost = flip.Auction.StartingBid,
                 sound = (string)"note.pling"
             }));
-            if (DateTime.Now.Month == 4 && DateTime.Now.Day == 1 && rng.Next(200) == 1)
+            if (DateTime.UtcNow.Month == 4 && DateTime.UtcNow.Day == 1 && rng.Next(200) == 1)
             {
                 var msg = await GetMessageparts(Joke);
                 msg[0].onClick = "/cofl dialog echo Happy April fools ☺";
@@ -96,9 +96,9 @@ namespace Coflnet.Sky.Commands.MC
 
         public override void SendSound(string name, float pitch = 1)
         {
-            if(DateTime.Now -lastSound < TimeSpan.FromSeconds(0.1) )
+            if(DateTime.UtcNow -lastSound < TimeSpan.FromSeconds(0.1) )
                 return; // minecraft can't handle concurrent sounds
-            lastSound = DateTime.Now;
+            lastSound = DateTime.UtcNow;
             socket.Send(Response.Create("playSound", new { name, pitch }));
         }
     }

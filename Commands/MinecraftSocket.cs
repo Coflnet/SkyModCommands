@@ -121,7 +121,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             public LowPricedAuction Flip;
             public string Reason;
-            public DateTime Now = DateTime.Now;
+            public DateTime Now = DateTime.UtcNow;
         }
 
         static MinecraftSocket()
@@ -191,7 +191,7 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
                         NextUpdateStart?.Invoke();
-                        if (DateTime.Now.Minute % 2 == 0)
+                        if (DateTime.UtcNow.Minute % 2 == 0)
                             UpdateTimer();
                     }
                     catch (Exception ex)
@@ -201,7 +201,7 @@ namespace Coflnet.Sky.Commands.MC
                 }, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
 
                 DateTime next = await GetNext10SecTime();
-                Console.WriteLine($"started timer to start at {next} now its {DateTime.Now}");
+                Console.WriteLine($"started timer to start at {next} now its {DateTime.UtcNow}");
             }).ConfigureAwait(false);
         }
 
@@ -212,7 +212,7 @@ namespace Coflnet.Sky.Commands.MC
                 using var updateSpan = DiHandler.ServiceProvider.GetRequiredService<OpenTracing.ITracer>().BuildSpan("refreshTimer").StartActive();
                 DateTime next = await GetNext10SecTime();
                 updateSpan.Span.SetTag("time", next.ToString());
-                tenSecTimer.Change(next - DateTime.Now, TimeSpan.FromMinutes(1));
+                tenSecTimer.Change(next - DateTime.UtcNow, TimeSpan.FromMinutes(1));
             }, new System.Threading.CancellationTokenSource(10000).Token);
         }
 
@@ -462,7 +462,7 @@ namespace Coflnet.Sky.Commands.MC
                     var auctionUuid = JsonConvert.DeserializeObject<string>(a.data).Trim('"').Replace("/viewauction ", "");
                     var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
                     if (flip != null && flip.Auction.Context != null && !flip.AdditionalProps.ContainsKey("clickT"))
-                        flip.AdditionalProps["clickT"] = (DateTime.Now - flip.Auction.FindTime).ToString();
+                        flip.AdditionalProps["clickT"] = (DateTime.UtcNow - flip.Auction.FindTime).ToString();
                     await GetService<FlipTrackingService>().ClickFlip(auctionUuid, SessionInfo.McUuid);
 
                 });
@@ -624,9 +624,9 @@ namespace Coflnet.Sky.Commands.MC
                     Log("con check was false");
                     return false;
                 }
-                var start = DateTime.Now;
+                var start = DateTime.UtcNow;
                 await sessionLifesycle.SendFlipBatch(new LowPricedAuction[] { flip });
-                var took = DateTime.Now - start;
+                var took = DateTime.UtcNow - start;
                 if (took - sessionLifesycle?.CurrentDelay > TimeSpan.FromSeconds(0.5))
                     using (var error = tracer.BuildSpan("slowFlipTest").AsChildOf(ConSpan).WithTag("error", "true").StartActive())
                         error.Span.Log("flip took long " + JsonConvert.SerializeObject(flip, Formatting.Indented));
@@ -791,12 +791,12 @@ namespace Coflnet.Sky.Commands.MC
         {
             var tier = sessionLifesycle.AccountInfo?.Value?.Tier;
             var expiresAt = sessionLifesycle.AccountInfo?.Value?.ExpiresAt;
-            if (tier >= AccountTier.NONE && expiresAt < DateTime.Now && expiresAt > DateTime.Now - TimeSpan.FromHours(1))
+            if (tier >= AccountTier.NONE && expiresAt < DateTime.UtcNow && expiresAt > DateTime.UtcNow - TimeSpan.FromHours(1))
             {
                 // refresh tier
                 tier = await sessionLifesycle.UpdateAccountTier(sessionLifesycle.AccountInfo?.Value);
             }
-            else if (tier == null || expiresAt < DateTime.Now)
+            else if (tier == null || expiresAt < DateTime.UtcNow)
                 tier = AccountTier.NONE;
             return tier.Value;
         }

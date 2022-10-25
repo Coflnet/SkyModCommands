@@ -8,7 +8,7 @@ namespace Coflnet.Sky.ModCommands.Models
     {
         public string Name;
         public FlipSettings settings;
-        public DateTime CreationDate = DateTime.Now;
+        public DateTime CreationDate = DateTime.UtcNow;
 
         public override bool Equals(object obj)
         {
