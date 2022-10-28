@@ -85,6 +85,8 @@ namespace Coflnet.Sky.Commands.MC
                 info.CaptchaRequests = 0;
                 info.RequireSolves++;
             }
+            if(info.RequireSolves > 3)
+                info.RequireSolves = 3;
         }
     }
 }
