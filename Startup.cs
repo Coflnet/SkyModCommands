@@ -59,6 +59,7 @@ namespace Coflnet.Sky.ModCommands
             services.AddTransient<ModService>();
             services.AddSingleton<ModeratorService>();
             services.AddSingleton<ChatService>();
+            services.AddSingleton<ITutorialService, TutorialService>();
             services.AddSingleton<IFlipApi, FlipApi>(s=>new FlipApi(Configuration["API_BASE_URL"]));
             services.AddCoflService();
         }

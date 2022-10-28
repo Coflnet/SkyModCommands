@@ -59,8 +59,6 @@ namespace Coflnet.Sky.Commands.MC
         void SetLifecycleVersion(string version);
         void SheduleTimer(ModSettings mod = null, IScope timerSpan = null);
         ConfiguredTaskAwaitable TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3);
-        void UpdateSettings(SettingsChange settings);
-        Task UpdateSettings(Func<SettingsChange, SettingsChange> updatingFunc);
         Task<AccountTier> UserAccountTier();
     }
 

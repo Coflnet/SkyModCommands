@@ -12,11 +12,6 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + $"This setting is currently in development. You can't use it yet. :/ ");
                 return;
             }
-            await socket.UpdateSettings(settings =>
-            {
-                settings.Settings.FastMode = true;
-                return settings;
-            });
             FlipperService.Instance.AddConnectionPlus(socket, false);
             socket.SendMessage(COFLNET + $"You enabled the fast mode, some settings don't take affect anymore");
         }
