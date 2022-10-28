@@ -93,13 +93,13 @@ public class DelayHandler
         else
             summary.VerifiedMc = true;
 
-        if (HasFlippedForLong(lastCaptchaSolveTime, hourCount))
+        if (HasFlippedForLong(lastCaptchaSolveTime, hourCount) && breakdown.BoughtWorth > 40_000_000)
         {
             summary.AntiAfk = true;
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(3))
                 currentDelay = AntiAfkDelay;
         }
-        else if (recommendedPenalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(118))
+        else if (recommendedPenalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(118) && breakdown.BoughtWorth > 30_000_000)
         {
             summary.AntiAfk = true;
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(120))
