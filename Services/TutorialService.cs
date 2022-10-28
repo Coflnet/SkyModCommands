@@ -60,6 +60,8 @@ public class TutorialService : ITutorialService
         var solved = await GetSolved(id);
         if (solved.Value.Contains(v))
             return;
+        if(!Tutorials.ContainsKey(v))
+            return; // doesn't exist, can't be completed
         solved.Value.Add(v);
         await solved.Update();
     }

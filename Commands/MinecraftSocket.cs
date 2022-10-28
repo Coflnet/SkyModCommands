@@ -175,6 +175,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<LoreCommand>();
             Commands.Add<GobalMuteCommand>();
             Commands.Add<FactCommand>();
+            Commands.Add<TutorialCommand>();
 
             Task.Run(async () =>
             {

@@ -75,10 +75,10 @@ namespace Coflnet.Sky.Commands.MC
                 result = await socket.GetService<Items.Client.Api.IItemsApi>().ItemsSearchTermGetAsync(val);
             var isTag = val.ToUpper() == val && !val.Contains(' ');
 
-            if(result == null)
+            if (result == null)
                 throw new CoflnetException("search", "Sorry there was no result for your search. If you are sure there should be one please report this");
 
-            return result.Select(r =>
+            return result.Where(r => r.Flags.Value.HasFlag(Items.Client.Model.ItemFlags.AUCTION)).Select(r =>
             {
                 var entry = new ListEntry() { ItemTag = r.Tag, DisplayName = r.Text, filter = filters };
                 entry.GetExpression().Compile().Invoke(new FlipInstance()
