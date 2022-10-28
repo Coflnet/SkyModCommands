@@ -17,7 +17,7 @@ namespace Coflnet.Sky.Commands.MC
                 name = "JUNGLE_KEY",
             });
 
-            var targetAuction = activeAuction.Where(a => a.Price < 1000).OrderBy(x => r.Next()).FirstOrDefault();
+            var targetAuction = activeAuction.OrderBy(x => x.Price + r.Next(10000)).FirstOrDefault();
             await socket.sessionLifesycle.SendFlipBatch(new LowPricedAuction[]{new LowPricedAuction()
             {
                 Auction = new SaveAuction()
