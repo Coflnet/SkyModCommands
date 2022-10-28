@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
             var r = new Random();
             var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
             {
-                name = "LAPIS_ARMOR_LEGGINGS",
+                name = "JUNGLE_KEY",
             });
 
             var targetAuction = activeAuction.Where(a => a.Price < 1000).OrderBy(x => r.Next()).FirstOrDefault();
