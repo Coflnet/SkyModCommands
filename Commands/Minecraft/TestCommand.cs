@@ -18,19 +18,22 @@ namespace Coflnet.Sky.Commands.MC
             });
 
             var targetAuction = activeAuction.OrderBy(x => x.Price + r.Next(10000)).FirstOrDefault();
-            await socket.sessionLifesycle.SendFlipBatch(new LowPricedAuction[]{new LowPricedAuction()
+            await socket.ModAdapter.SendFlip(new Shared.FlipInstance()
             {
                 Auction = new SaveAuction()
                 {
                     StartingBid = 5,
                     Uuid = targetAuction.Uuid,
-                    AuctioneerId = "384a029294fc445e863f2c42fe9709cb"
+                    AuctioneerId = "384a029294fc445e863f2c42fe9709cb",
+                    Context = new() { { "lore", "Custom lore\nwhatever" } }
                 },
                 Finder = LowPricedAuction.FinderType.SNIPER,
-                TargetPrice = 10000000,
-                DailyVolume = 5,
-                AdditionalProps = new System.Collections.Generic.Dictionary<string, string>()
-            }});
+                MedianPrice = 10000000,
+                LowestBin = 10000000,
+                Volume = 5,
+                Interesting = new() { "cool flip" },
+                Context = new()
+            });
         }
     }
 }
