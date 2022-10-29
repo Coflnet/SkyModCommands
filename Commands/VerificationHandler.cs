@@ -60,7 +60,7 @@ namespace Coflnet.Sky.Commands.MC
                 return SessionInfo.VerifiedMc;
             }
             McAccountService.ConnectionRequest connect = null;
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 5; i++)
             {
                 if (string.IsNullOrEmpty(mcUuid))
                     mcUuid = SessionInfo.McUuid;
