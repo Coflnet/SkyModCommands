@@ -78,7 +78,7 @@ namespace Coflnet.Sky.Commands.MC
             if (result == null)
                 throw new CoflnetException("search", "Sorry there was no result for your search. If you are sure there should be one please report this");
 
-            return result.Where(r => r.Flags.Value.HasFlag(Items.Client.Model.ItemFlags.AUCTION)).Select(r =>
+            return result.Where(r => r?.Flags == null || r.Flags.Value.HasFlag(Items.Client.Model.ItemFlags.AUCTION)).Select(r =>
             {
                 var entry = new ListEntry() { ItemTag = r.Tag, DisplayName = r.Text, filter = filters };
                 entry.GetExpression().Compile().Invoke(new FlipInstance()
