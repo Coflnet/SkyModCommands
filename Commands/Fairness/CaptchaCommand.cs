@@ -11,27 +11,31 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var info = socket.SessionInfo.captchaInfo;
+            var accountInfo = socket.AccountInfo;
             var solution = info.CurrentSolutions;
             info.CurrentSolutions = new List<string>();
             var receivedAt = DateTime.UtcNow;
             var attempt = arguments.Trim('"');
-            if(attempt == "optifine")
+            info.CaptchaRequests++;
+            if (attempt == "optifine")
             {
-                info.Optifine = !info.Optifine;
+                accountInfo.CaptchaType = "optifine";
                 await RequireAnotherSolve(socket, info);
-                info.CaptchaRequests++;
+                await socket.sessionLifesycle.AccountInfo.Update();
                 return;
             }
             if (attempt == "another")
             {
                 await RequireAnotherSolve(socket, info);
-                info.CaptchaRequests++;
                 return;
             }
             if (attempt == "small")
-                info.ChatWidth = 19;
+            {
+                accountInfo.CaptchaType = "vertical";
+                await socket.sessionLifesycle.AccountInfo.Update();
+            }
             else if (attempt == "big")
-                info.ChatWidth = 55;
+                accountInfo.CaptchaType = "";
             else if (string.IsNullOrEmpty(attempt))
                 socket.SendMessage(COFLNET + McColorCodes.BLUE + "You requested to get a new captcha. Have fun.");
             else
@@ -68,7 +72,7 @@ namespace Coflnet.Sky.Commands.MC
 
             info.RequireSolves++;
             info.FaildCount++;
-            if (info.FaildCount <= 2 && info.ChatWidth > 20)
+            if (info.FaildCount <= 2 || accountInfo.CaptchaType != "vertical")
                 return;
             socket.SendMessage($"{McColorCodes.DARK_GREEN}NOTE:{McColorCodes.YELLOW} "
                 + $"Please make sure that the vertical green lines ({McColorCodes.GREEN}|{McColorCodes.YELLOW}) at the end of the captcha line up continuously.\n"
@@ -85,7 +89,7 @@ namespace Coflnet.Sky.Commands.MC
                 info.CaptchaRequests = 0;
                 info.RequireSolves++;
             }
-            if(info.RequireSolves > 3)
+            if (info.RequireSolves > 3)
                 info.RequireSolves = 3;
         }
     }

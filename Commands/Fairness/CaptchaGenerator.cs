@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Figgle;
 using Newtonsoft.Json;
@@ -37,17 +38,18 @@ namespace Coflnet.Sky.Commands.MC
             captchaSpan?.Span.Log(JsonConvert.SerializeObject(new { info.CurrentSolutions, challenge.Options, challenge.Correct }, Formatting.Indented));
 
             info.CurrentSolutions = challenge.Correct.Select(c => c.Code).ToList();
+            var captchaType = socket.AccountInfo.CaptchaType;
             return new DialogBuilder()
                 .MsgLine($"{challenge.Question}", null, "anti macro question, please click on the answer")
                 .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text))
-                .If(() => info.ChatWidth > 20, db => db.LineBreak()
+                .If(() => captchaType != "vertical", db => db.LineBreak()
                             .CoflCommand<CaptchaCommand>(McColorCodes.AQUA + "Vertical |", "small",
                                 $"{McColorCodes.GREEN}Use vertical captcha \n{McColorCodes.GRAY}this will print the letters below one another\n"
                                 + "and helps if the green lines don't match up\nbecause you use a different font\n(you may need to solve one more captcha)"))
-                .If(() => info.ChatWidth <= 20, db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use big chat"))
+                .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use horizontal captcha"))
                 .CoflCommand<CaptchaCommand>(McColorCodes.ITALIC + " Another", "another", "Too difficult?\nGet another captcha")
-                .CoflCommand<CaptchaCommand>(McColorCodes.LIGHT_PURPLE + " I use optifine", "optifine",
-                        McColorCodes.GREEN + "The green lines don't allign \nand you use optifine?\ntry this :) or one of the\noptions to the left");
+                .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>(McColorCodes.LIGHT_PURPLE + " I use optifine", "optifine",
+                        McColorCodes.GREEN + "The green lines don't allign \nand you use optifine?\ntry this :) or one of the\noptions to the left"));
         }
 
         private CaptchaChallenge MinMax(IMinecraftSocket socket)
@@ -86,12 +88,12 @@ namespace Coflnet.Sky.Commands.MC
         {
             var alphaBet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".OrderBy(r => random.Next()).ToList();
             var letter = alphaBet.Last();
-            var lines = RenderCharLines(letter, socket.SessionInfo.captchaInfo);
+            var lines = RenderCharLines(letter, socket.AccountInfo);
             var chars = new List<List<Option>>();
             chars.Add(lines);
             var index = 0;
             while (chars.Sum(c => c.First().Text.Length) < 70)
-                chars.Add(RenderCharLines(alphaBet[index++], socket.SessionInfo.captchaInfo));
+                chars.Add(RenderCharLines(alphaBet[index++], socket.AccountInfo));
 
             //socket.Dialog(db => db.LineBreak().Lines(lines.Select(m => m + "|").ToArray()));
             var challenge = new CaptchaChallenge()
@@ -102,7 +104,7 @@ namespace Coflnet.Sky.Commands.MC
             var bigger = chars.Max(l => l.Count);
             chars = chars.OrderBy(r => random.Next()).ToList();
             List<Option> parts = new();
-            var small = socket.SessionInfo.captchaInfo.ChatWidth < 20;
+            var small = socket.AccountInfo.CaptchaType == "vertical";
             HashSet<Option> solutions = new();
             if (!small)
                 for (int i = 0; i < bigger; i++)
@@ -185,7 +187,7 @@ namespace Coflnet.Sky.Commands.MC
             //     .Select(i => str.Substring(i * chunkSize, chunkSize)).Append(str.Substring((str.Length / chunkSize) * chunkSize));
         }
 
-        private List<Option> RenderCharLines(char letter, CaptchaInfo info)
+        private List<Option> RenderCharLines(char letter, AccountInfo info)
         {
             var selectedRenderer = readableFonts.OrderBy(r => Random.Shared.Next()).First();
             var rendered = selectedRenderer.Render(letter.ToString());
@@ -220,7 +222,7 @@ namespace Coflnet.Sky.Commands.MC
                     last = item;
             }
             string[] lines = null;
-            if (info.Optifine)
+            if (info.CaptchaType == "optifine")
             {
                 builder.Replace("!!", "`")
                 .Replace("🇧🇾"[0], '`')
