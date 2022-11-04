@@ -191,7 +191,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     try
                     {
-                        NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
+                        NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(68);
                         NextUpdateStart?.Invoke();
                         if (DateTime.UtcNow.Minute % 2 == 0)
                             UpdateTimer();
