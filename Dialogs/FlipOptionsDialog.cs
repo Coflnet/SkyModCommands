@@ -17,7 +17,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             if (flip.AdditionalProps.TryGetValue("match", out string details) && details.Contains("whitelist"))
                 response = response.CoflCommand<WhichBLEntryCommand>(McColorCodes.GREEN + "matched your whitelist, click to see which",
                          JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid, WL = true })).Break;
-            
+
             response = AddBlockedReason(context, flip, response);
 
             response = response.CoflCommand<RateCommand>(
@@ -33,9 +33,10 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 $"{flip.Auction.Uuid}",
                 "Get your timings for flip").Break
             .CoflCommand<AhOpenCommand>(
-                $"{McColorCodes.GOLD} AH {McColorCodes.GRAY}open seller's ah",
+                $"{McColorCodes.GOLD} AH {McColorCodes.GRAY}open seller's ah ",
                 $"{flip.Auction.AuctioneerId}",
-                "Open the sellers ah").Break
+                "Open the sellers ah")
+                .CoflCommand<GetMcNameForCommand>(McColorCodes.DARK_GREEN + " Get Name", flip.Auction.AuctioneerId, "Get the name of the seller").Break
             .CoflCommand<ReferenceCommand>(
                 $"{McColorCodes.WHITE}[?]{McColorCodes.GRAY} Get references",
                 $"{flip.Auction.Uuid}",
