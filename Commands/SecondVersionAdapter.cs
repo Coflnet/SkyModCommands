@@ -11,9 +11,8 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class SecondVersionAdapter : ModVersionAdapter
     {
-        public SecondVersionAdapter(MinecraftSocket socket)
+        public SecondVersionAdapter(MinecraftSocket socket) : base(socket)
         {
-            this.socket = socket;
             SendOutDated();
         }
 

@@ -263,6 +263,7 @@ namespace Coflnet.Sky.Commands.MC
 
             ModAdapter = Version switch
             {
+                "1.5.0-Alpha" => new BinGuiVersionAdapter(this),
                 "1.4-Alpha" => new InventoryVersionAdapter(this),
                 "1.4.2-Alpha" => new InventoryVersionAdapter(this),
                 "1.4.3-Alpha" => new InventoryVersionAdapter(this),
@@ -300,6 +301,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             sessionLifesycle = version switch
             {
+                "1.5.0-Alpha" => new InventoryModSession(this),
                 "1.4-Alpha" => new InventoryModSession(this),
                 "1.4.2-Alpha" => new InventoryModSession(this),
                 "1.4.3-Alpha" => new InventoryModSession(this),
