@@ -39,9 +39,6 @@ namespace Coflnet.Sky.Commands.MC
         public FlipProcesser flipProcesser;
         public TimeSpan CurrentDelay => delayHandler?.CurrentDelay ?? DelayHandler.DefaultDelay;
 
-        private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
-
-
         public static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
         {
             MinProfit = 100000,
