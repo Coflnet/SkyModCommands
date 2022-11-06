@@ -11,14 +11,16 @@ COPY . .
 RUN dotnet test && dotnet test ../SkyBackendForFrontend/SkyBackendForFrontend.csproj
 RUN dotnet publish -c release
 
-FROM mcr.microsoft.com/dotnet/aspnet:6.0
+FROM mcr.microsoft.com/dotnet/sdk:6.0
 WORKDIR /app
 
 COPY --from=build /build/sky/bin/release/net6.0/publish/ .
 
 ENV ASPNETCORE_URLS=http://+:8000
+RUN dotnet tool install --global dotnet-gcdump
 
-RUN useradd --uid $(shuf -i 2000-65000 -n 1) app
-USER app
+#RUN useradd --uid $(shuf -i 2000-65000 -n 1) app
+#USER app
+RUN export PATH="$PATH:$HOME/.dotnet/tools"
 
 ENTRYPOINT ["dotnet", "SkyModCommands.dll", "--hostBuilder:reloadConfigOnChange=false"]
