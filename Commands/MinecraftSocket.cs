@@ -486,6 +486,7 @@ namespace Coflnet.Sky.Commands.MC
             ConSpan.Finish();
             OnConClose?.Invoke();
             sessionLifesycle?.Dispose();
+            TopBlocked.Clear();
         }
 
         public new void Close()

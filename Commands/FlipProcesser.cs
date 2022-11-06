@@ -279,7 +279,6 @@ namespace Coflnet.Sky.Commands.MC
         {
             _blockedFlipCounter = 0;
             spamController.Reset();
-            Console.WriteLine("housekeeping");
         }
     }
 }

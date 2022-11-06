@@ -357,7 +357,7 @@ namespace Coflnet.Sky.Commands.MC
         internal void HouseKeeping()
         {
             flipProcesser.MinuteCleanup();
-            while (socket.TopBlocked.Count > 500)
+            while (socket.TopBlocked.Count > 300)
                 socket.TopBlocked.TryDequeue(out _);
         }
 
@@ -377,11 +377,9 @@ namespace Coflnet.Sky.Commands.MC
                         new ChatPart(" ", "/cofl void", null));
                     SessionInfo.LastBlockedMsg = DateTime.UtcNow;
 
-                    // remove blocked if clear should fail
-                    while (socket.TopBlocked.Count > 445)
-                    {
+                    // remove blocked (if clear failed to do so)
+                    while (socket.TopBlocked.Count > 345)
                         socket.TopBlocked.TryDequeue(out _);
-                    }
                 }
                 else
                 {
