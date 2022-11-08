@@ -358,20 +358,20 @@ namespace Coflnet.Sky.Commands.MC
         private async Task LoadPlayerName(string passedId)
         {
             using var loadSpan = tracer.BuildSpan("nameLoad").AsChildOf(ConSpan).StartActive();
-            var playerName = passedId;
+            SessionInfo.McName = passedId;
             var uuid = passedId;
-            if (passedId.Length > 32)
-                playerName = await GetPlayerName(passedId);
+            if (passedId.Length >= 32)
+                SessionInfo.McName = await GetPlayerName(passedId);
             else
                 uuid = await GetPlayerUuid(passedId);
-            if (playerName == null)
+            if (SessionInfo.McName == null || uuid == null)
             {
+                loadSpan.Span.Log("loading externally");
                 var profile = await PlayerSearch.Instance.GetMcProfile(passedId);
                 uuid = profile.Id;
-                playerName = profile.Name;
+                SessionInfo.McName = profile.Name;
                 var update = await IndexerClient.TriggerNameUpdate(uuid);
             }
-            SessionInfo.McName = playerName;
             SessionInfo.McUuid = uuid;
             loadSpan.Span.SetTag("playerId", passedId);
             loadSpan.Span.SetTag("uuid", uuid);
