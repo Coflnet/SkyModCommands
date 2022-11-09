@@ -43,7 +43,7 @@ namespace Coflnet.Sky.Commands.MC
                 .MsgLine($"{challenge.Question}", null, "anti macro question, please click on the answer")
                 .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text))
                 .If(() => captchaType != "vertical", db => db.LineBreak()
-                            .CoflCommand<CaptchaCommand>(McColorCodes.AQUA + "Vertical |", "small",
+                            .CoflCommand<CaptchaCommand>(McColorCodes.AQUA + "Vertical |", "vertical",
                                 $"{McColorCodes.GREEN}Use vertical captcha \n{McColorCodes.GRAY}this will print the letters below one another\n"
                                 + "and helps if the green lines don't match up\nbecause you use a different font\n(you may need to solve one more captcha)"))
                 .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use horizontal captcha"))
@@ -104,9 +104,9 @@ namespace Coflnet.Sky.Commands.MC
             var bigger = chars.Max(l => l.Count);
             chars = chars.OrderBy(r => random.Next()).ToList();
             List<Option> parts = new();
-            var small = socket.AccountInfo.CaptchaType == "vertical";
+            var vertical = socket.AccountInfo.CaptchaType == "vertical";
             HashSet<Option> solutions = new();
-            if (!small)
+            if (!vertical)
                 for (int i = 0; i < bigger; i++)
                 {
                     if (i != 0)

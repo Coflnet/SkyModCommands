@@ -8,7 +8,7 @@ namespace Coflnet.Sky.Commands.MC
     public class CaptchaCommand : McCommand
     {
         int debugMultiplier = 1;
-        private HashSet<string> formats = new() { "small", "big", "optifine" };
+        private HashSet<string> formats = new() { "vertical", "big", "optifine" };
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var info = socket.SessionInfo.captchaInfo;
