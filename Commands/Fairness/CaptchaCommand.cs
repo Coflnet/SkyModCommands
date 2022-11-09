@@ -8,6 +8,7 @@ namespace Coflnet.Sky.Commands.MC
     public class CaptchaCommand : McCommand
     {
         int debugMultiplier = 1;
+        private HashSet<string> formats = new() { "small", "big", "optifine" };
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var info = socket.SessionInfo.captchaInfo;
@@ -17,9 +18,9 @@ namespace Coflnet.Sky.Commands.MC
             var receivedAt = DateTime.UtcNow;
             var attempt = arguments.Trim('"');
             info.CaptchaRequests++;
-            if (attempt == "optifine")
+            if (formats.Contains(attempt))
             {
-                accountInfo.CaptchaType = "optifine";
+                accountInfo.CaptchaType = attempt;
                 await RequireAnotherSolve(socket, info);
                 await socket.sessionLifesycle.AccountInfo.Update();
                 return;
@@ -29,14 +30,7 @@ namespace Coflnet.Sky.Commands.MC
                 await RequireAnotherSolve(socket, info);
                 return;
             }
-            if (attempt == "small")
-            {
-                accountInfo.CaptchaType = "vertical";
-                await socket.sessionLifesycle.AccountInfo.Update();
-            }
-            else if (attempt == "big")
-                accountInfo.CaptchaType = "";
-            else if (string.IsNullOrEmpty(attempt))
+            if (string.IsNullOrEmpty(attempt))
                 socket.SendMessage(COFLNET + McColorCodes.BLUE + "You requested to get a new captcha. Have fun.");
             else
             {
