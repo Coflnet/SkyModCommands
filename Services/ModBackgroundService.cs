@@ -14,18 +14,19 @@ using Coflnet.Sky.Core;
 using MessagePack;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
+using System.Collections.Generic;
 
 namespace Coflnet.Sky.ModCommands.Services
 {
 
-    public class BaseBackgroundService : BackgroundService
+    public class ModBackgroundService : BackgroundService
     {
         private IServiceScopeFactory scopeFactory;
         private IConfiguration config;
-        private ILogger<BaseBackgroundService> logger;
+        private ILogger<ModBackgroundService> logger;
 
-        public BaseBackgroundService(
-            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<BaseBackgroundService> logger)
+        public ModBackgroundService(
+            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger)
         {
             this.scopeFactory = scopeFactory;
             this.config = config;
@@ -39,15 +40,35 @@ namespace Coflnet.Sky.ModCommands.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             await Task.Yield();
-            ConnectionMultiplexer redis = null;
+            var instances = await GetConnections();
+            foreach (var multiplexer in instances)
+            {
+                SubscribeConnection(multiplexer);
+            }
+            logger.LogInformation("set up fast track flipper");
+            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
+        }
+
+        private async Task<List<ConnectionMultiplexer>> GetConnections()
+        {
+            List<ConnectionMultiplexer> instances = new();
             var i = 2;
-            while (redis == null)
+            while (instances.Count == 0)
             {
                 try
                 {
-
-                    var redisOptions = ConfigurationOptions.Parse(config["FLIP_REDIS_OPTIONS"]);
-                    redis = ConnectionMultiplexer.Connect(redisOptions);
+                    var oldOption = config["FLIP_REDIS_OPTIONS"];
+                    if (oldOption != null)
+                    {
+                        logger.LogInformation("using legacy flip sniper option");
+                        AddOption(instances, oldOption);
+                        return instances;
+                    }
+                    var instanceStrings = config.GetSection("REDIS_FLIP_INSTANCES").Get<string[]>();
+                    foreach (var item in instanceStrings)
+                    {
+                        AddOption(instances, item);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -55,7 +76,19 @@ namespace Coflnet.Sky.ModCommands.Services
                     await Task.Delay(i++ * 10000);
                 }
             }
-            redis.GetSubscriber().Subscribe("snipes", (chan, val) =>
+
+            return instances;
+        }
+
+        private static void AddOption(List<ConnectionMultiplexer> instances, string item)
+        {
+            var option = ConfigurationOptions.Parse(item);
+            instances.Add(ConnectionMultiplexer.Connect(option));
+        }
+
+        private void SubscribeConnection(ConnectionMultiplexer multiplexer)
+        {
+            multiplexer.GetSubscriber().Subscribe("snipes", (chan, val) =>
             {
                 Task.Run(async () =>
                 {
@@ -74,8 +107,6 @@ namespace Coflnet.Sky.ModCommands.Services
                     }
                 }).ConfigureAwait(false);
             });
-            logger.LogInformation("set up fast track flipper");
-            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
         }
 
         private ModService GetService()

@@ -53,7 +53,7 @@ namespace Coflnet.Sky.ModCommands
                     .EnableSensitiveDataLogging() // <-- These two calls are optional but help
                     .EnableDetailedErrors()       // <-- with debugging (remove for production).
             );
-            services.AddHostedService<BaseBackgroundService>();
+            services.AddHostedService<ModBackgroundService>();
             services.AddHostedService<FlipperService>();
             services.AddJaeger(1,1);
             services.AddTransient<ModService>();
