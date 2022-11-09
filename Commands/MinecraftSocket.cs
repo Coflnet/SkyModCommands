@@ -43,7 +43,7 @@ namespace Coflnet.Sky.Commands.MC
         LowPricedAuction GetFlip(string uuid);
         string GetFlipMsg(FlipInstance flip);
         Task<string> GetPlayerName(string uuid);
-        Task<string> GetPlayerUuid(string name);
+        Task<string> GetPlayerUuid(string name, bool blockError);
         T GetService<T>();
         void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information);
         IScope RemoveMySelf();
@@ -331,7 +331,7 @@ namespace Coflnet.Sky.Commands.MC
             return (await Shared.DiHandler.ServiceProvider.GetRequiredService<PlayerName.Client.Api.PlayerNameApi>()
                     .PlayerNameNameUuidGetAsync(uuid))?.Trim('"');
         }
-        public async Task<string> GetPlayerUuid(string name)
+        public async Task<string> GetPlayerUuid(string name, bool blockError = false)
         {
             try
             {
@@ -340,8 +340,10 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Exception e)
             {
-                Error(e, "loading name for uuid");
-                throw new CoflnetException("name_retrieve", "Could not find the player " + name);
+                Error(e, $"loading uuid for name '{name}'");
+                if (!blockError)
+                    throw new CoflnetException("name_retrieve", "Could not find the player " + name);
+                return null;
             }
         }
 
@@ -363,7 +365,7 @@ namespace Coflnet.Sky.Commands.MC
             if (passedId.Length >= 32)
                 SessionInfo.McName = await GetPlayerName(passedId);
             else
-                uuid = await GetPlayerUuid(passedId);
+                uuid = await GetPlayerUuid(passedId, true);
             if (SessionInfo.McName == null || uuid == null)
             {
                 loadSpan.Span.Log("loading externally");
