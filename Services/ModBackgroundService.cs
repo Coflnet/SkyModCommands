@@ -47,6 +47,7 @@ namespace Coflnet.Sky.ModCommands.Services
             }
             logger.LogInformation("set up fast track flipper");
             await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
+            logger.LogError("Fast track was stopped");
         }
 
         private async Task<List<ConnectionMultiplexer>> GetConnections()
