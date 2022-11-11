@@ -15,6 +15,7 @@ using MessagePack;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Coflnet.Sky.ModCommands.Services
 {
@@ -108,6 +109,10 @@ namespace Coflnet.Sky.ModCommands.Services
                     }
                 }).ConfigureAwait(false);
             });
+            logger.LogInformation("Subscribed to " + multiplexer.IsConnected + multiplexer.GetEndPoints().Select(e=>{
+                var server = multiplexer.GetServer(e);
+                return e.ToString();
+            }).First());
         }
 
         private ModService GetService()
