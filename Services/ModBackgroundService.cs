@@ -116,11 +116,12 @@ namespace Coflnet.Sky.ModCommands.Services
             }).First());
             multiplexer.GetSubscriber().Subscribe("beat", (chan, val) =>
             {
-                logger.LogInformation("redis heart beat " + val);
+                if (val == System.Net.Dns.GetHostName())
+                    logger.LogInformation("redis heart beat " + val);
             });
             Task.Run(async() =>
             {
-                for (int i = 0; i < 100; i++)
+                for (int i = 0; i < 10000; i++)
                 {
                     await Task.Delay(TimeSpan.FromMinutes(2));
                     multiplexer.GetSubscriber().Publish("beat", System.Net.Dns.GetHostName());
