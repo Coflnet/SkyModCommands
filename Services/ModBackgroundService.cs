@@ -1,21 +1,21 @@
-using System.Threading;
-using System.Threading.Tasks;
-using Coflnet.Sky.ModCommands.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Confluent.Kafka;
-using Microsoft.Extensions.Configuration;
 using System;
-using Microsoft.Extensions.Logging;
-using Coflnet.Sky.ModCommands.Controllers;
-using StackExchange.Redis;
-using Coflnet.Sky.Core;
-using MessagePack;
-using Coflnet.Sky.Commands.MC;
-using Coflnet.Sky.Commands.Shared;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Coflnet.Sky.Commands.MC;
+using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Controllers;
+using Coflnet.Sky.ModCommands.Models;
+using Confluent.Kafka;
+using MessagePack;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Coflnet.Sky.ModCommands.Services
 {
@@ -92,7 +92,7 @@ namespace Coflnet.Sky.ModCommands.Services
         {
             multiplexer.GetSubscriber().Subscribe("snipes", (chan, val) =>
             {
-                Task.Run(async () =>
+                Task.Run(async() =>
                 {
                     try
                     {
@@ -109,7 +109,8 @@ namespace Coflnet.Sky.ModCommands.Services
                     }
                 }).ConfigureAwait(false);
             });
-            logger.LogInformation("Subscribed to " + multiplexer.IsConnected + multiplexer.GetEndPoints().Select(e=>{
+            logger.LogInformation("Subscribed to " + multiplexer.IsConnected + multiplexer.GetEndPoints().Select(e =>
+            {
                 var server = multiplexer.GetServer(e);
                 return e.ToString();
             }).First());
@@ -117,10 +118,13 @@ namespace Coflnet.Sky.ModCommands.Services
             {
                 logger.LogInformation("redis heart beat " + val);
             });
-            Task.Run(async ()=>{
-                multiplexer.GetSubscriber().Publish("beat", System.Net.Dns.GetHostName());
-                await Task.Delay(TimeSpan.FromMinutes(1));
-                multiplexer.GetSubscriber().Publish("beat", System.Net.Dns.GetHostName());
+            Task.Run(async() =>
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(1));
+                    multiplexer.GetSubscriber().Publish("beat", System.Net.Dns.GetHostName());
+                }
             });
         }
 
