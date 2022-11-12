@@ -113,6 +113,15 @@ namespace Coflnet.Sky.ModCommands.Services
                 var server = multiplexer.GetServer(e);
                 return e.ToString();
             }).First());
+            multiplexer.GetSubscriber().Subscribe("beat", (chan, val) =>
+            {
+                logger.LogInformation("redis heart beat " + val);
+            });
+            Task.Run(async ()=>{
+                multiplexer.GetSubscriber().Publish("beat", System.Net.Dns.GetHostName());
+                await Task.Delay(TimeSpan.FromMinutes(1));
+                multiplexer.GetSubscriber().Publish("beat", System.Net.Dns.GetHostName());
+            });
         }
 
         private ModService GetService()
