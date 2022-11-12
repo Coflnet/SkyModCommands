@@ -120,9 +120,9 @@ namespace Coflnet.Sky.ModCommands.Services
             });
             Task.Run(async() =>
             {
-                for (int i = 0; i < 10; i++)
+                for (int i = 0; i < 100; i++)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(1));
+                    await Task.Delay(TimeSpan.FromMinutes(2));
                     multiplexer.GetSubscriber().Publish("beat", System.Net.Dns.GetHostName());
                 }
             });
