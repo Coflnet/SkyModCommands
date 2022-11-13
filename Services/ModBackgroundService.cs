@@ -46,7 +46,7 @@ namespace Coflnet.Sky.ModCommands.Services
             var instances = await GetConnections();
             foreach (var multiplexer in instances)
             {
-                SubscribeConnection(multiplexer);
+                SubscribeConnection(multiplexer, stoppingToken);
             }
             logger.LogInformation("set up fast track flipper");
             await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
@@ -90,11 +90,11 @@ namespace Coflnet.Sky.ModCommands.Services
             instances.Add(ConnectionMultiplexer.Connect(option));
         }
 
-        private void SubscribeConnection(ConnectionMultiplexer multiplexer)
+        private void SubscribeConnection(ConnectionMultiplexer multiplexer, CancellationToken stoppingToken)
         {
             multiplexer.GetSubscriber().Subscribe("snipes", (chan, val) =>
             {
-                Task.Run(async() =>
+                Task.Run(async () =>
                 {
                     try
                     {
@@ -122,11 +122,11 @@ namespace Coflnet.Sky.ModCommands.Services
                 if (val == System.Net.Dns.GetHostName())
                     logger.LogInformation("redis heart beat " + val);
             });
-            Task.Run(async() =>
+            Task.Run(async () =>
             {
-                for (int i = 0; i < 10000; i++)
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(2));
+                    await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
                     multiplexer.GetSubscriber().Publish("beat", System.Net.Dns.GetHostName());
                 }
             });
