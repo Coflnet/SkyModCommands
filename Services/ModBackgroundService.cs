@@ -25,6 +25,8 @@ namespace Coflnet.Sky.ModCommands.Services
         private IConfiguration config;
         private ILogger<ModBackgroundService> logger;
 
+        private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
+
         public ModBackgroundService(
             IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger)
         {
@@ -100,6 +102,7 @@ namespace Coflnet.Sky.ModCommands.Services
                         flip.AdditionalProps?.TryAdd("bfcs", "redis");
                         await FlipperService.Instance.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
                         logger.LogInformation($"sheduled bfcs {flip.Auction.UId} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond}");
+                        fastTrackSnipes.Inc();
                     }
                     catch (Exception e)
                     {
