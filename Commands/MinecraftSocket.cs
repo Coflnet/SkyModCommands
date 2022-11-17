@@ -220,7 +220,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private static async Task<DateTime> GetNext10SecTime()
         {
-            return (await new NextUpdateRetriever().Get()) - TimeSpan.FromSeconds(14.8);
+            return (await new NextUpdateRetriever().Get()) - TimeSpan.FromSeconds(12.8);
         }
 
         protected override void OnOpen()
