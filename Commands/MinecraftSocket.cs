@@ -184,14 +184,16 @@ namespace Coflnet.Sky.Commands.MC
             {
                 NextUpdateStart += () =>
                 {
-                    Console.WriteLine("next update");
+                    var startTime = DateTime.Now;
                     GC.Collect();
+                    Console.WriteLine("next update " + (DateTime.Now-startTime));
                 };
+                NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
                 tenSecTimer = new System.Threading.Timer((e) =>
                 {
                     try
                     {
-                        NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(68);
+                        NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
                         NextUpdateStart?.Invoke();
                         if (DateTime.UtcNow.Minute % 2 == 0)
                             UpdateTimer();
@@ -220,7 +222,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private static async Task<DateTime> GetNext10SecTime()
         {
-            return (await new NextUpdateRetriever().Get()) - TimeSpan.FromSeconds(12.8);
+            return (await new NextUpdateRetriever().Get()) - TimeSpan.FromSeconds(12.3);
         }
 
         protected override void OnOpen()
