@@ -710,7 +710,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             sessionLifesycle.HouseKeeping();
-            if (this.Settings?.DisableFlips ?? false)
+            if (HasFlippingDisabled())
             {
                 // ping is sent to keep the connection open (after 60 seconds inactivity its disconnected by cloudflare)
                 Send(Response.Create("ping", 0));
@@ -727,7 +727,7 @@ namespace Coflnet.Sky.Commands.MC
                     SheduleTimer(mod, loadSpan);
                 }
             }
-            if (!(Settings?.ModSettings?.BlockTenSecondsMsg ?? false))
+            if (!(Settings?.ModSettings?.BlockTenSecondsMsg ?? true))
             {
                 SendMessage(
                             COFLNET + "Flips in 10 seconds",
@@ -738,6 +738,11 @@ namespace Coflnet.Sky.Commands.MC
                 if (Settings?.ModSettings?.PlaySoundOnFlip ?? false)
                     SendSound("note.hat", 1);
             }
+        }
+
+        public bool HasFlippingDisabled()
+        {
+            return (this.Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled;
         }
 
         public void SheduleTimer(ModSettings mod = null, IScope timerSpan = null)

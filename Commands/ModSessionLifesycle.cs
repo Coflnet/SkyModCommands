@@ -56,22 +56,22 @@ namespace Coflnet.Sky.Commands.MC
             VerificationHandler = new VerificationHandler(socket);
         }
 
-       
+
 
         public async Task SetupConnectionSettings(string stringId)
         {
-        /*    socket.Dialog(db => db.Lines("The welcome pig greets you",
-"           __,---.__",
-"        ,-'          `-.__",
-@"      &/           `._\ _\",
-"       /               ' '._",
-@"      |   ,               ("")",
-@"      |__,'`-..--|__|--''"));
+            /*    socket.Dialog(db => db.Lines("The welcome pig greets you",
+    "           __,---.__",
+    "        ,-'          `-.__",
+    @"      &/           `._\ _\",
+    "       /               ' '._",
+    @"      |   ,               ("")",
+    @"      |__,'`-..--|__|--''"));
 
-            socket.Dialog(db => db.ForEach("ayz🤨🤔🇧🇾:|,:-.#ä+!^°~´` ", (db, c) => db.ForEach("01234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
-            socket.Dialog(db => db.LineBreak().ForEach(":;", (db, c) => db.ForEach("012345678901234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
-            socket.Dialog(db => db.LineBreak().ForEach("´", (db, c) => db.ForEach("012345678901234567890123", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
-*/
+                socket.Dialog(db => db.ForEach("ayz🤨🤔🇧🇾:|,:-.#ä+!^°~´` ", (db, c) => db.ForEach("01234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
+                socket.Dialog(db => db.LineBreak().ForEach(":;", (db, c) => db.ForEach("012345678901234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
+                socket.Dialog(db => db.LineBreak().ForEach("´", (db, c) => db.ForEach("012345678901234567890123", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
+    */
             using var loadSpan = socket.tracer.BuildSpan("load").AsChildOf(ConSpan).StartActive();
             SessionInfo.SessionId = stringId;
 
@@ -106,9 +106,9 @@ namespace Coflnet.Sky.Commands.MC
             var index = 1;
             while (UserId.Value == null)
             {
-                SendMessage(COFLNET + $"Please {McColorCodes.WHITE}§lclick this [LINK] to login {McColorCodes.GRAY}and configure your flip filters §8(you won't receive real time flips until you do)",
+                SendMessage(COFLNET + $"Please {McColorCodes.WHITE}§lclick this [LINK] to login{McColorCodes.GRAY} so we can load your settings §8(do '/cofl help login' to get more info)",
                     GetAuthLink(stringId));
-                await Task.Delay(TimeSpan.FromSeconds(60 * index++)).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(300 * index++)).ConfigureAwait(false);
 
                 if (UserId.Value != default)
                     return;
@@ -177,7 +177,7 @@ namespace Coflnet.Sky.Commands.MC
                         $"You can also enable only lbin based flips \nby executing {McColorCodes.AQUA}/cofl set finders sniper.\nClicking this will hide lbin in flip messages. \nYou can still see lbin in item descriptions."));
                 }
                 // preload flip settings
-                settings.MatchesSettings(new FlipInstance(){Auction = new SaveAuction()});
+                settings.MatchesSettings(new FlipInstance() { Auction = new SaveAuction() });
                 span.Log(JSON.Stringify(settings));
             }
             catch (Exception e)
@@ -252,7 +252,19 @@ namespace Coflnet.Sky.Commands.MC
                 SessionInfo.SentWelcome = true;
                 var helloTask = SendAuthorizedHello(info);
 
-                SendMessage(socket.formatProvider.WelcomeMessage());
+                if (FlipSettings.Value.ModSettings.AutoStartFlipper)
+                {
+                    SendMessage(socket.formatProvider.WelcomeMessage());
+                    SessionInfo.FlipsEnabled = true;
+                }
+                else{
+                    socket.Dialog(db => db.Msg("What do you want to do?").Break
+                        .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)")
+                        .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
+                        .DialogLink<EchoDialog>(McColorCodes.BLUE + " use the pricing data ", "alright, nothing else to do :)", "I do't want to flip")
+                        .Break);
+                    await socket.TriggerTutorial<Welcome>();
+                }
                 await Task.Delay(200).ConfigureAwait(false);
                 await helloTask;
                 await userIsVerifiedTask;
@@ -308,6 +320,8 @@ namespace Coflnet.Sky.Commands.MC
             if (accountInfo == null)
                 return;
 
+            if(socket.HasFlippingDisabled())
+                return;
             if (FlipSettings.Value.DisableFlips)
             {
                 SendMessage(COFLNET + "you currently don't receive flips because you disabled them", "/cofl set disableflips false", "click to enable");
@@ -337,7 +351,7 @@ namespace Coflnet.Sky.Commands.MC
             var messageStart = $"Hello {this.SessionInfo.McName} ({anonymisedEmail}) \n";
             if (accountInfo.Tier != AccountTier.NONE && accountInfo.ExpiresAt > DateTime.UtcNow)
                 SendMessage(
-                    COFLNET + messageStart + $"You have {McColorCodes.GREEN}{accountInfo.Tier.ToString()} until {accountInfo.ExpiresAt.ToString("yyyy-MMM-dd HH:mm")} UTC", null, 
+                    COFLNET + messageStart + $"You have {McColorCodes.GREEN}{accountInfo.Tier.ToString()} until {accountInfo.ExpiresAt.ToString("yyyy-MMM-dd HH:mm")} UTC", null,
                     $"That is in {McColorCodes.GREEN + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("d'd 'h'h 'm'm 's's'")}"
                 );
             else
@@ -440,7 +454,7 @@ namespace Coflnet.Sky.Commands.MC
 
                     var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
 
-                    if (sumary.AntiAfk && !FlipSettings.Value.DisableFlips)
+                    if (sumary.AntiAfk && !socket.HasFlippingDisabled())
                     {
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));

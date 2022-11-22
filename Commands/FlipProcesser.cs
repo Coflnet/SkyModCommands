@@ -35,7 +35,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task NewFlips(IEnumerable<LowPricedAuction> flips)
         {
-            if (AreFlipsDisabled())
+            if (socket.HasFlippingDisabled())
                 return;
 
             var prefiltered = flips.Where(f => !SentFlips.ContainsKey(f.UId)
@@ -97,11 +97,6 @@ namespace Coflnet.Sky.Commands.MC
                     socket.Error(e, "filling visibility");
                 }
             }
-        }
-
-        private bool AreFlipsDisabled()
-        {
-            return this.Settings == null || this.Settings.DisableFlips;
         }
 
         private bool NotBlockedForSpam(FlipInstance flipInstance, LowPricedAuction f, IScope span)

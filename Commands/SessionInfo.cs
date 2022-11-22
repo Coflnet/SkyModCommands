@@ -36,6 +36,10 @@ namespace Coflnet.Sky.Commands.MC
         public bool LbinWarningSent { get; internal set; }
 
         public bool VerifiedMc;
+        /// <summary>
+        /// Wherever the user wants to receive flips or not 
+        /// </summary>
+        public bool FlipsEnabled;
 
         /// <summary>
         /// Random id for this connection to identify different ones

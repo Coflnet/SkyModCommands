@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (arguments.Length == 0 || int.TryParse(arguments.Split(' ')[0], out page))
                 {
                     var pageSize = 12;
-                    if(page < 1)
+                    if (page < 1)
                         page = 1;
                     Func<string, string> formatSh = v => MC.McColorCodes.GRAY + " (" + MC.McColorCodes.GREEN + v + MC.McColorCodes.GRAY + ")";
                     var options = updater.ModOptions.Where(o => !o.Value.Hide).Select(o =>
@@ -32,7 +32,7 @@ namespace Coflnet.Sky.Commands.MC
                         var shortHandAddition = !string.IsNullOrEmpty(o.Value.ShortHand) ? formatSh(o.Value.ShortHand) : "";
                         return $"{MC.McColorCodes.AQUA}{o.Key}{shortHandAddition}: {MC.McColorCodes.GRAY}{o.Value.Info}";
                     });
-                    socket.SendMessage($"{COFLNET}Available settings are (page {page}):\n" + String.Join("\n", options.Skip((page-1 )* pageSize).Take(pageSize)),
+                    socket.SendMessage($"{COFLNET}Available settings are (page {page}):\n" + String.Join("\n", options.Skip((page - 1) * pageSize).Take(pageSize)),
                         "/cofl set " + (page),
                         $"These are available settings, the format is:\n{MC.McColorCodes.AQUA}key{formatSh("shortVersion")}{MC.McColorCodes.GRAY} Description\n"
                         + "click to get next page");
@@ -46,8 +46,12 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 catch (UnkownSettingException e)
                 {
-                    throw new CoflnetException(e.Slug, $"the setting {McColorCodes.DARK_RED}{e.Passed}{DEFAULT_COLOR} doesn't exist, most similar is {McColorCodes.AQUA}{e.Closest}{DEFAULT_COLOR}");
-                } 
+                    var altExecution = arguments.Replace(e.Passed, e.Closest);
+                    socket.Dialog(db => db.CoflCommand<SetCommand>(
+                        $"the setting {McColorCodes.DARK_RED}{e.Passed}{DEFAULT_COLOR} doesn't exist, most similar is {McColorCodes.AQUA}{e.Closest}{DEFAULT_COLOR}",
+                        altExecution, $"Click to rerun {McColorCodes.AQUA}/cofl set {altExecution}"));
+                    return;
+                }
                 //socket.LatestSettings.Settings.Changer = "mod-" + socket.SessionInfo.sessionId;
                 if (string.IsNullOrEmpty(socket.sessionLifesycle.UserId))
                     socket.SendMessage(new ChatPart($"{COFLNET}You are not logged in, setting will reset when you stop the connection"));

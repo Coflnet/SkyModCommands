@@ -14,5 +14,4 @@ public class DialogCommand : McCommand
 
         return Task.CompletedTask;
     }
-
 }
