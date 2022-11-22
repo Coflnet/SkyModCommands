@@ -14,7 +14,7 @@ RUN dotnet publish -c release
 FROM mcr.microsoft.com/dotnet/sdk:7.0
 WORKDIR /app
 
-COPY --from=build /build/sky/bin/release/net6.0/publish/ .
+COPY --from=build /build/sky/bin/release/net7.0/publish/ .
 
 ENV ASPNETCORE_URLS=http://+:8000
 RUN dotnet tool install --global dotnet-gcdump
