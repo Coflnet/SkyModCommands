@@ -742,7 +742,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public bool HasFlippingDisabled()
         {
-            return (this.Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled;
+            return (this.Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && this.Settings != null;
         }
 
         public void SheduleTimer(ModSettings mod = null, IScope timerSpan = null)
