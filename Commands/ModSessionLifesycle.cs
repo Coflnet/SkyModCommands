@@ -245,7 +245,6 @@ namespace Coflnet.Sky.Commands.MC
 
                 await UpdateAccountTier(info);
 
-                UpdateConnectionTier(info, span.Span);
                 span.Span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (SessionInfo.SentWelcome)
                     return; // don't send hello again
@@ -256,8 +255,10 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     SendMessage(socket.formatProvider.WelcomeMessage());
                     SessionInfo.FlipsEnabled = true;
+                    UpdateConnectionTier(info, span.Span);
                 }
-                else{
+                else
+                {
                     socket.Dialog(db => db.Msg("What do you want to do?").Break
                         .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)\nexecutes {McColorCodes.AQUA}/cofl flip")
                         .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
@@ -320,7 +321,7 @@ namespace Coflnet.Sky.Commands.MC
             if (accountInfo == null)
                 return;
 
-            if(socket.HasFlippingDisabled())
+            if (socket.HasFlippingDisabled())
                 return;
             if (FlipSettings.Value.DisableFlips)
             {
