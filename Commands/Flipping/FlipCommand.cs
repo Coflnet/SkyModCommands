@@ -41,7 +41,7 @@ public class FlipCommand : McCommand
     private static void WriteCurrentState(MinecraftSocket socket)
     {
         var state = McColorCodes.DARK_GREEN + "ON";
-        if (socket.Settings.DisableFlips)
+        if (!socket.SessionInfo.FlipsEnabled)
             state = McColorCodes.RED + "OFF";
         socket.Dialog(db => db.CoflCommand<FlipCommand>("Toggled flips " + state, "", $"Toggle them again\nexecutes {McColorCodes.AQUA}/cofl flip"));
     }
