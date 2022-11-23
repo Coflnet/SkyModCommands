@@ -31,6 +31,7 @@ public class FlipCommand : McCommand
             default:
                 socket.SessionInfo.FlipsEnabled = !socket.SessionInfo.FlipsEnabled;
                 WriteCurrentState(socket);
+                socket.sessionLifesycle.UpdateConnectionTier(socket.AccountInfo);
                 break;
         }
         await socket.TriggerTutorial<Flipping>();
@@ -42,6 +43,6 @@ public class FlipCommand : McCommand
         var state = McColorCodes.DARK_GREEN + "ON";
         if (socket.Settings.DisableFlips)
             state = McColorCodes.RED + "OFF";
-        socket.Dialog(db => db.Msg("Toggled flips " + state));
+        socket.Dialog(db => db.CoflCommand<FlipCommand>("Toggled flips " + state, "", $"Toggle them again\nexecutes {McColorCodes.AQUA}/cofl flip"));
     }
 }
