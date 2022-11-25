@@ -174,9 +174,12 @@ namespace Coflnet.Sky.Commands.MC
                                     + "§8: nothing else to do have a nice day :)";
             var hover = $"{McColorCodes.GRAY} Volume: {McColorCodes.AQUA}{Settings.MinVolume}\n"
                         + $"{McColorCodes.GRAY} MinProfitPercent: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfitPercent)}";
+            var spacer = $"{McColorCodes.DARK_RED}----------------------------";
             return new DialogBuilder().MsgLine(text, "https://sky.coflnet.com/flipper", hover)
-                    .MsgLine($"{McColorCodes.AQUA}: click this if you want to change a setting", null, 
-                            $"Opens the website.\nalternatively you can use the {McColorCodes.AQUA}/cofl set{McColorCodes.WHITE} command to change settings in game");
+                    .MsgLine($"{McColorCodes.AQUA}: click this if you want to change a setting", null,
+                            $"Opens the website.\nalternatively you can use the {McColorCodes.AQUA}/cofl set{McColorCodes.WHITE} command to change settings in game")
+                        .If(() => DateTime.UtcNow < new DateTime(2022, 11, 26, 6, 0, 0), db => db
+                        .CoflCommand<TopUpCommand>($"{spacer}\n CoflCoin packages 5400 or more are {McColorCodes.DARK_GREEN}{McColorCodes.BOLD}20% OFF{McColorCodes.RESET} today\n Click to purchase {McColorCodes.ITALIC}in game\n{spacer}", "", "Show options"));
         }
 
 
