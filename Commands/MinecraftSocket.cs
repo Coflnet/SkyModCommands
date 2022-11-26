@@ -186,7 +186,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     var startTime = DateTime.Now;
                     GC.Collect();
-                    Console.WriteLine("next update " + (DateTime.Now-startTime));
+                    Console.WriteLine("next update " + (DateTime.Now - startTime));
                 };
                 NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
                 tenSecTimer = new System.Threading.Timer((e) =>
@@ -714,6 +714,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 // ping is sent to keep the connection open (after 60 seconds inactivity its disconnected by cloudflare)
                 Send(Response.Create("ping", 0));
+                _ = TryAsyncTimes(() => this.TriggerTutorial<Coflnet.Sky.ModCommands.Tutorials.FlipToggling>(), "sending flip tutorial");
                 return;
             }
 
