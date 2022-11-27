@@ -49,7 +49,8 @@ namespace Coflnet.Sky.Commands.MC
                 .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use horizontal captcha"))
                 .CoflCommand<CaptchaCommand>(McColorCodes.ITALIC + " Another", "another", "Too difficult?\nGet another captcha")
                 .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>(McColorCodes.LIGHT_PURPLE + " I use optifine", "optifine",
-                        McColorCodes.GREEN + "The green lines don't allign \nand you use optifine?\ntry this :) or one of the\noptions to the left"));
+                        McColorCodes.GREEN + "The green lines don't allign \nand you use optifine?\ntry this :) or one of the\noptions to the left"))
+                    .CoflCommand<VoidCommand>(" ", " ");
         }
 
         private CaptchaChallenge MinMax(IMinecraftSocket socket)
