@@ -66,7 +66,7 @@ namespace Coflnet.Sky.Commands.MC
 
             info.RequireSolves++;
             info.FaildCount++;
-            if (info.FaildCount <= 2 || accountInfo.CaptchaType != "vertical")
+            if (info.FaildCount <= 1 || accountInfo.CaptchaType != "vertical")
                 return;
             socket.SendMessage($"{McColorCodes.DARK_GREEN}NOTE:{McColorCodes.YELLOW} "
                 + $"Please make sure that the vertical green lines ({McColorCodes.GREEN}|{McColorCodes.YELLOW}) at the end of the captcha line up continuously.\n"

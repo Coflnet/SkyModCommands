@@ -40,8 +40,8 @@ namespace Coflnet.Sky.Commands.MC
             info.CurrentSolutions = challenge.Correct.Select(c => c.Code).ToList();
             var captchaType = socket.AccountInfo.CaptchaType;
             return new DialogBuilder()
-                .MsgLine($"{challenge.Question}", null, "anti macro question, please click on the answer")
                 .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text))
+                .MsgLine($"{challenge.Question}", null, "anti macro question, please click on the answer")
                 .If(() => captchaType != "vertical", db => db.LineBreak()
                             .CoflCommand<CaptchaCommand>(McColorCodes.AQUA + "Vertical |", "vertical",
                                 $"{McColorCodes.GREEN}Use vertical captcha \n{McColorCodes.GRAY}this will print the letters below one another\n"
