@@ -39,7 +39,7 @@ namespace Coflnet.Sky.Commands.MC
 
             info.CurrentSolutions = challenge.Correct.Select(c => c.Code).ToList();
             var captchaType = socket.AccountInfo.CaptchaType;
-            return new DialogBuilder()
+            return new DialogBuilder().LineBreak()
                 .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text))
                 .MsgLine($"{challenge.Question}", null, "anti macro question, please click on the answer")
                 .If(() => captchaType != "vertical", db => db.LineBreak()
