@@ -249,8 +249,10 @@ namespace Coflnet.Sky.Commands.MC
                 if (SessionInfo.SentWelcome)
                     return; // don't send hello again
                 SessionInfo.SentWelcome = true;
-                var helloTask = SendAuthorizedHello(info);
+                await SendAuthorizedHello(info);
 
+                // there seems to be a racecondition where the flipsettings are not yet loaded
+                await Task.Delay(200).ConfigureAwait(false);
                 if (FlipSettings.Value.ModSettings.AutoStartFlipper)
                 {
                     SendMessage(socket.formatProvider.WelcomeMessage());
@@ -266,11 +268,7 @@ namespace Coflnet.Sky.Commands.MC
                         .Break);
                     await socket.TriggerTutorial<Welcome>();
                 }
-                await Task.Delay(200).ConfigureAwait(false);
-                await helloTask;
                 await userIsVerifiedTask;
-                //SendMessage(COFLNET + $"{McColorCodes.DARK_GREEN} click this to relink your account",
-                //GetAuthLink(stringId), "You don't need to relink your account. \nThis is only here to allow you to link your mod to the website again should you notice your settings aren't updated");
                 return;
             }
             catch (Exception e)
