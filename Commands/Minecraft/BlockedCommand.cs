@@ -11,6 +11,11 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
+            if(!socket.SessionInfo.FlipsEnabled)
+            {
+                socket.Dialog(db => db.CoflCommand<FlipCommand>("You don't have flips enabled, as a result there are no flips blocked.\nClick to enable flips", "", "Click to enable them"));
+                return Task.CompletedTask;
+            }
             if (socket.TopBlocked.Count == 0)
             {
                 socket.SendMessage(COFLNET + "No blocked flips found, make sure you don't click this shortly after the 'flips in 10 seconds' message. (the list gets reset when that message appears)");

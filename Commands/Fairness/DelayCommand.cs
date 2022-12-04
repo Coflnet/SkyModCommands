@@ -11,9 +11,12 @@ namespace Coflnet.Sky.Commands.MC
             var delayAmount = socket.sessionLifesycle.CurrentDelay;
             if (await socket.UserAccountTier() == 0)
             {
-                socket.SendMessage(COFLNET + $"You are using the {McColorCodes.WHITE} free version{DEFAULT_COLOR} and are thus delayed by multiple minutes. Click to get more info", "https://sky.coflnet.com/premium", "Please consider supporting us");
+                socket.SendMessage(COFLNET + $"You are using the {McColorCodes.WHITE}free version{DEFAULT_COLOR} and are thus delayed by over a minute. Click to get more info", "https://sky.coflnet.com/premium", "Please consider supporting us");
                 return;
             }
+            if(!socket.SessionInfo.FlipsEnabled)
+                socket.Dialog(db => db.CoflCommand<FlipCommand>("You don't have flips enabled.\nClick to toggle flips", "", "Click to toggle them"));
+
             if (delayAmount <= System.TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"You are currently not delayed at all :)", null, "Enjoy flipping at full speed☻");
             else if (delayAmount == TimeSpan.FromSeconds(0.312345))
