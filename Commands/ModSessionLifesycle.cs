@@ -264,7 +264,7 @@ namespace Coflnet.Sky.Commands.MC
                     socket.Dialog(db => db.Msg("What do you want to do?").Break
                         .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)\nexecutes {McColorCodes.AQUA}/cofl flip")
                         .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
-                        .DialogLink<EchoDialog>(McColorCodes.BLUE + " use the pricing data ", "alright, nothing else to do :)", "I do't want to flip")
+                        .DialogLink<EchoDialog>(McColorCodes.BLUE + " use the pricing data ", "alright, nothing else to do :)", "I don't want to flip")
                         .Break);
                     await socket.TriggerTutorial<Welcome>();
                 }
@@ -453,9 +453,9 @@ namespace Coflnet.Sky.Commands.MC
 
                     var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
 
-                    if (sumary.AntiAfk && !socket.HasFlippingDisabled())
+                    if (sumary.AntiAfk && !socket.HasFlippingDisabled() && SessionInfo.captchaInfo.LastGenerated > DateTime.UtcNow.AddMinutes(-30))
                     {
-                        SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nplease select the correct answer to prove that you are not.", null, "You are delayed until you do");
+                        SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
                     }
                     if (sumary.MacroWarning)

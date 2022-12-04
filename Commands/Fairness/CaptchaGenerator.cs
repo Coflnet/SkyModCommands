@@ -38,6 +38,7 @@ namespace Coflnet.Sky.Commands.MC
             captchaSpan?.Span.Log(JsonConvert.SerializeObject(new { info.CurrentSolutions, challenge.Options, challenge.Correct }, Formatting.Indented));
 
             info.CurrentSolutions = challenge.Correct.Select(c => c.Code).ToList();
+            info.LastGenerated = DateTime.Now;
             var captchaType = socket.AccountInfo.CaptchaType;
             return new DialogBuilder().LineBreak()
                 .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text))

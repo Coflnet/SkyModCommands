@@ -43,8 +43,8 @@ namespace Coflnet.Sky.Commands.MC
                                 "and found to be actively violating the rules.",
                                 "Most likely you used unfair advantages over extended periods of time.",
                                 "You can't remove this delay after it has been activated"))
-                    .MsgLine(FormatTimeWithReason(12, "You haven't solved the anti afk captcha"),
-                            null,
+                    .CoflCommand<CaptchaCommand>(FormatTimeWithReason(12, "You haven't solved the anti afk captcha, click to get one"),
+                            "",
                             FormatLines(
                                 "Look above for the message requesting you to solve the captcha.",
                                 $"If you can't find it do {McColorCodes.AQUA}/cofl captcha{McColorCodes.YELLOW} to get a new one.",
