@@ -252,7 +252,12 @@ namespace Coflnet.Sky.Commands.MC
                 await SendAuthorizedHello(info);
 
                 // there seems to be a racecondition where the flipsettings are not yet loaded
-                await Task.Delay(200).ConfigureAwait(false);
+                for (int i = 0; i < 10; i++)
+                {
+                    if (!string.IsNullOrEmpty(FlipSettings.Value.Changer))
+                        break;
+                    await Task.Delay(300);
+                }
                 if (FlipSettings.Value.ModSettings.AutoStartFlipper)
                 {
                     SendMessage(socket.formatProvider.WelcomeMessage());

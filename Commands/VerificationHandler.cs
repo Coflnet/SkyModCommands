@@ -60,7 +60,7 @@ namespace Coflnet.Sky.Commands.MC
                 return SessionInfo.VerifiedMc;
             }
             McAccountService.ConnectionRequest connect = null;
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 15; i++)
             {
                 if (string.IsNullOrEmpty(mcUuid))
                     mcUuid = SessionInfo.McUuid;
@@ -74,7 +74,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
 
                 }
-                await Task.Delay(500).ConfigureAwait(false);
+                await Task.Delay(800).ConfigureAwait(false);
                 verificationSpan.Span.Log($"failed {userId} {mcUuid} {mcUuid is null}");
             }
             if (connect == null)
