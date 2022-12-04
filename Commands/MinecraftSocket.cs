@@ -278,6 +278,7 @@ namespace Coflnet.Sky.Commands.MC
             var passedId = args["player"] ?? args["uuid"];
             TryAsyncTimes(async () => await LoadPlayerName(passedId), "loading PlayerName");
             ConSpan.SetTag("version", Version);
+            openSpan.Span.SetTag("player", passedId);
 
             string stringId;
             (this.Id, stringId) = GetService<IdConverter>().ComputeConnectionId(passedId, SessionInfo.clientSessionId);
