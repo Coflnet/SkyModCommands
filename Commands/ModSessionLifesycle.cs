@@ -458,7 +458,7 @@ namespace Coflnet.Sky.Commands.MC
 
                     var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
 
-                    if (sumary.AntiAfk && !socket.HasFlippingDisabled() && SessionInfo.captchaInfo.LastGenerated > DateTime.UtcNow.AddMinutes(-30))
+                    if (sumary.AntiAfk && !socket.HasFlippingDisabled() && SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
                     {
                         SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                         SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
