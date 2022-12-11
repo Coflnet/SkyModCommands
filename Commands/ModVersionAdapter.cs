@@ -53,7 +53,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 parts.Insert(1, new ChatPart(McColorCodes.GRAY + " From: " + McColorCodes.AQUA + seller, $"/ah {seller}", $"{McColorCodes.GRAY}Open the ah for {McColorCodes.AQUA} {flip.SellerName}"));
             }
-            else if ((socket.Settings.Visibility?.SellerOpenButton ?? false) || NoSeller(seller))
+            else if ((socket.Settings.Visibility?.SellerOpenButton ?? false) || (socket.Settings.Visibility?.Seller ?? false))
             {
                 var hover = $"{McColorCodes.GRAY}Open the ah for the seller";
                 if (seller == "not-found")
