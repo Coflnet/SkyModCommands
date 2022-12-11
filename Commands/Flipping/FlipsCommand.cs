@@ -13,7 +13,7 @@ public class FlipsCommand : ReadOnlyListCommand<Api.Client.Model.FlipDetails>
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Api.Client.Model.FlipDetails f)
     {
         db.MsgLine($"{socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(f.Tier, true))}{f.ItemName} {(f.Profit > 0 ? McColorCodes.GREEN : McColorCodes.RED)}Profit: {socket.formatProvider.FormatPrice(f.Profit)}",
-                        $"https://sky.coflnet.com/auction/{f.OriginAuction}", $"Sold at: {f.SellTime:g}\nFound first by: {f.Finder}");
+                        $"https://sky.coflnet.com/auction/{f.OriginAuction}", $"Sold at: {f.SellTime:g}\nFound first by: {(LowPricedAuction.FinderType)f.Finder}");
     }
 
     protected override async Task<IEnumerable<Api.Client.Model.FlipDetails>> GetElements(MinecraftSocket socket, string val)

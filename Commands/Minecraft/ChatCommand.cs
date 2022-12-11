@@ -14,28 +14,16 @@ namespace Coflnet.Sky.Commands.MC
     {
         static ChatService chat;
         public static string CHAT_PREFIX = "[§1C§6hat§f]";
-        private static HashSet<string> MutedUsers = new HashSet<string>() { "850cfa6e7f184ed4b72a8c304734bcbe" };
 
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            if (MutedUsers.Contains(socket.SessionInfo.McUuid))
-            {
-                socket.SendMessage(COFLNET + "You have been muted from the chat because you repeadetly violated the rules", "I am blocked from the Coflnet chat :(", $"Click to express your sadness");
-                return;
-            }
             var maxMsgLength = 150;
             var message = JsonConvert.DeserializeObject<string>(arguments);
 
             bool shouldToggle = string.IsNullOrEmpty(message) || message == "toggle";
             if (shouldToggle || (!socket.sessionLifesycle.FlipSettings?.Value?.ModSettings?.Chat ?? false))
             {
-                var settings = socket.sessionLifesycle.FlipSettings;
-                if (settings == null)
-                    throw new CoflnetException("no_settings", "could not toggle the cofl chat likely because you are not logged in");
-                settings.Value.ModSettings.Chat = !settings.Value.ModSettings.Chat;
-                await settings.Update(settings.Value);
-                socket.SendMessage(CHAT_PREFIX + $"Toggled the chat {(settings.Value.ModSettings.Chat ? "on" : "off")}");
-
+                await Togglechat(socket);
                 if (shouldToggle)
                     return;
             }
@@ -60,11 +48,6 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "You are writing to fast please slow down");
                 return;
             }
-            if (DateTime.UtcNow < socket.SessionInfo.MutedUntil)
-            {
-                socket.SendMessage(COFLNET + $"You are muted for {(int)(socket.SessionInfo.MutedUntil - DateTime.UtcNow).TotalMinutes + 1} minutes");
-                return;
-            }
             if (message.Length > maxMsgLength)
             {
                 socket.SendMessage(COFLNET + "Please use another chat for long messages", null, $"Messages over {maxMsgLength} characters are blocked");
@@ -81,6 +64,17 @@ namespace Coflnet.Sky.Commands.MC
                 SenderUuid = socket.SessionInfo.McUuid
             }, socket.tracer.ActiveSpan);
             socket.SessionInfo.LastMessage = DateTime.UtcNow;
+            await socket.TriggerTutorial<Sky.ModCommands.Tutorials.ChatRulesTutorial>();
+        }
+
+        private static async Task Togglechat(MinecraftSocket socket)
+        {
+            var settings = socket.sessionLifesycle.FlipSettings;
+            if (settings == null)
+                throw new CoflnetException("no_settings", "could not toggle the cofl chat likely because you are not logged in");
+            settings.Value.ModSettings.Chat = !settings.Value.ModSettings.Chat;
+            await settings.Update(settings.Value);
+            socket.SendMessage(CHAT_PREFIX + $"Toggled the chat {(settings.Value.ModSettings.Chat ? "on" : "off")}");
         }
 
         public static async Task MakeSureChatIsConnected(MinecraftSocket socket)
@@ -122,6 +116,7 @@ namespace Coflnet.Sky.Commands.MC
                         return true;
                     }
                     var color = m.Prefix;
+                    socket.TryAsyncTimes(() => socket.TriggerTutorial<Sky.ModCommands.Tutorials.ChatTutorial>(), "chat tutorial");
                     return socket.SendMessage(
                         new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatoptions {m.Name} {m.ClientName} {m.Message} {m.Uuid}", $"click for more options"),
                         new ChatPart("", "/cofl void"));

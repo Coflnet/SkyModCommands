@@ -75,7 +75,9 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Coflnet.Payments.Client.Client.ApiException e)
             {
-                socket.SendMessage(DialogBuilder.New.MsgLine(McColorCodes.RED + "An error occured").Msg(e.Message.Substring(68).Trim('}', '"')));
+                var message = e.Message.Substring(68).Trim('}', '"');
+                socket.SendMessage(DialogBuilder.New.MsgLine(McColorCodes.RED + "An error occured").Msg(message)
+                    .If(()=>e.Message.Contains("insuficcient balance"), db => db.CoflCommand<TopUpCommand>(McColorCodes.AQUA + "Click here to top up coins", "", "Click here to buy coins")));
             }
 
         }

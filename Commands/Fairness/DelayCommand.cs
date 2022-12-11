@@ -11,10 +11,11 @@ namespace Coflnet.Sky.Commands.MC
             var delayAmount = socket.sessionLifesycle.CurrentDelay;
             if (await socket.UserAccountTier() == 0)
             {
-                socket.SendMessage(COFLNET + $"You are using the {McColorCodes.WHITE}free version{DEFAULT_COLOR} and are thus delayed by over a minute. Click to get more info", "https://sky.coflnet.com/premium", "Please consider supporting us");
+                socket.Dialog(db => db.MsgLine($"You are using the {McColorCodes.YELLOW}free version{DEFAULT_COLOR} and are thus delayed by over a minute.", "https://sky.coflnet.com/premium", "Opens the premium page")
+                            .MsgLine($"Purchase premium to remove delay. {McColorCodes.AQUA}/cofl buy", "/cofl buy", "Shows the premium options"));
                 return;
             }
-            if(!socket.SessionInfo.FlipsEnabled)
+            if (!socket.SessionInfo.FlipsEnabled)
                 socket.Dialog(db => db.CoflCommand<FlipCommand>("You don't have flips enabled.\nClick to toggle flips", "", "Click to toggle them"));
 
             if (delayAmount <= System.TimeSpan.Zero)
@@ -28,10 +29,10 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.SendMessage(DialogBuilder.New
                     .MsgLine("One of these is probably the reason you have such a high delay:")
-                    .MsgLine(FormatTimeWithReason(1, "Anti macro delay to balance flips"), null, 
+                    .MsgLine(FormatTimeWithReason(1, "Anti macro delay to balance flips"), null,
                             FormatLines(
                                 "This occurs if you have a low ping or use a macro.",
-                                "Don't worry, everyone gets delayed the same way.", 
+                                "Don't worry, everyone gets delayed the same way.",
                                 "You can reduce this by buying slower."))
                     .MsgLine(FormatTimeWithReason(2, "Default delay for new connections, removed after a few seconds"), null, "Gets removed after a few seconds, just wait a bit.")
                     .MsgLine(FormatTimeWithReason(3, "You haven't verified your minecraft account"),

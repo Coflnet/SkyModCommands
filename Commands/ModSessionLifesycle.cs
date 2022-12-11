@@ -388,6 +388,8 @@ namespace Coflnet.Sky.Commands.MC
                         "/cofl blocked",
                         $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips"),
                         new ChatPart(" ", "/cofl void", null));
+                    if (SessionInfo.LastBlockedMsg == default)
+                        socket.TryAsyncTimes(() => socket.TriggerTutorial<Sky.ModCommands.Tutorials.Blocked>(), "blocked tutorial");
                     SessionInfo.LastBlockedMsg = DateTime.UtcNow;
 
                     // remove blocked (if clear failed to do so)
