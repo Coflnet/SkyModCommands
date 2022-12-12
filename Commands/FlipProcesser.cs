@@ -54,20 +54,25 @@ namespace Coflnet.Sky.Commands.MC
             if (matches.Count == 0)
                 return;
 
-            using var span = socket.tracer.BuildSpan("Flip")
-                .WithTag("uuid", matches.First().f.Auction.Uuid)
-                .WithTag("batchSize", matches.Count)
-                .AsChildOf(socket.ConSpan.Context).StartActive();
-
-            var toSend = matches.Where(f => NotBlockedForSpam(f.instance, f.f, span)).ToList();
+            var toSend = matches.Where(f => NotBlockedForSpam(f.instance, f.f)).ToList();
             foreach (var item in toSend)
             {
 
                 var timeToSend = DateTime.UtcNow - item.f.Auction.FindTime;
                 item.f.AdditionalProps["dl"] = (timeToSend).ToString();
             }
-
-            await SendAfterDelay(toSend.ToList());
+            using (var span = socket.tracer.BuildSpan("Flip")
+                .WithTag("uuid", matches.First().f.Auction.Uuid)
+                .WithTag("batchSize", matches.Count)
+                .AsChildOf(socket.ConSpan.Context).StartActive())
+                try
+                {
+                    await SendAfterDelay(toSend.ToList()).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    socket.Error(e, "sending flip");
+                }
 
             while (SentFlips.Count > 700)
             {
@@ -99,7 +104,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private bool NotBlockedForSpam(FlipInstance flipInstance, LowPricedAuction f, IScope span)
+        private bool NotBlockedForSpam(FlipInstance flipInstance, LowPricedAuction f)
         {
             if (spamController.ShouldBeSent(flipInstance))
                 return true;
@@ -240,7 +245,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 socket.sessionLifesycle.PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
 
-                if (timeToSend > TimeSpan.FromSeconds(15) && socket.AccountInfo?.Tier >= AccountTier.PREMIUM 
+                if (timeToSend > TimeSpan.FromSeconds(15) && socket.AccountInfo?.Tier >= AccountTier.PREMIUM
                     && flip.Finder != LowPricedAuction.FinderType.FLIPPER && !(item.Interesting.FirstOrDefault()?.StartsWith("Bed") ?? false))
                 {
                     // very bad, this flip was very slow, create a report
