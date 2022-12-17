@@ -55,7 +55,7 @@ namespace Coflnet.Sky.ModCommands
             );
             services.AddHostedService<ModBackgroundService>();
             services.AddHostedService<FlipperService>();
-            services.AddJaeger(1,1);
+            services.AddJaeger(Configuration, 1,1);
             services.AddTransient<ModService>();
             services.AddSingleton<ModeratorService>();
             services.AddSingleton<ChatService>();
