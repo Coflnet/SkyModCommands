@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -53,7 +54,7 @@ namespace Coflnet.Sky.Commands.MC
                 info.LastSolve = DateTime.UtcNow;
                 socket.sessionLifesycle.AccountInfo.Value.LastCaptchaSolve = DateTime.UtcNow;
                 await socket.sessionLifesycle.AccountInfo.Update();
-                socket.tracer.ActiveSpan.Log("solved captcha");
+                Activity.Current.Log("solved captcha");
                 await Task.Delay(2000).ConfigureAwait(false);
                 socket.SendMessage(COFLNET + McColorCodes.GREEN + "Your afk delay will be removed for the next update\n");
 

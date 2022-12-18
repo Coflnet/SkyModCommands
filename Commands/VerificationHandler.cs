@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using OpenTracing;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -12,11 +13,10 @@ namespace Coflnet.Sky.Commands.MC
     {
         private MinecraftSocket socket;
         private SessionInfo SessionInfo;
-        private ITracer tracer => socket.tracer;
 
         private DateTime LastVerificationRequest = default;
 
-        public ISpan ConSpan { get; }
+        public Activity ConSpan { get; }
 
         public VerificationHandler(MinecraftSocket socket)
         {
@@ -47,7 +47,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public virtual async Task<bool> CheckVerificationStatus(AccountInfo accountInfo)
         {
-            using var verificationSpan = tracer.BuildSpan("VerificationCheck").AsChildOf(ConSpan.Context).StartActive();
+            using var verificationSpan = socket.CreateActivity("VerificationCheck", ConSpan);
             if (SessionInfo.McUuid == null)
                 await Task.Delay(500).ConfigureAwait(false);
             var mcUuid = SessionInfo.McUuid;
@@ -75,7 +75,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 }
                 await Task.Delay(800).ConfigureAwait(false);
-                verificationSpan.Span.Log($"failed {userId} {mcUuid} {mcUuid is null}");
+                verificationSpan.Log($"failed {userId} {mcUuid} {mcUuid is null}");
             }
             if (connect == null)
             {
@@ -90,14 +90,14 @@ namespace Coflnet.Sky.Commands.MC
                     accountInfo.McIds.Add(mcUuid);
                 return SessionInfo.VerifiedMc;
             }
-            using IScope verification = await SendVerificationInstructions(connect);
+            await SendVerificationInstructions(connect);
 
             return false;
         }
 
-        private async Task<IScope> SendVerificationInstructions(McAccountService.ConnectionRequest connect)
+        private async Task SendVerificationInstructions(McAccountService.ConnectionRequest connect)
         {
-            var verification = tracer.BuildSpan("Verification").AsChildOf(ConSpan.Context).StartActive();
+            var verification = socket.CreateActivity("Verification", ConSpan);
             var bid = connect.Code;
             ItemPrices.AuctionPreview targetAuction = null;
             foreach (var type in new List<string> { "STICK", "RABBIT_HAT", "WOOD_SWORD", "VACCINE_TALISMAN" })
@@ -106,8 +106,8 @@ namespace Coflnet.Sky.Commands.MC
                 if (targetAuction != null)
                     break;
             }
-            verification.Span.SetTag("code", bid);
-            verification.Span.Log(JSON.Stringify(targetAuction));
+            verification.SetTag("code", bid);
+            verification.Log(JSON.Stringify(targetAuction));
 
             socket.SendMessage(new ChatPart(
                 $"{socket.sessionLifesycle.COFLNET}You connected from an unkown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. ", "/ah"));
@@ -116,7 +116,6 @@ namespace Coflnet.Sky.Commands.MC
                 $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
             else
                 socket.SendMessage($"Sorry could not find a cheap auction to bid on. You could create an auction yourself for any item you want. The starting bid has to end with {McColorCodes.AQUA}{bid.ToString().PadLeft(3, '0')}{McCommand.DEFAULT_COLOR}");
-            return verification;
         }
 
         private bool IsLastVerifyRequestRecent()

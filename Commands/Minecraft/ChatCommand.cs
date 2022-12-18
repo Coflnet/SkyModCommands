@@ -62,7 +62,7 @@ namespace Coflnet.Sky.Commands.MC
                 SenderName = socket.SessionInfo.McName,
                 Tier = tier,
                 SenderUuid = socket.SessionInfo.McUuid
-            }, socket.tracer.ActiveSpan);
+            });
             socket.SessionInfo.LastMessage = DateTime.UtcNow;
             await socket.TriggerTutorial<Sky.ModCommands.Tutorials.ChatRulesTutorial>();
         }

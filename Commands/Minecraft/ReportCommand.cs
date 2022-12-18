@@ -6,7 +6,7 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 using Newtonsoft.Json;
 using OpenTracing;
-using OpenTracing.Util;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -19,49 +19,48 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "Please add some information to the report, ie. what happened, what do you think should have happened.");
             }
             string spanId;
-            using var singleReportSpan = socket.tracer.BuildSpan("report").StartActive();
+            using var singleReportSpan = socket.CreateActivity("report");
             CreateReport(socket, arguments, socket.ConSpan, out spanId);
 
             dev.Logger.Instance.Error($"Report with id {spanId} {arguments}");
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.TopBlocked?.Take(10)));
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.Settings));
 
-            socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + singleReportSpan.Span.Context.TraceId, "click to get full link");
+            socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + singleReportSpan.Context.TraceId, "click to get full link");
             await Task.Delay(2000).ConfigureAwait(false);
             // repost 
-            CreateReport(socket, arguments, singleReportSpan.Span, out string generalspanId);
+            CreateReport(socket, arguments, singleReportSpan, out string generalspanId);
         }
 
-        private static void CreateReport(MinecraftSocket socket, string arguments, ISpan parentSpan, out string spanId)
+        private static void CreateReport(MinecraftSocket socket, string arguments, Activity parentSpan, out string spanId)
         {
-            using IScope reportSpan = socket.tracer.BuildSpan("report")
-                                    .WithTag("message", arguments.Truncate(150))
-                                    .WithTag("error", "true")
-                                    .WithTag("mcId", JsonConvert.SerializeObject(socket.SessionInfo.McName))
-                                    .WithTag("uuid", JsonConvert.SerializeObject(socket.SessionInfo.McUuid))
-                                    .WithTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
-                                    .WithTag("timestamp", DateTime.UtcNow.ToLongTimeString())
-                                    .AsChildOf(parentSpan).StartActive();
-            using (var settingsSpan = socket.tracer.BuildSpan("settings").AsChildOf(reportSpan.Span.Context).StartActive())
-                settingsSpan.Span.Log(JsonConvert.SerializeObject(socket.Settings, Formatting.Indented));
-            using (var blockedSpan = socket.tracer.BuildSpan("blocked").AsChildOf(reportSpan.Span.Context).StartActive())
+            using var reportSpan = socket.CreateActivity("report", parentSpan)
+                                    .AddTag("message", arguments.Truncate(150))
+                                    .AddTag("error", "true")
+                                    .AddTag("mcId", JsonConvert.SerializeObject(socket.SessionInfo.McName))
+                                    .AddTag("uuid", JsonConvert.SerializeObject(socket.SessionInfo.McUuid))
+                                    .AddTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
+                                    .AddTag("timestamp", DateTime.UtcNow.ToLongTimeString());
+            using (var settingsSpan = socket.CreateActivity("settings",reportSpan))
+                settingsSpan.Log(JsonConvert.SerializeObject(socket.Settings, Formatting.Indented));
+            using (var blockedSpan = socket.CreateActivity("blocked",reportSpan))
                 for (int i = 0; i < 5; i++)
-                    blockedSpan.Span.Log(JsonConvert.SerializeObject(socket.TopBlocked?.OrderByDescending(b => b.Now).Select(b=>b.Now + b.Reason + "\n").Skip(i * 25).Take(25), Formatting.Indented));
-            using (var lastSentSpan = socket.tracer.BuildSpan("lastSent").AsChildOf(reportSpan.Span.Context).StartActive())
-                lastSentSpan.Span.Log(JsonConvert.SerializeObject(socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20), Formatting.Indented));
-            reportSpan.Span.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo));
-            spanId = reportSpan.Span.Context.SpanId.Truncate(6);
-            reportSpan.Span.SetTag("id", spanId);
-            using var snapshotSpan = socket.tracer.BuildSpan("snapshot").AsChildOf(reportSpan.Span.Context).StartActive();
+                    blockedSpan.Log(JsonConvert.SerializeObject(socket.TopBlocked?.OrderByDescending(b => b.Now).Select(b=>b.Now + b.Reason + "\n").Skip(i * 25).Take(25), Formatting.Indented));
+            using (var lastSentSpan = socket.CreateActivity("lastSent",reportSpan))
+                lastSentSpan.Log(JsonConvert.SerializeObject(socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20), Formatting.Indented));
+            reportSpan.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo));
+            spanId = reportSpan?.Context.TraceId.ToString().Truncate(6);
+            reportSpan.SetTag("id", spanId);
+            using var snapshotSpan = socket.CreateActivity("snapshot",reportSpan);
             foreach (var item in SnapShotService.Instance.SnapShots)
             {
-                using var singlesnapshotSpan = socket.tracer.BuildSpan("snapshot").AsChildOf(snapshotSpan.Span.Context).StartActive();
-                singlesnapshotSpan.Span.Log(item.Time + " " + item.State);
+                using var singlesnapshotSpan = socket.CreateActivity("snapshot", snapshotSpan);
+                singlesnapshotSpan.Log(item.Time + " " + item.State);
             }
             TryAddingAllSettings(reportSpan);
         }
 
-        public static void TryAddingAllSettings(IScope reportSpan)
+        public static void TryAddingAllSettings(Activity reportSpan)
         {
             try
             {
@@ -69,11 +68,11 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Exception e)
             {
-                reportSpan.Span.Log(e.Message + "\n" + e.StackTrace);
+                reportSpan.Log(e.Message + "\n" + e.StackTrace);
             }
         }
 
-        private static void AddAllSettings(OpenTracing.IScope reportSpan)
+        private static void AddAllSettings(Activity reportSpan)
         {
             var otherUsers = FlipperService.Instance.Connections;
             var result = otherUsers.Select(c => new
@@ -85,7 +84,7 @@ namespace Coflnet.Sky.Commands.MC
                 c.Connection.Settings?.AllowedFinders,
                 c.Connection.UserId
             });
-            reportSpan.Span.Log(JsonConvert.SerializeObject(result, Formatting.Indented));
+            reportSpan.Log(JsonConvert.SerializeObject(result, Formatting.Indented));
         }
     }
 }

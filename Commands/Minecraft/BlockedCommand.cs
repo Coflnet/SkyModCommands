@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Coflnet.Sky.Commands.Shared;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -31,7 +32,7 @@ namespace Coflnet.Sky.Commands.MC
             else
                 flipsToSend = GetRandomFlips(socket);
 
-            socket.tracer.ActiveSpan.Log(JsonConvert.SerializeObject(flipsToSend));
+            Activity.Current.Log(JsonConvert.SerializeObject(flipsToSend));
 
             socket.SendMessage(flipsToSend.SelectMany(b =>
             {

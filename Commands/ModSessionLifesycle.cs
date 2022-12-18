@@ -13,6 +13,7 @@ using OpenTracing;
 using Coflnet.Sky.ModCommands.Services;
 using System.Threading;
 using System.Text;
+using System.Diagnostics;
 using Coflnet.Sky.ModCommands.Tutorials;
 
 namespace Coflnet.Sky.Commands.MC
@@ -23,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
     public class ModSessionLifesycle : IDisposable
     {
         protected MinecraftSocket socket;
-        protected OpenTracing.ITracer tracer => socket.tracer;
+        protected ActivitySource tracer => socket.tracer;
         public SessionInfo SessionInfo => socket.SessionInfo;
         public string COFLNET = MinecraftSocket.COFLNET;
         public SelfUpdatingValue<FlipSettings> FlipSettings;
@@ -31,7 +32,7 @@ namespace Coflnet.Sky.Commands.MC
         public SelfUpdatingValue<AccountInfo> AccountInfo;
         public SelfUpdatingValue<AccountSettings> AccountSettings;
         public SelfUpdatingValue<PrivacySettings> PrivacySettings;
-        public OpenTracing.ISpan ConSpan => socket.ConSpan;
+        public Activity ConSpan => socket.ConSpan;
         public System.Threading.Timer PingTimer;
         private SpamController spamController = new SpamController();
         private DelayHandler delayHandler;
@@ -72,7 +73,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.LineBreak().ForEach(":;", (db, c) => db.ForEach("012345678901234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
                 socket.Dialog(db => db.LineBreak().ForEach("´", (db, c) => db.ForEach("012345678901234567890123", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
     */
-            using var loadSpan = socket.tracer.BuildSpan("load").AsChildOf(ConSpan).StartActive();
+            using var loadSpan = socket.CreateActivity("loadSession", ConSpan);
             SessionInfo.SessionId = stringId;
 
             PingTimer = new System.Threading.Timer((e) =>
@@ -86,18 +87,18 @@ namespace Coflnet.Sky.Commands.MC
                 await UserId.Update("1");
             if (UserId.Value == default)
             {
-                using var waitLogin = socket.tracer.BuildSpan("waitLogin").AsChildOf(ConSpan).StartActive();
+                using var waitLogin = socket.CreateActivity("waitLogin",ConSpan);
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DEFAULT_SETTINGS);
                 SubSessionToEventsFor(SessionInfo.McUuid);
             }
             else
             {
-                using var sub2SettingsSpan = socket.tracer.BuildSpan("sub2Settings").AsChildOf(ConSpan).StartActive();
+                using var sub2SettingsSpan = socket.CreateActivity("sub2Settings",ConSpan);
                 await SubToSettings(UserId);
             }
 
-            loadSpan.Span.Finish();
+            loadSpan.Dispose();
             UpdateExtraDelay();
         }
 
@@ -155,7 +156,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <param name="settings"></param>
         /// <param name="span"></param>
-        private async Task ApplyFlipSettings(FlipSettings settings, OpenTracing.ISpan span)
+        private async Task ApplyFlipSettings(FlipSettings settings, Activity span)
         {
             if (settings == null)
                 return;
@@ -192,8 +193,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <param name="settings"></param>
         protected virtual void UpdateSettings(FlipSettings settings)
         {
-            using var span = tracer.BuildSpan("SettingsUpdate").AsChildOf(ConSpan.Context)
-                    .StartActive();
+            using var span = socket.CreateActivity("SettingsUpdate", ConSpan);
             var changed = settings.LastChanged;
             if (changed == null)
             {
@@ -202,15 +202,14 @@ namespace Coflnet.Sky.Commands.MC
             if (changed != "preventUpdateMsg")
                 SendMessage($"{COFLNET}{changed}");
 
-            ApplyFlipSettings(settings, span.Span).Wait();
+            ApplyFlipSettings(settings, span).Wait();
         }
 
         protected virtual async Task UpdateAccountInfo(AccountInfo info)
         {
-            using var span = tracer.BuildSpan("AuthUpdate").AsChildOf(ConSpan.Context)
-                    .WithTag("premium", info.Tier.ToString())
-                    .WithTag("userId", info.UserId.ToString())
-                    .StartActive();
+            using var span = socket.CreateActivity("AuthUpdate", ConSpan)
+                    .AddTag("premium", info.Tier.ToString())
+                    .AddTag("userId", info.UserId.ToString());
 
             var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
 
@@ -227,7 +226,7 @@ namespace Coflnet.Sky.Commands.MC
                         SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "We closed this connection because you opened another one", null,
                             "To protect against your mod opening\nmultiple connections which you can't stop,\nwe closed this one.\nThe latest one you opened should still be active");
                         socket.ExecuteCommand("/cofl stop");
-                        span.Span.Log("connected from somewhere else");
+                        span.Log("connected from somewhere else");
                         socket.Close();
                         return;
                     }
@@ -236,7 +235,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (info.ConIds.Contains("logout"))
                 {
                     SendMessage("You have been logged out");
-                    span.Span.Log("force loggout");
+                    span.Log("force loggout");
                     info.ConIds.Remove("logout");
                     await this.AccountInfo.Update(info);
                     socket.Close();
@@ -245,7 +244,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 await UpdateAccountTier(info);
 
-                span.Span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
+                span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (SessionInfo.SentWelcome)
                     return; // don't send hello again
                 SessionInfo.SentWelcome = true;
@@ -262,7 +261,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     SendMessage(socket.formatProvider.WelcomeMessage());
                     SessionInfo.FlipsEnabled = true;
-                    UpdateConnectionTier(info, span.Span);
+                    UpdateConnectionTier(info, span);
                 }
                 else
                 {
@@ -317,7 +316,7 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-        public void UpdateConnectionTier(AccountInfo accountInfo, OpenTracing.ISpan span = null)
+        public void UpdateConnectionTier(AccountInfo accountInfo, Activity span = null)
         {
             this.ConSpan.SetTag("tier", accountInfo?.Tier.ToString());
             span?.Log("set connection tier to " + accountInfo?.Tier.ToString());
@@ -377,7 +376,7 @@ namespace Coflnet.Sky.Commands.MC
         private void SendPing()
         {
             var blockedFlipFilterCount = flipProcesser.BlockedFlipCount;
-            using var span = tracer.BuildSpan("ping").AsChildOf(ConSpan.Context).WithTag("count", blockedFlipFilterCount).StartActive();
+            using var span = socket.CreateActivity("ping",ConSpan)?.AddTag("count", blockedFlipFilterCount);
             try
             {
                 UpdateExtraDelay();
@@ -400,10 +399,10 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     socket.Send(Response.Create("ping", 0));
 
-                    UpdateConnectionTier(AccountInfo, span.Span);
+                    UpdateConnectionTier(AccountInfo, span);
                 }
                 if (blockedFlipFilterCount > 1000)
-                    span.Span.SetTag("error", true);
+                    span.SetTag("error", true);
                 SendReminders();
             }
             catch (System.InvalidOperationException)
@@ -412,7 +411,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Exception e)
             {
-                span.Span.Log("could not send ping");
+                span.Log("could not send ping");
                 socket.Error(e, "on ping"); // CloseBecauseError(e);
             }
         }
@@ -467,15 +466,15 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     if (sumary.MacroWarning)
                     {
-                        using var span = tracer.BuildSpan("macroWarning").WithTag("name", SessionInfo.McName).AsChildOf(ConSpan.Context).StartActive();
+                        using var span = socket.CreateActivity("macroWarning",ConSpan).AddTag("name", SessionInfo.McName);
                         SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
                     }
 
                     if (sumary.Penalty > TimeSpan.Zero)
                     {
-                        using var span = tracer.BuildSpan("nerv").AsChildOf(ConSpan).StartActive();
-                        span.Span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
-                        span.Span.Log(JsonConvert.SerializeObject(sumary, Formatting.Indented));
+                        using var span = socket.CreateActivity("nerv",ConSpan);
+                        span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
+                        span.Log(JsonConvert.SerializeObject(sumary, Formatting.Indented));
                     }
                 }
                 catch (Exception e)

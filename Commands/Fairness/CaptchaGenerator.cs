@@ -26,7 +26,7 @@ namespace Coflnet.Sky.Commands.MC
             // hello there, you found where I generate questions
             // feel free to look at the implementation and create solvers
             // I am gonna make it more complicated when someone actually breaks it :)
-            using var captchaSpan = socket.tracer?.BuildSpan("newCaptcha").AsChildOf(socket.ConSpan).StartActive();
+            using var captchaSpan = socket.CreateActivity("newCaptcha");
             CaptchaChallenge challenge = random.Next(0, 4000) switch
             {
                 > 2 => AsciBaded(socket),
@@ -35,7 +35,7 @@ namespace Coflnet.Sky.Commands.MC
                 _ => MathBased(socket)
             };
 
-            captchaSpan?.Span.Log(JsonConvert.SerializeObject(new { info.CurrentSolutions, challenge.Options, challenge.Correct }, Formatting.Indented));
+            captchaSpan?.Log(JsonConvert.SerializeObject(new { info.CurrentSolutions, challenge.Options, challenge.Correct }, Formatting.Indented));
 
             info.CurrentSolutions = challenge.Correct.Select(c => c.Code).ToList();
             info.LastGenerated = DateTime.Now;

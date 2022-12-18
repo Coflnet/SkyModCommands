@@ -8,7 +8,7 @@ using Coflnet.Sky.Commands.Helper;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Filter;
 using Coflnet.Sky.Core;
-using Jaeger.Samplers;
+using System.Diagnostics;
 using Newtonsoft.Json;
 using WebSocketSharp;
 using WebSocketSharp.Server;
@@ -17,7 +17,7 @@ using Coflnet.Sky.ModCommands.Dialogs;
 using System.Runtime.Serialization;
 using OpenTracing;
 using System.Runtime.CompilerServices;
-
+#nullable enable
 namespace Coflnet.Sky.Commands.MC
 {
     public interface IMinecraftSocket
@@ -27,8 +27,8 @@ namespace Coflnet.Sky.Commands.MC
         FlipSettings Settings { get; }
         AccountInfo AccountInfo { get; }
         string Version { get; }
-        ITracer tracer { get; }
-        ISpan ConSpan { get; }
+        ActivitySource tracer { get; }
+        Activity ConSpan { get; }
         FormatProvider formatProvider { get; }
         ModSessionLifesycle sessionLifesycle { get; }
         string UserId { get; }
@@ -37,27 +37,27 @@ namespace Coflnet.Sky.Commands.MC
 
         void Close();
         void Dialog(Func<DialogBuilder, DialogBuilder> creation);
-        string Error(Exception exception, string message = null, string additionalLog = null);
+        string Error(Exception exception, string? message = null, string? additionalLog = null);
         void ExecuteCommand(string command);
         string FormatPrice(long price);
         LowPricedAuction GetFlip(string uuid);
         string GetFlipMsg(FlipInstance flip);
         Task<string> GetPlayerName(string uuid);
         Task<string> GetPlayerUuid(string name, bool blockError);
-        T GetService<T>();
+        T GetService<T>() where T : class;
         void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information);
-        IScope RemoveMySelf();
+        Activity RemoveMySelf();
         void Send(Response response);
         Task SendBatch(IEnumerable<LowPricedAuction> flips);
-        void SendCommand<T>(string type, T value = default);
         Task<bool> SendFlip(LowPricedAuction flip);
         Task<bool> SendFlip(FlipInstance flip);
         void SendMessage(string text, string clickAction = null, string hoverText = null);
+        Activity? CreateActivity(string name, Activity? parent = null);
         bool SendMessage(params ChatPart[] parts);
         Task<bool> SendSold(string uuid);
         void SendSound(string soundId, float pitch = 1);
         void SetLifecycleVersion(string version);
-        void SheduleTimer(ModSettings mod = null, IScope timerSpan = null);
+        void SheduleTimer(ModSettings? mod = null, Activity? timerSpan = null);
         ConfiguredTaskAwaitable TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3);
         Task<AccountTier> UserAccountTier();
     }
@@ -78,8 +78,8 @@ namespace Coflnet.Sky.Commands.MC
         public AccountInfo AccountInfo => sessionLifesycle?.AccountInfo;
 
         public string Version { get; private set; }
-        public OpenTracing.ITracer tracer => DiHandler.ServiceProvider.GetRequiredService<OpenTracing.ITracer>();
-        public OpenTracing.ISpan ConSpan { get; private set; }
+        public ActivitySource tracer => DiHandler.ServiceProvider.GetRequiredService<ActivitySource>();
+        public Activity ConSpan { get; private set; }
         public IModVersionAdapter ModAdapter;
 
         public FormatProvider formatProvider { get; private set; }
@@ -224,9 +224,22 @@ namespace Coflnet.Sky.Commands.MC
             return (await new NextUpdateRetriever().Get()) - TimeSpan.FromSeconds(12);
         }
 
+        private Activity? CreateActivity(string name, ActivityContext? parent)
+        {
+            if (parent != null)
+                return tracer.StartActivity(name, ActivityKind.Server, parent.Value);
+            else
+                return tracer.StartActivity(name, ActivityKind.Server);
+        }
+
+        public Activity? CreateActivity(string name, Activity? parent = null)
+        {
+            return CreateActivity(name, parent?.Context);
+        }
+
         protected override void OnOpen()
         {
-            ConSpan = tracer.BuildSpan("connection").Start();
+            ConSpan = CreateActivity("connection") ?? new Activity("connection");
             SendMessage(COFLNET + "§fNOTE §7This is a development preview, it is NOT stable/bugfree",
                         $"https://discord.gg/wvKXfTgCfb",
                         "Attempting to load your settings on " + System.Net.Dns.GetHostName() + " conId: " + ConSpan.Context.TraceId);
@@ -234,10 +247,10 @@ namespace Coflnet.Sky.Commands.MC
             base.OnOpen();
             Task.Run(() =>
             {
-                using var openSpan = tracer.BuildSpan("open").AsChildOf(ConSpan).StartActive();
+                using var openSpan = CreateActivity("open", ConSpan);
                 try
                 {
-                    StartConnection(openSpan);
+                    StartConnection();
                 }
                 catch (Exception e)
                 {
@@ -251,7 +264,7 @@ namespace Coflnet.Sky.Commands.MC
             NextUpdateStart += SendTimer;
         }
 
-        private void StartConnection(OpenTracing.IScope openSpan)
+        private void StartConnection()
         {
             var args = System.Web.HttpUtility.ParseQueryString(Context.RequestUri.Query);
             Console.WriteLine(Context.RequestUri.Query);
@@ -275,9 +288,9 @@ namespace Coflnet.Sky.Commands.MC
             };
 
             var passedId = args["player"] ?? args["uuid"];
-            TryAsyncTimes(async () => await LoadPlayerName(passedId), "loading PlayerName");
+            TryAsyncTimes(async () => await LoadPlayerName(passedId!), "loading PlayerName");
             ConSpan.SetTag("version", Version);
-            openSpan.Span.SetTag("player", passedId);
+            Activity.Current?.SetTag("player", passedId);
 
             string stringId;
             (this.Id, stringId) = GetService<IdConverter>().ComputeConnectionId(passedId, SessionInfo.clientSessionId);
@@ -331,7 +344,7 @@ namespace Coflnet.Sky.Commands.MC
         public async Task<string> GetPlayerName(string uuid)
         {
             return (await Shared.DiHandler.ServiceProvider.GetRequiredService<PlayerName.Client.Api.PlayerNameApi>()
-                    .PlayerNameNameUuidGetAsync(uuid))?.Trim('"');
+                    .PlayerNameNameUuidGetAsync(uuid))?.Trim('"') ?? "unknown";
         }
         public async Task<string> GetPlayerUuid(string name, bool blockError = false)
         {
@@ -354,14 +367,14 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <typeparam name="T">The type to get</typeparam>
         /// <returns></returns>
-        public virtual T GetService<T>()
+        public virtual T GetService<T>() where T : class
         {
             return Shared.DiHandler.ServiceProvider.GetRequiredService<T>();
         }
 
         private async Task LoadPlayerName(string passedId)
         {
-            using var loadSpan = tracer.BuildSpan("nameLoad").AsChildOf(ConSpan).StartActive();
+            using var loadSpan = CreateActivity("loadPlayerName", ConSpan);
             SessionInfo.McName = passedId;
             var uuid = passedId;
             if (passedId.Length >= 32)
@@ -370,15 +383,15 @@ namespace Coflnet.Sky.Commands.MC
                 uuid = await GetPlayerUuid(passedId, true);
             if (SessionInfo.McName == null || uuid == null)
             {
-                loadSpan.Span.Log("loading externally");
+                loadSpan?.SetTag("loading", "externally");
                 var profile = await PlayerSearch.Instance.GetMcProfile(passedId);
                 uuid = profile.Id;
                 SessionInfo.McName = profile.Name;
                 var update = await IndexerClient.TriggerNameUpdate(uuid);
             }
             SessionInfo.McUuid = uuid;
-            loadSpan.Span.SetTag("playerId", passedId);
-            loadSpan.Span.SetTag("uuid", uuid);
+            loadSpan?.SetTag("playerId", passedId);
+            loadSpan?.SetTag("uuid", uuid);
         }
 
 
@@ -391,25 +404,25 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
                 return;
             }
-            var a = JsonConvert.DeserializeObject<Response>(e.Data);
+            var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
             if (e.Data.Contains(":\"nobestflip\""))
             {
                 HandleCommand(e, null, a);
                 return;
             }
-            using var span = tracer.BuildSpan("Command").AsChildOf(ConSpan.Context).StartActive();
+            using var span = CreateActivity("command", ConSpan);
             HandleCommand(e, span, a);
         }
 
-        private void HandleCommand(MessageEventArgs e, IScope span, Response a)
+        private void HandleCommand(MessageEventArgs e, Activity? span, Response a)
         {
             if (a == null || a.type == null)
             {
                 Send(new Response("error", "the payload has to have the property 'type'"));
                 return;
             }
-            span?.Span.SetTag("type", a.type);
-            span?.Span.SetTag("content", a.data);
+            span?.SetTag("type", a.type);
+            span?.SetTag("content", a.data);
             if (SessionInfo.clientSessionId.StartsWith("debug"))
                 SendMessage("executed " + a.data, "");
 
@@ -439,7 +452,7 @@ namespace Coflnet.Sky.Commands.MC
                     await InvokeCommand(a, command);
                 else
                 {
-                    using var commandSpan = tracer.BuildSpan(a.type).AsChildOf(span.Span).StartActive();
+                    using var commandSpan = CreateActivity(a.type, span);
                     await InvokeCommand(a, command);
                 }
             });
@@ -472,7 +485,7 @@ namespace Coflnet.Sky.Commands.MC
             if (a.data.Contains("/viewauction "))
                 Task.Run(async () =>
                 {
-                    var auctionUuid = JsonConvert.DeserializeObject<string>(a.data).Trim('"').Replace("/viewauction ", "");
+                    var auctionUuid = JsonConvert.DeserializeObject<string>(a.data)?.Trim('"').Replace("/viewauction ", "");
                     var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
                     if (flip != null && flip.Auction.Context != null && !flip.AdditionalProps.ContainsKey("clickT"))
                         flip.AdditionalProps["clickT"] = (DateTime.UtcNow - flip.Auction.FindTime).ToString();
@@ -481,13 +494,13 @@ namespace Coflnet.Sky.Commands.MC
                 });
         }
 
-        protected override void OnClose(CloseEventArgs e)
+        protected override void OnClose(CloseEventArgs? e)
         {
             base.OnClose(e);
             FlipperService.Instance.RemoveConnection(this);
-            ConSpan.Log(e?.Reason);
+            ConSpan.SetTag("close reason", e?.Reason);
 
-            ConSpan.Finish();
+            ConSpan?.Dispose();
             OnConClose?.Invoke();
             sessionLifesycle?.Dispose();
             TopBlocked.Clear();
@@ -496,11 +509,11 @@ namespace Coflnet.Sky.Commands.MC
         public new void Close()
         {
             base.Close();
-            ConSpan.Log("force close");
+            ConSpan.SetTag("force close", true);
 
         }
 
-        public void SendMessage(string text, string clickAction = null, string hoverText = null)
+        public void SendMessage(string text, string? clickAction = null, string? hoverText = null)
         {
             if (ConnectionState != WebSocketState.Open)
             {
@@ -522,10 +535,6 @@ namespace Coflnet.Sky.Commands.MC
             SendMessage(creation.Invoke(DialogBuilder.New));
         }
 
-        public void SendCommand<T>(string type, T value = default)
-        {
-            this.Send(Response.Create("writeToChat", value));
-        }
 
         /// <summary>
         /// Execute a command on the client
@@ -537,15 +546,15 @@ namespace Coflnet.Sky.Commands.MC
             this.Send(Response.Create("execute", command));
         }
 
-        public OpenTracing.IScope RemoveMySelf()
+        public Activity? RemoveMySelf()
         {
-            var span = tracer.BuildSpan("removing").AsChildOf(ConSpan).StartActive();
+            var span = CreateActivity("removing", ConSpan);
             FlipperService.Instance.RemoveConnection(this);
             sessionLifesycle.Dispose();
             Task.Run(async () =>
             {
                 await Task.Delay(1000).ConfigureAwait(false);
-                span.Span.Finish();
+                span?.Dispose();
             });
             return span;
         }
@@ -555,7 +564,6 @@ namespace Coflnet.Sky.Commands.MC
             if (ConnectionState != WebSocketState.Open && ConnectionState != WebSocketState.Connecting)
             {
                 RemoveMySelf();
-                ConSpan.Log("connection state was found to be " + ConnectionState);
                 return false;
             }
             try
@@ -575,38 +583,35 @@ namespace Coflnet.Sky.Commands.MC
             ModAdapter.SendSound(soundId, pitch);
         }
 
-        private OpenTracing.IScope CloseBecauseError(Exception e)
+        private void CloseBecauseError(Exception e)
         {
             dev.Logger.Instance.Log("removing connection because " + e.Message);
             dev.Logger.Instance.Error(System.Environment.StackTrace);
-            var span = tracer.BuildSpan("Disconnect").WithTag("error", "true").AsChildOf(ConSpan.Context).StartActive();
-            span.Span.Log(e.Message);
+            using var span = CreateActivity("error", ConSpan)?.AddTag("message", e.Message).AddTag("error", "true");
             OnClose(null);
             sessionLifesycle.Dispose();
             System.Console.CancelKeyPress -= OnApplicationStop;
-            return span;
         }
 
-        private void OnApplicationStop(object sender, ConsoleCancelEventArgs e)
+        private void OnApplicationStop(object? sender, ConsoleCancelEventArgs e)
         {
             SendMessage(COFLNET + "Server is restarting, you may experience connection issues for a few seconds.",
                  "/cofl start", "if it doesn't auto reconnect click this");
         }
 
-        public string Error(Exception exception, string message = null, string additionalLog = null)
+        public string Error(Exception exception, string? message = null, string? additionalLog = null)
         {
-            using var error = tracer.BuildSpan("error").WithTag("message", message).AsChildOf(ConSpan).WithTag("error", "true").StartActive();
+            using var error = CreateActivity("error", ConSpan)?.AddTag("message", message).AddTag("error", "true");
             if (IsDevMode || SessionInfo.McUuid == "384a029294fc445e863f2c42fe9709cb")
                 dev.Logger.Instance.Error(exception, message);
-            error.Span.Log(exception.ToString());
-            if (additionalLog != null)
-                error.Span.Log(additionalLog);
 
-            error.Span.Log(JsonConvert.SerializeObject(SessionInfo, Formatting.Indented));
-            error.Span.Log(JsonConvert.SerializeObject(sessionLifesycle.AccountInfo?.Value, Formatting.Indented));
-            error.Span.Log(JsonConvert.SerializeObject(Settings, Formatting.Indented));
-
-            return error.Span.Context.TraceId;
+            error?.AddEvent(new ActivityEvent(message ?? "error", DateTimeOffset.Now, new(new Dictionary<string, object?> {
+                { "exception", exception },
+                { "additionalLog", additionalLog },
+                { "session", SessionInfo },
+                { "account", sessionLifesycle.AccountInfo?.Value },
+                { "settings", Settings }})));
+            return error?.Context.TraceId.ToString()!;
         }
 
         /// <summary>
@@ -618,9 +623,9 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (level == Microsoft.Extensions.Logging.LogLevel.Error)
             {
-                using var error = tracer.BuildSpan("error").WithTag("message", message).AsChildOf(ConSpan).WithTag("error", "true").StartActive();
+                using var error = CreateActivity("error", ConSpan)?.AddTag("message", message).AddTag("error", "true");
             }
-            ConSpan?.Log(message);
+            ConSpan?.AddEvent(new ActivityEvent("message", DateTimeOffset.Now, new(new KeyValuePair<string, object?>[] { new("message", message) })));
         }
 
         public void Send(Response response)
@@ -641,9 +646,6 @@ namespace Coflnet.Sky.Commands.MC
                 var start = DateTime.UtcNow;
                 await sessionLifesycle.SendFlipBatch(new LowPricedAuction[] { flip });
                 var took = DateTime.UtcNow - start;
-                if (took - sessionLifesycle?.CurrentDelay > TimeSpan.FromSeconds(0.5))
-                    using (var error = tracer.BuildSpan("slowFlipTest").AsChildOf(ConSpan).WithTag("error", "true").StartActive())
-                        error.Span.Log("flip took long " + JsonConvert.SerializeObject(flip, Formatting.Indented));
             }
             catch (Exception e)
             {
@@ -703,7 +705,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SendTimer()
         {
-            using var loadSpan = tracer.BuildSpan("timer").AsChildOf(ConSpan).StartActive();
+            using var loadSpan = CreateActivity("timer", ConSpan);
             if (base.ConnectionState != WebSocketState.Open)
             {
                 NextUpdateStart -= SendTimer;
@@ -747,7 +749,7 @@ namespace Coflnet.Sky.Commands.MC
             return (this.Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && this.Settings != null;
         }
 
-        public void SheduleTimer(ModSettings mod = null, IScope timerSpan = null)
+        public void SheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
         {
             if (mod == null)
                 mod = Settings.ModSettings;
@@ -759,11 +761,11 @@ namespace Coflnet.Sky.Commands.MC
             if (nextUpdateIn < countdownSize)
             {
                 sessionLifesycle.StartTimer(nextUpdateIn.TotalSeconds);
-                timerSpan?.Span.Log("sheduled timer to " + nextUpdateIn.TotalSeconds + " seconds");
+                timerSpan?.Log("sheduled timer to " + nextUpdateIn.TotalSeconds + " seconds");
                 return;
             }
             var delay = nextUpdateIn - countdownSize - SessionInfo.RelativeSpeed;
-            timerSpan?.Span.Log($"delaying timer for {delay.TotalSeconds} seconds");
+            timerSpan?.Log($"delaying timer for {delay.TotalSeconds} seconds");
             Task.Run(async () =>
             {
                 await Task.Delay(delay).ConfigureAwait(false);
@@ -773,12 +775,12 @@ namespace Coflnet.Sky.Commands.MC
 
         private static string GetEnableMessage(object newSettings, System.Reflection.FieldInfo prop)
         {
-            if (prop.GetValue(newSettings).Equals(true))
+            if (prop.GetValue(newSettings)?.Equals(true) ?? false)
                 return prop.Name + " got enabled";
             return prop.Name + " was disabled";
         }
 
-        public LowPricedAuction GetFlip(string uuid)
+        public LowPricedAuction? GetFlip(string uuid)
         {
             return LastSent.Concat(TopBlocked.Select(b => b.Flip)).Where(s => s.Auction.Uuid == uuid).FirstOrDefault();
         }
@@ -827,4 +829,5 @@ namespace Coflnet.Sky.Commands.MC
             return sessionLifesycle.SendFlipBatch(flips);
         }
     }
+#nullable restore
 }

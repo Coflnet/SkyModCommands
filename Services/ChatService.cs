@@ -9,7 +9,7 @@ using Coflnet.Sky.Chat.Client.Client;
 using Microsoft.Extensions.Configuration;
 using Coflnet.Sky.Chat.Client.Model;
 using Coflnet.Sky.Commands.Shared;
-using OpenTracing;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
@@ -49,7 +49,7 @@ public class ChatService
         throw new CoflnetException("connection_failed", "connection to chat failed");
     }
 
-    public async Task Send(ModChatMessage message, ISpan span)
+    public async Task Send(ModChatMessage message)
     {
         try
         {
@@ -63,7 +63,7 @@ public class ChatService
                     _ => McColorCodes.GRAY
                 },
                 message.Message);
-            span.Log("sending to service");
+            Activity.Current.Log("sending to service");
             await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
             return;
         }

@@ -14,10 +14,10 @@ namespace Coflnet.Sky.Commands.MC
             var uuid = args[0];
             var finder = args[1];
             var rating = args[2];
-            using var span = socket.tracer.BuildSpan("vote").WithTag("type", rating).WithTag("finder", finder).WithTag("uuid", uuid).AsChildOf(socket.ConSpan).StartActive();
+            using var span = socket.CreateActivity("vote", socket.ConSpan).AddTag("type", rating).AddTag("finder", finder).AddTag("uuid", uuid);
             var bad = socket.GetFlip(uuid);
-            span.Span.Log(JSON.Stringify(bad));
-            span.Span.Log(JSON.Stringify(bad?.AdditionalProps));
+            span.Log(JSON.Stringify(bad));
+            span.Log(JSON.Stringify(bad?.AdditionalProps));
 
 
             if (rating == "down")
@@ -48,9 +48,9 @@ namespace Coflnet.Sky.Commands.MC
             await Task.Delay(3000).ConfigureAwait(false);
             var based = await CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
             if (based == null)
-                span.Span.Log("based not available");
+                span.Log("based not available");
             else
-                span.Span.Log(string.Join('\n', based?.Select(b => $"{b.ItemName} {b.highestBid} {b.uuid}")));
+                span.Log(string.Join('\n', based?.Select(b => $"{b.ItemName} {b.highestBid} {b.uuid}")));
         }
 
         private static void Blacklist(MinecraftSocket socket, LowPricedAuction bad)

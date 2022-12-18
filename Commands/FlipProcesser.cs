@@ -61,10 +61,9 @@ namespace Coflnet.Sky.Commands.MC
                 var timeToSend = DateTime.UtcNow - item.f.Auction.FindTime;
                 item.f.AdditionalProps["dl"] = (timeToSend).ToString();
             }
-            using (var span = socket.tracer.BuildSpan("Flip")
-                .WithTag("uuid", matches.First().f.Auction.Uuid)
-                .WithTag("batchSize", matches.Count)
-                .AsChildOf(socket.ConSpan.Context).StartActive())
+            using (var span = socket.CreateActivity("Flip", socket.ConSpan)
+                .AddTag("uuid", matches.First().f.Auction.Uuid)
+                .AddTag("batchSize", matches.Count))
                 try
                 {
                     await SendAfterDelay(toSend.ToList()).ConfigureAwait(false);
@@ -249,12 +248,12 @@ namespace Coflnet.Sky.Commands.MC
                     && flip.Finder != LowPricedAuction.FinderType.FLIPPER && !(item.Interesting.FirstOrDefault()?.StartsWith("Bed") ?? false))
                 {
                     // very bad, this flip was very slow, create a report
-                    using var slowSpan = socket.tracer.BuildSpan("slowFlip").AsChildOf(socket.ConSpan).WithTag("error", true).StartActive();
-                    slowSpan.Span.Log(JsonConvert.SerializeObject(flip.Auction.Context));
-                    slowSpan.Span.Log(JsonConvert.SerializeObject(flip.AdditionalProps));
+                    using var slowSpan = socket.CreateActivity("slowFlip", socket.ConSpan).AddTag("error", true);
+                    slowSpan.Log(JsonConvert.SerializeObject(flip.Auction.Context));
+                    slowSpan.Log(JsonConvert.SerializeObject(flip.AdditionalProps));
                     foreach (var snapshot in SnapShotService.Instance.SnapShots)
                     {
-                        slowSpan.Span.Log(snapshot.Time + " " + snapshot.State);
+                        slowSpan.Log(snapshot.Time + " " + snapshot.State);
                     }
                     ReportCommand.TryAddingAllSettings(slowSpan);
                 }
