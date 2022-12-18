@@ -20,8 +20,8 @@ public class ChatService
 
     public ChatService(IConfiguration config)
     {
-        api = new(config["CHAT:BASE_URL"]);
-        chatAuthKey = config["CHAT:API_KEY"];
+        api = new(config["CHAT_BASE_URL"]);
+        chatAuthKey = config["CHAT_API_KEY"];
     }
     public async Task<ChannelMessageQueue> Subscribe(Func<ChatMessage, bool> OnMessage)
     {
