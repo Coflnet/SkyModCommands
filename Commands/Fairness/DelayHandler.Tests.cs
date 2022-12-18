@@ -5,6 +5,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.FlipTracker.Client.Model;
 using Moq;
 using NUnit.Framework;
+using Microsoft.Extensions.Configuration;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -21,7 +22,8 @@ public class DelayHandlerTests
     {
         timeProvider = new MockTimeProvider();
         ids = new string[] { "hi" };
-        var flipTrackingService = new Mock<FlipTrackingService>(null,null, null, null);
+        var configuration = new Mock<IConfiguration>();
+        var flipTrackingService = new Mock<FlipTrackingService>(null,null, null, configuration.Object);
         sessionInfo = new SessionInfo() { };
         result = new SpeedCompResult() { Penalty = 1, MacroedFlips = new(),BoughtWorth = 50_000_000 };
         flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));

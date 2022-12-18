@@ -23,7 +23,8 @@ public class MinecraftSocketTests
     public async Task TestTimer(int updateIn, int countdown, int expected)
     {
         var mockSocket = new Mock<MinecraftSocket>();
-        mockSocket.Setup(s => s.GetService<FlipTrackingService>()).Returns(new FlipTrackingService(null, null, null, null));
+        var config = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+        mockSocket.Setup(s => s.GetService<FlipTrackingService>()).Returns(new FlipTrackingService(null, null, null, config.Object));
         var session = new Mock<ModSessionLifesycle>(mockSocket.Object);
         session.Setup(s => s.StartTimer(It.IsAny<int>(), It.IsAny<string>()));
         var socket = new TestSocket(session.Object);
