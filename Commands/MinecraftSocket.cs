@@ -212,9 +212,9 @@ namespace Coflnet.Sky.Commands.MC
         {
             Task.Run(async () =>
             {
-                using var updateSpan = DiHandler.ServiceProvider.GetRequiredService<OpenTracing.ITracer>().BuildSpan("refreshTimer").StartActive();
+                using var updateSpan = DiHandler.ServiceProvider.GetRequiredService<ActivitySource>().StartActivity("refreshTimer");
                 DateTime next = await GetNext10SecTime();
-                updateSpan.Span.SetTag("time", next.ToString());
+                updateSpan?.SetTag("time", next.ToString());
                 tenSecTimer.Change(next - DateTime.UtcNow, TimeSpan.FromMinutes(1));
             }, new System.Threading.CancellationTokenSource(10000).Token);
         }
