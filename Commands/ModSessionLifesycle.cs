@@ -121,7 +121,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             ConSpan.Log("subbing to settings of " + val);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(val, "flipSettings", () => DEFAULT_SETTINGS);
-            var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(val, "accuntSettings");
+            var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(val, "accountSettings");
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(val, "accountInfo", () => new AccountInfo() { UserId = int.Parse(val ?? "0") });
             FlipSettings = await flipSettingsTask;
 
