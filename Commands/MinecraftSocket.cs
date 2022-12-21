@@ -216,7 +216,7 @@ namespace Coflnet.Sky.Commands.MC
                 DateTime next = await GetNext10SecTime();
                 updateSpan?.SetTag("time", next.ToString());
                 tenSecTimer.Change(next - DateTime.UtcNow, TimeSpan.FromMinutes(1));
-            }, new System.Threading.CancellationTokenSource(10000).Token);
+            }, new System.Threading.CancellationTokenSource(15000).Token);
         }
 
         private static async Task<DateTime> GetNext10SecTime()
