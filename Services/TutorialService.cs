@@ -44,6 +44,7 @@ public class TutorialService : ITutorialService
         if (!ReadTutorials.TryGetValue(userId.ToString(), out var solved))
         {
             solved = await SelfUpdatingValue<HashSet<string>>.Create(userId.ToString(), "solvedTutorials", () => new());
+            ReadTutorials.TryAdd(userId.ToString(), solved);
         }
 
         return solved;
