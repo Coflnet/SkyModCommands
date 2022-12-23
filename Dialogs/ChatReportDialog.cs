@@ -10,7 +10,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 .Msg("Are you sure you want to report this message")
                 .LineBreak()
                 .CoflCommand<ReportCommand>(McColorCodes.RED + " YES ", "Chat report for " + context.Context, "Confirm report").LineBreak()
-                .DialogLink<EchoDialog>(McColorCodes.GREEN + " No, I actually don't ", "Okay! have fun chatting :)", "cancle the report").LineBreak()
+                .DialogLink<EchoDialog>(McColorCodes.GREEN + " No, I actually don't ", "Okay! have fun chatting :)", "cancel the report").LineBreak()
                 .BlockCommands()
             ;
         }

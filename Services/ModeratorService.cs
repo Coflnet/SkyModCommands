@@ -15,7 +15,8 @@ public class ModeratorService
         };
     public bool IsModerator(MinecraftSocket socket)
     {
-        return socket.AccountInfo.McIds.Any(id => MinecraftUuids.Contains(id));
+        return socket.AccountInfo.McIds.Any(id => MinecraftUuids.Contains(id))
+        || MinecraftUuids.Contains(socket.SessionInfo.McUuid) && socket.SessionInfo.VerifiedMc;
     }
 }
 
