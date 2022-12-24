@@ -129,6 +129,15 @@ namespace Coflnet.Sky.ModCommands.Services
                     await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
                     multiplexer.GetSubscriber().Publish("beat", System.Net.Dns.GetHostName());
                 }
+                logger.LogWarning($"redis heart beat stopped; Cancellation Requested: {stoppingToken.IsCancellationRequested}");
+            });
+
+            Task.Run(async () => {
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                  await Task.Delay(TimeSpan.FromSeconds(150), stoppingToken);
+                  logger.LogInformation($"Status of Redis multiplexer: {multiplexer.IsConnected}");
+                }
             });
         }
 
