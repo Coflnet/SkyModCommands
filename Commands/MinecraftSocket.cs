@@ -179,7 +179,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<TutorialCommand>();
             Commands.Add<FlipCommand>();
 
-            Task.Run(async () =>
+            new MinecraftSocket().TryAsyncTimes(async () =>
             {
                 NextUpdateStart += () =>
                 {
@@ -205,7 +205,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 DateTime next = await GetNext10SecTime();
                 Console.WriteLine($"started timer to start at {next} now its {DateTime.UtcNow}");
-            }).ConfigureAwait(false);
+            }, "starting timer");
         }
 
         private static void UpdateTimer()
