@@ -706,7 +706,7 @@ namespace Coflnet.Sky.Commands.MC
         private void SendTimer()
         {
             using var loadSpan = CreateActivity("timer", ConSpan);
-            if (base.ConnectionState != WebSocketState.Open)
+            if (base.ConnectionState == WebSocketState.Closed)
             {
                 NextUpdateStart -= SendTimer;
                 return;
