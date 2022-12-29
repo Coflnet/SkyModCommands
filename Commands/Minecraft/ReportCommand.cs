@@ -37,8 +37,8 @@ namespace Coflnet.Sky.Commands.MC
             using var reportSpan = socket.CreateActivity("report", parentSpan)
                                     .AddTag("message", arguments.Truncate(150))
                                     .AddTag("error", "true")
-                                    .AddTag("mcId", JsonConvert.SerializeObject(socket.SessionInfo.McName))
-                                    .AddTag("uuid", JsonConvert.SerializeObject(socket.SessionInfo.McUuid))
+                                    .AddTag("mcId", socket.SessionInfo.McName)
+                                    .AddTag("uuid", socket.SessionInfo.McUuid)
                                     .AddTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
                                     .AddTag("timestamp", DateTime.UtcNow.ToLongTimeString());
             using (var settingsSpan = socket.CreateActivity("settings",reportSpan))
