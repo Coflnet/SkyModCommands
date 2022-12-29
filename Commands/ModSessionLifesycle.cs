@@ -347,7 +347,10 @@ namespace Coflnet.Sky.Commands.MC
             else if (accountInfo.Tier == AccountTier.STARTER_PREMIUM)
                 FlipperService.Instance.AddStarterConnection(socket, false);
             else if (accountInfo.Tier == AccountTier.SUPER_PREMIUM)
+            {
                 DiHandler.GetService<PreApiService>().AddUser(socket, accountInfo.ExpiresAt);
+                FlipperService.Instance.AddConnectionPlus(socket, false);
+            }
         }
 
 
