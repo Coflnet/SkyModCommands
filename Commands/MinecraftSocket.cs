@@ -17,6 +17,9 @@ using Coflnet.Sky.ModCommands.Dialogs;
 using System.Runtime.Serialization;
 using OpenTracing;
 using System.Runtime.CompilerServices;
+using System.Collections.Specialized;
+using WebSocketSharp.Net.WebSockets;
+using WebSocketSharp.Net;
 #nullable enable
 namespace Coflnet.Sky.Commands.MC
 {
@@ -808,6 +811,26 @@ namespace Coflnet.Sky.Commands.MC
         public Task SendBatch(IEnumerable<LowPricedAuction> flips)
         {
             return sessionLifesycle.SendFlipBatch(flips);
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is MinecraftSocket socket &&
+                   EqualityComparer<NameValueCollection>.Default.Equals(Headers, socket.Headers) &&
+                   EqualityComparer<NameValueCollection>.Default.Equals(QueryString, socket.QueryString) &&
+                   ID == socket.ID &&
+                   StartTime == socket.StartTime &&
+                   Id == socket.Id;
+        }
+
+        public override int GetHashCode()
+        {
+            HashCode hash = new HashCode();
+            hash.Add(Headers);
+            hash.Add(QueryString);
+            hash.Add(ID);
+            hash.Add(StartTime);
+            return hash.ToHashCode();
         }
     }
 #nullable restore

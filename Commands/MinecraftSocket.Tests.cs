@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
+using System.Collections.Concurrent;
 
 namespace Coflnet.Sky.ModCommands.Tests;
 
@@ -32,6 +33,15 @@ public class MinecraftSocketTests
         socket.SheduleTimer(new Commands.Shared.ModSettings() { TimerSeconds = countdown });
         await Task.Delay(10).ConfigureAwait(false);
         session.Verify(s => s.StartTimer(It.Is<double>(v => Math.Round(v, 1) == expected), It.IsAny<string>()), Times.Once);
+    }
+
+    [Test]
+    public void Compare()
+    {
+        var dictionary = new ConcurrentDictionary<IFlipConnection, DateTime>();
+        dictionary.TryAdd(new MinecraftSocket(), DateTime.UtcNow);
+        dictionary.TryAdd(new MinecraftSocket(), DateTime.UtcNow);
+        Assert.AreEqual(1, dictionary.Count);
     }
 
     public class TestSocket : MinecraftSocket
