@@ -44,17 +44,17 @@ public class PreApiService : BackgroundService
     private async Task PreApiLowPriceHandler(FlipperService sender, LowPricedAuction e)
     {
         e.Auction.ItemName += Commands.MC.McColorCodes.DARK_GRAY + ".";
-        foreach (var item in users)
+        foreach (var item in users.Keys)
         {
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    logger.LogInformation($"Sent flip to {item.Key.UserId} for {e.Auction.Uuid} ");
-                    await item.Key.SendFlip(e).ConfigureAwait(false);
-                    if (item.Value < DateTime.Now)
+                    logger.LogInformation($"Sent flip to {item.UserId} for {e.Auction.Uuid} ");
+                    await item.SendFlip(e).ConfigureAwait(false);
+                    if (users[item] < DateTime.Now)
                     {
-                        users.TryRemove(item.Key, out _);
+                        users.TryRemove(item, out _);
                         logger.LogInformation("Removed user from flip list");
                     }
                 }
