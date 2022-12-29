@@ -129,11 +129,4 @@ namespace Coflnet.Sky.Commands.MC
             };
         }
     }
-
-    public class CCommand : ChatCommand
-    {
-
-    }
-
-
 }

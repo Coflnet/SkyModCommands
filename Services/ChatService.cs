@@ -57,6 +57,7 @@ public class ChatService
                 message.SenderUuid, message.SenderName,
                 message.Tier switch
                 {
+                    AccountTier.SUPER_PREMIUM => McColorCodes.RED,
                     AccountTier.PREMIUM_PLUS => McColorCodes.GOLD,
                     AccountTier.PREMIUM => McColorCodes.DARK_GREEN,
                     AccountTier.STARTER_PREMIUM => McColorCodes.WHITE,

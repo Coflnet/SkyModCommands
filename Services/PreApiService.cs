@@ -48,7 +48,7 @@ public class PreApiService : BackgroundService
             {
                 try
                 {
-                    await item.Key.SendFlip(e);
+                    await item.Key.SendFlip(e).ConfigureAwait(false);
                     logger.LogInformation($"Sent flip to {item.Key.UserId} for {e.Auction.Uuid} ");
                     if (item.Value < DateTime.Now)
                     {
@@ -60,12 +60,12 @@ public class PreApiService : BackgroundService
                 {
                     logger.LogError(e, "Error while sending flip to user");
                 }
-            });
+            }).ConfigureAwait(false);
         }
-        logger.LogInformation($"Pre-api low price handler called for {e.Auction.Uuid} profit {e.TargetPrice - e.Auction.StartingBid}");
-        await Task.Delay(20_000);
+        logger.LogInformation($"Pre-api low price handler called for {e.Auction.Uuid} profit {e.TargetPrice - e.Auction.StartingBid} users {users.Count}");
+        await Task.Delay(20_000).ConfigureAwait(false);
         // check if flip was sent to anyone 
-        await Task.Delay(10_000);
+        await Task.Delay(10_000).ConfigureAwait(false);
         // if not send to all users
     }
 }
