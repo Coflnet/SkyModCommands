@@ -87,14 +87,14 @@ namespace Coflnet.Sky.Commands.MC
                 await UserId.Update("1");
             if (UserId.Value == default)
             {
-                using var waitLogin = socket.CreateActivity("waitLogin",ConSpan);
+                using var waitLogin = socket.CreateActivity("waitLogin", ConSpan);
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DEFAULT_SETTINGS);
                 SubSessionToEventsFor(SessionInfo.McUuid);
             }
             else
             {
-                using var sub2SettingsSpan = socket.CreateActivity("sub2Settings",ConSpan);
+                using var sub2SettingsSpan = socket.CreateActivity("sub2Settings", ConSpan);
                 await SubToSettings(UserId);
             }
 
@@ -212,7 +212,7 @@ namespace Coflnet.Sky.Commands.MC
                     .AddTag("userId", info.UserId.ToString());
 
             var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
-            if(info.UserId == 0)
+            if (info.UserId == 0)
             {
                 info.UserId = (socket as IFlipConnection).UserId;
                 await AccountInfo.Update(info);
@@ -350,6 +350,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 DiHandler.GetService<PreApiService>().AddUser(socket, accountInfo.ExpiresAt);
                 FlipperService.Instance.AddConnectionPlus(socket, false);
+                socket.SendMessage("speedup enabled");
             }
         }
 
@@ -386,7 +387,7 @@ namespace Coflnet.Sky.Commands.MC
         private void SendPing()
         {
             var blockedFlipFilterCount = flipProcesser.BlockedFlipCount;
-            using var span = socket.CreateActivity("ping",ConSpan)?.AddTag("count", blockedFlipFilterCount);
+            using var span = socket.CreateActivity("ping", ConSpan)?.AddTag("count", blockedFlipFilterCount);
             try
             {
                 UpdateExtraDelay();
@@ -476,13 +477,13 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     if (sumary.MacroWarning)
                     {
-                        using var span = socket.CreateActivity("macroWarning",ConSpan).AddTag("name", SessionInfo.McName);
+                        using var span = socket.CreateActivity("macroWarning", ConSpan).AddTag("name", SessionInfo.McName);
                         SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
                     }
 
                     if (sumary.Penalty > TimeSpan.Zero)
                     {
-                        using var span = socket.CreateActivity("nerv",ConSpan);
+                        using var span = socket.CreateActivity("nerv", ConSpan);
                         span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                         span.Log(JsonConvert.SerializeObject(sumary, Formatting.Indented));
                     }

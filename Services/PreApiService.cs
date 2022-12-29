@@ -38,6 +38,7 @@ public class PreApiService : BackgroundService
     public void AddUser(IFlipConnection connection, DateTime expires)
     {
         users.TryAdd(connection, expires);
+        logger.LogInformation($"Added user {connection.UserId} to flip list");
     }
 
     private async Task PreApiLowPriceHandler(FlipperService sender, LowPricedAuction e)
@@ -65,7 +66,7 @@ public class PreApiService : BackgroundService
         logger.LogInformation($"Pre-api low price handler called for {e.Auction.Uuid} profit {e.TargetPrice - e.Auction.StartingBid} users {users.Count}");
         await Task.Delay(20_000).ConfigureAwait(false);
         // check if flip was sent to anyone 
-        await Task.Delay(10_000).ConfigureAwait(false);
+        await Task.Delay(15_000).ConfigureAwait(false);
         // if not send to all users
     }
 }
