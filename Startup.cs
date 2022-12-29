@@ -19,6 +19,7 @@ using OpenTracing;
 using OpenTracing.Util;
 using Prometheus;
 using Coflnet.Sky.Api.Client.Api;
+using StackExchange.Redis;
 
 namespace Coflnet.Sky.ModCommands
 {
@@ -54,13 +55,16 @@ namespace Coflnet.Sky.ModCommands
                     .EnableDetailedErrors()       // <-- with debugging (remove for production).
             );
             services.AddHostedService<ModBackgroundService>();
-            services.AddHostedService<FlipperService>();
-            services.AddJaeger(Configuration, 1,1);
+            services.AddSingleton<FlipperService>();
+            services.AddHostedService<FlipperService>(s=>s.GetRequiredService<FlipperService>());
+            services.AddJaeger(Configuration, 1, 1);
             services.AddTransient<ModService>();
             services.AddSingleton<ModeratorService>();
             services.AddSingleton<ChatService>();
             services.AddSingleton<ITutorialService, TutorialService>();
-            services.AddSingleton<IFlipApi, FlipApi>(s=>new FlipApi(Configuration["API_BASE_URL"]));
+            services.AddSingleton<IFlipApi, FlipApi>(s => new FlipApi(Configuration["API_BASE_URL"]));
+            services.AddSingleton<PreApiService>();
+            services.AddSingleton<ConnectionMultiplexer>(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));
             services.AddCoflService();
         }
 
