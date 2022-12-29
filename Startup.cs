@@ -64,9 +64,9 @@ namespace Coflnet.Sky.ModCommands
             services.AddSingleton<ITutorialService, TutorialService>();
             services.AddSingleton<IFlipApi, FlipApi>(s => new FlipApi(Configuration["API_BASE_URL"]));
             services.AddSingleton<PreApiService>();
-            services.AddHostedService<PreApiService>(s=>s.GetRequiredService<PreApiService>());
             services.AddSingleton<ConnectionMultiplexer>(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));
             services.AddCoflService();
+            services.AddHostedService<PreApiService>(s=>s.GetRequiredService<PreApiService>());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

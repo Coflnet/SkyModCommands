@@ -20,7 +20,7 @@ public class PreApiService : BackgroundService
     ConnectionMultiplexer redis;
     IConfiguration config;
     ILogger<PreApiService> logger;
-    private ConcurrentDictionary<IFlipConnection, DateTime> users = new();
+    static private ConcurrentDictionary<IFlipConnection, DateTime> users = new();
     public PreApiService(ConnectionMultiplexer redis, IConfiguration config, FlipperService flipperService, ILogger<PreApiService> logger)
     {
         this.redis = redis;
@@ -51,7 +51,12 @@ public class PreApiService : BackgroundService
                 try
                 {
                     logger.LogInformation($"Sent flip to {item.UserId} for {e.Auction.Uuid} ");
-                    await item.SendFlip(e).ConfigureAwait(false);
+                    var sendSuccessful = await item.SendFlip(e).ConfigureAwait(false);
+                    if (!sendSuccessful)
+                    {
+                        logger.LogInformation($"Failed to send flip to {item.UserId} for {e.Auction.Uuid}");
+                        users.TryRemove(item, out _);
+                    }
                     if (users[item] < DateTime.Now)
                     {
                         users.TryRemove(item, out _);
