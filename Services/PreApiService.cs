@@ -49,8 +49,12 @@ public class PreApiService : BackgroundService
                 try
                 {
                     await item.Key.SendFlip(e);
+                    logger.LogInformation($"Sent flip to {item.Key.UserId} for {e.Auction.Uuid} ");
                     if (item.Value < DateTime.Now)
+                    {
                         users.TryRemove(item.Key, out _);
+                        logger.LogInformation("Removed user from flip list");
+                    }
                 }
                 catch (System.Exception e)
                 {
