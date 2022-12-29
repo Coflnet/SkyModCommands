@@ -683,25 +683,6 @@ namespace Coflnet.Sky.Commands.MC
             return Task.FromResult(true);
         }
 
-        public void UpdateSettings(SettingsChange settings)
-        {
-        }
-
-        public Task UpdateSettings(Func<SettingsChange, SettingsChange> updatingFunc)
-        {
-            return Task.CompletedTask;
-        }
-
-
-        /// <summary>
-        /// Tests if the given settings are different from the current active ones
-        /// </summary>
-        /// <param name="settings"></param>
-        /// <returns></returns>
-        private bool AreSettingsTheSame(SettingsChange settings)
-        {
-            return MessagePack.MessagePackSerializer.Serialize(settings.Settings).SequenceEqual(MessagePack.MessagePackSerializer.Serialize(Settings));
-        }
 
         private void SendTimer()
         {
