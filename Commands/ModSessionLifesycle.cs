@@ -212,6 +212,11 @@ namespace Coflnet.Sky.Commands.MC
                     .AddTag("userId", info.UserId.ToString());
 
             var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
+            if(info.UserId == 0)
+            {
+                info.UserId = (socket as IFlipConnection).UserId;
+                await AccountInfo.Update(info);
+            }
 
             try
             {
@@ -341,6 +346,8 @@ namespace Coflnet.Sky.Commands.MC
             }
             else if (accountInfo.Tier == AccountTier.STARTER_PREMIUM)
                 FlipperService.Instance.AddStarterConnection(socket, false);
+            else if (accountInfo.Tier == AccountTier.SUPER_PREMIUM)
+                DiHandler.GetService<PreApiService>().AddUser(socket, accountInfo.ExpiresAt);
         }
 
 
