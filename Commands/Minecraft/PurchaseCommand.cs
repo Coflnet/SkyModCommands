@@ -50,7 +50,7 @@ namespace Coflnet.Sky.Commands.MC
                 var timeString = GetLenghtInWords(product, count);
 
                 socket.SendMessage(new DialogBuilder()
-                        .Msg($"Do you want to buy the {McColorCodes.AQUA}{product.Title}{McColorCodes.WHITE} service {McColorCodes.AQUA}{count}x ")
+                        .Msg($"Do you want to buy the {McColorCodes.AQUA}{product.Title}{McColorCodes.WHITE} service {McColorCodes.AQUA}{count}x ", null, product.Description)
                         .Msg($"for a total of {McColorCodes.AQUA}{socket.FormatPrice((long)product.Cost)}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
                         .MsgLine($"lasting {timeString}")
                         .CoflCommand<PurchaseCommand>(

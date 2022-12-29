@@ -31,7 +31,8 @@ public class PreApiService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-
+        // here to trigger the creation of the service
+        await Task.Delay(1000, stoppingToken);
     }
     public void AddUser(IFlipConnection connection, DateTime expires)
     {
