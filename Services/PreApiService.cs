@@ -21,10 +21,11 @@ public class PreApiService : BackgroundService
     IConfiguration config;
     ILogger<PreApiService> logger;
     private ConcurrentDictionary<IFlipConnection, DateTime> users = new();
-    public PreApiService(ConnectionMultiplexer redis, IConfiguration config, FlipperService flipperService)
+    public PreApiService(ConnectionMultiplexer redis, IConfiguration config, FlipperService flipperService, ILogger<PreApiService> logger)
     {
         this.redis = redis;
         this.config = config;
+        this.logger = logger;
 
         flipperService.PreApiLowPriceHandler += PreApiLowPriceHandler;
     }
