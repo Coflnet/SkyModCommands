@@ -37,20 +37,21 @@ public class PreApiService : BackgroundService
     }
     public void AddUser(IFlipConnection connection, DateTime expires)
     {
-        users.TryAdd(connection, expires);
-        logger.LogInformation($"Added user {connection.UserId} to flip list");
+        users.AddOrUpdate(connection, expires, (key, old) => expires);
+        logger.LogInformation($"Added user {connection.UserId} to flip list {users.Count} users {expires}");
     }
 
     private async Task PreApiLowPriceHandler(FlipperService sender, LowPricedAuction e)
     {
+        e.Auction.ItemName += Commands.MC.McColorCodes.DARK_GRAY + ".";
         foreach (var item in users)
         {
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await item.Key.SendFlip(e).ConfigureAwait(false);
                     logger.LogInformation($"Sent flip to {item.Key.UserId} for {e.Auction.Uuid} ");
+                    await item.Key.SendFlip(e).ConfigureAwait(false);
                     if (item.Value < DateTime.Now)
                     {
                         users.TryRemove(item.Key, out _);
@@ -63,7 +64,9 @@ public class PreApiService : BackgroundService
                 }
             }).ConfigureAwait(false);
         }
-        logger.LogInformation($"Pre-api low price handler called for {e.Auction.Uuid} profit {e.TargetPrice - e.Auction.StartingBid} users {users.Count}");
+        var profit = e.TargetPrice - e.Auction.StartingBid;
+        if (profit > 0)
+            logger.LogInformation($"Pre-api low price handler called for {e.Auction.Uuid} profit {profit} users {users.Count}");
         await Task.Delay(20_000).ConfigureAwait(false);
         // check if flip was sent to anyone 
         await Task.Delay(15_000).ConfigureAwait(false);
