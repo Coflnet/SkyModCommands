@@ -63,11 +63,12 @@ namespace Coflnet.Sky.Commands.MC
 
             var targetConId = parts[2];
             if (targetConId != socket.SessionInfo.ConnectionId)
-                throw new Coflnet.Sky.Core.CoflnetException("no_conid_match", "The purchase was started on a different connection. To prevent loss of coins please start over again.");
+                throw new Coflnet.Sky.Core.CoflnetException("no_conid_match", "The purchase was started on a different connection. To prevent loss of coins please start again.");
 
             try
             {
-                var userInfo = await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, productSlug, socket.SessionInfo.ConnectionId, count);
+                var reference = socket.SessionInfo.ConnectionId.Substring(0, 10) + DateTime.UtcNow.ToString("hh:mm");
+                var userInfo = await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, productSlug, reference, count);
                 socket.Dialog(db => db.MsgLine($"Successfully started purchase of {productSlug} you should receive a confirmation in a few seconds"));
                 await Task.Delay(TimeSpan.FromSeconds(2));
                 await socket.sessionLifesycle.UpdateAccountTier(socket.sessionLifesycle.AccountInfo);
@@ -77,7 +78,12 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var message = e.Message.Substring(68).Trim('}', '"');
                 socket.SendMessage(DialogBuilder.New.MsgLine(McColorCodes.RED + "An error occured").Msg(message)
-                    .If(()=>e.Message.Contains("insuficcient balance"), db => db.CoflCommand<TopUpCommand>(McColorCodes.AQUA + "Click here to top up coins", "", "Click here to buy coins")));
+                    .If(() => e.Message.Contains("insuficcient balance"), db => db.CoflCommand<TopUpCommand>(McColorCodes.AQUA + "Click here to top up coins", "", "Click here to buy coins"))
+                    .If(() => e.Message.Contains("same reference found"), db =>
+                        db.MsgLine(
+                            McColorCodes.AQUA + "To prevent accidental loss of coins you can only purchase once a minute.", null,
+                            "You can buy multiple at once by adding a number after the product name\n"
+                               + $"Example: {McColorCodes.AQUA}/cofl buy pre_api 3")));
             }
 
         }
