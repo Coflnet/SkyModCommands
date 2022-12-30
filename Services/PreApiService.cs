@@ -50,6 +50,8 @@ public class PreApiService : BackgroundService
             {
                 try
                 {
+                    if (Random.Shared.Next(0, 2) == 0)
+                        await Task.Delay(Random.Shared.Next(4000, 8000)).ConfigureAwait(false);
                     logger.LogInformation($"Sent flip to {item.UserId} for {e.Auction.Uuid} ");
                     var sendSuccessful = await item.SendFlip(e).ConfigureAwait(false);
                     if (!sendSuccessful)
