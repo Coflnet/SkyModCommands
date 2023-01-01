@@ -45,26 +45,35 @@ public class PreApiService : BackgroundService
             {
                 if (item.Value - TimeSpan.FromMinutes(1) < now && item.Key is IMinecraftSocket socket)
                 {
-                    socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"Your {McColorCodes.RED}pre api{McColorCodes.WHITE} will expire in {McColorCodes.RED}1 minute{McColorCodes.WHITE}\nClick {McColorCodes.RED}here{McColorCodes.WHITE} to renew", "pre_api",
+                    socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"Your {McColorCodes.RED}pre api{McColorCodes.WHITE} will expire in {McColorCodes.RED}under one minute{McColorCodes.WHITE}\nClick {McColorCodes.RED}here{McColorCodes.WHITE} to renew", "pre_api",
                         $"{McColorCodes.RED}Starts the purchase for another hour of {McColorCodes.RED}pre api{McColorCodes.WHITE}"));
+                    if (item.Value < now)
+                        localUsers.TryRemove(item.Key, out _);
                 }
             }
-            try
-            {
-                preApiUsers = await productsApi.ProductsServiceServiceSlugIdsGetAsync("pre_api");
-            }
-            catch (System.Exception e)
-            {
-                logger.LogError(e, "Failed to get pre api users");
-            }
+            await RefreshUsers();
 
             await Task.Delay(45000, stoppingToken);
         }
     }
+
+    private async Task RefreshUsers()
+    {
+        try
+        {
+            preApiUsers = await productsApi.ProductsServiceServiceSlugIdsGetAsync("pre_api");
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e, "Failed to get pre api users");
+        }
+    }
+
     public void AddUser(IFlipConnection connection, DateTime expires)
     {
         localUsers.AddOrUpdate(connection, expires, (key, old) => expires);
         logger.LogInformation($"Added user {connection.UserId} to flip list {localUsers.Count} users {expires}");
+        Task.Run(RefreshUsers);
     }
 
     private async Task PreApiLowPriceHandler(FlipperService sender, LowPricedAuction e)
