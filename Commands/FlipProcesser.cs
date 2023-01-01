@@ -154,8 +154,10 @@ namespace Coflnet.Sky.Commands.MC
             if (Settings.IsFinderBlocked(flip.Finder))
                 if (flip.Finder == LowPricedAuction.FinderType.USER)
                     return false;
-                else
+                else if (flip.TargetPrice > 2_000_000 || Random.Shared.NextDouble() < 0.1)
                     return BlockedFlip(flip, "finder " + flip.Finder);
+                else
+                    return false;
             else
                 return true;
         }

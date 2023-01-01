@@ -38,8 +38,8 @@ public class DelayHandler
     {
         if (currentDelay <= TimeSpan.Zero)
             return timeProvider.Now;
-        // flips likely to get bottet have no delay 
-        if (IsLikelyBot(flipInstance) && random.NextDouble() > 0.6)
+        // flips likely to get bottet have a chance of no delay 
+        if (IsLikelyBot(flipInstance) && random.NextDouble() > 0.8)
             return timeProvider.Now;
         var myIndex = FlipIndex;
         Interlocked.Increment(ref FlipIndex);
