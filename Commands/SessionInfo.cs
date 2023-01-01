@@ -17,6 +17,10 @@ namespace Coflnet.Sky.Commands.MC
         public bool ListeningToChat;
         public string McName;
         public string McUuid = string.Empty;
+        /// <summary>
+        /// List of all minecraft uuids the user has verified
+        /// </summary>
+        public List<string> MinecraftUuids = new();
         public DateTime LastMessage;
         public DateTime MutedUntil;
         public bool SentWelcome;

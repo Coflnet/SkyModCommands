@@ -299,11 +299,15 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
         {
+            if (SessionInfo.MinecraftUuids.Count() > 0)
+                return SessionInfo.MinecraftUuids;
             var result = await McAccountService.Instance.GetAllAccounts(UserId.Value, DateTime.UtcNow - TimeSpan.FromDays(30));
             if (result == null || result.Count() == 0)
                 return new string[] { SessionInfo.McUuid };
             if (!result.Contains(SessionInfo.McUuid))
                 result = result.Append(SessionInfo.McUuid);
+            if (!SessionInfo.McUuid.IsNullOrEmpty())
+                SessionInfo.MinecraftUuids = result.ToList();
             return result;
         }
 
