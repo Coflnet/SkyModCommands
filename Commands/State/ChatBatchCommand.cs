@@ -41,7 +41,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 foreach (var item in batch)
                 {
-                    if (item.StartsWith("You purchased ◆ Lava Rune I for 1 coins!"))
+                    if (item.StartsWith("You purchased"))
                         socket.GetService<PreApiService>().PurchaseMessage(socket, item);
                 }
             }
