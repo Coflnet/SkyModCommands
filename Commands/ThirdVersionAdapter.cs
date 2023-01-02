@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -22,6 +23,7 @@ namespace Coflnet.Sky.Commands.MC
                 var parts = await GetMessageparts(flip);
                 parts.Insert(0,new ChatPart(McColorCodes.RED + "[SOLD]", "/viewauction " + uuid, "This auction has likely already been sold"));
                 SendMessage(parts.ToArray());
+                socket.GetService<ILogger<ThirdVersionAdapter>>().LogInformation("Not sending flip because it was sold");
                 return true;
             }
             long worth = GetWorth(flip);
