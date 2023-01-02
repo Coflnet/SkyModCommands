@@ -151,7 +151,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private bool FinderEnabled(LowPricedAuction flip)
         {
-            if (Settings.IsFinderBlocked(flip.Finder))
+            if (Settings?.IsFinderBlocked(flip.Finder) ?? false)
                 if (flip.Finder == LowPricedAuction.FinderType.USER)
                     return false;
                 else if (flip.TargetPrice > 2_000_000 || Random.Shared.NextDouble() < 0.1)
