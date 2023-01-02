@@ -211,15 +211,14 @@ namespace Coflnet.Sky.Commands.MC
                     .AddTag("premium", info.Tier.ToString())
                     .AddTag("userId", info.UserId.ToString());
 
-            var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
-            if (info.UserId == 0)
-            {
-                info.UserId = (socket as IFlipConnection).UserId;
-                await AccountInfo.Update(info);
-            }
-
             try
             {
+                var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
+                if (info.UserId == 0)
+                {
+                    info.UserId = (socket as IFlipConnection).UserId;
+                    await AccountInfo.Update(info);
+                }
                 var userIsTest = info.UserId > 0 && info.UserId < 10;
                 if (info.ActiveConnectionId != SessionInfo.ConnectionId && !string.IsNullOrEmpty(info.ActiveConnectionId) && !userIsTest)
                 {
@@ -283,6 +282,7 @@ namespace Coflnet.Sky.Commands.MC
             catch (Exception e)
             {
                 socket.Error(e, "loading modsocket");
+                span.AddTag("error", true);
                 SendMessage(COFLNET + $"Your settings could not be loaded, please relink again :)");
             }
         }

@@ -48,13 +48,14 @@ namespace Coflnet.Sky.Commands.MC
         public virtual async Task<bool> CheckVerificationStatus(AccountInfo accountInfo)
         {
             using var verificationSpan = socket.CreateActivity("VerificationCheck", ConSpan);
-            if (SessionInfo.McUuid == null)
+            if (string.IsNullOrEmpty(SessionInfo.McUuid))
                 await Task.Delay(500).ConfigureAwait(false);
             var mcUuid = SessionInfo.McUuid;
             var userId = accountInfo.UserId.ToString();
             if (accountInfo.McIds.Contains(SessionInfo.McUuid))
             {
                 SessionInfo.VerifiedMc = true;
+                verificationSpan.AddTag("verified", "via accountInfo");
                 // dispatch access request to update last request time (and keep)
                 _ = socket.TryAsyncTimes(() => McAccountService.Instance.ConnectAccount(userId, mcUuid), "", 1);
                 return SessionInfo.VerifiedMc;

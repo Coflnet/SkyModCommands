@@ -347,15 +347,15 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task<string> GetPlayerName(string uuid)
         {
-            return (await Shared.DiHandler.ServiceProvider.GetRequiredService<PlayerName.Client.Api.PlayerNameApi>()
-                    .PlayerNameNameUuidGetAsync(uuid))?.Trim('"') ?? "unknown";
+            return await Shared.DiHandler.GetService<PlayerName.PlayerNameService>()
+                    .GetName(uuid) ?? "unknown";
         }
         public async Task<string> GetPlayerUuid(string name, bool blockError = false)
         {
             try
             {
-                return (await Shared.DiHandler.ServiceProvider.GetRequiredService<PlayerName.Client.Api.PlayerNameApi>()
-                        .PlayerNameUuidNameGetAsync(name)).Trim('"');
+                return await Shared.DiHandler.GetService<PlayerName.PlayerNameService>()
+                        .GetUuid(name);
             }
             catch (Exception e)
             {
