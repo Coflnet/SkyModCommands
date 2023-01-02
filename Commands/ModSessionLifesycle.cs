@@ -51,7 +51,7 @@ namespace Coflnet.Sky.Commands.MC
         public ModSessionLifesycle(MinecraftSocket socket)
         {
             this.socket = socket;
-            delayHandler = new DelayHandler(TimeProvider.Instance, socket.GetService<FlipTrackingService>(), this.SessionInfo);
+            delayHandler = new DelayHandler(TimeProvider.Instance, socket.GetService<FlipTrackingService>(), this.SessionInfo, this.AccountInfo);
 
             flipProcesser = new FlipProcesser(socket, spamController, delayHandler);
             VerificationHandler = new VerificationHandler(socket);

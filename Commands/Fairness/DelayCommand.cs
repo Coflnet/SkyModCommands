@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -21,28 +22,31 @@ namespace Coflnet.Sky.Commands.MC
             if (delayAmount <= System.TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"You are currently not delayed at all :)", null, "Enjoy flipping at full speed☻");
             else if (delayAmount == TimeSpan.FromSeconds(12))
-                socket.Dialog(db=>db.CoflCommand<CaptchaCommand>($"You flipped for too long and have to solve a captcha to remove your 12 second delay {McColorCodes.AQUA}click to get one", "", "Generates a new captcha"));
+                socket.Dialog(db => db.CoflCommand<CaptchaCommand>($"You flipped for too long and have to solve a captcha to remove your 12 second delay {McColorCodes.AQUA}click to get one", "", "Generates a new captcha"));
             else
                 socket.SendMessage(COFLNET + $"You are currently delayed by a maximum of {McColorCodes.AQUA}{delayAmount.TotalSeconds}s{McColorCodes.GRAY} by the fairness system. This will decrease over time and is not fully applied to all flips.",
                         null, McColorCodes.GRAY + "Your call to this has been recorded, \nattempts to trick the system will be punished.");
+            if (socket.AccountInfo.Tier == AccountTier.SUPER_PREMIUM && delayAmount > TimeSpan.Zero)
+                socket.SendMessage(COFLNET + $"While using {McColorCodes.RED}pre api{DEFAULT_COLOR} your delay increases {McColorCodes.GREEN}{DelayHandler.DelayReduction * 100}% slower{DEFAULT_COLOR} "
+                    + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
+                    null, "Enjoy flipping at high speed☻");
             if (delayAmount >= TimeSpan.FromSeconds(1))
             {
-                socket.SendMessage(GetSupportText(socket, delayAmount)
-                     );
+                socket.SendMessage(GetSupportText(socket, delayAmount));
             }
         }
 
         private static DialogBuilder GetSupportText(MinecraftSocket socket, TimeSpan delayAmount)
         => DialogBuilder.New
             .MsgLine("The cause for your delay could be (hover for info):")
-            .If(() => delayAmount < TimeSpan.FromSeconds(2), db => 
+            .If(() => delayAmount < TimeSpan.FromSeconds(2), db =>
                 db.MsgLine(FormatTimeWithReason(1, "Fairness delay to balance flips"), null,
                     FormatLines(
                         "This occurs if you have a low ping or use a macro.",
                         "Don't worry, everyone gets delayed the same way.",
                         "You can reduce this by buying slower.")))
             .If(() => delayAmount == TimeSpan.FromSeconds(2), db => db
-                .MsgLine(FormatTimeWithReason(2, "Default delay for new connections, removed after a few seconds"), null, 
+                .MsgLine(FormatTimeWithReason(2, "Default delay for new connections, removed after a few seconds"), null,
                     FormatLines(
                         "Gets removed after a few seconds, just wait a bit.",
                         "This delay exists to prevent spamming the server with new connections")))

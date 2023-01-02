@@ -2,7 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
-using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -29,10 +29,10 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     var bl = BlacklistCommand.FormatEntry(item);
                     socket.SendMessage(COFLNET + "This flip matched the filter " + bl);
+                    Activity.Current.Log(JSON.Stringify(bl));
                     return Task.CompletedTask;
                 }
             }
-
             return Task.CompletedTask;
         }
 

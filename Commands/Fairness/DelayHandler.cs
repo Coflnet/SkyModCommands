@@ -15,6 +15,9 @@ public class DelayHandler
     private static readonly TimeSpan AntiAfkDelay = TimeSpan.FromSeconds(12);
     private int FlipIndex = 0;
     public static readonly TimeSpan DefaultDelay = TimeSpan.FromSeconds(2);
+    public static readonly TimeSpan MaxSuperPremiumDelay = TimeSpan.FromMilliseconds(700);
+    public static readonly double DelayReduction = 0.3;
+
 
     private readonly ITimeProvider timeProvider;
     internal TimeSpan CurrentDelay => currentDelay;
@@ -22,9 +25,10 @@ public class DelayHandler
     private TimeSpan macroPenalty = TimeSpan.Zero;
     private SessionInfo sessionInfo;
     private Random random;
+    private AccountInfo accountInfo;
     private FlipTrackingService flipTrackingService;
 
-    public DelayHandler(ITimeProvider timeProvider, FlipTrackingService flipTrackingService, SessionInfo sessionInfo, Random random = null)
+    public DelayHandler(ITimeProvider timeProvider, FlipTrackingService flipTrackingService, SessionInfo sessionInfo, AccountInfo accountInfo, Random random = null)
     {
         this.timeProvider = timeProvider;
         this.random = random;
@@ -32,6 +36,7 @@ public class DelayHandler
             this.random = Random.Shared;
         this.flipTrackingService = flipTrackingService;
         this.sessionInfo = sessionInfo;
+        this.accountInfo = accountInfo;
     }
 
     public async Task<DateTime> AwaitDelayForFlip(FlipInstance flipInstance)
@@ -56,7 +61,7 @@ public class DelayHandler
 
     public bool IsLikelyBot(FlipInstance flipInstance)
     {
-        if(currentDelay == AntiAfkDelay)
+        if (currentDelay == AntiAfkDelay)
             return false; // afk users don't get instant flips
 
         var tag = flipInstance.Auction?.Tag;
@@ -112,6 +117,13 @@ public class DelayHandler
             macroPenalty = TimeSpan.FromSeconds(1);
             if (breakdown?.MacroedFlips != null && breakdown.MacroedFlips.Max(f => f.BuyTime) > DateTime.UtcNow - TimeSpan.FromSeconds(180))
                 summary.MacroWarning = true;
+        }
+        if (accountInfo.Tier >= AccountTier.SUPER_PREMIUM)
+        {
+            currentDelay *= (1 - DelayReduction);
+            if (currentDelay > MaxSuperPremiumDelay)
+                currentDelay = MaxSuperPremiumDelay;
+            macroPenalty *= (1 - DelayReduction);
         }
         summary.Penalty = currentDelay;
         return summary;
