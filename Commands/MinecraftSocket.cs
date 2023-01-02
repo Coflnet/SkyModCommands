@@ -113,7 +113,7 @@ namespace Coflnet.Sky.Commands.MC
         private static System.Threading.Timer tenSecTimer;
 
         public ConcurrentQueue<BlockedElement> TopBlocked = new ConcurrentQueue<BlockedElement>();
-        public ConcurrentQueue<LowPricedAuction> LastSent = new ConcurrentQueue<LowPricedAuction>();
+        public ConcurrentQueue<LowPricedAuction> LastSent { get; } = new ConcurrentQueue<LowPricedAuction>();
         /// <summary>
         /// Triggered when the connection closes
         /// </summary>
