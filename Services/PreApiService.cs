@@ -27,6 +27,7 @@ public class PreApiService : BackgroundService
     static private ConcurrentDictionary<IFlipConnection, DateTime> localUsers = new();
     Payments.Client.Api.ProductsApi productsApi;
     private List<string> preApiUsers = new();
+    private ConcurrentDictionary<string, DateTime> sold = new();
     public PreApiService(ConnectionMultiplexer redis, IConfiguration config, FlipperService flipperService, ILogger<PreApiService> logger, Payments.Client.Api.ProductsApi productsApi)
     {
         this.redis = redis;
@@ -39,6 +40,11 @@ public class PreApiService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        redis.GetSubscriber().Subscribe("auction_sell", (channel, message) =>
+        {
+            var sell = MessagePack.MessagePackSerializer.Deserialize<Sell>(message);
+            sold.TryAdd(sell.Uuid, DateTime.UtcNow);
+        });
         // here to trigger the creation of the service
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -57,6 +63,11 @@ public class PreApiService : BackgroundService
 
             await Task.Delay(45000, stoppingToken);
         }
+    }
+
+    public bool IsSold(string uuid)
+    {
+        return sold.ContainsKey(uuid);
     }
 
     private async Task RefreshUsers()
@@ -131,8 +142,16 @@ public class PreApiService : BackgroundService
         var price = double.Parse(priceString, NumberStyles.Number, CultureInfo.InvariantCulture);
         var flip = connection.LastSent.Reverse().FirstOrDefault(f => f.Auction.ItemName == itemName && f.Auction.StartingBid == price);
         if (flip != null)
+        {
             logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {flip.Auction.Uuid} at {DateTime.Now}");
+            redis.GetSubscriber().Publish("auction_sell", MessagePack.MessagePackSerializer.Serialize(new Sell { Uuid = flip.Auction.Uuid }));
+        }
         else
             logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");
+    }
+
+    private class Sell
+    {
+        public string Uuid { get; set; }
     }
 }

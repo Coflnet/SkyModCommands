@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
-using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -17,6 +17,13 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
             var uuid = flip.Auction.Uuid;
+            if(socket.GetService<PreApiService>().IsSold(uuid))
+            {
+                var parts = await GetMessageparts(flip);
+                parts.Insert(0,new ChatPart(McColorCodes.RED + "[SOLD]", "/viewauction " + uuid, "This auction has likely already been sold"));
+                SendMessage(parts.ToArray());
+                return true;
+            }
             long worth = GetWorth(flip);
 
             socket.Send(Response.Create("flip", new
