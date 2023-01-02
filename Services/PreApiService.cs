@@ -13,6 +13,8 @@ using Coflnet.Sky.Commands.Shared;
 using System.Collections.Concurrent;
 using Coflnet.Sky.Commands;
 using Coflnet.Sky.Commands.MC;
+using System.Linq;
+using System.Globalization;
 
 /// <summary>
 /// Handles events before the api update
@@ -118,5 +120,19 @@ public class PreApiService : BackgroundService
         // check if flip was sent to anyone 
         await Task.Delay(15_000).ConfigureAwait(false);
         // if not send to all users
+    }
+
+    public void PurchaseMessage(IMinecraftSocket connection, string message)
+    {
+        var regex = new System.Text.RegularExpressions.Regex(@"^You purchased (.*) for (.*) coins");
+        var match = regex.Match(message);
+        var itemName = match.Groups[1].Value;
+        var priceString = match.Groups[2].Value;
+        var price = double.Parse(priceString, NumberStyles.Number, CultureInfo.InvariantCulture);
+        var flip = connection.LastSent.Reverse().FirstOrDefault(f => f.Auction.ItemName == itemName && f.Auction.StartingBid == price);
+        if (flip != null)
+            logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {flip.Auction.Uuid} at {DateTime.Now}");
+        else
+            logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");
     }
 }

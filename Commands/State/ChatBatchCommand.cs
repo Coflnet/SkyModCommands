@@ -4,9 +4,10 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Confluent.Kafka;
-using MessagePack;
+using Coflnet.Sky.ModCommands.Services;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -31,13 +32,18 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.GetService<IStateUpdateService>().Produce(playerId, new()
                 {
-                        ChatBatch = batch,
-                        ReceivedAt = DateTime.UtcNow,
-                        PlayerId = playerId,
-                        Kind = UpdateMessage.UpdateKind.CHAT,
-                        SessionId = socket.SessionInfo.SessionId
-                    
+                    ChatBatch = batch,
+                    ReceivedAt = DateTime.UtcNow,
+                    PlayerId = playerId,
+                    Kind = UpdateMessage.UpdateKind.CHAT,
+                    SessionId = socket.SessionInfo.SessionId
                 });
+
+                foreach (var item in batch)
+                {
+                    if (item.StartsWith("You purchased ◆ Lava Rune I for 1 coins!"))
+                        socket.GetService<PreApiService>().PurchaseMessage(item, socket);
+                }
             }
             catch (System.Exception e)
             {

@@ -34,6 +34,7 @@ namespace Coflnet.Sky.Commands.MC
         Activity ConSpan { get; }
         FormatProvider formatProvider { get; }
         ModSessionLifesycle sessionLifesycle { get; }
+        ConcurrentQueue<LowPricedAuction> LastSent { get; }
         string UserId { get; }
 
         event Action OnConClose;

@@ -118,11 +118,13 @@ public class DelayHandler
             if (breakdown?.MacroedFlips != null && breakdown.MacroedFlips.Max(f => f.BuyTime) > DateTime.UtcNow - TimeSpan.FromSeconds(180))
                 summary.MacroWarning = true;
         }
-        if (accountInfo.Tier >= AccountTier.SUPER_PREMIUM)
+        if (accountInfo?.Tier >= AccountTier.SUPER_PREMIUM)
         {
             currentDelay *= (1 - DelayReduction);
             if (currentDelay > MaxSuperPremiumDelay)
                 currentDelay = MaxSuperPremiumDelay;
+            if (!breakdown.Buys.Values.Any(b => b > accountInfo.ExpiresAt - TimeSpan.FromHours(1)))
+                currentDelay = TimeSpan.Zero;
             macroPenalty *= (1 - DelayReduction);
         }
         summary.Penalty = currentDelay;
