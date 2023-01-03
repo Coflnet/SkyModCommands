@@ -458,7 +458,7 @@ namespace Coflnet.Sky.Commands.MC
                     widthPercent = (mod?.TimerX ?? 0) == 0 ? 10 : mod.TimerX,
                     heightPercent = (mod?.TimerY ?? 0) == 0 ? 10 : mod.TimerY,
                     scale = (mod?.TimerScale ?? 0) == 0 ? 2 : mod.TimerScale,
-                    prefix = mod?.TimerPrefix ?? prefix,
+                    prefix = (mod?.TimerPrefix.IsNullOrEmpty() ?? true || prefix != "§c") ? prefix : mod.TimerPrefix,
                     maxPrecision = (mod?.TimerPrecision ?? 0) == 0 ? 3 : mod.TimerPrecision
                 }));
         }
