@@ -114,12 +114,6 @@ public class PreApiService : BackgroundService
 
     private async Task PreApiLowPriceHandler(FlipperService sender, LowPricedAuction e)
     {
-        // filter out auctions that are from flipper and not pre api
-        if (e.Auction.Context?.Count == 0 && e.Auction.FindTime < DateTime.UtcNow - TimeSpan.FromSeconds(8))
-        {
-            await Task.Delay(15000);
-            return;
-        }
         if (e.Auction.Context.ContainsKey("cname"))
             e.Auction.Context["cname"] += McColorCodes.DARK_GRAY + ".";
         foreach (var item in localUsers.Keys)
