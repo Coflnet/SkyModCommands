@@ -43,29 +43,48 @@ public class PreApiService : BackgroundService
     {
         redis.GetSubscriber().Subscribe("auction_sell", (channel, message) =>
         {
-            var sell = MessagePack.MessagePackSerializer.Deserialize<Sell>(message);
-            sold.TryAdd(sell.Uuid, DateTime.UtcNow);
-            if(sell.Uuid == Dns.GetHostName() && DateTime.Now.Minute %5 == 0)
-                logger.LogInformation("got mod sell redis heartbeat");
+            try
+            {
+                var sell = MessagePack.MessagePackSerializer.Deserialize<Sell>(message);
+                sold.TryAdd(sell.Uuid, DateTime.UtcNow);
+                if (sell.Uuid == Dns.GetHostName() && DateTime.Now.Minute % 5 == 0)
+                    logger.LogInformation("got mod sell redis heartbeat");
+            }
+            catch (System.Exception e)
+            {
+                logger.LogError(e, "failed to deserialize sell");
+            }
         });
         // here to trigger the creation of the service
         while (!stoppingToken.IsCancellationRequested)
         {
-            var now = DateTime.UtcNow;
-            foreach (var item in localUsers)
+            try
             {
-                if (item.Value - TimeSpan.FromMinutes(1) < now && item.Key is IMinecraftSocket socket)
-                {
-                    socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"Your {McColorCodes.RED}pre api{McColorCodes.WHITE} will expire in {McColorCodes.RED}under one minute{McColorCodes.WHITE}\nClick {McColorCodes.RED}here{McColorCodes.WHITE} to renew", "pre_api",
-                        $"{McColorCodes.RED}Starts the purchase for another hour of {McColorCodes.RED}pre api{McColorCodes.WHITE}"));
-                    if (item.Value < now)
-                        localUsers.TryRemove(item.Key, out _);
-                }
+                SendEndWarnings();
+                await RefreshUsers();
+                PublishSell(Dns.GetHostName());
             }
-            await RefreshUsers();
+            catch (System.Exception e)
+            {
+                logger.LogError(e, "failed to execute pre api service refresh");
+            }
 
             await Task.Delay(45000, stoppingToken);
-            PublishSell(Dns.GetHostName());
+        }
+    }
+
+    private static void SendEndWarnings()
+    {
+        var now = DateTime.UtcNow;
+        foreach (var item in localUsers)
+        {
+            if (item.Value - TimeSpan.FromMinutes(1) < now && item.Key is IMinecraftSocket socket)
+            {
+                socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"Your {McColorCodes.RED}pre api{McColorCodes.WHITE} will expire in {McColorCodes.RED}under one minute{McColorCodes.WHITE}\nClick {McColorCodes.RED}here{McColorCodes.WHITE} to renew", "pre_api",
+                    $"{McColorCodes.RED}Starts the purchase for another hour of {McColorCodes.RED}pre api{McColorCodes.WHITE}"));
+                if (item.Value < now)
+                    localUsers.TryRemove(item.Key, out _);
+            }
         }
     }
 
@@ -161,7 +180,7 @@ public class PreApiService : BackgroundService
     }
 
     [MessagePack.MessagePackObject]
-    private class Sell
+    public class Sell
     {
         [MessagePack.Key(0)]
         public string Uuid { get; set; }
