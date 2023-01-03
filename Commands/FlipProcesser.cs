@@ -175,10 +175,10 @@ namespace Coflnet.Sky.Commands.MC
 
             foreach (var item in toSendInstant)
             {
-                await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow).ConfigureAwait(false);
+                await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow, true).ConfigureAwait(false);
             }
             var toSendDelayed = noBed.ExceptBy(toSendInstant.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid);
-            await NewMethod(noBed, toSendDelayed).ConfigureAwait(false);
+            await SendDelayed(noBed, toSendDelayed).ConfigureAwait(false);
 
             // beds
             foreach (var item in bedsToWaitFor.OrderBy(b => b.Item2))
@@ -193,7 +193,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private async Task NewMethod(IEnumerable<(FlipInstance instance, LowPricedAuction lp)> noBed, IEnumerable<(FlipInstance instance, LowPricedAuction lp)> toSendDelayed)
+        private async Task SendDelayed(IEnumerable<(FlipInstance instance, LowPricedAuction lp)> noBed, IEnumerable<(FlipInstance instance, LowPricedAuction lp)> toSendDelayed)
         {
             var bestFlip = noBed.Select(f => f.instance).MaxBy(f => f.Profit);
             if (bestFlip == null)
@@ -202,7 +202,7 @@ namespace Coflnet.Sky.Commands.MC
             var sendTime = await delayHandler.AwaitDelayForFlip(bestFlip);
             foreach (var item in toSendDelayed)
             {
-                await SendAndTrackFlip(item.instance, item.lp, sendTime).ConfigureAwait(false);
+                await SendAndTrackFlip(item.instance, item.lp, sendTime, true).ConfigureAwait(false);
             }
         }
 
@@ -227,8 +227,13 @@ namespace Coflnet.Sky.Commands.MC
             await SendAndTrackFlip(flip, item.lp, DateTime.UtcNow).ConfigureAwait(false);
         }
 
-        private async Task SendAndTrackFlip(FlipInstance item, LowPricedAuction flip, DateTime sendTime)
+        private async Task SendAndTrackFlip(FlipInstance item, LowPricedAuction flip, DateTime sendTime, bool blockSold = false)
         {
+            if (blockSold && (Settings?.Visibility?.HideSoldAuction ?? false) && socket.GetService<PreApiService>().IsSold(flip.Auction.Uuid))
+            {
+                BlockedFlip(flip, "sold");
+                return;
+            }
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
 
             _ = socket.TryAsyncTimes(async () =>
