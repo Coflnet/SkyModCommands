@@ -15,6 +15,7 @@ using Coflnet.Sky.Commands;
 using Coflnet.Sky.Commands.MC;
 using System.Linq;
 using System.Globalization;
+using System.Net;
 
 /// <summary>
 /// Handles events before the api update
@@ -44,6 +45,8 @@ public class PreApiService : BackgroundService
         {
             var sell = MessagePack.MessagePackSerializer.Deserialize<Sell>(message);
             sold.TryAdd(sell.Uuid, DateTime.UtcNow);
+            if(sell.Uuid == Dns.GetHostName() && DateTime.Now.Minute %5 == 0)
+                logger.LogInformation("got mod sell redis heartbeat");
         });
         // here to trigger the creation of the service
         while (!stoppingToken.IsCancellationRequested)
@@ -62,6 +65,7 @@ public class PreApiService : BackgroundService
             await RefreshUsers();
 
             await Task.Delay(45000, stoppingToken);
+            PublishSell(Dns.GetHostName());
         }
     }
 
@@ -143,11 +147,17 @@ public class PreApiService : BackgroundService
         var flip = connection.LastSent.Reverse().FirstOrDefault(f => f.Auction.ItemName == itemName && f.Auction.StartingBid == price);
         if (flip != null)
         {
-            logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {flip.Auction.Uuid} at {DateTime.Now}");
-            redis.GetSubscriber().Publish("auction_sell", MessagePack.MessagePackSerializer.Serialize(new Sell { Uuid = flip.Auction.Uuid }));
+            var uuid = flip.Auction.Uuid;
+            logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.Now}");
+            PublishSell(uuid);
         }
         else
             logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");
+    }
+
+    private void PublishSell(string uuid)
+    {
+        redis.GetSubscriber().Publish("auction_sell", MessagePack.MessagePackSerializer.Serialize(new Sell { Uuid = uuid }));
     }
 
     private class Sell
