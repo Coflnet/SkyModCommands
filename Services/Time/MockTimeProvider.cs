@@ -28,5 +28,6 @@ public class MockTimeProvider : ITimeProvider
             task.Key.SetResult();
         }
         Now += span;
+        Console.WriteLine($"Time is now {Now : mm:ss\\.fff}");
     }
 }

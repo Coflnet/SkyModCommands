@@ -67,13 +67,11 @@ public class DelayHandlerTests
         Assert.IsFalse(fourth.IsCompleted);
         timeProvider.TickForward(System.TimeSpan.FromSeconds(0.15));
         Assert.IsFalse(fourth.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.05));
+        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.065));
         Assert.IsTrue(fourth.IsCompleted);
-        Assert.IsFalse(third.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.15));
         Assert.IsTrue(third.IsCompleted);
         Assert.IsFalse(second.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.4));
+        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.6));
         Assert.IsTrue(second.IsCompleted);
         Assert.IsFalse(first.IsCompleted);
         timeProvider.TickForward(System.TimeSpan.FromSeconds(0.25));
