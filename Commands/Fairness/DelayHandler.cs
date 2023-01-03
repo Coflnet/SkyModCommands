@@ -43,8 +43,7 @@ public class DelayHandler
     {
         if (currentDelay <= TimeSpan.Zero)
             return timeProvider.Now;
-        // flips likely to get bottet have a chance of no delay 
-        if (IsLikelyBot(flipInstance) && random.NextDouble() > 0.8)
+        if (IsLikelyBot(flipInstance))
             return timeProvider.Now;
         var myIndex = FlipIndex;
         Interlocked.Increment(ref FlipIndex);
@@ -59,10 +58,19 @@ public class DelayHandler
         return time;
     }
 
+    /// <summary>
+    /// flips likely to get bottet have a chance of no delay 
+    /// </summary>
+    /// <param name="flipInstance"></param>
+    /// <returns></returns>
     public bool IsLikelyBot(FlipInstance flipInstance)
     {
         if (currentDelay == AntiAfkDelay)
             return false; // afk users don't get instant flips
+
+        // 22% chance of no delay so lowest ping macro doesn't get a huge advantage
+        if(random.NextDouble() < 0.22)
+            return false;
 
         var tag = flipInstance.Auction?.Tag;
         var profit = flipInstance.ProfitPercentage;
