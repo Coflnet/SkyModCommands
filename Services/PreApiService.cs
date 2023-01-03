@@ -116,6 +116,10 @@ public class PreApiService : BackgroundService
     {
         if (e.Auction.Context.ContainsKey("cname"))
             e.Auction.Context["cname"] += McColorCodes.DARK_GRAY + ".";
+
+        var tilPurchasable = e.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow;
+        if (tilPurchasable < TimeSpan.Zero)
+            tilPurchasable = TimeSpan.Zero;
         foreach (var item in localUsers.Keys)
         {
             _ = Task.Run(async () =>
@@ -125,7 +129,7 @@ public class PreApiService : BackgroundService
                     var index = preApiUsers.IndexOf(item is MinecraftSocket socket ? socket.UserId : "1");
                     var isMyRR = e.Auction.UId % preApiUsers.Count == index;
                     if (!isMyRR)
-                        await Task.Delay(Random.Shared.Next(4000, 8000)).ConfigureAwait(false);
+                        await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(Random.Shared.Next(4, 8))).ConfigureAwait(false);
                     else if (e.Auction.Context.ContainsKey("cname"))
                         e.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.RED + ".");
                     logger.LogInformation($"Sent flip to {item.UserId} for {e.Auction.Uuid} ");
@@ -150,9 +154,10 @@ public class PreApiService : BackgroundService
         var profit = e.TargetPrice - e.Auction.StartingBid;
         if (profit > 0)
             logger.LogInformation($"Pre-api low price handler called for {e.Auction.Uuid} profit {profit} users {localUsers.Count}");
-        await Task.Delay(20_000).ConfigureAwait(false);
+        
+        await Task.Delay(tilPurchasable).ConfigureAwait(false);
         // check if flip was sent to anyone 
-        await Task.Delay(15_000).ConfigureAwait(false);
+        await Task.Delay(20_000).ConfigureAwait(false);
         // if not send to all users
     }
 
