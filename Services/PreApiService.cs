@@ -160,8 +160,10 @@ public class PreApiService : BackgroundService
         redis.GetSubscriber().Publish("auction_sell", MessagePack.MessagePackSerializer.Serialize(new Sell { Uuid = uuid }));
     }
 
+    [MessagePack.MessagePackObject]
     private class Sell
     {
+        [MessagePack.Key(0)]
         public string Uuid { get; set; }
     }
 }
