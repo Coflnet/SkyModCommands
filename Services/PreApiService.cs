@@ -133,7 +133,11 @@ public class PreApiService : BackgroundService
                     if (!isMyRR)
                         await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(Random.Shared.Next(4, 8))).ConfigureAwait(false);
                     else if (e.Auction.Context.ContainsKey("cname"))
-                        e.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.RED + ".");
+                    {
+                        // copy the auction so we can modify it without affecting the original
+                        e.Auction = new SaveAuction(e.Auction);
+                        e.Auction.Context["cname"] = e.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.RED + ".");
+                    }
                     logger.LogInformation($"Sent flip to {item.UserId} for {e.Auction.Uuid} ");
                     var sendSuccessful = await item.SendFlip(e).ConfigureAwait(false);
                     if (!sendSuccessful)
