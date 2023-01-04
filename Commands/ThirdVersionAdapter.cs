@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -18,11 +19,12 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
             var uuid = flip.Auction.Uuid;
-            if(socket.GetService<PreApiService>().IsSold(uuid))
+            if (socket.GetService<PreApiService>().IsSold(uuid))
             {
                 var parts = await GetMessageparts(flip);
-                parts.Insert(0,new ChatPart(McColorCodes.RED + "[SOLD]", "/viewauction " + uuid, "This auction has likely already been sold"));
+                parts.Insert(0, new ChatPart(McColorCodes.RED + "[SOLD]", "/viewauction " + uuid, "This auction has likely already been sold"));
                 SendMessage(parts.ToArray());
+                Activity.Current?.AddTag("sold", "true");
                 socket.GetService<ILogger<ThirdVersionAdapter>>().LogInformation("Not sending flip because it was sold");
                 return true;
             }
