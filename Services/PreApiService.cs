@@ -126,7 +126,9 @@ public class PreApiService : BackgroundService
             {
                 try
                 {
-                    var index = preApiUsers.IndexOf(item is MinecraftSocket socket ? socket.UserId : "1");
+                    var index = item is MinecraftSocket socket ? preApiUsers.IndexOf(socket.UserId) : Random.Shared.Next(preApiUsers.Count);
+                    if(index == -1)
+                        logger.LogError($"User {item.UserId} is not in pre api list");
                     var isMyRR = e.Auction.UId % preApiUsers.Count == index;
                     if (!isMyRR)
                         await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(Random.Shared.Next(4, 8))).ConfigureAwait(false);
@@ -154,7 +156,7 @@ public class PreApiService : BackgroundService
         var profit = e.TargetPrice - e.Auction.StartingBid;
         if (profit > 0)
             logger.LogInformation($"Pre-api low price handler called for {e.Auction.Uuid} profit {profit} users {localUsers.Count}");
-        
+
         await Task.Delay(tilPurchasable).ConfigureAwait(false);
         // check if flip was sent to anyone 
         await Task.Delay(20_000).ConfigureAwait(false);
