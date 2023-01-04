@@ -474,10 +474,17 @@ namespace Coflnet.Sky.Commands.MC
 
                     var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
 
-                    if (sumary.AntiAfk && !socket.HasFlippingDisabled() && SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
+                    if (sumary.AntiAfk && !socket.HasFlippingDisabled())
                     {
-                        SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
-                        SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
+                        if (SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
+                        {
+                            SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
+                            SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
+                        }
+                        else if (SessionInfo.captchaInfo.LastGenerated.Minute % 4 == 1)
+                        {
+                            socket.Dialog(db => db.CoflCommand<CaptchaCommand>($"You are currently delayed for likely being afk. Click to get a letter captcha to prove you are not.", "", "Generates a new captcha"));
+                        }
                     }
                     if (sumary.MacroWarning)
                     {

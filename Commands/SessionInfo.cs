@@ -66,7 +66,7 @@ namespace Coflnet.Sky.Commands.MC
     public class CaptchaInfo
     {
         public IEnumerable<string> CurrentSolutions = new List<string>();
-        public DateTime LastGenerated = DateTime.UtcNow;
+        public DateTime LastGenerated = default;
         public DateTime LastSolve = default;
         /// <summary>
         /// How many solves are requird, defaults to 1
