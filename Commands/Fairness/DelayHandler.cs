@@ -25,10 +25,10 @@ public class DelayHandler
     private TimeSpan macroPenalty = TimeSpan.Zero;
     private SessionInfo sessionInfo;
     private Random random;
-    private AccountInfo accountInfo;
+    private SelfUpdatingValue<AccountInfo> accountInfo;
     private FlipTrackingService flipTrackingService;
 
-    public DelayHandler(ITimeProvider timeProvider, FlipTrackingService flipTrackingService, SessionInfo sessionInfo, AccountInfo accountInfo, Random random = null)
+    public DelayHandler(ITimeProvider timeProvider, FlipTrackingService flipTrackingService, SessionInfo sessionInfo, SelfUpdatingValue<AccountInfo> accountInfo, Random random = null)
     {
         this.timeProvider = timeProvider;
         this.random = random;
@@ -126,12 +126,12 @@ public class DelayHandler
             if (breakdown?.MacroedFlips != null && breakdown.MacroedFlips.Max(f => f.BuyTime) > DateTime.UtcNow - TimeSpan.FromSeconds(180))
                 summary.MacroWarning = true;
         }
-        if (accountInfo?.Tier >= AccountTier.SUPER_PREMIUM)
+        if (accountInfo?.Value?.Tier >= AccountTier.SUPER_PREMIUM)
         {
-            currentDelay *= (1 - DelayReduction);
+            currentDelay *= 0.7;
             if (currentDelay > MaxSuperPremiumDelay)
                 currentDelay = MaxSuperPremiumDelay;
-            if (!breakdown.Buys.Values.Any(b => b > accountInfo.ExpiresAt - TimeSpan.FromHours(1)))
+            if (!breakdown.Buys.Values.Any(b => b > accountInfo.Value.ExpiresAt - TimeSpan.FromHours(1)))
                 currentDelay = TimeSpan.Zero;
             macroPenalty *= (1 - DelayReduction);
         }

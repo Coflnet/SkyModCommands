@@ -51,13 +51,17 @@ namespace Coflnet.Sky.Commands.MC
         public ModSessionLifesycle(MinecraftSocket socket)
         {
             this.socket = socket;
-            delayHandler = new DelayHandler(TimeProvider.Instance, socket.GetService<FlipTrackingService>(), this.SessionInfo, this.AccountInfo);
-
-            flipProcesser = new FlipProcesser(socket, spamController, delayHandler);
+            var info = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(socket.AccountInfo);
+            SetupFlipProcessor(info);
             VerificationHandler = new VerificationHandler(socket);
         }
 
+        private void SetupFlipProcessor(SelfUpdatingValue<AccountInfo> info)
+        {
+            delayHandler = new DelayHandler(TimeProvider.Instance, socket.GetService<FlipTrackingService>(), this.SessionInfo, info);
 
+            flipProcesser = new FlipProcesser(socket, spamController, delayHandler);
+        }
 
         public async Task SetupConnectionSettings(string stringId)
         {
@@ -136,6 +140,7 @@ namespace Coflnet.Sky.Commands.MC
             else
                 Console.WriteLine("accountinfo is default");
 
+            SetupFlipProcessor(AccountInfo);
             AccountSettings = await accountSettingsTask;
             SubSessionToEventsFor(val);
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);

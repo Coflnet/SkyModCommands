@@ -132,7 +132,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Exception e)
             {
-                var id = socket.Error(e, "matching flip settings", JSON.Stringify(flip) + "\n" + JSON.Stringify(Settings));
+                var id = socket.Error(e, "matching flip settings", JSON.Stringify(flip) + "\n\n" + JSON.Stringify(flip.Auction.Context) + "\n\n" + JSON.Stringify(Settings));
                 dev.Logger.Instance.Error(e, "minecraft socket flip settings matching " + id);
                 return BlockedFlip(flip, "Error " + e.Message);
             }

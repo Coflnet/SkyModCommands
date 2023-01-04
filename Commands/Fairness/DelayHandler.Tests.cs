@@ -14,7 +14,7 @@ public class DelayHandlerTests
     MockTimeProvider timeProvider;
     string[] ids;
     SessionInfo sessionInfo;
-    AccountInfo accountInfo;
+    SelfUpdatingValue<AccountInfo> accountInfo;
     DelayHandler delayHandler;
     SpeedCompResult result;
     FlipInstance flipInstance;
@@ -26,7 +26,7 @@ public class DelayHandlerTests
         var configuration = new Mock<IConfiguration>();
         var flipTrackingService = new Mock<FlipTrackingService>(null,null, null, configuration.Object);
         sessionInfo = new SessionInfo() { };
-        accountInfo = new AccountInfo() { };
+        accountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(()=>new AccountInfo() { }).Result;
         result = new SpeedCompResult() { Penalty = 1, MacroedFlips = new(),BoughtWorth = 50_000_000 };
         flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));
         delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, accountInfo, new System.Random(5));
