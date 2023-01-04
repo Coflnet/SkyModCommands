@@ -183,7 +183,7 @@ namespace Coflnet.Sky.Commands.MC
             // beds
             foreach (var item in bedsToWaitFor.OrderBy(b => b.Item2))
             {
-                if (socket.sessionLifesycle.CurrentDelay > TimeSpan.FromSeconds(0.6))
+                if (socket.sessionLifesycle.CurrentDelay > DelayHandler.MaxSuperPremiumDelay)
                 {
                     await Task.Delay(item.Item2).ConfigureAwait(false);
                     await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow).ConfigureAwait(false);

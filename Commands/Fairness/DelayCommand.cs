@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Commands.Shared;
@@ -10,6 +11,7 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var delayAmount = socket.sessionLifesycle.CurrentDelay;
+            Activity.Current?.AddTag("delay", delayAmount.ToString());
             if (await socket.UserAccountTier() == 0)
             {
                 socket.Dialog(db => db.MsgLine($"You are using the {McColorCodes.YELLOW}free version{DEFAULT_COLOR} and are thus delayed by over a minute.", "https://sky.coflnet.com/premium", "Opens the premium page")
