@@ -99,7 +99,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public static DateTime NextFlipTime { get; protected set; }
 
-        int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId?.Value ?? "0");
+        //int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId?.Value ?? "0");
         public string UserId
         {
             get

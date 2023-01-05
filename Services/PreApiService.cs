@@ -16,6 +16,7 @@ using Coflnet.Sky.Commands.MC;
 using System.Linq;
 using System.Globalization;
 using System.Net;
+using Payments.Client.Api;
 
 /// <summary>
 /// Handles events before the api update
@@ -23,16 +24,14 @@ using System.Net;
 public class PreApiService : BackgroundService
 {
     ConnectionMultiplexer redis;
-    IConfiguration config;
     ILogger<PreApiService> logger;
     static private ConcurrentDictionary<IFlipConnection, DateTime> localUsers = new();
-    Payments.Client.Api.ProductsApi productsApi;
+    IProductsApi productsApi;
     private List<string> preApiUsers = new();
     private ConcurrentDictionary<string, DateTime> sold = new();
-    public PreApiService(ConnectionMultiplexer redis, IConfiguration config, FlipperService flipperService, ILogger<PreApiService> logger, Payments.Client.Api.ProductsApi productsApi)
+    public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi)
     {
         this.redis = redis;
-        this.config = config;
         this.logger = logger;
 
         flipperService.PreApiLowPriceHandler += PreApiLowPriceHandler;
@@ -126,30 +125,7 @@ public class PreApiService : BackgroundService
             {
                 try
                 {
-                    var index = item is MinecraftSocket socket ? preApiUsers.IndexOf(socket.UserId) : Random.Shared.Next(preApiUsers.Count);
-                    if(index == -1)
-                        logger.LogError($"User {item.UserId} is not in pre api list");
-                    var isMyRR = e.Auction.UId % preApiUsers.Count == index;
-                    if (!isMyRR)
-                        await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(Random.Shared.Next(4, 8))).ConfigureAwait(false);
-                    else if (e.Auction.Context.ContainsKey("cname"))
-                    {
-                        // copy the auction so we can modify it without affecting the original
-                        e.Auction = new SaveAuction(e.Auction);
-                        e.Auction.Context["cname"] = e.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.RED + ".");
-                    }
-                    logger.LogInformation($"Sent flip to {item.UserId} for {e.Auction.Uuid} ");
-                    var sendSuccessful = await item.SendFlip(e).ConfigureAwait(false);
-                    if (!sendSuccessful)
-                    {
-                        logger.LogInformation($"Failed to send flip to {item.UserId} for {e.Auction.Uuid}");
-                        localUsers.TryRemove(item, out _);
-                    }
-                    if (localUsers[item] < DateTime.Now)
-                    {
-                        localUsers.TryRemove(item, out _);
-                        logger.LogInformation("Removed user from flip list");
-                    }
+                    e = await SendFlipCorrectly(e, tilPurchasable, item).ConfigureAwait(false);
                 }
                 catch (System.Exception e)
                 {
@@ -165,6 +141,39 @@ public class PreApiService : BackgroundService
         // check if flip was sent to anyone 
         await Task.Delay(20_000).ConfigureAwait(false);
         // if not send to all users
+    }
+
+    public async Task<LowPricedAuction> SendFlipCorrectly(LowPricedAuction flip, TimeSpan tilPurchasable, IFlipConnection connection)
+    {
+        var userCount = preApiUsers.Count == 0 ? 1 : preApiUsers.Count;
+        var index = connection is MinecraftSocket socket ? preApiUsers.IndexOf(socket.UserId) : Random.Shared.Next(userCount);
+        if (index == -1)
+            logger.LogError($"User {connection.UserId} is not in pre api list");
+        var isMyRR = flip.Auction.UId % userCount == index;
+        if (!isMyRR)
+            await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(Random.Shared.Next(4, 8))).ConfigureAwait(false);
+        else if (flip.Auction.Context.ContainsKey("cname"))
+        {
+            // copy the auction so we can modify it without affecting the original
+            var context = flip.Auction.Context;
+            flip = new LowPricedAuction(flip);
+            flip.Auction.Context = new Dictionary<string, string>(context);
+            flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.RED + ".");
+        }
+        logger.LogInformation($"Sent flip to {connection.UserId} for {flip.Auction.Uuid} ");
+        var sendSuccessful = await connection.SendFlip(flip).ConfigureAwait(false);
+        if (!sendSuccessful)
+        {
+            logger.LogInformation($"Failed to send flip to {connection.UserId} for {flip.Auction.Uuid}");
+            localUsers.TryRemove(connection, out _);
+        }
+        if (localUsers.TryGetValue(connection, out var end) || end < DateTime.Now)
+        {
+            localUsers.TryRemove(connection, out _);
+            logger.LogInformation("Removed user from flip list");
+        }
+
+        return flip;
     }
 
     public void PurchaseMessage(IMinecraftSocket connection, string message)

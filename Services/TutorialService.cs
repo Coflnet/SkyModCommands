@@ -23,7 +23,7 @@ public class TutorialService : ITutorialService
     {
         var instance = GetInstance<T>();
         var userId = socket.AccountInfo?.UserId;
-        if (!userId.HasValue || userId.Value == 0)
+        if (string.IsNullOrEmpty(userId))
             return;
         var solved = await GetSolved(userId);
         if (solved.Value.Contains(instance.Name))
@@ -39,12 +39,12 @@ public class TutorialService : ITutorialService
         });
     }
 
-    private async Task<SelfUpdatingValue<HashSet<string>>> GetSolved(int? userId)
+    private async Task<SelfUpdatingValue<HashSet<string>>> GetSolved(string userId)
     {
         if (!ReadTutorials.TryGetValue(userId.ToString(), out var solved))
         {
-            solved = await SelfUpdatingValue<HashSet<string>>.Create(userId.ToString(), "solvedTutorials", () => new());
-            ReadTutorials.TryAdd(userId.ToString(), solved);
+            solved = await SelfUpdatingValue<HashSet<string>>.Create(userId, "solvedTutorials", () => new());
+            ReadTutorials.TryAdd(userId, solved);
         }
 
         return solved;

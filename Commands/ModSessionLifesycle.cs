@@ -126,7 +126,7 @@ namespace Coflnet.Sky.Commands.MC
             ConSpan.Log("subbing to settings of " + val);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(val, "flipSettings", () => DEFAULT_SETTINGS);
             var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(val, "accountSettings");
-            AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(val, "accountInfo", () => new AccountInfo() { UserId = int.Parse(val ?? "0") });
+            AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(val, "accountInfo", () => new AccountInfo() { UserId = val });
             FlipSettings = await flipSettingsTask;
 
             // make sure there is only one connection
@@ -219,12 +219,12 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
-                if (info.UserId == 0)
+                if (info.UserId.IsNullOrEmpty())
                 {
-                    info.UserId = (socket as IFlipConnection).UserId;
+                    info.UserId = socket.UserId;
                     await AccountInfo.Update(info);
                 }
-                var userIsTest = info.UserId > 0 && info.UserId < 10;
+                var userIsTest = info.UserIdOld > 0 && info.UserIdOld < 10;
                 if (info.ActiveConnectionId != SessionInfo.ConnectionId && !string.IsNullOrEmpty(info.ActiveConnectionId) && !userIsTest)
                 {
                     // wait for settings sync
@@ -355,7 +355,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             else if (accountInfo.Tier == AccountTier.STARTER_PREMIUM)
                 FlipperService.Instance.AddStarterConnection(socket, false);
-            else if (accountInfo.Tier == AccountTier.SUPER_PREMIUM || accountInfo.UserId == 7)
+            else if (accountInfo.Tier == AccountTier.SUPER_PREMIUM || accountInfo.UserId == "7")
             {
                 DiHandler.GetService<PreApiService>().AddUser(socket, accountInfo.ExpiresAt);
                 FlipperService.Instance.AddConnectionPlus(socket, false);
@@ -366,7 +366,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected virtual async Task SendAuthorizedHello(AccountInfo accountInfo)
         {
-            var user = UserService.Instance.GetUserById(accountInfo.UserId);
+            var user = UserService.Instance.GetUserById(int.Parse(accountInfo.UserId));
             var email = user.Email;
             string anonymisedEmail = UserService.Instance.AnonymiseEmail(email);
             if (this.SessionInfo.McName == null)
