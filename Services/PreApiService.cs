@@ -129,8 +129,8 @@ public class PreApiService : BackgroundService
             e.Auction.Context["cname"] += McColorCodes.DARK_GRAY + ".";
 
         var tilPurchasable = e.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow;
-        //if (tilPurchasable < TimeSpan.Zero)
-        tilPurchasable = TimeSpan.Zero;
+        if (tilPurchasable < TimeSpan.Zero)
+            tilPurchasable = TimeSpan.Zero;
         foreach (var item in localUsers.Keys)
         {
             _ = Task.Run(async () =>
