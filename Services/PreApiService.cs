@@ -162,7 +162,7 @@ public class PreApiService : BackgroundService
         var index = connection is MinecraftSocket socket ? preApiUsers.IndexOf(socket.UserId) : Random.Shared.Next(userCount);
         if (index == -1)
             logger.LogError($"User {connection.UserId} is not in pre api list");
-        var isMyRR = flip.Auction.UId % userCount == index;
+        var isMyRR = Math.Abs(flip.Auction.UId) % userCount == index;
         if (!isMyRR)
         {
             logger.LogInformation($"Waiting {tilPurchasable} for {flip.Auction.Uuid} to send to {connection.UserId} active users {JSON.Stringify(preApiUsers)}");
