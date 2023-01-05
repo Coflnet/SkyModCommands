@@ -166,7 +166,7 @@ public class PreApiService : BackgroundService
         if (!isMyRR)
         {
             logger.LogInformation($"Waiting {tilPurchasable} for {flip.Auction.Uuid} to send to {connection.UserId} active users {JSON.Stringify(preApiUsers)}");
-            await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(Random.Shared.Next(4, 8))).ConfigureAwait(false);
+            await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(Random.Shared.Next(3, 5))).ConfigureAwait(false);
         }
         else if (flip.Auction.Context.ContainsKey("cname"))
         {
