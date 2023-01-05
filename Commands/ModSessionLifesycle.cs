@@ -214,7 +214,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             using var span = socket.CreateActivity("AuthUpdate", ConSpan)
                     .AddTag("premium", info.Tier.ToString())
-                    .AddTag("userId", info.UserId.ToString());
+                    .AddTag("userId", info.UserId?.ToString());
 
             try
             {
