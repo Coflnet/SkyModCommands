@@ -176,7 +176,7 @@ public class PreApiService : BackgroundService
             flip.Auction.Context = new Dictionary<string, string>(context);
             flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.RED + ".");
         }
-        logger.LogInformation($"Sent flip to {connection.UserId} for {flip.Auction.Uuid} ");
+        logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} index {index}");
         var sendSuccessful = await connection.SendFlip(flip).ConfigureAwait(false);
         if (!sendSuccessful)
         {
