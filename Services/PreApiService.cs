@@ -176,14 +176,14 @@ public class PreApiService : BackgroundService
             flip.Auction.Context = new Dictionary<string, string>(context);
             flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.RED + ".");
         }
-        logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} index {index}");
+        logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} index {index} {flip.Auction.UId % userCount} uid {flip.Auction.UId}");
         var sendSuccessful = await connection.SendFlip(flip).ConfigureAwait(false);
         if (!sendSuccessful)
         {
             logger.LogInformation($"Failed to send flip to {connection.UserId} for {flip.Auction.Uuid}");
             localUsers.TryRemove(connection, out _);
         }
-        if (localUsers.TryGetValue(connection, out var end) || end < DateTime.UtcNow)
+        if (!localUsers.TryGetValue(connection, out var end) || end < DateTime.UtcNow)
         {
             localUsers.TryRemove(connection, out _);
             logger.LogInformation("Removed user from flip list");
