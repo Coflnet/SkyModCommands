@@ -187,9 +187,9 @@ namespace Coflnet.Sky.Commands.MC
             {
                 NextUpdateStart += () =>
                 {
-                    var startTime = DateTime.Now;
+                    var startTime = DateTime.UtcNow;
                     GC.Collect();
-                    Console.WriteLine("next update " + (DateTime.Now - startTime));
+                    Console.WriteLine("next update " + (DateTime.UtcNow - startTime));
                 };
                 NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
                 tenSecTimer = new System.Threading.Timer((e) =>

@@ -22,7 +22,7 @@ namespace Coflnet.Sky.ModCommands.Controllers
             foreach (var item in flips)
             {
                 item.Auction.Uuid = Guid.NewGuid().ToString().Replace("-", "");
-                item.Auction.Context = new() { { "pre-api", "" } };
+                item.Auction.Context = new() { { "pre-api", "" }, { "cname", item.Auction.ItemName } };
             }
             //Console.WriteLine(JsonConvert.SerializeObject(flips, Formatting.Indented));
             await FlipperService.Instance.DeliverLowPricedAuctions(flips);

@@ -39,7 +39,7 @@ public class PreApiTests
         LowPricedAuction lastFlip = null;
         con.Setup(c => c.SendFlip(It.IsAny<LowPricedAuction>())).Callback<LowPricedAuction>((obj) => lastFlip = obj).ReturnsAsync(true);
         var connection = con.Object;
-        service.AddUser(connection, DateTime.Now + TimeSpan.FromHours(1));
+        service.AddUser(connection, DateTime.UtcNow + TimeSpan.FromHours(1));
 
         await service.SendFlipCorrectly(flip, TimeSpan.Zero, connection);
         

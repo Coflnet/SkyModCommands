@@ -46,7 +46,7 @@ public class PreApiService : BackgroundService
             {
                 var sell = MessagePack.MessagePackSerializer.Deserialize<Sell>(message);
                 sold.TryAdd(sell.Uuid, DateTime.UtcNow);
-                if (sell.Uuid == Dns.GetHostName() && DateTime.Now.Minute % 5 == 0)
+                if (sell.Uuid == Dns.GetHostName() && DateTime.UtcNow.Minute % 5 == 0)
                     logger.LogInformation("got mod sell redis heartbeat");
             }
             catch (System.Exception e)
@@ -113,12 +113,24 @@ public class PreApiService : BackgroundService
 
     private async Task PreApiLowPriceHandler(FlipperService sender, LowPricedAuction e)
     {
-        if (e.Auction.Context.ContainsKey("cname"))
+        try
+        {
+            await DistributeFlip(e).ConfigureAwait(false);
+        }
+        catch (System.Exception ex)
+        {
+            logger.LogError(ex, $"Error while handling pre api low price {JSON.Stringify(localUsers)}\n{JSON.Stringify(e)}");
+        }
+    }
+
+    private async Task<LowPricedAuction> DistributeFlip(LowPricedAuction e)
+    {
+        if (e.Auction?.Context?.ContainsKey("cname") ?? false)
             e.Auction.Context["cname"] += McColorCodes.DARK_GRAY + ".";
 
         var tilPurchasable = e.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow;
         //if (tilPurchasable < TimeSpan.Zero)
-            tilPurchasable = TimeSpan.Zero;
+        tilPurchasable = TimeSpan.Zero;
         foreach (var item in localUsers.Keys)
         {
             _ = Task.Run(async () =>
@@ -133,14 +145,15 @@ public class PreApiService : BackgroundService
                 }
             }).ConfigureAwait(false);
         }
-        var profit = e.TargetPrice - e.Auction.StartingBid;
+        var profit = e.TargetPrice - e.Auction?.StartingBid;
         if (profit > 0)
-            logger.LogInformation($"Pre-api low price handler called for {e.Auction.Uuid} profit {profit} users {localUsers.Count}");
+            logger.LogInformation($"Pre-api low price handler called for {e?.Auction?.Uuid} profit {profit} users {localUsers?.Count}");
 
         await Task.Delay(tilPurchasable).ConfigureAwait(false);
         // check if flip was sent to anyone 
         await Task.Delay(20_000).ConfigureAwait(false);
         // if not send to all users
+        return e;
     }
 
     public async Task<LowPricedAuction> SendFlipCorrectly(LowPricedAuction flip, TimeSpan tilPurchasable, IFlipConnection connection)
@@ -170,7 +183,7 @@ public class PreApiService : BackgroundService
             logger.LogInformation($"Failed to send flip to {connection.UserId} for {flip.Auction.Uuid}");
             localUsers.TryRemove(connection, out _);
         }
-        if (localUsers.TryGetValue(connection, out var end) || end < DateTime.Now)
+        if (localUsers.TryGetValue(connection, out var end) || end < DateTime.UtcNow)
         {
             localUsers.TryRemove(connection, out _);
             logger.LogInformation("Removed user from flip list");
@@ -190,7 +203,7 @@ public class PreApiService : BackgroundService
         if (flip != null)
         {
             var uuid = flip.Auction.Uuid;
-            logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.Now}");
+            logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.UtcNow}");
             PublishSell(uuid);
         }
         else
