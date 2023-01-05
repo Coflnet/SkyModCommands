@@ -21,14 +21,29 @@ namespace Coflnet.Sky.ModCommands.Services
         {
             var otherUsers = FlipperService.Instance.Connections;
             premUserCount.Set(FlipperService.Instance.PremiumUserCount);
-            var result = otherUsers.Where(c => c?.Connection != null).Select(c => new
-            {
-                c.ChannelCount,
-                c.Connection.Settings?.Visibility,
-                c.Connection.Settings?.ModSettings,
-                c.Connection.Settings?.BasedOnLBin,
-                c.Connection.Settings?.AllowedFinders,
-                c.Connection.UserId
+            var result = otherUsers.Where(c => c?.Connection != null).Select(c => {
+                try
+                {
+                    
+                    return new
+                    {
+                        c.ChannelCount,
+                        c.Connection.Settings?.Visibility,
+                        c.Connection.Settings?.ModSettings,
+                        c.Connection.Settings?.BasedOnLBin,
+                        c.Connection.Settings?.AllowedFinders,
+                        c.Connection.UserId
+                    };
+                }
+                catch(Coflnet.Sky.Core.CoflnetException)
+                {
+                    return null;
+                }
+                catch (System.Exception e)
+                {
+                    dev.Logger.Instance.Error(e, "taking snapshot");
+                    return null;
+                }
             });
             var state = JsonConvert.SerializeObject(result, Formatting.Indented);
             _snapShots.Enqueue(new SnapShot()

@@ -151,7 +151,10 @@ public class PreApiService : BackgroundService
             logger.LogError($"User {connection.UserId} is not in pre api list");
         var isMyRR = flip.Auction.UId % userCount == index;
         if (!isMyRR)
+        {
+            logger.LogInformation($"Waiting {tilPurchasable} for {flip.Auction.Uuid} to send to {connection.UserId} active users {JSON.Stringify(preApiUsers)}");
             await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(Random.Shared.Next(4, 8))).ConfigureAwait(false);
+        }
         else if (flip.Auction.Context.ContainsKey("cname"))
         {
             // copy the auction so we can modify it without affecting the original
