@@ -29,6 +29,7 @@ public class PreApiService : BackgroundService
     IProductsApi productsApi;
     private List<string> preApiUsers = new();
     private ConcurrentDictionary<string, DateTime> sold = new();
+    private ConcurrentDictionary<string, DateTime> sent = new();
     public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi)
     {
         this.redis = redis;
@@ -44,14 +45,27 @@ public class PreApiService : BackgroundService
         {
             try
             {
-                var sell = MessagePack.MessagePackSerializer.Deserialize<Sell>(message);
+                var sell = MessagePack.MessagePackSerializer.Deserialize<Auction>(message);
                 sold.TryAdd(sell.Uuid, DateTime.UtcNow);
                 if (sell.Uuid == Dns.GetHostName() && DateTime.UtcNow.Minute % 5 == 0)
                     logger.LogInformation("got mod sell redis heartbeat");
+                sent.TryRemove(sell.Uuid, out _);
             }
             catch (System.Exception e)
             {
                 logger.LogError(e, "failed to deserialize sell");
+            }
+        });
+        redis.GetSubscriber().Subscribe("auction_sent", (channel, message) =>
+        {
+            try
+            {
+                var send = MessagePack.MessagePackSerializer.Deserialize<Auction>(message);
+                sent.AddOrUpdate(send.Uuid, DateTime.UtcNow, (key, old) => DateTime.UtcNow);
+            }
+            catch (System.Exception e)
+            {
+                logger.LogError(e, "failed to deserialize send");
             }
         });
         // here to trigger the creation of the service
@@ -137,7 +151,9 @@ public class PreApiService : BackgroundService
             {
                 try
                 {
-                    e = await SendFlipCorrectly(e, tilPurchasable, item).ConfigureAwait(false);
+                    var shouldSendForward = await SendFlipCorrectly(e, tilPurchasable, item).ConfigureAwait(false);
+                    if (shouldSendForward)
+                        await SendFlipCorrectly(e, tilPurchasable, item).ConfigureAwait(false);
                 }
                 catch (System.Exception e)
                 {
@@ -156,7 +172,14 @@ public class PreApiService : BackgroundService
         return e;
     }
 
-    public async Task<LowPricedAuction> SendFlipCorrectly(LowPricedAuction flip, TimeSpan tilPurchasable, IFlipConnection connection)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="flip"></param>
+    /// <param name="tilPurchasable"></param>
+    /// <param name="connection"></param>
+    /// <returns>true if delay should be skipped for others</returns>
+    public async Task<bool> SendFlipCorrectly(LowPricedAuction flip, TimeSpan tilPurchasable, IFlipConnection connection)
     {
         var userCount = preApiUsers.Count == 0 ? 1 : preApiUsers.Count;
         var index = connection is MinecraftSocket socket ? preApiUsers.IndexOf(socket.UserId) : Random.Shared.Next(userCount);
@@ -166,7 +189,14 @@ public class PreApiService : BackgroundService
         if (!isMyRR)
         {
             logger.LogInformation($"Waiting {tilPurchasable} for {flip.Auction.Uuid} to send to {connection.UserId} active users {JSON.Stringify(preApiUsers)}");
-            await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(Random.Shared.Next(3, 5))).ConfigureAwait(false);
+            await Task.Delay(tilPurchasable - TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            // check if rr was sent to user, if not send to all users
+            if (sent.ContainsKey(flip.Auction.Uuid))
+                await Task.Delay(TimeSpan.FromSeconds(Random.Shared.Next(3, 5))).ConfigureAwait(false);
+            else
+            {
+                flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.BLACK + ".");
+            }
         }
         else if (flip.Auction.Context.ContainsKey("cname"))
         {
@@ -176,7 +206,7 @@ public class PreApiService : BackgroundService
             flip.Auction.Context = new Dictionary<string, string>(context);
             flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.RED + ".");
         }
-        logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} index {index} {flip.Auction.UId % userCount} uid {flip.Auction.UId}");
+        logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} index {index} {flip.Auction.UId % userCount} forward {sent.ContainsKey(flip.Auction.Uuid)}");
         var sendSuccessful = await connection.SendFlip(flip).ConfigureAwait(false);
         if (!sendSuccessful)
         {
@@ -189,7 +219,16 @@ public class PreApiService : BackgroundService
             logger.LogInformation("Removed user from flip list");
         }
 
-        return flip;
+        if (!isMyRR)
+            return false;
+
+        await Task.Delay(tilPurchasable - TimeSpan.FromSeconds(2.5)).ConfigureAwait(false);
+        if ((connection as MinecraftSocket).LastSent.Contains(flip))
+        {
+            PublishReceive(flip.Auction.Uuid);
+            return false;
+        }
+        return true;
     }
 
     public void PurchaseMessage(IMinecraftSocket connection, string message)
@@ -212,11 +251,16 @@ public class PreApiService : BackgroundService
 
     private void PublishSell(string uuid)
     {
-        redis.GetSubscriber().Publish("auction_sell", MessagePack.MessagePackSerializer.Serialize(new Sell { Uuid = uuid }));
+        redis.GetSubscriber().Publish("auction_sell", MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid }));
+    }
+
+    private void PublishReceive(string uuid)
+    {
+        redis.GetSubscriber().Publish("auction_sent", MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid }));
     }
 
     [MessagePack.MessagePackObject]
-    public class Sell
+    public class Auction
     {
         [MessagePack.Key(0)]
         public string Uuid { get; set; }
