@@ -189,7 +189,10 @@ public class PreApiService : BackgroundService
         if (!isMyRR)
         {
             logger.LogInformation($"Waiting {tilPurchasable} for {flip.Auction.Uuid} to send to {connection.UserId} active users {JSON.Stringify(preApiUsers)}");
-            await Task.Delay(tilPurchasable - TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            var toWait = tilPurchasable - TimeSpan.FromSeconds(2);
+            if(toWait < TimeSpan.FromSeconds(1.5))
+                toWait = TimeSpan.FromSeconds(1.5);
+            await Task.Delay(toWait).ConfigureAwait(false);
             // check if rr was sent to user, if not send to all users
             if (sent.ContainsKey(flip.Auction.Uuid))
                 await Task.Delay(TimeSpan.FromSeconds(Random.Shared.Next(3, 5))).ConfigureAwait(false);
@@ -222,8 +225,9 @@ public class PreApiService : BackgroundService
         if (!isMyRR)
             return false;
 
-        await Task.Delay(tilPurchasable - TimeSpan.FromSeconds(2.5)).ConfigureAwait(false);
-        if ((connection as MinecraftSocket).LastSent.Contains(flip))
+        if (tilPurchasable > TimeSpan.FromSeconds(2.5))
+            await Task.Delay(tilPurchasable - TimeSpan.FromSeconds(2.5)).ConfigureAwait(false);
+        if ((connection as MinecraftSocket)?.LastSent.Contains(flip) ?? false)
         {
             PublishReceive(flip.Auction.Uuid);
             return false;
