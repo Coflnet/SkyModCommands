@@ -242,6 +242,8 @@ public class PreApiService : BackgroundService
     private static LowPricedAuction ChangeFlipDotColor(LowPricedAuction flip, string color)
     {
         var context = flip.Auction.Context;
+        if(context == null)
+            return flip;
         flip = new LowPricedAuction(flip);
         flip.Auction.Context = new Dictionary<string, string>(context);
         flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", color + ".");
