@@ -20,7 +20,7 @@ public class PreApiTests
     {
 
         flipperService = new FlipperService();
-        service = new PreApiService(null, flipperService, NullLogger<PreApiService>.Instance, null);
+        service = new PreApiService(null, flipperService, NullLogger<PreApiService>.Instance, null, null);
     }
 
     [Test]

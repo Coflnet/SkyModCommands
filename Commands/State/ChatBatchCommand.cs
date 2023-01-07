@@ -17,13 +17,13 @@ namespace Coflnet.Sky.Commands.MC
     public class ChatBatchCommand : McCommand
     {
 
-        public override Task Execute(MinecraftSocket socket, string arguments)
+        public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var batch = JsonConvert.DeserializeObject<List<string>>(arguments);
             if (batch[0] == "You cannot view this auction!")
                 socket.SendMessage(COFLNET + "You have to use a booster cookie or be on the hub island to open auctions. \nClick to warp to hub", "/hub", "warp to hup");
             if (batch[0].Contains("§a❈ Defense"))
-                return Task.CompletedTask; // dismiss stat update
+                return; // dismiss stat update
             var config = socket.GetService<IConfiguration>();
             var playerId = socket.SessionInfo?.McName;
             if (playerId == "Ekwav")
@@ -43,13 +43,14 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     if (item.StartsWith("You purchased"))
                         socket.GetService<PreApiService>().PurchaseMessage(socket, item);
+                    if (item.StartsWith("BIN Auction started"))
+                        await socket.GetService<PreApiService>().ListingMessage(socket, item);
                 }
             }
             catch (System.Exception e)
             {
                 Console.WriteLine("chat produce failed " + e);
             }
-            return Task.CompletedTask;
         }
     }
 }

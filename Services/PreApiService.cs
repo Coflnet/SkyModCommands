@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using StackExchange.Redis;
 using Coflnet.Sky.Core;
-using Microsoft.Extensions.Configuration;
+using Coflnet.Sky.Proxy.Client.Api;
 using Microsoft.Extensions.Logging;
 using Coflnet.Sky.Commands.Shared;
 using System.Collections.Concurrent;
@@ -27,16 +27,18 @@ public class PreApiService : BackgroundService
     ILogger<PreApiService> logger;
     static private ConcurrentDictionary<IFlipConnection, DateTime> localUsers = new();
     IProductsApi productsApi;
+    IBaseApi baseApi;
     private List<string> preApiUsers = new();
     private ConcurrentDictionary<string, DateTime> sold = new();
     private ConcurrentDictionary<string, DateTime> sent = new();
-    public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi)
+    public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi, IBaseApi baseApi)
     {
         this.redis = redis;
         this.logger = logger;
 
         flipperService.PreApiLowPriceHandler += PreApiLowPriceHandler;
         this.productsApi = productsApi;
+        this.baseApi = baseApi;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -168,10 +170,13 @@ public class PreApiService : BackgroundService
         if (profit > 0)
             logger.LogInformation($"Pre-api low price handler called for {e?.Auction?.Uuid} profit {profit} users {localUsers?.Count}");
 
-        await Task.Delay(tilPurchasable).ConfigureAwait(false);
+        await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(2)).ConfigureAwait(false);
         // check if flip was sent to anyone 
-        await Task.Delay(20_000).ConfigureAwait(false);
-        // if not send to all users
+        if (sent.ContainsKey(e.Auction.Uuid))
+            return e; // if not send to all users
+
+        // send out after delay
+        await Task.Delay(15_000).ConfigureAwait(false);
         return e;
     }
 
@@ -201,16 +206,12 @@ public class PreApiService : BackgroundService
                 await Task.Delay(TimeSpan.FromSeconds(Random.Shared.Next(3, 5))).ConfigureAwait(false);
             else
             {
-                flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.GREEN + ".");
+                flip = ChangeFlipDotColor(flip, McColorCodes.GREEN);
             }
         }
         else if (flip.Auction.Context.ContainsKey("cname"))
         {
-            // copy the auction so we can modify it without affecting the original
-            var context = flip.Auction.Context;
-            flip = new LowPricedAuction(flip);
-            flip.Auction.Context = new Dictionary<string, string>(context);
-            flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.RED + ".");
+            flip = ChangeFlipDotColor(flip, McColorCodes.RED);
         }
         logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} index {index} {flip.Auction.UId % userCount} forward {!sent.ContainsKey(flip.Auction.Uuid)}");
         var sendSuccessful = await connection.SendFlip(flip).ConfigureAwait(false);
@@ -225,11 +226,9 @@ public class PreApiService : BackgroundService
             logger.LogInformation("Removed user from flip list");
         }
 
-        if (!isMyRR)
-            return false;
-
         if (tilPurchasable > TimeSpan.FromSeconds(2.5))
             await Task.Delay(tilPurchasable - TimeSpan.FromSeconds(2.5)).ConfigureAwait(false);
+
         if ((connection as MinecraftSocket)?.LastSent.Contains(flip) ?? false)
         {
             logger.LogInformation($"Flip was sent out to {(connection as MinecraftSocket).SessionInfo.McName} {flip.Auction.Uuid}");
@@ -237,6 +236,15 @@ public class PreApiService : BackgroundService
             return false;
         }
         return true;
+    }
+
+    private static LowPricedAuction ChangeFlipDotColor(LowPricedAuction flip, string color)
+    {
+        var context = flip.Auction.Context;
+        flip = new LowPricedAuction(flip);
+        flip.Auction.Context = new Dictionary<string, string>(context);
+        flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", color + ".");
+        return flip;
     }
 
     public void PurchaseMessage(IMinecraftSocket connection, string message)
@@ -256,6 +264,12 @@ public class PreApiService : BackgroundService
         else
             logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");
     }
+    public async Task ListingMessage(IMinecraftSocket connection, string message)
+    {
+        await baseApi.BaseAhPlayerIdPostAsync(connection.SessionInfo.McUuid);
+        logger.LogInformation($"Checking auctions for {connection.SessionInfo.McName} {connection.SessionInfo.McUuid} {message}");
+    }
+
 
     private void PublishSell(string uuid)
     {

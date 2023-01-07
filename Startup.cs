@@ -16,7 +16,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using OpenTracing;
-using OpenTracing.Util;
+using Coflnet.Sky.Proxy.Client.Api;
 using Prometheus;
 using Coflnet.Sky.Api.Client.Api;
 using StackExchange.Redis;
@@ -56,7 +56,7 @@ namespace Coflnet.Sky.ModCommands
             );
             services.AddHostedService<ModBackgroundService>();
             services.AddSingleton<FlipperService>();
-            services.AddHostedService<FlipperService>(s=>s.GetRequiredService<FlipperService>());
+            services.AddHostedService<FlipperService>(s => s.GetRequiredService<FlipperService>());
             services.AddJaeger(Configuration, 1, 1);
             services.AddTransient<ModService>();
             services.AddSingleton<ModeratorService>();
@@ -65,8 +65,9 @@ namespace Coflnet.Sky.ModCommands
             services.AddSingleton<IFlipApi, FlipApi>(s => new FlipApi(Configuration["API_BASE_URL"]));
             services.AddSingleton<PreApiService>();
             services.AddSingleton<ConnectionMultiplexer>(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));
+            services.AddSingleton<IBaseApi, BaseApi>(s => new BaseApi(Configuration["PROXY_BASE_URL"]));
             services.AddCoflService();
-            services.AddHostedService<PreApiService>(s=>s.GetRequiredService<PreApiService>());
+            services.AddHostedService<PreApiService>(s => s.GetRequiredService<PreApiService>());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
