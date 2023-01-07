@@ -156,9 +156,7 @@ public class PreApiService : BackgroundService
             {
                 try
                 {
-                    var shouldSendForward = await SendFlipCorrectly(e, tilPurchasable, item).ConfigureAwait(false);
-                    if (shouldSendForward)
-                        await SendFlipCorrectly(e, tilPurchasable, item).ConfigureAwait(false);
+                    await SendFlipCorrectly(e, tilPurchasable, item).ConfigureAwait(false);
                 }
                 catch (System.Exception e)
                 {
@@ -187,8 +185,11 @@ public class PreApiService : BackgroundService
     /// <param name="tilPurchasable"></param>
     /// <param name="connection"></param>
     /// <returns>true if delay should be skipped for others</returns>
-    public async Task<bool> SendFlipCorrectly(LowPricedAuction flip, TimeSpan tilPurchasable, IFlipConnection connection)
+    public async Task SendFlipCorrectly(LowPricedAuction flip, TimeSpan tilPurchasable, IFlipConnection connection)
     {
+        var profit = flip.TargetPrice - flip.Auction?.StartingBid;
+        if (profit < 300_000 && flip.Finder != LowPricedAuction.FinderType.USER)
+            return;
         var userCount = preApiUsers.Count == 0 ? 1 : preApiUsers.Count;
         var index = connection is MinecraftSocket socket ? preApiUsers.IndexOf(socket.UserId) : Random.Shared.Next(userCount);
         if (index == -1)
@@ -213,7 +214,9 @@ public class PreApiService : BackgroundService
         {
             flip = ChangeFlipDotColor(flip, McColorCodes.RED);
         }
-        logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} index {index} {flip.Auction.UId % userCount} forward {!sent.ContainsKey(flip.Auction.Uuid)}");
+        if (profit > 1_000_000)
+            logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} "
+                                + $"index {index} {flip.Auction.UId % userCount} forward {!sent.ContainsKey(flip.Auction.Uuid)} {flip.Auction.Context.GetValueOrDefault("pre-api")}");
         var sendSuccessful = await connection.SendFlip(flip).ConfigureAwait(false);
         if (!sendSuccessful)
         {
@@ -233,9 +236,7 @@ public class PreApiService : BackgroundService
         {
             logger.LogInformation($"Flip was sent out to {(connection as MinecraftSocket).SessionInfo.McName} {flip.Auction.Uuid}");
             PublishReceive(flip.Auction.Uuid);
-            return false;
         }
-        return true;
     }
 
     private static LowPricedAuction ChangeFlipDotColor(LowPricedAuction flip, string color)

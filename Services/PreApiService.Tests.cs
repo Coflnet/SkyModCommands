@@ -33,6 +33,7 @@ public class PreApiTests
                 Uuid = "abcdef1234567890abcdef1234567890",
                 Context = new() { { "cname", "test§8." } }
             },
+            TargetPrice = 2_000_000
         };
         var con = new Mock<IFlipConnection>();
         con.SetupGet(c => c.UserId).Returns("5");
