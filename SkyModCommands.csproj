@@ -14,20 +14,6 @@
     <ProjectReference Include="../SkyBackendForFrontend/SkyBackendForFrontend.csproj" />
     <ProjectReference Include="../websocket-sharp/websocket-sharp/websocket-sharp.csproj" />
   </ItemGroup>
-  <PropertyGroup>
-    <DefaultItemExcludes>$(DefaultItemExcludes);Client\**\*</DefaultItemExcludes>
-  </PropertyGroup>
-  <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <Compile Remove="**\*.Tests.cs" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(Configuration)' != 'Release'">
-    <PackageReference Include="Coflnet.Sky.Proxy.Client" Version="0.0.1" />
-    <PackageReference Include="Moq" Version="4.18.1" />
-    <PackageReference Include="nunit" Version="3.13.2" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
-  </ItemGroup>
-
 
   <ItemGroup>
     <PackageReference Include="Figgle" Version="0.4.0" />
@@ -45,6 +31,19 @@
     <PackageReference Include="prometheus-net.AspNetCore" Version="5.0.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.5" />
     <PackageReference Include="Coflnet.Sky.Api.Client" Version="0.2.0" />
+    <PackageReference Include="Coflnet.Sky.Proxy.Client" Version="0.0.1" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Client\**\*</DefaultItemExcludes>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <Compile Remove="**\*.Tests.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
+    <PackageReference Include="Moq" Version="4.18.1" />
+    <PackageReference Include="nunit" Version="3.13.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+  </ItemGroup>
 </Project>
