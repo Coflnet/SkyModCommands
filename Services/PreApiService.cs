@@ -47,8 +47,6 @@ public class PreApiService : BackgroundService
             {
                 var sell = MessagePack.MessagePackSerializer.Deserialize<Auction>(message);
                 sold.TryAdd(sell.Uuid, DateTime.UtcNow);
-                if (sell.Uuid == Dns.GetHostName() && DateTime.UtcNow.Minute % 5 == 0)
-                    logger.LogInformation("got mod sell redis heartbeat");
                 sent.TryRemove(sell.Uuid, out _);
             }
             catch (System.Exception e)
@@ -62,6 +60,10 @@ public class PreApiService : BackgroundService
             {
                 var send = MessagePack.MessagePackSerializer.Deserialize<Auction>(message);
                 sent.AddOrUpdate(send.Uuid, DateTime.UtcNow, (key, old) => DateTime.UtcNow);
+                if (send.Uuid == Dns.GetHostName() && DateTime.UtcNow.Minute % 5 == 0)
+                    logger.LogInformation("got mod sent redis heartbeat");
+                else
+                    logger.LogInformation($"got mod sent confirm from {send.Uuid}");
             }
             catch (System.Exception e)
             {
@@ -76,6 +78,7 @@ public class PreApiService : BackgroundService
                 SendEndWarnings();
                 await RefreshUsers();
                 PublishSell(Dns.GetHostName());
+                PublishReceive(Dns.GetHostName());
             }
             catch (System.Exception e)
             {
@@ -190,7 +193,7 @@ public class PreApiService : BackgroundService
         {
             logger.LogInformation($"Waiting {tilPurchasable} for {flip.Auction.Uuid} to send to {connection.UserId} active users {JSON.Stringify(preApiUsers)}");
             var toWait = tilPurchasable - TimeSpan.FromSeconds(2);
-            if(toWait < TimeSpan.FromSeconds(1.5))
+            if (toWait < TimeSpan.FromSeconds(1.5))
                 toWait = TimeSpan.FromSeconds(1.5);
             await Task.Delay(toWait).ConfigureAwait(false);
             // check if rr was sent to user, if not send to all users
@@ -198,7 +201,7 @@ public class PreApiService : BackgroundService
                 await Task.Delay(TimeSpan.FromSeconds(Random.Shared.Next(3, 5))).ConfigureAwait(false);
             else
             {
-                flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.BLACK + ".");
+                flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.GREEN + ".");
             }
         }
         else if (flip.Auction.Context.ContainsKey("cname"))
@@ -209,7 +212,7 @@ public class PreApiService : BackgroundService
             flip.Auction.Context = new Dictionary<string, string>(context);
             flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", McColorCodes.RED + ".");
         }
-        logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} index {index} {flip.Auction.UId % userCount} forward {sent.ContainsKey(flip.Auction.Uuid)}");
+        logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} index {index} {flip.Auction.UId % userCount} forward {!sent.ContainsKey(flip.Auction.Uuid)}");
         var sendSuccessful = await connection.SendFlip(flip).ConfigureAwait(false);
         if (!sendSuccessful)
         {
@@ -229,6 +232,7 @@ public class PreApiService : BackgroundService
             await Task.Delay(tilPurchasable - TimeSpan.FromSeconds(2.5)).ConfigureAwait(false);
         if ((connection as MinecraftSocket)?.LastSent.Contains(flip) ?? false)
         {
+            logger.LogInformation($"Flip was sent out to {(connection as MinecraftSocket).SessionInfo.McName} {flip.Auction.Uuid}");
             PublishReceive(flip.Auction.Uuid);
             return false;
         }
