@@ -12,7 +12,10 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var args = Newtonsoft.Json.JsonConvert.DeserializeObject<string>(arguments);
-            var subArgs = args.Substring(args.IndexOf(' ') + 1);
+            var subArgStart = args.IndexOf(' ');
+            var subArgs = args.Substring(subArgStart + 1);
+            if(subArgStart == -1)
+                subArgs = "";
             switch (args.Split(' ').First())
             {
                 case "list":
@@ -182,7 +185,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var list = await GetList(socket);
             var pageSize = 12;
-            if (!int.TryParse(subArgs, out int page))
+            if (!int.TryParse(subArgs, out int page) && !string.IsNullOrWhiteSpace(subArgs))
             {
                 // is search value 
                 socket.Dialog(db => db.MsgLine($"Search for {McColorCodes.AQUA}{subArgs}{DEFAULT_COLOR} resulted in:").
