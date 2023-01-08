@@ -2,6 +2,7 @@ using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Newtonsoft.Json;
+using System;
 
 namespace Coflnet.Sky.ModCommands.Dialogs
 {
@@ -43,8 +44,17 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 "Find out why this was deemed a flip").Break
             .CoflCommand<BlacklistCommand>(
                 $" {redX}  Blacklist this item",
-                $"add {flip.Auction.Tag}",
-                $"Don't show this {McColorCodes.AQUA}{Sky.Core.ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GRAY} anymore").Break
+                $"add {flip.Auction.Tag} forceBlacklist=true",
+                $"Don't show {McColorCodes.AQUA}{Sky.Core.ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.RED} AT ALL anymore")
+            .CoflCommand<BlacklistCommand>(
+                $" {McColorCodes.GREEN}for 1week,",
+                $"add {flip.Auction.Tag} forceBlacklist=true removeAfter={DateTime.UtcNow.AddDays(7).ToString("s")}",
+                $"Don't show {McColorCodes.AQUA}{Sky.Core.ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GREEN} for a week")
+            .CoflCommand<BlacklistCommand>(
+                $" {McColorCodes.ITALIC}{McColorCodes.GREEN}1 day",
+                $"add {flip.Auction.Tag} forceBlacklist=true removeAfter={DateTime.UtcNow.AddDays(1).ToString("s")}",
+                $"Don't show {McColorCodes.AQUA}{Sky.Core.ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GREEN} for 24 hours")
+                .Break
             .MsgLine(
                 " ➹  Open on website",
                 $"https://sky.coflnet.com/a/{flip.Auction.Uuid}",

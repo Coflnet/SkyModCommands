@@ -24,7 +24,8 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override string LongFormat(ListEntry elem)
         {
-            return Format(elem) + $"\nTag: {elem.ItemTag ?? McColorCodes.BOLD + "all flips are affected by this"}";
+            var formattedTags = elem.Tags == null ? "" : " Tags: " + string.Join(',', elem.Tags.Select(t => $"{McColorCodes.AQUA}{t}{DEFAULT_COLOR}"));
+            return Format(elem) + $"\nTag: {elem.ItemTag ?? McColorCodes.BOLD + "all flips are affected by this"}" + formattedTags;
         }
 
         protected override string GetId(ListEntry elem)
@@ -60,12 +61,17 @@ namespace Coflnet.Sky.Commands.MC
         protected override async Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)
         {
             var filters = new Dictionary<string, string>();
-            var allFilters = FlipFilter.AllFilters;
+            var allFilters = FlipFilter.AllFilters.Append("removeAfter");
             if (val.Contains('='))
             {
                 val = await ParseFiltersAsync(socket, val, filters, allFilters);
             }
             List<Items.Client.Model.SearchResult> result = new List<Items.Client.Model.SearchResult>();
+            var removeAfter = filters.ContainsKey("removeAfter") ? filters["removeAfter"] : null;
+            if (removeAfter != null)
+            {
+                filters.Remove("removeAfter");
+            }
             if (val.Length < 1)
             {
                 // filter only element
@@ -81,6 +87,10 @@ namespace Coflnet.Sky.Commands.MC
             return result.Where(r => r?.Flags == null || r.Flags.Value.HasFlag(Items.Client.Model.ItemFlags.AUCTION)).Select(r =>
             {
                 var entry = new ListEntry() { ItemTag = r.Tag, DisplayName = r.Text, filter = filters };
+                if (removeAfter != null)
+                {
+                    entry.Tags = new List<string>() { "removeAfter=" + DateTime.Parse(removeAfter).RoundDown(TimeSpan.FromHours(1)).ToString("s") };
+                }
                 entry.GetExpression().Compile().Invoke(new FlipInstance()
                 {
                     Auction = new Core.SaveAuction()
@@ -90,7 +100,6 @@ namespace Coflnet.Sky.Commands.MC
                         NBTLookup = new List<Core.NBTLookup>(),
                         FlatenedNBT = new Dictionary<string, string>()
                     },
-
                 });
 
                 return new CreationOption()
@@ -131,6 +140,11 @@ namespace Coflnet.Sky.Commands.MC
                         var options = dff.Options;
                         AssertValidNumberFilter(filterName, filterVal, type);
                         filterVal = AssertValidOptionsFilter(filterName, filterVal, type, options);
+                    }
+                    else if (filterName == "removeAfter")
+                    {
+                        // is parseable
+                        DateTime.Parse(filterVal);
                     }
                     else
                     {

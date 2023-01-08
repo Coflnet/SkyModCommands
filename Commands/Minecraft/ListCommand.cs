@@ -182,7 +182,13 @@ namespace Coflnet.Sky.Commands.MC
         {
             var list = await GetList(socket);
             var pageSize = 12;
-            int.TryParse(subArgs, out int page);
+            if (!int.TryParse(subArgs, out int page))
+            {
+                // is search value 
+                socket.Dialog(db => db.MsgLine($"Search for {McColorCodes.AQUA}{subArgs}{DEFAULT_COLOR} resulted in:").
+                    ForEach(list.Where(e => (LongFormat(e) + GetId(e) + Format(e)).ToLower().Contains(subArgs.ToLower())), (d, e) => ListResponse(d, e)));
+                return;
+            }
             var totalPages = list.Count / pageSize;
             if (totalPages < page)
             {
@@ -195,8 +201,13 @@ namespace Coflnet.Sky.Commands.MC
                 .MsgLine($"Content (page {page}):", $"/cofl {Slug} ls {page + 1}", $"This is page {page} \nthere are {totalPages} pages\nclick this to show the next page")
                 .ForEach(list.Skip(page * pageSize).Take(pageSize), (d, e) =>
                 {
-                    FormatForList(d,e).MsgLine($" {McColorCodes.YELLOW}[REMOVE]{DEFAULT_COLOR}", $"/cofl {Slug} rm {GetId(e)}", $"remove {LongFormat(e)}");
+                    ListResponse(d, e);
                 }));
+        }
+
+        private void ListResponse(DialogBuilder d, TElem e)
+        {
+            FormatForList(d, e).MsgLine($" {McColorCodes.YELLOW}[REMOVE]{DEFAULT_COLOR}", $"/cofl {Slug} rm {GetId(e)}", $"remove {LongFormat(e)}");
         }
 
         protected virtual DialogBuilder FormatForList(DialogBuilder d, TElem e)

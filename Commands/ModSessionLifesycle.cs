@@ -424,6 +424,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (blockedFlipFilterCount > 1000)
                     span.SetTag("error", true);
                 SendReminders();
+                socket.TryAsyncTimes(RemoveTempFilters, "remove temp filters", 1);
             }
             catch (System.InvalidOperationException)
             {
@@ -449,6 +450,29 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (reminders?.Count > 0)
                 AccountSettings.Update().Wait();
+        }
+
+        private async Task RemoveTempFilters()
+        {
+            var update = false;
+            RemoveFilterFromList(FlipSettings.Value.WhiteList);
+            RemoveFilterFromList(FlipSettings.Value.BlackList);
+            if (update)
+                await FlipSettings.Update();
+
+            void RemoveFilterFromList(List<ListEntry> list)
+            {
+                foreach (var filter in list
+                                .Where(f => f.Tags != null
+                                    && f.Tags.Any(f => f.StartsWith("removeAfter=")
+                                    && DateTime.TryParse(f.Split('=').Last(), out var dt)
+                                    && dt < DateTime.UtcNow)).ToList())
+                {
+                    socket.SendMessage(COFLNET + $"Removed filter {filter.ItemTag} because it was set to expire");
+                    list.Remove(filter);
+                    update = true;
+                }
+            }
         }
 
         public virtual void StartTimer(double seconds = 10, string prefix = "§c")
