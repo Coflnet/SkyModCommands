@@ -165,7 +165,7 @@ public class PreApiService : BackgroundService
             }).ConfigureAwait(false);
         }
         var profit = e.TargetPrice - e.Auction?.StartingBid;
-        if (profit > 0)
+        if (profit > 1_000_000)
             logger.LogInformation($"Pre-api low price handler called for {e?.Auction?.Uuid} profit {profit} users {localUsers?.Count}");
 
         await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(2)).ConfigureAwait(false);
