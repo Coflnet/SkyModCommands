@@ -268,6 +268,11 @@ namespace Coflnet.Sky.Commands.MC
             NextUpdateStart += SendTimer;
         }
 
+        protected override void OnError(ErrorEventArgs e)
+        {
+            Log(e.Message, Microsoft.Extensions.Logging.LogLevel.Error);
+        }
+
         private void StartConnection()
         {
             var args = System.Web.HttpUtility.ParseQueryString(Context.RequestUri.Query);
