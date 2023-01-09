@@ -48,7 +48,7 @@ namespace Coflnet.Sky.Commands.MC
         public virtual async Task<bool> CheckVerificationStatus(AccountInfo accountInfo)
         {
             using var verificationSpan = socket.CreateActivity("VerificationCheck", ConSpan);
-            if (string.IsNullOrEmpty(SessionInfo.McUuid))
+            while (string.IsNullOrEmpty(SessionInfo.McUuid))
                 await Task.Delay(500).ConfigureAwait(false);
             var mcUuid = SessionInfo.McUuid;
             var userId = accountInfo.UserId.ToString();
@@ -91,6 +91,7 @@ namespace Coflnet.Sky.Commands.MC
                     accountInfo.McIds.Add(mcUuid);
                 return SessionInfo.VerifiedMc;
             }
+            verificationSpan.Log(JSON.Stringify(connect));
             await SendVerificationInstructions(connect);
 
             return false;
