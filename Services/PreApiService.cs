@@ -87,7 +87,7 @@ public class PreApiService : BackgroundService
                 logger.LogError(e, "failed to execute pre api service refresh");
             }
 
-            await Task.Delay(45000, stoppingToken);
+            await Task.Delay(45000, stoppingToken).ConfigureAwait(false);
         }
     }
 
@@ -269,7 +269,7 @@ public class PreApiService : BackgroundService
     }
     public async Task ListingMessage(IMinecraftSocket connection, string message)
     {
-        await baseApi.BaseAhPlayerIdPostAsync(connection.SessionInfo.McUuid);
+        await baseApi.BaseAhPlayerIdPostAsync(connection.SessionInfo.McUuid).ConfigureAwait(false);
         logger.LogInformation($"Checking auctions for {connection.SessionInfo.McName} {connection.SessionInfo.McUuid} {message}");
     }
 

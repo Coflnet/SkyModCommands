@@ -18,8 +18,7 @@ using System.Runtime.Serialization;
 using OpenTracing;
 using System.Runtime.CompilerServices;
 using System.Collections.Specialized;
-using WebSocketSharp.Net.WebSockets;
-using WebSocketSharp.Net;
+using System.Threading;
 #nullable enable
 namespace Coflnet.Sky.Commands.MC
 {
@@ -51,7 +50,7 @@ namespace Coflnet.Sky.Commands.MC
         T GetService<T>() where T : class;
         void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information);
         Activity RemoveMySelf();
-        void Send(Response response);
+        Task Send(Response response);
         Task SendBatch(IEnumerable<LowPricedAuction> flips);
         Task<bool> SendFlip(LowPricedAuction flip);
         Task<bool> SendFlip(FlipInstance flip);
@@ -637,10 +636,23 @@ namespace Coflnet.Sky.Commands.MC
             ConSpan?.AddEvent(new ActivityEvent("message", DateTimeOffset.Now, new(new KeyValuePair<string, object?>[] { new("message", message) })));
         }
 
-        public void Send(Response response)
+        private SemaphoreSlim sendLock = new(1, 1);
+        public async Task Send(Response response)
         {
             var json = JsonConvert.SerializeObject(response);
-            this.Send(json);
+            await sendLock.WaitAsync();
+            try
+            {
+                base.Send(json);
+            }
+            catch (Exception e)
+            {
+                Error(e, "sending response", json);
+            }
+            finally
+            {
+                sendLock.Release();
+            }
         }
 
         public async Task<bool> SendFlip(LowPricedAuction flip)
