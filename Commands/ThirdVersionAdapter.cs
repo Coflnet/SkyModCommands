@@ -23,14 +23,14 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var parts = await GetMessageparts(flip);
                 parts.Insert(0, new ChatPart(McColorCodes.RED + "[SOLD]", "/viewauction " + uuid, "This auction has likely already been sold"));
-                SendMessage(parts.ToArray());
+                await socket.Send(Response.Create("chatMessage", parts.ToArray()));
                 Activity.Current?.AddTag("sold", "true");
                 socket.GetService<ILogger<ThirdVersionAdapter>>().LogInformation("Not sending flip because it was sold");
                 return true;
             }
             long worth = GetWorth(flip);
 
-            socket.Send(Response.Create("flip", new
+            await socket.Send(Response.Create("flip", new
             {
                 messages = await GetMessageparts(flip),
                 id = uuid,
