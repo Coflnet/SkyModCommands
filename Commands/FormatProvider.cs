@@ -93,7 +93,7 @@ namespace Coflnet.Sky.Commands.MC
                 */
                 var source = flip.Auction.Context.ContainsKey("pre-api") ?
                         (flip.Context.ContainsKey("isRR") ? McColorCodes.RED + "PRE-RR" : "PRE")
-                        : (flip.Auction.Context["cname"].Contains(McColorCodes.GRAY + "!") ? "PREM+" : "");
+                        : (flip.Auction.Context["cname"].Contains(McColorCodes.DARK_GRAY + "!") ? "PREM+" : "");
                 return String.Format(Settings.ModSettings.Format,
                     finderType,
                     GetRarityColor(a.Tier),
