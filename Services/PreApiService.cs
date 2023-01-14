@@ -212,6 +212,7 @@ public class PreApiService : BackgroundService
         }
         else if (flip.Auction.Context.ContainsKey("cname"))
         {
+            flip.AdditionalProps["isRR"] = "y";
             flip = ChangeFlipDotColor(flip, McColorCodes.RED);
         }
         if (profit > 1_000_000)

@@ -74,7 +74,7 @@ namespace Coflnet.Sky.Commands.MC
             };
             var a = flip.Auction;
             var cost = a.HighestBidAmount == 0 ? a.StartingBid : a.HighestBidAmount;
-            if (!string.IsNullOrWhiteSpace(Settings.ModSettings?.Format))
+            if (!string.IsNullOrWhiteSpace(Settings.ModSettings?.Format) && flip.Auction.Context != null)
             {
                 /*
                     "\n{0}: {1}{2} {3}{4} -> {5} (+{6} {7}) Med: {8} Lbin: {9} Volume: {10}"
@@ -89,7 +89,11 @@ namespace Coflnet.Sky.Commands.MC
                     {8} Median Price
                     {9} Lowest Bin
                     {10}Volume
+                    {11} Flip source
                 */
+                var source = flip.Auction.Context.ContainsKey("pre-api") ?
+                        (flip.Context.ContainsKey("isRR") ? McColorCodes.RED + "PRE-RR" : "PRE")
+                        : (flip.Auction.Context["cname"].Contains(McColorCodes.GRAY + "!") ? "PREM+" : "");
                 return String.Format(Settings.ModSettings.Format,
                     finderType,
                     GetRarityColor(a.Tier),
@@ -101,7 +105,8 @@ namespace Coflnet.Sky.Commands.MC
                     FormatPrice((profit * 100 / cost)),
                     FormatPrice(flip.MedianPrice),
                     FormatPrice(flip.LowestBin ?? 0),
-                    flip.Volume.ToString("0.#")  // this is {10}
+                    flip.Volume.ToString("0.#"),  // this is {10}
+                    source
                 );
             }
             var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice((profit * 100 / cost))}%{priceColor}" : "";
