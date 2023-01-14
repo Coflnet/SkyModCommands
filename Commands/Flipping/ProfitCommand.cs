@@ -31,10 +31,16 @@ namespace Coflnet.Sky.Commands.MC
             var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
 
             var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, time);
+            if (response.Flips.Count() == 0)
+            {
+                socket.Dialog(db => db.MsgLine("Sorry we don't have any tracked flips for you yet"));
+                return;
+            }
             string hover = GetHoverText(socket, response);
             socket.SendMessage(COFLNET + $"According to our data you made {FormatPrice(socket, response.TotalProfit)} "
                 + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions"
-                + (accounts.Count() > 1 ? $" across your {accounts.Count()} accounts" : ""),
+                + (accounts.Count() > 1 ? $" across your {accounts.Count()} accounts" : "")
+                + $"\nYou spent {FormatPrice(socket, response.Flips.Sum(f => f.PricePaid))} with an average {FormatPrice(socket, (long)response.Flips.Average(f => f.Profit / f.PricePaid))}% profit margin",
                 null, hover);
             var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
             var best = sorted.FirstOrDefault();
