@@ -55,6 +55,12 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             return this;
         }
 
+        public DialogBuilder SeparatorLine()
+        {
+            Parts.Add(new ChatPart("---------------------------------\n"));
+            return this;
+        }
+
         /// <summary>
         /// Sets the default action for next parts
         /// </summary>

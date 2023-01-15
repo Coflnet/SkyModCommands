@@ -46,6 +46,7 @@ namespace Coflnet.Sky.ModCommands.MC
         {
             factory.StartNew(async () =>
             {
+                await Task.Delay(1000).ConfigureAwait(false);
                 while (true)
                 {
                     try
