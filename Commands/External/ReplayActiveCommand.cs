@@ -10,7 +10,7 @@ public class ReplayActiveCommand : McCommand
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         socket.Dialog(db => db
-            .MsgLine(McColorCodes.BOLD + "Replaying all active auctions against your filter...")
+            .MsgLine(McColorCodes.BOLD + "Replaying all active auctions against your filter...", null, "this will take a while")
             .SeparatorLine());
         if (await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
         {
@@ -19,7 +19,23 @@ public class ReplayActiveCommand : McCommand
                 $"{McColorCodes.RED}{McColorCodes.BOLD}ABORTED\n"
                 + $"{McColorCodes.RED}You need to be a premium plus user to use this command",
                 "premium_plus", $"Click to purchase prem+"));
-           // return; ignore this check for testing
+            return;
+        }
+        if (!socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.USER))
+        {
+            socket.Dialog(db => db.CoflCommand<SetCommand>(
+                 $"{McColorCodes.RED}You need to enable the USER flip finder in your flip settings to use this command",
+                "sniper,user", $"Click to enable sniper and user finders"));
+            return;
+        }
+        if (!socket.Settings.WhiteList.Any(w =>
+            (w.filter?.TryGetValue("FlipFinder", out var filter) ?? false)
+            && filter.Contains(LowPricedAuction.FinderType.USER.ToString())
+        {
+            socket.Dialog(db => db.CoflCommand<SetCommand>(
+                $"{McColorCodes.RED}You need to add a whitelist entry that allows USER flips to get any result",
+                "sniper,user", $"Click to enable sniper and user finders"));
+            return;
         }
         using var db = new HypixelContext();
         var select = db.Auctions.Where(a =>
@@ -33,7 +49,8 @@ public class ReplayActiveCommand : McCommand
             {
                 Auction = item,
                 Finder = LowPricedAuction.FinderType.USER,
-                AdditionalProps = new() { { "replay", "" } }
+                AdditionalProps = new() { { "replay", "" } },
+                TargetPrice = item.StartingBid
             });
         }
         socket.Dialog(db => db
