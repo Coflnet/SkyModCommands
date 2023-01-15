@@ -41,17 +41,31 @@ namespace Coflnet.Sky.Commands.MC
                                     .AddTag("uuid", socket.SessionInfo.McUuid)
                                     .AddTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
                                     .AddTag("timestamp", DateTime.UtcNow.ToLongTimeString());
-            using (var settingsSpan = socket.CreateActivity("settings",reportSpan))
-                settingsSpan.Log(JsonConvert.SerializeObject(socket.Settings, Formatting.Indented));
-            using (var blockedSpan = socket.CreateActivity("blocked",reportSpan))
+            using (var settingsSpan = socket.CreateActivity("settings", reportSpan))
+                settingsSpan.Log(JsonConvert.SerializeObject(new
+                {
+                    socket.Settings.Visibility,
+                    socket.Settings.ModSettings,
+                    socket.Settings.BasedOnLBin,
+                    socket.Settings.AllowedFinders,
+                    socket.Settings.MaxCost,
+                    socket.Settings.MinProfit,
+                    socket.Settings.MinProfitPercent,
+                    socket.Settings.MinVolume,
+                    socket.Settings.WhitelistAfterMain,
+                    Blacklist = socket.Settings.BlackList.Select(b => new { b.filter, b.ItemTag }),
+                    Whitelist = socket.Settings.WhiteList.Select(b => new { b.filter, b.ItemTag })
+
+                }, Formatting.Indented));
+            using (var blockedSpan = socket.CreateActivity("blocked", reportSpan))
                 for (int i = 0; i < 5; i++)
-                    blockedSpan.Log(JsonConvert.SerializeObject(socket.TopBlocked?.OrderByDescending(b => b.Now).Select(b=>b.Now + b.Reason + "\n").Skip(i * 25).Take(25), Formatting.Indented));
-            using (var lastSentSpan = socket.CreateActivity("lastSent",reportSpan))
+                    blockedSpan.Log(JsonConvert.SerializeObject(socket.TopBlocked?.OrderByDescending(b => b.Now).Select(b => $"{b.Flip.Auction.Uuid} {b.Now} {b.Reason}\n").Skip(i * 25).Take(25), Formatting.Indented));
+            using (var lastSentSpan = socket.CreateActivity("lastSent", reportSpan))
                 lastSentSpan.Log(JsonConvert.SerializeObject(socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20), Formatting.Indented));
-            reportSpan.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo));
+            reportSpan.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo, Formatting.Indented));
             spanId = reportSpan?.Context.TraceId.ToString().Truncate(6);
             reportSpan.SetTag("id", spanId);
-            using var snapshotSpan = socket.CreateActivity("snapshot",reportSpan);
+            using var snapshotSpan = socket.CreateActivity("snapshot", reportSpan);
             foreach (var item in SnapShotService.Instance.SnapShots)
             {
                 using var singlesnapshotSpan = socket.CreateActivity("snapshot", snapshotSpan);

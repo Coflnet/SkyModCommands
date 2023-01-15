@@ -22,12 +22,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public List<string> MinecraftUuids = new();
         public DateTime LastMessage;
-        public DateTime MutedUntil;
         public bool SentWelcome;
-        /// <summary>
-        /// Speed penalty for various bad actions eg botting
-        /// </summary>
-        public TimeSpan Penalty = TimeSpan.FromSeconds(2);
 
         public ChannelMessageQueue EventBrokerSub { get; internal set; }
 
@@ -36,7 +31,6 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <returns></returns>
         public HashSet<string> SentMutedNoteFor { get; set; } = new();
-        public int CaptchaFailedTimes => captchaInfo.RequireSolves;
         public bool LbinWarningSent { get; internal set; }
 
         public bool VerifiedMc;
@@ -50,7 +44,6 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public string ConnectionId = Guid.NewGuid().ToString();
         public TimeSpan RelativeSpeed = default;
-        public DateTime LastSpeedUpdate = default;
         public DateTime LastBlockedMsg = default;
         public DateTime LastCaptchaSolve => captchaInfo.LastSolve;
         public IEnumerable<string> CaptchaSolutions => captchaInfo.CurrentSolutions;
