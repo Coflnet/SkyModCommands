@@ -249,7 +249,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.LastSent.Enqueue(flip);
                 sentFlipsCount.Inc();
 
-                socket.sessionLifesycle.PingTimer.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(55));
+                socket.sessionLifesycle.PingTimer.Change(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(59));
 
                 if (timeToSend > TimeSpan.FromSeconds(15) && socket.AccountInfo?.Tier >= AccountTier.PREMIUM
                     && flip.Finder != LowPricedAuction.FinderType.FLIPPER && !(item.Interesting.FirstOrDefault()?.StartsWith("Bed") ?? false))
@@ -269,6 +269,8 @@ namespace Coflnet.Sky.Commands.MC
 
         private bool BlockedFlip(LowPricedAuction flip, string reason)
         {
+            if (socket.TopBlocked.Take(100).Any(b => b.Flip.Auction.Uuid == flip.Auction.Uuid && b.Flip.TargetPrice == flip.TargetPrice))
+                return false; // don't count block twice
             socket.TopBlocked.Enqueue(new()
             {
                 Flip = flip,
@@ -283,8 +285,12 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public void MinuteCleanup()
         {
-            _blockedFlipCounter = 0;
             spamController.Reset();
+        }
+
+        public void PingUpdate()
+        {
+            _blockedFlipCounter = 0;
         }
     }
 }

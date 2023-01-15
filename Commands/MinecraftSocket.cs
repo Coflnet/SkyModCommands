@@ -413,7 +413,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
-            if (e.Data.Contains(":\"nobestflip\""))
+            if (e.Data.Contains("\"nobestflip\""))
             {
                 HandleCommand(e, null, a);
                 return;

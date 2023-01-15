@@ -83,7 +83,7 @@ namespace Coflnet.Sky.Commands.MC
             PingTimer = new System.Threading.Timer((e) =>
             {
                 SendPing();
-            }, null, TimeSpan.FromSeconds(50), TimeSpan.FromSeconds(50));
+            }, null, TimeSpan.FromSeconds(59), TimeSpan.FromSeconds(59));
 
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
             _ = socket.TryAsyncTimes(() => SendLoginPromptMessage(stringId), "login prompt");
@@ -396,6 +396,7 @@ namespace Coflnet.Sky.Commands.MC
         private void SendPing()
         {
             var blockedFlipFilterCount = flipProcesser.BlockedFlipCount;
+            flipProcesser.PingUpdate();
             using var span = socket.CreateActivity("ping", ConSpan)?.AddTag("count", blockedFlipFilterCount);
             try
             {
