@@ -30,7 +30,7 @@ public class ReplayActiveCommand : McCommand
         }
         if (!socket.Settings.WhiteList.Any(w =>
             (w.filter?.TryGetValue("FlipFinder", out var filter) ?? false)
-            && filter.Contains(LowPricedAuction.FinderType.USER.ToString())
+            && filter.Contains(LowPricedAuction.FinderType.USER.ToString())))
         {
             socket.Dialog(db => db.CoflCommand<SetCommand>(
                 $"{McColorCodes.RED}You need to add a whitelist entry that allows USER flips to get any result",
