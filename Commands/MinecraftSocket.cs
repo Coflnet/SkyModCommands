@@ -92,6 +92,8 @@ namespace Coflnet.Sky.Commands.MC
 
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
+        public ConcurrentDictionary<string, FlipInstance> ReceivedConfirm = new();
+
         public static event Action NextUpdateStart;
         /// <summary>
         /// The time flips are expected to come in
@@ -139,6 +141,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<OnlineCommand>();
             Commands.Add<DelayCommand>();
             Commands.Add<DebugSCommand>();
+            Commands.Add<FResponseCommand>();
             Commands.Add<DerpyCommand>();
             Commands.Add<BlacklistCommand>("bl");
             Commands.Add<WhitelistCommand>("wl");

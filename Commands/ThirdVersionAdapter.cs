@@ -5,6 +5,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -29,15 +30,31 @@ namespace Coflnet.Sky.Commands.MC
                 return true;
             }
             long worth = GetWorth(flip);
-
-            await socket.Send(Response.Create("flip", new
+            var flipBody = new
             {
                 messages = await GetMessageparts(flip),
                 id = uuid,
                 worth = worth,
                 cost = flip.Auction.StartingBid,
                 sound = (string)"note.pling"
-            }));
+            };
+            await socket.Send(Response.Create("flip", flipBody));
+            if (flip.Profit > 2_000_000)
+            {
+                socket.ExecuteCommand($"/cofl fresponse {uuid} {worth}");
+                socket.ReceivedConfirm.TryAdd(uuid, flip);
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(1000);
+                    if (socket.ReceivedConfirm.TryRemove(uuid, out var value))
+                    {
+                        socket.Log($"Flip with id {uuid} was not confirmed\n" + JsonConvert.SerializeObject(value), LogLevel.Error);
+                        Console.WriteLine($"Flip with id {uuid} was not confirmed\n" + JsonConvert.SerializeObject(value) + "\n" + JsonConvert.SerializeObject(flipBody));
+                        await socket.Send(Response.Create("log", $"Flip withh id {uuid} was not confirmed"));
+                    }
+                });
+            }
+            await socket.Send(Response.Create("log", $"Flip withh id {uuid} was sent"));
             if (DateTime.UtcNow.Month == 4 && DateTime.UtcNow.Day == 1 && rng.Next(200) == 1)
             {
                 await SendAprilFools();
