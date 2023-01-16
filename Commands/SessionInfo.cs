@@ -20,7 +20,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <summary>
         /// List of all minecraft uuids the user has verified
         /// </summary>
-        public List<string> MinecraftUuids = new();
+        public HashSet<string> MinecraftUuids = new();
         public DateTime LastMessage;
         public bool SentWelcome;
 
