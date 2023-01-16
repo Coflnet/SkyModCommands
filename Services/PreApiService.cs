@@ -174,7 +174,7 @@ public class PreApiService : BackgroundService
             return e; // if not send to all users
 
         // send out after delay
-        await Task.Delay(15_000).ConfigureAwait(false);
+        await Task.Delay(10_000).ConfigureAwait(false);
         return e;
     }
 
