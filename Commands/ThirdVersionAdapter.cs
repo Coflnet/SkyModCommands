@@ -49,7 +49,8 @@ namespace Coflnet.Sky.Commands.MC
                     if (socket.ReceivedConfirm.TryRemove(uuid, out var value))
                     {
                         socket.Log($"Flip with id {uuid} was not confirmed\n" + JsonConvert.SerializeObject(value), LogLevel.Error);
-                        Console.WriteLine($"Flip with id {uuid} was not confirmed\n" + JsonConvert.SerializeObject(value) + "\n" + JsonConvert.SerializeObject(flipBody));
+                        Console.WriteLine($"Flip with id {uuid} was not confirmed by {socket.SessionInfo.McName} on {System.Net.Dns.GetHostName()}\n" 
+                                + JsonConvert.SerializeObject(value) + "\n" + JsonConvert.SerializeObject(flipBody));
                         await socket.Send(Response.Create("log", $"Flip withh id {uuid} was not confirmed"));
                     }
                 });
