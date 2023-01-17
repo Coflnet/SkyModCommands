@@ -327,7 +327,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     // wait for settings sync
                     await Task.Delay(4500).ConfigureAwait(false);
-                    var currentId = AccountInfo.Value.ActiveConnectionId;
+                    var currentId = AccountInfo?.Value?.ActiveConnectionId;
                     if (currentId != SessionInfo.ConnectionId)
                     {
                         // another connection of this account was opened, close this one
@@ -336,7 +336,7 @@ namespace Coflnet.Sky.Commands.MC
                         // wait another sync cycle
                         await Task.Delay(5000).ConfigureAwait(false);
                         socket.ExecuteCommand("/cofl stop");
-                        span.Log($"connected from somewhere else {info.ActiveConnectionId} != {SessionInfo.ConnectionId} {currentId}");
+                        span.Log($"connected from somewhere else {info.ActiveConnectionId} != '{SessionInfo.ConnectionId}' {currentId}");
                         socket.Close();
                         return;
                     }
