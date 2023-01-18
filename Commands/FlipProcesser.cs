@@ -235,6 +235,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
+            await socket.TriggerTutorial<ModCommands.Tutorials.RoundRobinTutorial>().ConfigureAwait(false);
 
             _ = socket.TryAsyncTimes(async () =>
             {
