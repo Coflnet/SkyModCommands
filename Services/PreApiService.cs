@@ -32,6 +32,7 @@ public class PreApiService : BackgroundService
     private ConcurrentDictionary<string, DateTime> sold = new();
     private ConcurrentDictionary<string, DateTime> sent = new();
     private ConcurrentDictionary<int, List<IMinecraftSocket>> notifyWhenUserLeave = new();
+    public int PreApiUserCount => preApiUsers.Count;
     public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi, IBaseApi baseApi)
     {
         this.redis = redis;

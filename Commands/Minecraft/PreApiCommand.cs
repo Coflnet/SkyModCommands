@@ -10,9 +10,10 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
-            if(args[0] == "notify")
+            var preapiService = socket.GetService<PreApiService>();
+            if (args[0] == "notify")
             {
-                socket.GetService<PreApiService>().AddNotify(1, socket);
+                preapiService.AddNotify(preapiService.PreApiUserCount - 1, socket);
                 socket.SendMessage($"{COFLNET}{McColorCodes.GREEN}You will be notified when there are less than 2 users using pre-api");
                 return;
             }
@@ -25,7 +26,7 @@ namespace Coflnet.Sky.Commands.MC
                 $"{McColorCodes.GOLD}You currently don't have {McColorCodes.RED}pre-api\n"
                 + $"{McColorCodes.YELLOW}You can click this to purchase it",
                 "pre_api", $"Click to purchase pre-api")
-                .CoflCommand<PreApiCommand>("notify me when there are less than 2 users using it", "notify", "Click to get notified"));
+                .CoflCommand<PreApiCommand>($"notify me when there are less than {preapiService.PreApiUserCount} users using it", "notify", "Click to get notified"));
         }
     }
 }
