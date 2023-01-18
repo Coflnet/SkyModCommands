@@ -186,6 +186,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<TutorialCommand>();
             Commands.Add<FlipCommand>();
             Commands.Add<PreApiCommand>();
+            Commands.Add<FoundModsCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
