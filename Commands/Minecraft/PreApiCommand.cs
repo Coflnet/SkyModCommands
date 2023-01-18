@@ -13,7 +13,7 @@ public class PreApiCommand : McCommand
         if (args[0] == "notify")
         {
             preapiService.AddNotify(preapiService.PreApiUserCount - 1, socket);
-            socket.SendMessage($"{COFLNET}{McColorCodes.GREEN}You will be notified when there are less than 2 users using pre-api");
+            socket.SendMessage($"{COFLNET}{McColorCodes.GREEN}You will be notified when there are less than {preapiService.PreApiUserCount} users using pre-api");
             return;
         }
         if (await socket.UserAccountTier() >= Shared.AccountTier.SUPER_PREMIUM)
@@ -23,7 +23,7 @@ public class PreApiCommand : McCommand
         }
         socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
             $"{McColorCodes.GOLD}You currently don't have {McColorCodes.RED}pre-api\n"
-            + $"{McColorCodes.YELLOW}You can click this to purchase it",
+            + $"{McColorCodes.YELLOW}You can click this to purchase it\n",
             "pre_api", $"Click to purchase pre-api")
             .CoflCommand<PreApiCommand>($"notify me when there are less than {preapiService.PreApiUserCount} users using it", "notify", "Click to get notified"));
     }
