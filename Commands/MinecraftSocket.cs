@@ -185,6 +185,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<FactCommand>();
             Commands.Add<TutorialCommand>();
             Commands.Add<FlipCommand>();
+            Commands.Add<PreApiCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

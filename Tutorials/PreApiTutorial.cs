@@ -9,6 +9,8 @@ public class PreApiTutorial : TutorialBase
     {
         builder.MsgLine($"{McColorCodes.YELLOW}Welcome to pre-api\n"
             + $"{McColorCodes.YELLOW}For as long as its active you are first in line to receive new found flips before the hypixel api updates.\n"
+            , null,
+            $"{McColorCodes.YELLOW}You can use {McColorCodes.AQUA}/cofl preapi{McColorCodes.YELLOW} to see how much time you have left.\n"
         );
     }
 }

@@ -31,6 +31,7 @@ public class PreApiService : BackgroundService
     private List<string> preApiUsers = new();
     private ConcurrentDictionary<string, DateTime> sold = new();
     private ConcurrentDictionary<string, DateTime> sent = new();
+    private ConcurrentDictionary<int, List<IMinecraftSocket>> notifyWhenUserLeave = new();
     public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi, IBaseApi baseApi)
     {
         this.redis = redis;
@@ -106,6 +107,15 @@ public class PreApiService : BackgroundService
         }
     }
 
+    public void AddNotify(int count, IMinecraftSocket socket)
+    {
+        notifyWhenUserLeave.AddOrUpdate(count, new List<IMinecraftSocket>() { socket }, (key, old) =>
+        {
+            old.Add(socket);
+            return old;
+        });
+    }
+
     public bool IsSold(string uuid)
     {
         return sold.ContainsKey(uuid);
@@ -116,6 +126,15 @@ public class PreApiService : BackgroundService
         try
         {
             preApiUsers = await productsApi.ProductsServiceServiceSlugIdsGetAsync("pre_api");
+            if(notifyWhenUserLeave.TryGetValue(preApiUsers.Count, out var sockets))
+            {
+                foreach (var item in sockets)
+                {
+                    item.Dialog(db => db.CoflCommand<PurchaseCommand>($"There are now {McColorCodes.RED}{preApiUsers.Count}{McColorCodes.WHITE} users with {McColorCodes.RED}pre api{McColorCodes.WHITE}\nClick {McColorCodes.RED}here{McColorCodes.WHITE} to purchase", "pre_api",
+                    $"{McColorCodes.RED}Starts the purchase for an hour of {McColorCodes.RED}pre api{McColorCodes.WHITE}"));
+                }
+                notifyWhenUserLeave.TryRemove(preApiUsers.Count, out _);
+            }
         }
         catch (System.Exception e)
         {
@@ -243,7 +262,7 @@ public class PreApiService : BackgroundService
     private static LowPricedAuction ChangeFlipDotColor(LowPricedAuction flip, string color)
     {
         var context = flip.Auction.Context;
-        if(context == null)
+        if (context == null)
             return flip;
         flip = new LowPricedAuction(flip);
         flip.Auction.Context = new Dictionary<string, string>(context);
