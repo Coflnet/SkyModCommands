@@ -26,7 +26,7 @@ namespace Coflnet.Sky.Commands.MC
                 parts.Insert(0, new ChatPart(McColorCodes.RED + "[SOLD]", "/viewauction " + uuid, "This auction has likely already been sold"));
                 await socket.Send(Response.Create("chatMessage", parts.ToArray()));
                 Activity.Current?.AddTag("sold", "true");
-                socket.GetService<ILogger<ThirdVersionAdapter>>().LogInformation("Not sending flip because it was sold");
+                socket.GetService<ILogger<ThirdVersionAdapter>>().LogInformation($"Not sending flip {uuid} to {socket.SessionInfo.McName} because it was sold");
                 return true;
             }
             long worth = GetWorth(flip);

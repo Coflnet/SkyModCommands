@@ -103,7 +103,8 @@ namespace Coflnet.Sky.ModCommands.Services
                             flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
                         flip.AdditionalProps?.TryAdd("bfcs", "redis");
                         await FlipperService.Instance.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
-                        logger.LogInformation($"sheduled bfcs {flip.Auction.UId} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond}");
+                        if (flip.TargetPrice - flip.Auction.StartingBid > 2000000)
+                            logger.LogInformation($"sheduled bfcs {flip.Auction.Uuid} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond}");
                         fastTrackSnipes.Inc();
                     }
                     catch (Exception e)
@@ -132,11 +133,12 @@ namespace Coflnet.Sky.ModCommands.Services
                 logger.LogWarning($"redis heart beat stopped; Cancellation Requested: {stoppingToken.IsCancellationRequested}");
             });
 
-            Task.Run(async () => {
+            Task.Run(async () =>
+            {
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                  await Task.Delay(TimeSpan.FromSeconds(150), stoppingToken);
-                  logger.LogInformation($"Status of Redis multiplexer: {multiplexer.IsConnected}");
+                    await Task.Delay(TimeSpan.FromSeconds(150), stoppingToken);
+                    logger.LogInformation($"Status of Redis multiplexer: {multiplexer.IsConnected}");
                 }
             });
         }
