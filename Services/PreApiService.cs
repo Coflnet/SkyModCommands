@@ -232,8 +232,8 @@ public class PreApiService : BackgroundService
         }
         else if (flip.Auction.Context.ContainsKey("cname"))
         {
-            flip.AdditionalProps["isRR"] = "y";
             flip = ChangeFlipDotColor(flip, McColorCodes.RED);
+            flip.AdditionalProps["isRR"] = "y";
         }
         if (profit > 1_000_000)
             logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} "
