@@ -235,7 +235,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
-            if (flip.AdditionalProps.ContainsKey("isRR"))
+            if (flip.AdditionalProps.ContainsKey("isRR") && socket.AccountInfo?.Tier >= AccountTier.SUPER_PREMIUM)
                 await socket.TriggerTutorial<ModCommands.Tutorials.RoundRobinTutorial>().ConfigureAwait(false);
 
             _ = socket.TryAsyncTimes(async () =>
