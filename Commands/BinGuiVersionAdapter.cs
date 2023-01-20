@@ -15,12 +15,12 @@ namespace Coflnet.Sky.Commands.MC
             var uuid = flip.Auction.Uuid;
             long worth = GetWorth(flip);
 
-            socket.Send(Response.Create("flip", new
+            await socket.Send(Response.Create("flip", new
             {
                 messages = await GetMessageparts(flip),
                 id = uuid,
                 worth = worth,
-                sound = new { name = (string)"note.pling", pitch = 1 },
+                sound = new { name = (string)(string)(socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000 ? "note.pling" : null), pitch = 1 },
                 auction = flip.Auction,
                 render = Random.Shared.Next(3) switch
                 {
