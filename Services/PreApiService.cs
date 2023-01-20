@@ -268,6 +268,7 @@ public class PreApiService : BackgroundService
         flip = new LowPricedAuction(flip);
         flip.Auction.Context = new Dictionary<string, string>(context);
         flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", color + ".");
+        flip.AdditionalProps = new (flip.AdditionalProps);
         return flip;
     }
 
