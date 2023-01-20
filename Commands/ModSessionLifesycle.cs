@@ -295,10 +295,16 @@ namespace Coflnet.Sky.Commands.MC
         public async Task<AccountTier> UpdateAccountTier(AccountInfo info)
         {
             var userApi = socket.GetService<PremiumService>();
+            var previousTier = info.Tier;
             var expiresTask = userApi.GetCurrentTier(info.UserId);
             var expires = await expiresTask;
             info.Tier = expires.Item1;
             info.ExpiresAt = expires.Item2;
+            if (info.Tier != previousTier)
+            {
+                FlipperService.Instance.RemoveConnection(socket);
+                await AccountInfo.Update(info);
+            }
             return info.Tier;
         }
 
@@ -347,7 +353,8 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage(COFLNET + "you currently don't receive flips because you disabled them", "/cofl set disableflips false", "click to enable");
                 return;
             }
-
+            if(accountInfo.ExpiresAt < DateTime.UtcNow)
+                accountInfo.Tier--;
             if (accountInfo.Tier == AccountTier.NONE)
                 FlipperService.Instance.AddNonConnection(socket, false);
             if (accountInfo.Tier == AccountTier.PREMIUM)
