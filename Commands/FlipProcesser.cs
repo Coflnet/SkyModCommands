@@ -229,11 +229,14 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendAndTrackFlip(FlipInstance item, LowPricedAuction flip, DateTime sendTime, bool blockSold = false)
         {
-            if (blockSold && (Settings?.Visibility?.HideSoldAuction ?? false) && socket.GetService<PreApiService>().IsSold(flip.Auction.Uuid))
+            var isSold = socket.GetService<PreApiService>().IsSold(flip.Auction.Uuid);
+            if (isSold)
             {
                 BlockedFlip(flip, "sold");
-                return;
+                if (blockSold && (Settings?.Visibility?.HideSoldAuction ?? false))
+                    return;
             }
+
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
             if (flip.AdditionalProps.ContainsKey("isRR") && socket.AccountInfo?.Tier >= AccountTier.SUPER_PREMIUM)
                 await socket.TriggerTutorial<ModCommands.Tutorials.RoundRobinTutorial>().ConfigureAwait(false);
