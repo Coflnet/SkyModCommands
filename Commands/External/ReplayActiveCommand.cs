@@ -28,13 +28,10 @@ public class ReplayActiveCommand : McCommand
                 "sniper,user", $"Click to enable sniper and user finders"));
             return;
         }
-        if (!socket.Settings.WhiteList.Any(w =>
-            (w.filter?.TryGetValue("FlipFinder", out var filter) ?? false)
-            && filter.Contains(LowPricedAuction.FinderType.USER.ToString())))
+        if (!socket.Settings.WhiteList.Any())
         {
-            socket.Dialog(db => db.CoflCommand<SetCommand>(
-                $"{McColorCodes.RED}You need to add a whitelist entry that allows USER flips to get any result",
-                "sniper,user", $"Click to enable sniper and user finders"));
+            socket.Dialog(db => db.MsgLine(
+                $"{McColorCodes.RED}You need to add a whitelist to get any result"));
             return;
         }
         using var db = new HypixelContext();
