@@ -338,7 +338,6 @@ namespace Coflnet.Sky.Commands.MC
             return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(stringId)}";
         }
 
-
         public void UpdateConnectionTier(AccountInfo accountInfo, Activity span = null)
         {
             this.ConSpan.SetTag("tier", accountInfo?.Tier.ToString());

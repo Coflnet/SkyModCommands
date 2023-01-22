@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var parts = await GetMessageparts(flip);
                 parts.Insert(0, new ChatPart(McColorCodes.RED + "[SOLD]", "/viewauction " + uuid, "This auction has likely already been sold"));
-                await socket.Send(Response.Create("chatMessage", parts.ToArray()));
+                socket.Send(Response.Create("chatMessage", parts.ToArray()));
                 Activity.Current?.AddTag("sold", "true");
                 socket.GetService<ILogger<ThirdVersionAdapter>>().LogInformation($"Not sending flip {uuid} to {socket.SessionInfo.McName} because it was sold");
                 return true;
@@ -38,7 +38,7 @@ namespace Coflnet.Sky.Commands.MC
                 cost = flip.Auction.StartingBid,
                 sound = (string)"note.pling"
             };
-            await socket.Send(Response.Create("flip", flipBody));
+            socket.Send(Response.Create("flip", flipBody));
             if (flip.Profit > 2_000_000)
             {
                 socket.ExecuteCommand($"/cofl fresponse {uuid} {worth}");
@@ -51,11 +51,11 @@ namespace Coflnet.Sky.Commands.MC
                         socket.Log($"Flip with id {uuid} was not confirmed\n" + JsonConvert.SerializeObject(value), LogLevel.Error);
                         Console.WriteLine($"Flip with id {uuid} was not confirmed by {socket.SessionInfo.McName} on {System.Net.Dns.GetHostName()}\n"
                                 + JsonConvert.SerializeObject(value) + "\n" + JsonConvert.SerializeObject(flipBody));
-                        await socket.Send(Response.Create("log", $"Flip withh id {uuid} was not confirmed"));
+                        socket.Send(Response.Create("log", $"Flip withh id {uuid} was not confirmed"));
                     }
                 });
             }
-            await socket.Send(Response.Create("log", $"Flip withh id {uuid} was sent"));
+            socket.Send(Response.Create("log", $"Flip withh id {uuid} was sent"));
             if (DateTime.UtcNow.Month == 4 && DateTime.UtcNow.Day == 1 && rng.Next(200) == 1)
             {
                 await SendAprilFools();

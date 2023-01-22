@@ -44,7 +44,7 @@ namespace Coflnet.Sky.Commands.MC
                 .Select(f => (f, instance: FlipperService.LowPriceToFlip(f)))
                 .ToList();
 
-            if (!Settings.FastMode && (Settings.BasedOnLBin || ((Settings.Visibility?.LowestBin ?? false) || (Settings.Visibility?.Seller ?? false))))
+            if (Settings != null && !Settings.FastMode && (Settings.BasedOnLBin || ((Settings.Visibility?.LowestBin ?? false) || (Settings.Visibility?.Seller ?? false))))
             {
                 await LoadAdditionalInfo(prefiltered).ConfigureAwait(false);
             }

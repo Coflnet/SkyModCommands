@@ -15,7 +15,7 @@ namespace Coflnet.Sky.Commands.MC
             var uuid = flip.Auction.Uuid;
             long worth = GetWorth(flip);
 
-            await socket.Send(Response.Create("flip", new
+            socket.Send(Response.Create("flip", new
             {
                 messages = await GetMessageparts(flip),
                 id = uuid,
