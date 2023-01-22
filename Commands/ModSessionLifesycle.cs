@@ -473,6 +473,8 @@ namespace Coflnet.Sky.Commands.MC
 
             void RemoveFilterFromList(List<ListEntry> list)
             {
+                if(list == null)
+                    return;
                 foreach (var filter in list
                                 .Where(f => f.Tags != null
                                     && f.Tags.Any(f => f.StartsWith("removeAfter=")
