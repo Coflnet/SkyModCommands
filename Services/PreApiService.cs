@@ -292,7 +292,7 @@ public class PreApiService : BackgroundService
             logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");
     }
 
-    private static void CheckHighProfitpurchaser(IMinecraftSocket connection, double price, LowPricedAuction flip)
+    private void CheckHighProfitpurchaser(IMinecraftSocket connection, double price, LowPricedAuction flip)
     {
         if (flip.TargetPrice - price < 5_000_000)
             return;
@@ -306,6 +306,9 @@ public class PreApiService : BackgroundService
             var buyer = auction.Bids.FirstOrDefault()?.Bidder;
             if (buyer == null)
                 return;
+            if(buyer == connection.SessionInfo.McUuid)
+                return;
+            logger.LogInformation($"Changing used uuid to {buyer} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid}");
             connection.SessionInfo.McUuid = buyer;
             connection.SessionInfo.MinecraftUuids.Add(buyer);
         }, "verify mc uuid", 1);
