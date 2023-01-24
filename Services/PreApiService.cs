@@ -17,6 +17,7 @@ using System.Linq;
 using System.Globalization;
 using System.Net;
 using Payments.Client.Api;
+using Microsoft.EntityFrameworkCore;
 
 /// <summary>
 /// Handles events before the api update
@@ -127,7 +128,7 @@ public class PreApiService : BackgroundService
         try
         {
             preApiUsers = await productsApi.ProductsServiceServiceSlugIdsGetAsync("pre_api");
-            if(notifyWhenUserLeave.TryGetValue(preApiUsers.Count, out var sockets))
+            if (notifyWhenUserLeave.TryGetValue(preApiUsers.Count, out var sockets))
             {
                 foreach (var item in sockets)
                 {
@@ -268,7 +269,7 @@ public class PreApiService : BackgroundService
         flip = new LowPricedAuction(flip);
         flip.Auction.Context = new Dictionary<string, string>(context);
         flip.Auction.Context["cname"] = flip.Auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + ".", color + ".");
-        flip.AdditionalProps = new (flip.AdditionalProps);
+        flip.AdditionalProps = new(flip.AdditionalProps);
         return flip;
     }
 
@@ -285,10 +286,31 @@ public class PreApiService : BackgroundService
             var uuid = flip.Auction.Uuid;
             logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.UtcNow}");
             PublishSell(uuid);
+            CheckHighProfitpurchaser(connection, price, flip);
         }
         else
             logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");
     }
+
+    private static void CheckHighProfitpurchaser(IMinecraftSocket connection, double price, LowPricedAuction flip)
+    {
+        if (flip.TargetPrice - price < 5_000_000)
+            return;
+        var uuid = flip.Auction.Uuid;
+        connection.TryAsyncTimes(async () =>
+        {
+            await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
+            var auction = await AuctionService.Instance.GetAuctionAsync(uuid, db => db.Include(a => a.Bids));
+            if (auction == null)
+                return;
+            var buyer = auction.Bids.FirstOrDefault()?.Bidder;
+            if (buyer == null)
+                return;
+            connection.SessionInfo.McUuid = buyer;
+            connection.SessionInfo.MinecraftUuids.Add(buyer);
+        }, "verify mc uuid", 1);
+    }
+
     public async Task ListingMessage(IMinecraftSocket connection, string message)
     {
         await baseApi.BaseAhPlayerIdPostAsync(connection.SessionInfo.McUuid).ConfigureAwait(false);
