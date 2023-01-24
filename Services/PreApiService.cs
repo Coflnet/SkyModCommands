@@ -294,7 +294,7 @@ public class PreApiService : BackgroundService
 
     private void CheckHighProfitpurchaser(IMinecraftSocket connection, double price, LowPricedAuction flip)
     {
-        if (flip.TargetPrice - price < 5_000_000)
+        if (flip.TargetPrice - price < 3_000_000)
             return;
         var uuid = flip.Auction.Uuid;
         connection.TryAsyncTimes(async () =>
@@ -302,16 +302,25 @@ public class PreApiService : BackgroundService
             await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
             var auction = await AuctionService.Instance.GetAuctionAsync(uuid, db => db.Include(a => a.Bids));
             if (auction == null)
+            {
+                logger.LogInformation($"skipcheck not find auction {uuid} for high profit purchaser {connection.SessionInfo.McUuid}");
                 return;
+            }
             var buyer = auction.Bids.FirstOrDefault()?.Bidder;
             if (buyer == null)
+            {
+                logger.LogInformation($"skipcheck not find buyer for auction {uuid} for high profit purchaser {connection.SessionInfo.McUuid}");
                 return;
-            if(buyer == connection.SessionInfo.McUuid)
+            }
+            if (buyer == connection.SessionInfo.McUuid)
                 return;
-            logger.LogInformation($"Changing used uuid to {buyer} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid}");
+            logger.LogInformation($"skipcheck Changing used uuid to {buyer} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid}");
             connection.SessionInfo.McUuid = buyer;
+            connection.SessionInfo.VerifiedMc = false;
             connection.SessionInfo.MinecraftUuids.Add(buyer);
-        }, "verify mc uuid", 1);
+            var sim = await connection.GetService<FlipTracker.Client.Api.AnalyseApi>().PlayerPlayerIdAlternativeGetAsync(buyer, 1);
+            logger.LogInformation($"skipcheck Found {sim.BoughtCount} similar buys from {sim.PlayerId} {AuctionService.Instance.GetUuid(long.Parse(sim.PlayerId))} for {buyer} {connection.SessionInfo.McUuid}");
+        }, "skipcheck verify mc uuid", 1);
     }
 
     public async Task ListingMessage(IMinecraftSocket connection, string message)
