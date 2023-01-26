@@ -286,15 +286,15 @@ public class PreApiService : BackgroundService
             var uuid = flip.Auction.Uuid;
             logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.UtcNow}");
             PublishSell(uuid);
-            CheckHighProfitpurchaser(connection, price, flip);
+            CheckHighProfitpurchaser(connection, flip);
         }
         else
             logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");
     }
 
-    private void CheckHighProfitpurchaser(IMinecraftSocket connection, double price, LowPricedAuction flip)
+    private void CheckHighProfitpurchaser(IMinecraftSocket connection, LowPricedAuction flip)
     {
-        if (flip.TargetPrice - price < 3_000_000)
+        if (flip.TargetPrice - flip.Auction.StartingBid < 3_000_000)
             return;
         var uuid = flip.Auction.Uuid;
         connection.TryAsyncTimes(async () =>
@@ -318,8 +318,20 @@ public class PreApiService : BackgroundService
             connection.SessionInfo.McUuid = buyer;
             connection.SessionInfo.VerifiedMc = false;
             connection.SessionInfo.MinecraftUuids.Add(buyer);
-            var sim = await connection.GetService<FlipTracker.Client.Api.AnalyseApi>().PlayerPlayerIdAlternativeGetAsync(buyer, 1);
-            logger.LogInformation($"skipcheck Found {sim.BoughtCount} similar buys from {sim.PlayerId} {AuctionService.Instance.GetUuid(long.Parse(sim.PlayerId))} for {buyer} {connection.SessionInfo.McUuid}");
+            try
+            {
+                var sim = await connection.GetService<FlipTracker.Client.Api.AnalyseApi>().PlayerPlayerIdAlternativeGetAsync(buyer, 1);
+                logger.LogInformation($"skipcheck Found {sim.BoughtCount} similar buys from {sim.PlayerId} {AuctionService.Instance.GetUuid(long.Parse(sim.PlayerId))} for {buyer} {connection.SessionInfo.McUuid}");
+                if(sim.BoughtCount > 20 && sim.BoughtCount - sim.TargetReceived < 5)
+                {
+                    // definetly an alt
+                    connection.AccountInfo.McIds.Add(buyer);
+                    await connection.sessionLifesycle.AccountInfo.Update();
+                }
+            } catch (Exception e)
+            {
+                logger.LogError(e, $"skipcheck Error finding similar buys for {buyer} {connection.SessionInfo.McUuid}");
+            }
         }, "skipcheck verify mc uuid", 1);
     }
 
