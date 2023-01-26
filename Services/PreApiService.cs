@@ -320,7 +320,7 @@ public class PreApiService : BackgroundService
             connection.SessionInfo.MinecraftUuids.Add(buyer);
             try
             {
-                var sim = await connection.GetService<FlipTracker.Client.Api.AnalyseApi>().PlayerPlayerIdAlternativeGetAsync(buyer, 1);
+                var sim = await connection.GetService<FlipTracker.Client.Api.IAnalyseApi>().PlayerPlayerIdAlternativeGetAsync(buyer, 1);
                 logger.LogInformation($"skipcheck Found {sim.BoughtCount} similar buys from {sim.PlayerId} {AuctionService.Instance.GetUuid(long.Parse(sim.PlayerId))} for {buyer} {connection.SessionInfo.McUuid}");
                 if(sim.BoughtCount > 20 && sim.BoughtCount - sim.TargetReceived < 5)
                 {
