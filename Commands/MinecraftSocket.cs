@@ -161,6 +161,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<GetCommand>();
             Commands.Add<TopUpCommand>();
             Commands.Add<PurchaseCommand>("buy");
+            Commands.Add<TransactionsCommand>();
             Commands.Add<BalanceCommand>();
             Commands.Add<HelpCommand>();
             Commands.Add<LogoutCommand>();

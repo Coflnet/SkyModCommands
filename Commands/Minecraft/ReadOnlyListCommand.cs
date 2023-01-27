@@ -23,9 +23,12 @@ public abstract class ReadOnlyListCommand<T> : McCommand
         var totalPages = elements.Count / PageSize + 1;
         var dialog = DialogBuilder.New.MsgLine($"{Title} (page {page}/{totalPages})")
             .ForEach(toDisplay, (db,elem)=>Format(socket,db,elem));
+        PrintSumary(socket, dialog, elements);
         socket.SendMessage(dialog.Build());
     }
-
+    protected virtual void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<T> elements)
+    {
+    }
     protected abstract Task<IEnumerable<T>> GetElements(MinecraftSocket socket, string val);
     protected abstract void Format(MinecraftSocket socket, DialogBuilder db, T elem);
     protected abstract string GetId(T elem);
