@@ -30,7 +30,7 @@ public class PreApiService : BackgroundService
     IProductsApi productsApi;
     IBaseApi baseApi;
     private List<string> preApiUsers = new();
-    private ConcurrentDictionary<string, DateTime> sold = new();
+    private ConcurrentDictionary<string, AccountTier> sold = new();
     private ConcurrentDictionary<string, DateTime> sent = new();
     private ConcurrentDictionary<int, List<IMinecraftSocket>> notifyWhenUserLeave = new();
     public int PreApiUserCount => preApiUsers.Count;
@@ -51,7 +51,7 @@ public class PreApiService : BackgroundService
             try
             {
                 var sell = MessagePack.MessagePackSerializer.Deserialize<Auction>(message);
-                sold.TryAdd(sell.Uuid, DateTime.UtcNow);
+                sold.TryAdd(sell.Uuid, sell.Tier);
                 sent.TryRemove(sell.Uuid, out _);
             }
             catch (System.Exception e)
@@ -82,7 +82,7 @@ public class PreApiService : BackgroundService
             {
                 SendEndWarnings();
                 await RefreshUsers();
-                PublishSell(Dns.GetHostName());
+                PublishSell(Dns.GetHostName(), AccountTier.NONE);
                 PublishReceive(Dns.GetHostName());
             }
             catch (System.Exception e)
@@ -121,6 +121,10 @@ public class PreApiService : BackgroundService
     public bool IsSold(string uuid)
     {
         return sold.ContainsKey(uuid);
+    }
+    public AccountTier SoldToTier(string uuid)
+    {
+        return sold.GetValueOrDefault(uuid);
     }
 
     private async Task RefreshUsers()
@@ -285,7 +289,7 @@ public class PreApiService : BackgroundService
         {
             var uuid = flip.Auction.Uuid;
             logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.UtcNow}");
-            PublishSell(uuid);
+            PublishSell(uuid, connection.UserAccountTier().Result);
             CheckHighProfitpurchaser(connection, flip);
         }
         else
@@ -341,10 +345,9 @@ public class PreApiService : BackgroundService
         logger.LogInformation($"Checking auctions for {connection.SessionInfo.McName} {connection.SessionInfo.McUuid} {message}");
     }
 
-
-    private void PublishSell(string uuid)
+    private void PublishSell(string uuid, AccountTier tier)
     {
-        redis.GetSubscriber().Publish("auction_sell", MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid }));
+        redis.GetSubscriber().Publish("auction_sell", MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid, Tier = tier }));
     }
 
     private void PublishReceive(string uuid)
@@ -357,5 +360,7 @@ public class PreApiService : BackgroundService
     {
         [MessagePack.Key(0)]
         public string Uuid { get; set; }
+        [MessagePack.Key(1)]
+        public AccountTier Tier { get; set; }
     }
 }
