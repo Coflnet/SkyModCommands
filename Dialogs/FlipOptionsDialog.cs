@@ -51,9 +51,13 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 $"add {flip.Auction.Tag} forceBlacklist=true removeAfter={DateTime.UtcNow.AddDays(7).ToString("s")}",
                 $"Don't show {McColorCodes.AQUA}{Sky.Core.ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GREEN} for a week")
             .CoflCommand<BlacklistCommand>(
-                $" {McColorCodes.ITALIC}{McColorCodes.GREEN}1 day",
+                $" {McColorCodes.GREEN}{McColorCodes.ITALIC}1 day",
                 $"add {flip.Auction.Tag} forceBlacklist=true removeAfter={DateTime.UtcNow.AddDays(1).ToString("s")}",
                 $"Don't show {McColorCodes.AQUA}{Sky.Core.ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GREEN} for 24 hours")
+            .CoflCommand<BlacklistCommand>(
+                $" {McColorCodes.YELLOW}seller",
+                $"add {flip.Auction.AuctioneerId} forceBlacklist=true",
+                $"Don't show seller {McColorCodes.AQUA}{flip.Auction.AuctioneerId}{McColorCodes.YELLOW} AT ALL anymore")
                 .Break
             .MsgLine(
                 " ➹  Open on website",
