@@ -185,7 +185,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var list = await GetList(socket);
             var pageSize = 12;
-            if (!int.TryParse(subArgs, out int page) && !string.IsNullOrWhiteSpace(subArgs))
+            if (!int.TryParse(subArgs, out int page) && !string.IsNullOrWhiteSpace(subArgs) || page > list.Count / pageSize)
             {
                 // is search value 
                 socket.Dialog(db => db.MsgLine($"Search for {McColorCodes.AQUA}{subArgs}{DEFAULT_COLOR} resulted in:").

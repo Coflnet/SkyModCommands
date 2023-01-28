@@ -28,7 +28,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override string GetId(ListEntry elem)
         {
-            return $"{elem.ItemTag} {(elem.filter == null ? "" : string.Join(',', elem.filter.Select(f => $"{f.Key}={f.Value}")))}";
+            return $"{elem.ItemTag} {(elem.filter == null ? "" : string.Join(',', elem.filter.Select(f => $"{f.Key}={f.Value}")))}{string.Join(',', elem.Tags ?? new List<string>())}";
         }
 
         protected override Task<List<ListEntry>> GetList(MinecraftSocket socket)
@@ -59,7 +59,7 @@ namespace Coflnet.Sky.Commands.MC
         protected override async Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)
         {
             var filters = new Dictionary<string, string>();
-            var allFilters = FlipFilter.AllFilters.Append("removeAfter");
+            var allFilters = FlipFilter.AllFilters.Append("removeAfter").Append("duration");
             if (val.Contains('='))
             {
                 val = await parser.ParseFiltersAsync(socket, val, filters, allFilters);
@@ -69,6 +69,14 @@ namespace Coflnet.Sky.Commands.MC
             if (removeAfter != null)
             {
                 filters.Remove("removeAfter");
+            }
+            if (filters.ContainsKey("duration"))
+            {
+                string[] formats = { @"d\d", @"h\h" };
+                if (!TimeSpan.TryParseExact(filters["duration"], formats, null, out var span))
+                    throw new CoflnetException("invalid_duration", "The duration is not valid, only 12h and 5d are supported");
+                removeAfter = DateTime.Now.Add(span).ToString("s");
+                filters.Remove("duration");
             }
             if (val.Length < 1)
             {

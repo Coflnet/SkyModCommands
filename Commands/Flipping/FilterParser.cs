@@ -49,6 +49,10 @@ namespace Coflnet.Sky.Commands.MC
                         // is parseable
                         DateTime.Parse(filterVal);
                     }
+                    else if (filterName == "duration")
+                    {
+                        // tested further up
+                    }
                     else
                     {
                         var allOptions = await DiHandler.GetService<IItemsApi>().ItemItemTagModifiersAllGetAsync("*");
