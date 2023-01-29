@@ -318,11 +318,11 @@ namespace Coflnet.Sky.Commands.MC
                 return new HashSet<string>() { SessionInfo.McUuid };
             else
             {
-                if (AccountInfo.Value != null && AccountInfo.Value.McIds.Except(result).Any())
+                /*if (AccountInfo.Value != null && AccountInfo.Value.McIds.Except(result).Any())
                 {
                     AccountInfo.Value.McIds = result.ToList();
                     await AccountInfo.Update();
-                }
+                }*/
             }
             if (!result.Contains(SessionInfo.McUuid))
                 result = result.Append(SessionInfo.McUuid);
