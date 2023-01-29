@@ -320,6 +320,7 @@ public class PreApiService : BackgroundService
             if (buyer == connection.SessionInfo.McUuid)
                 return;
             logger.LogInformation($"skipcheck Changing used uuid to {buyer} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid}");
+            var connectedFrom = connection.SessionInfo.McUuid;
             connection.SessionInfo.McUuid = buyer;
             connection.SessionInfo.VerifiedMc = false;
             connection.SessionInfo.MinecraftUuids.Add(buyer);
@@ -328,9 +329,9 @@ public class PreApiService : BackgroundService
                 var sim = await connection.GetService<FlipTracker.Client.Api.IAnalyseApi>().PlayerPlayerIdAlternativeGetAsync(buyer, 1);
                 var simPlayerId = long.Parse(sim.PlayerId);
                 logger.LogInformation($"skipcheck Found {sim.BoughtCount} similar buys from {sim.PlayerId} {AuctionService.Instance.GetUuid(simPlayerId)} for {buyer} {connection.SessionInfo.McUuid}");
-                if (sim.BoughtCount > 20 && sim.BoughtCount - sim.TargetReceived < 5 && simPlayerId == AuctionService.Instance.GetId(buyer))
+                if (sim.BoughtCount > 20 && sim.BoughtCount - sim.TargetReceived < 5 && simPlayerId == AuctionService.Instance.GetId(connectedFrom))
                 {
-                    logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid} by {buyer} for {flip.Auction.Uuid}");
+                    logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} by {buyer} for {flip.Auction.Uuid}");
                     connection.AccountInfo.McIds.Add(buyer);
                     await connection.sessionLifesycle.AccountInfo.Update();
                 }
