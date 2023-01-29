@@ -72,6 +72,7 @@ namespace Coflnet.Sky.Commands.MC
                 singlesnapshotSpan.Log(item.Time + " " + item.State);
             }
             TryAddingAllSettings(reportSpan);
+            socket.Send(Response.Create("getMods", 0));
         }
 
         public static void TryAddingAllSettings(Activity reportSpan)
