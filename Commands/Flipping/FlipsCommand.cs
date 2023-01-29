@@ -10,6 +10,16 @@ namespace Coflnet.Sky.Commands.MC;
 
 public class FlipsCommand : ReadOnlyListCommand<Api.Client.Model.FlipDetails>
 {
+    public FlipsCommand()
+    {
+        sorters.Add("profit", e => e.OrderByDescending(f => f.Profit));
+        sorters.Add("best", e => e.OrderByDescending(f => f.Profit));
+        sorters.Add("time", e => e.OrderByDescending(f => f.SellTime));
+        sorters.Add("recent", e => e.OrderByDescending(f => f.SellTime));
+        sorters.Add("name", e => e.OrderBy(f => f.ItemName));
+        sorters.Add("price", e => e.OrderByDescending(f => f.SoldFor));
+    }
+
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Api.Client.Model.FlipDetails f)
     {
         db.MsgLine($"{socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(f.Tier, true))}{f.ItemName} {(f.Profit > 0 ? McColorCodes.GREEN : McColorCodes.RED)}Profit: {socket.formatProvider.FormatPrice(f.Profit)}",
