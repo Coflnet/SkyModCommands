@@ -284,9 +284,10 @@ public class PreApiService : BackgroundService
         var itemName = match.Groups[1].Value;
         var priceString = match.Groups[2].Value;
         var price = double.Parse(priceString, NumberStyles.Number, CultureInfo.InvariantCulture);
-        var flip = connection.LastSent.Reverse().FirstOrDefault(f => f.Auction.ItemName == itemName && f.Auction.StartingBid == price);
-        if (flip != null)
+        var flips = connection.LastSent.OrderByDescending(s => s.Auction.Start).Where(f => f.Auction.ItemName == itemName && f.Auction.StartingBid == price);
+        if (flips.Count() == 1)
         {
+            var flip = flips.FirstOrDefault();
             var uuid = flip.Auction.Uuid;
             logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.UtcNow}");
             PublishSell(uuid, connection.UserAccountTier().Result);
@@ -326,13 +327,14 @@ public class PreApiService : BackgroundService
             {
                 var sim = await connection.GetService<FlipTracker.Client.Api.IAnalyseApi>().PlayerPlayerIdAlternativeGetAsync(buyer, 1);
                 logger.LogInformation($"skipcheck Found {sim.BoughtCount} similar buys from {sim.PlayerId} {AuctionService.Instance.GetUuid(long.Parse(sim.PlayerId))} for {buyer} {connection.SessionInfo.McUuid}");
-                if(sim.BoughtCount > 20 && sim.BoughtCount - sim.TargetReceived < 5)
+                if (sim.BoughtCount > 20 && sim.BoughtCount - sim.TargetReceived < 5)
                 {
                     // definetly an alt
                     connection.AccountInfo.McIds.Add(buyer);
                     await connection.sessionLifesycle.AccountInfo.Update();
                 }
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 logger.LogError(e, $"skipcheck Error finding similar buys for {buyer} {connection.SessionInfo.McUuid}");
             }
