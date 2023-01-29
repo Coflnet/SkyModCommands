@@ -316,10 +316,20 @@ namespace Coflnet.Sky.Commands.MC
             var loadSuccess = result != null;
             if (result == null || result.Count() == 0)
                 return new HashSet<string>() { SessionInfo.McUuid };
+            else
+            {
+                if (AccountInfo.Value != null && AccountInfo.Value.McIds.Except(result).Any())
+                {
+                    AccountInfo.Value.McIds = result.ToList();
+                    await AccountInfo.Update();
+                }
+            }
             if (!result.Contains(SessionInfo.McUuid))
                 result = result.Append(SessionInfo.McUuid);
             if (AccountInfo.Value != null)
+            {
                 result = result.Concat(AccountInfo.Value.McIds).ToHashSet();
+            }
             if (!SessionInfo.McUuid.IsNullOrEmpty() && loadSuccess)
                 SessionInfo.MinecraftUuids = result.ToHashSet();
             return result;
@@ -352,7 +362,7 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage(COFLNET + "you currently don't receive flips because you disabled them", "/cofl set disableflips false", "click to enable");
                 return;
             }
-            if(accountInfo.ExpiresAt < DateTime.UtcNow)
+            if (accountInfo.ExpiresAt < DateTime.UtcNow)
                 accountInfo.Tier--;
             if (accountInfo.Tier == AccountTier.NONE)
                 FlipperService.Instance.AddNonConnection(socket, false);
@@ -472,7 +482,7 @@ namespace Coflnet.Sky.Commands.MC
 
             void RemoveFilterFromList(List<ListEntry> list)
             {
-                if(list == null)
+                if (list == null)
                     return;
                 foreach (var filter in list
                                 .Where(f => f.Tags != null
