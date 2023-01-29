@@ -328,8 +328,10 @@ public class PreApiService : BackgroundService
             {
                 var sim = await connection.GetService<FlipTracker.Client.Api.IAnalyseApi>().PlayerPlayerIdAlternativeGetAsync(buyer, 1);
                 var simPlayerId = long.Parse(sim.PlayerId);
-                logger.LogInformation($"skipcheck Found {sim.BoughtCount} similar buys from {sim.PlayerId} {AuctionService.Instance.GetUuid(simPlayerId)} for {buyer} {connection.SessionInfo.McUuid}");
-                if (sim.BoughtCount > 20 && sim.BoughtCount - sim.TargetReceived < 5 && simPlayerId == AuctionService.Instance.GetId(connectedFrom))
+                var connectedUid = AuctionService.Instance.GetId(connectedFrom);
+                var buyerUid = AuctionService.Instance.GetId(buyer);
+                logger.LogInformation($"skipcheck Found {sim.BoughtCount} {sim.TargetReceived} similar buys from {sim.PlayerId} for {buyerUid} {connectedUid} connected as {connection.SessionInfo.McName}");
+                if (sim.BoughtCount > 20 && sim.BoughtCount - sim.TargetReceived < 5 && simPlayerId == connectedUid)
                 {
                     logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} by {buyer} for {flip.Auction.Uuid}");
                     connection.AccountInfo.McIds.Add(buyer);
