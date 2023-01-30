@@ -21,7 +21,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var uuid = flip.Auction.Uuid;
             var preService = socket.GetService<PreApiService>();
-            if (preService.IsSold(uuid))
+            if (preService.IsSold(uuid) && !(socket.Settings?.ModSettings?.NormalSoldFlips ?? false))
             {
                 var parts = await GetMessageparts(flip);
                 parts.Insert(0, new ChatPart(McColorCodes.RED + "[SOLD]",
