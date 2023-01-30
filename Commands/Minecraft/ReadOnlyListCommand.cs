@@ -14,9 +14,9 @@ public abstract class ReadOnlyListCommand<T> : McCommand
     {
         var arguments = JsonConvert.DeserializeObject<string>(args);
         var elements = (await GetElements(socket, arguments)).ToList();
-        if (sorters.ContainsKey(arguments.Split(' ')[0].Trim('"')))
+        if (sorters.TryGetValue(arguments.Split(' ')[0].Trim('"'), out var sorter))
         {
-            elements = sorters[arguments.Trim('"')](elements).ToList();
+            elements = sorter(elements).ToList();
             arguments = RemoveSortArgument(arguments);
         }
         if (!int.TryParse(arguments.Trim('"'), out int page) && arguments.Trim('"').Length > 1)
@@ -40,6 +40,8 @@ public abstract class ReadOnlyListCommand<T> : McCommand
 
     private static string RemoveSortArgument(string arguments)
     {
+        if(arguments.Split(' ').Length == 1)
+            return "";
         arguments = arguments.Split(' ').Skip(1).Aggregate((a, b) => a + " " + b);
         return arguments;
     }
