@@ -56,7 +56,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 $"Don't show {McColorCodes.AQUA}{Sky.Core.ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GREEN} for 24 hours")
             .CoflCommand<BlacklistCommand>(
                 $" {McColorCodes.YELLOW}seller",
-                $"add {flip.Auction.AuctioneerId} forceBlacklist=true",
+                $"add seller={flip.Auction.AuctioneerId} forceBlacklist=true",
                 $"Don't show seller {McColorCodes.AQUA}{flip.Auction.AuctioneerId}{McColorCodes.YELLOW} AT ALL anymore")
                 .Break
             .MsgLine(

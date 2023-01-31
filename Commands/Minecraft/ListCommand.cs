@@ -11,7 +11,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            var args = Newtonsoft.Json.JsonConvert.DeserializeObject<string>(arguments);
+            var args = Newtonsoft.Json.JsonConvert.DeserializeObject<string>(arguments).Replace(@"\u003d", "=");
             var subArgStart = args.IndexOf(' ');
             var subArgs = args.Substring(subArgStart + 1);
             if(subArgStart == -1)
