@@ -97,6 +97,9 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     entry.Tags = new List<string>() { "removeAfter=" + DateTime.Parse(removeAfter).RoundDown(TimeSpan.FromHours(1)).ToString("s") };
                 }
+                try
+                {
+                    
                 entry.GetExpression().Compile().Invoke(new FlipInstance()
                 {
                     Auction = new Core.SaveAuction()
@@ -107,6 +110,13 @@ namespace Coflnet.Sky.Commands.MC
                         FlatenedNBT = new Dictionary<string, string>()
                     },
                 });
+                }
+                catch (System.Exception)
+                {
+                    Console.WriteLine(JSON.Stringify(entry));
+                    socket.SendMessage("The filter you provided is invalid, please check your syntax or report this");
+                    throw;
+                }
 
                 return new CreationOption()
                 {
