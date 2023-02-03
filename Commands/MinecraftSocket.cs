@@ -118,12 +118,12 @@ namespace Coflnet.Sky.Commands.MC
         /// <summary>
         /// Triggered when the connection closes
         /// </summary>
-        public event Action OnConClose;
+        public event Action? OnConClose;
 
         public class BlockedElement
         {
-            public LowPricedAuction Flip;
-            public string Reason;
+            public LowPricedAuction Flip = null!;
+            public string Reason = null!;
             public DateTime Now = DateTime.UtcNow;
         }
 

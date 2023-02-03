@@ -223,13 +223,11 @@ public class PreApiService : BackgroundService
         if (!isMyRR)
         {
             logger.LogInformation($"Waiting {tilPurchasable} for {flip.Auction.Uuid} to send to {connection.UserId} active users {JSON.Stringify(preApiUsers)}");
-            var toWait = tilPurchasable - TimeSpan.FromSeconds(2);
-            if (toWait < TimeSpan.FromSeconds(1.5))
-                toWait = TimeSpan.FromSeconds(1.5);
-            await Task.Delay(toWait).ConfigureAwait(false);
+            await WaitTwoSecondsBefore(tilPurchasable).ConfigureAwait(false);
+            var extraWait = tilPurchasable > TimeSpan.Zero ? TimeSpan.FromSeconds(2) : TimeSpan.Zero;
             // check if rr was sent to user, if not send to all users
             if (sent.ContainsKey(flip.Auction.Uuid))
-                await Task.Delay(TimeSpan.FromSeconds(Random.Shared.Next(3, 5))).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(3 + Random.Shared.NextDouble() * 1) + extraWait).ConfigureAwait(false);
             else
             {
                 flip = ChangeFlipDotColor(flip, McColorCodes.GREEN);
@@ -263,6 +261,14 @@ public class PreApiService : BackgroundService
             logger.LogInformation($"Flip was sent out to {(connection as MinecraftSocket).SessionInfo.McName} {flip.Auction.Uuid}");
             PublishReceive(flip.Auction.Uuid);
         }
+    }
+
+    private static async Task WaitTwoSecondsBefore(TimeSpan tilPurchasable)
+    {
+        var toWait = tilPurchasable - TimeSpan.FromSeconds(2);
+        if (toWait < TimeSpan.FromSeconds(1))
+            toWait = TimeSpan.FromSeconds(1);
+        await Task.Delay(toWait).ConfigureAwait(false);
     }
 
     private static LowPricedAuction ChangeFlipDotColor(LowPricedAuction flip, string color)
