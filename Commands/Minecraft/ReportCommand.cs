@@ -22,7 +22,7 @@ namespace Coflnet.Sky.Commands.MC
             using var singleReportSpan = socket.CreateActivity("report");
             CreateReport(socket, arguments, socket.ConSpan, out spanId);
 
-            dev.Logger.Instance.Error($"Report with id {spanId} {arguments}");
+            dev.Logger.Instance.Error($"Report with id {spanId} {arguments} {singleReportSpan?.Context.TraceId}");
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.TopBlocked?.Take(10)));
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.Settings));
 
@@ -41,6 +41,8 @@ namespace Coflnet.Sky.Commands.MC
                                     .AddTag("uuid", socket.SessionInfo.McUuid)
                                     .AddTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
                                     .AddTag("timestamp", DateTime.UtcNow.ToLongTimeString());
+            spanId = reportSpan?.Context.TraceId.ToString().Truncate(6);
+            reportSpan.SetTag("id", spanId);
             using (var settingsSpan = socket.CreateActivity("settings", reportSpan))
                 settingsSpan.Log(JsonConvert.SerializeObject(new
                 {
@@ -63,8 +65,7 @@ namespace Coflnet.Sky.Commands.MC
             using (var lastSentSpan = socket.CreateActivity("lastSent", reportSpan))
                 lastSentSpan.Log(JsonConvert.SerializeObject(socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20), Formatting.Indented));
             reportSpan.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo, Formatting.Indented));
-            spanId = reportSpan?.Context.TraceId.ToString().Truncate(6);
-            reportSpan.SetTag("id", spanId);
+            
             using var snapshotSpan = socket.CreateActivity("snapshot", reportSpan);
             foreach (var item in SnapShotService.Instance.SnapShots)
             {
@@ -73,6 +74,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             TryAddingAllSettings(reportSpan);
             socket.Send(Response.Create("getMods", 0));
+            reportSpan.Dispose();
         }
 
         public static void TryAddingAllSettings(Activity reportSpan)
