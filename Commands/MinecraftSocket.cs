@@ -416,7 +416,13 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override void OnMessage(MessageEventArgs e)
         {
-            if (waiting > 2)
+            var parallelAllowed = 2; 
+            if((this.AccountInfo?.Tier ?? 0) >= AccountTier.PREMIUM_PLUS)
+                parallelAllowed = 6;
+            else if((this.AccountInfo?.Tier ?? 0) >= AccountTier.STARTER_PREMIUM)
+                parallelAllowed = 4;
+            
+            if (waiting > parallelAllowed)
             {
                 SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
                 return;
@@ -472,14 +478,14 @@ namespace Coflnet.Sky.Commands.MC
                     using var commandSpan = CreateActivity(a.type, span);
                     await InvokeCommand(a, command);
                 }
-            });
+            }).ConfigureAwait(false);
         }
 
         private async Task InvokeCommand(Response a, McCommand command)
         {
             try
             {
-                await command.Execute(this, a.data);
+                await command.Execute(this, a.data).ConfigureAwait(false);
             }
             catch (CoflnetException e)
             {
