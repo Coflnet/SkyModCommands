@@ -241,6 +241,8 @@ public class PreApiService : BackgroundService
         if (profit > 1_000_000)
             logger.LogInformation($"Is rr {isMyRR}, Sent flip to {connection.UserId} for {flip.Auction.Uuid} active users {JSON.Stringify(preApiUsers)} "
                                 + $"index {index} {flip.Auction.UId % userCount} forward {!sent.ContainsKey(flip.Auction.Uuid)} {flip.Auction.Context.GetValueOrDefault("pre-api")}");
+
+        flip.AdditionalProps["da"] = (DateTime.UtcNow - flip.Auction.FindTime).ToString();
         var sendSuccessful = await connection.SendFlip(flip).ConfigureAwait(false);
         if (!sendSuccessful)
         {
