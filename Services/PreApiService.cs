@@ -258,7 +258,7 @@ public class PreApiService : BackgroundService
         if (tilPurchasable > TimeSpan.FromSeconds(2.5))
             await Task.Delay(tilPurchasable - TimeSpan.FromSeconds(2.5)).ConfigureAwait(false);
 
-        if ((connection as MinecraftSocket)?.LastSent.Contains(flip) ?? false)
+        if ((connection as MinecraftSocket)?.LastSent.Any(f=>f.UId == flip.UId) ?? false)
         {
             logger.LogInformation($"Flip was sent out to {(connection as MinecraftSocket).SessionInfo.McName} {flip.Auction.Uuid}");
             PublishReceive(flip.Auction.Uuid);
@@ -364,7 +364,7 @@ public class PreApiService : BackgroundService
         redis.GetSubscriber().Publish("auction_sell", MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid, Tier = tier }));
     }
 
-    private void PublishReceive(string uuid)
+    public void PublishReceive(string uuid)
     {
         redis.GetSubscriber().Publish("auction_sent", MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid }));
     }

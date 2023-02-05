@@ -20,17 +20,4 @@ namespace Coflnet.Sky.Commands.MC
             System.Console.WriteLine("debug command");
         }
     }
-
-    public class FResponseCommand : McCommand
-    {
-        public override Task Execute(MinecraftSocket socket, string arguments)
-        {
-            var parts = arguments.Trim('"').Split(' ');
-            var uuid = parts[0];
-            socket.ReceivedConfirm.TryRemove(uuid, out var value);
-            System.Console.WriteLine($"Received confirm for {uuid} from {socket.SessionInfo.McName}");
-            var worth = parts[1];
-            return Task.CompletedTask;
-        }
-    }
 }
