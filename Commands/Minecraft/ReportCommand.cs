@@ -40,7 +40,8 @@ namespace Coflnet.Sky.Commands.MC
                                     .AddTag("mcId", socket.SessionInfo.McName)
                                     .AddTag("uuid", socket.SessionInfo.McUuid)
                                     .AddTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
-                                    .AddTag("timestamp", DateTime.UtcNow.ToLongTimeString());
+                                    .AddTag("timestamp", DateTime.UtcNow.ToLongTimeString())
+                                    .AddTag("instance", System.Net.Dns.GetHostName());
             spanId = reportSpan?.Context.TraceId.ToString().Truncate(6);
             reportSpan.SetTag("id", spanId);
             using (var settingsSpan = socket.CreateActivity("settings", reportSpan))

@@ -366,6 +366,8 @@ public class PreApiService : BackgroundService
 
     public void PublishReceive(string uuid)
     {
+        if(sold.ContainsKey(uuid))
+            return;
         redis.GetSubscriber().Publish("auction_sent", MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid }));
     }
 

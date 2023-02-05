@@ -46,8 +46,13 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.ExecuteCommand($"/cofl fresponse {uuid} {worth}");
                 socket.ReceivedConfirm.TryAdd(uuid, flip);
-                _ = Task.Run(async () =>
+                _ = socket.TryAsyncTimes(async () =>
                 {
+                    if ((socket.AccountInfo?.Tier ?? 0) >= Shared.AccountTier.SUPER_PREMIUM)
+                    {
+                        // make sure receival is published
+                        socket.GetService<PreApiService>().PublishReceive(uuid);
+                    }
                     await Task.Delay(1000);
                     if (socket.ReceivedConfirm.TryRemove(uuid, out var value))
                     {
@@ -56,7 +61,7 @@ namespace Coflnet.Sky.Commands.MC
                                 + JsonConvert.SerializeObject(value) + "\n" + JsonConvert.SerializeObject(flipBody));
                         socket.Send(Response.Create("log", $"Flip withh id {uuid} was not confirmed"));
                     }
-                });
+                }, "flipConfirm" + uuid, 1);
             }
             socket.Send(Response.Create("log", $"Flip withh id {uuid} was sent"));
             if (DateTime.UtcNow.Month == 4 && DateTime.UtcNow.Day == 1 && rng.Next(200) == 1)
@@ -74,8 +79,6 @@ namespace Coflnet.Sky.Commands.MC
         {
             socket.Send(Response.Create("chatMessage", parts));
         }
-
-
     }
 
     public class InventoryVersionAdapter : ThirdVersionAdapter
