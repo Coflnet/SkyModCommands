@@ -11,6 +11,12 @@ namespace Coflnet.Sky.Commands.MC
         {
             socket.SendSound("random.orb");
             socket.SendMessage("The test was successful :)");
+            var profit = await socket.GetService<FlipTrackingService>().GetPreApiProfit();
+            socket.SendMessage($"Profit: {profit}");
+        }
+
+        private static async Task SendRandomFlip(MinecraftSocket socket)
+        {
             var r = new Random();
             var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
             {
