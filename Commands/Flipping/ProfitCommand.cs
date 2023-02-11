@@ -19,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
             var time = TimeSpan.FromDays(days);
             if (time > TimeSpan.FromDays(maxDays))
             {
-                socket.SendMessage(COFLNET + "sorry the maximum is a week currently");
+                socket.Dialog(db=>db.MsgLine($"sorry the maximum is a {maxDays} days currently"));
                 time = TimeSpan.FromDays(maxDays);
             }
             else

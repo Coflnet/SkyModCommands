@@ -20,7 +20,8 @@ namespace Coflnet.Sky.Commands.MC
 
         private static JsonSerializerSettings Settings = new JsonSerializerSettings()
         {
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
+            ContractResolver = new CamelCasePropertyNamesContractResolver(),
+            Converters = new JsonConverter[] { new Newtonsoft.Json.Converters.StringEnumConverter() }
         };
 
         public static Response Create<T>(string type, T data)
