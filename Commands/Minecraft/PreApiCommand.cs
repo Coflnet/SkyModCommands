@@ -21,8 +21,8 @@ public class PreApiCommand : McCommand
             socket.SendMessage($"Loading up all flips of the last day and calculating the profit...", null, "Can take a few seconds");
             var profit = await socket.GetService<FlipTrackingService>().GetPreApiProfit();
             var white = McColorCodes.WHITE;
-            socket.Dialog(db => db.MsgLine($"A total of {McColorCodes.AQUA}{profit.PlayerCount}{white} earned at least {McColorCodes.AQUA}{socket.FormatPrice(profit.Profit)} coins{white}. \n"
-                + $"Profit per hour being {McColorCodes.AQUA}{socket.FormatPrice(profit.Profit / Math.Max(1, profit.HourCount))}", null,
+            socket.Dialog(db => db.MsgLine($"A total of {McColorCodes.AQUA}{profit.PlayerCount}{white} users earned at least {McColorCodes.AQUA}{socket.FormatPrice(profit.Profit)} coins{white}. \n"
+                + $"Profit per hour being {McColorCodes.AQUA}{socket.FormatPrice(profit.Profit / Math.Max(1, profit.HourCount))} {McColorCodes.GRAY}(only including already sold items)", null,
                 $"Profit per flip: {McColorCodes.AQUA}{socket.FormatPrice(profit.Profit / Math.Max(1, profit.FlipCount))}\n"
                 + $"Profit per player: {McColorCodes.AQUA}{socket.FormatPrice(profit.Profit / Math.Max(1, profit.PlayerCount))}\n"
                 + $"Profit per hour: {McColorCodes.AQUA}{socket.FormatPrice(profit.Profit / Math.Max(1, profit.HourCount))}\n"
