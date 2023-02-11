@@ -12,7 +12,7 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendSound("random.orb");
             socket.SendMessage("The test was successful :)");
             var profit = await socket.GetService<FlipTrackingService>().GetPreApiProfit();
-            socket.SendMessage($"Profit: {profit}");
+            socket.SendMessage($"Profit: {profit.Profit}");
         }
 
         private static async Task SendRandomFlip(MinecraftSocket socket)
