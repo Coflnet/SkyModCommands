@@ -25,7 +25,7 @@ namespace Coflnet.Sky.Commands.MC
                     value = await updater.GetCurrentValue(socket, o.Key),
                     info = o.Value.Info,
                     type = o.Value.Type,
-                    category = o.Key.Substring(0,3) switch
+                    category = o.Key.Substring(0, 3) switch
                     {
                         "mod" => "mod",
                         "sho" => "visibility",
@@ -34,6 +34,13 @@ namespace Coflnet.Sky.Commands.MC
                     }
                 }))));
                 await Task.Delay(500);
+                return;
+            }
+            if (args == "tier")
+            {
+                await socket.UserAccountTier();
+                var accountTier = socket.sessionLifesycle.AccountInfo?.Value;
+                socket.Send(Response.Create("tier", new { accountTier.Tier, accountTier.ExpiresAt }));
                 return;
             }
             try

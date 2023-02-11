@@ -10,16 +10,27 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            var maxDays = 14;
-            if (!double.TryParse(arguments.Trim('"'), out double days))
+            var maxDaysHighestTier = 30;
+            var maxDays = (await socket.UserAccountTier()) switch
+            {
+                >= AccountTier.PREMIUM_PLUS => maxDaysHighestTier,
+                _ => 14
+            };
+            double days = 7;
+            if (arguments.Length > 2 && !double.TryParse(arguments.Trim('"'), out days))
             {
                 socket.SendMessage(COFLNET + $"usage /cofl profit {{0.5-{maxDays}}}");
                 return;
             }
+            else
+                socket.Dialog(db => db.MsgLine($"Using the default of {days} days because you didn't specify a number"));
             var time = TimeSpan.FromDays(days);
             if (time > TimeSpan.FromDays(maxDays))
             {
-                socket.Dialog(db=>db.MsgLine($"sorry the maximum is a {maxDays} days currently"));
+                socket.Dialog(db => db.MsgLine($"sorry the maximum is a {maxDays} days currently. Setting time to {maxDays} days"));
+                if (maxDays < maxDaysHighestTier)
+                    socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
+                        $"you can upgrade to premium plus to get {maxDaysHighestTier} days", "premium_plus", "upgrade"));
                 time = TimeSpan.FromDays(maxDays);
             }
             else
