@@ -20,7 +20,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (SentSinceReset > 3)
             {
-                if(HighestValue > auction.Profit)
+                if (HighestValue > auction.Profit && auction.Finder != Core.LowPricedAuction.FinderType.USER)
                     return false;
             }
             Interlocked.Increment(ref SentSinceReset);
