@@ -6,6 +6,7 @@ public class HelpCommand : McCommand
 {
     public override Task Execute(MinecraftSocket socket, string arguments)
     {
+        public override bool IsPublic => true;
         switch (arguments.Trim('"'))
         {
             case "login":

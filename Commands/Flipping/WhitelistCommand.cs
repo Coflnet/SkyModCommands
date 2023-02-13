@@ -6,6 +6,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class WhitelistCommand : BlacklistCommand
     {
+        public override bool IsPublic => true;
         protected override async Task Update(MinecraftSocket socket, List<ListEntry> newCol)
         {
             var list = GetSettings(socket);

@@ -5,6 +5,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class LogoutCommand : McCommand
     {
+        public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var account = socket.sessionLifesycle?.AccountInfo?.Value;

@@ -9,6 +9,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class TransactionsCommand : ReadOnlyListCommand<ExternalTransaction>
     {
+        public override bool IsPublic => true;
         protected override void Format(MinecraftSocket socket, DialogBuilder db, ExternalTransaction elem)
         {
             if(elem.Amount < 0)

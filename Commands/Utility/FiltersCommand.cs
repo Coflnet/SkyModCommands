@@ -10,6 +10,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class FiltersCommand : ReadOnlyListCommand<FilterOptions>
     {
+        public override bool IsPublic => true;
         protected override void Format(MinecraftSocket socket, DialogBuilder db, FilterOptions elem)
         {
             var hover = $"Sample options: \n{McColorCodes.YELLOW + string.Join(",\n", elem.Options.Batch(10).Select(o => string.Join(McColorCodes.GRAY + ", " + McColorCodes.YELLOW, o)))}";

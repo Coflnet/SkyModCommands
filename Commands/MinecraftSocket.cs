@@ -416,12 +416,12 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override void OnMessage(MessageEventArgs e)
         {
-            var parallelAllowed = 2; 
-            if((this.AccountInfo?.Tier ?? 0) >= AccountTier.PREMIUM_PLUS)
+            var parallelAllowed = 2;
+            if ((this.AccountInfo?.Tier ?? 0) >= AccountTier.PREMIUM_PLUS)
                 parallelAllowed = 6;
-            else if((this.AccountInfo?.Tier ?? 0) >= AccountTier.STARTER_PREMIUM)
+            else if ((this.AccountInfo?.Tier ?? 0) >= AccountTier.STARTER_PREMIUM)
                 parallelAllowed = 4;
-            
+
             if (waiting > parallelAllowed)
             {
                 SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
@@ -458,7 +458,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (!Commands.TryGetValue(a.type.ToLower(), out McCommand command))
             {
-                var closest = Commands.Keys.OrderBy(x => Fastenshtein.Levenshtein.Distance(x.ToLower(), a.type)).FirstOrDefault();
+                var closest = Commands.Where(c => c.Value.IsPublic).Select(c => c.Key).OrderBy(x => Fastenshtein.Levenshtein.Distance(x.ToLower(), a.type)).FirstOrDefault();
                 var altCommand = $"/cofl {closest} {a.data.Trim('"')}";
                 SendMessage($"{COFLNET}The command '{McColorCodes.ITALIC + a.type + McColorCodes.RESET + McCommand.DEFAULT_COLOR}' is not known. Hover for info\n",
                             altCommand.Trim('"'),
@@ -653,7 +653,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public void Send(Response response)
         {
-            if(ConnectionState == WebSocketState.Closed )
+            if (ConnectionState == WebSocketState.Closed)
             {
                 RemoveMySelf();
                 return;

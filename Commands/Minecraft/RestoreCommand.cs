@@ -8,6 +8,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class RestoreCommand : McCommand
     {
+        public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var settings = socket.GetService<SettingsService>();

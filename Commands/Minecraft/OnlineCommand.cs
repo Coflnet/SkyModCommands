@@ -7,6 +7,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class OnlineCommand : McCommand
     {
+        public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             socket.SendMessage(COFLNET + $"There are {McColorCodes.AQUA}{FlipperService.Instance.PremiumUserCount}{McColorCodes.GRAY} users connected to this server",

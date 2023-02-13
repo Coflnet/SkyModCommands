@@ -6,6 +6,7 @@ using Coflnet.Sky.ModCommands.Services;
 namespace Coflnet.Sky.Commands.MC;
 public class PreApiCommand : McCommand
 {
+    public override bool IsPublic => true;
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');

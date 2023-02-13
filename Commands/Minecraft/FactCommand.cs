@@ -7,6 +7,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class FactCommand : McCommand
     {
+        public override bool IsPublic => true;
         List<Func<MinecraftSocket, string>> facts = new() {
             s=>"You are reading this right now",
             s=>"1 + 1 is 2",

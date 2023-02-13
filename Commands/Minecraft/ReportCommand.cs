@@ -12,6 +12,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class ReportCommand : McCommand
     {
+        public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             if (string.IsNullOrEmpty(arguments) || arguments.Length < 3)

@@ -8,6 +8,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class DelayCommand : McCommand
     {
+        public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var delayAmount = socket.sessionLifesycle.CurrentDelay;

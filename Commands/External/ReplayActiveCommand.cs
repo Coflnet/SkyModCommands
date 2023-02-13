@@ -7,6 +7,7 @@ namespace Coflnet.Sky.Commands.MC;
 
 public class ReplayActiveCommand : McCommand
 {
+    public override bool IsPublic => true;
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         socket.Dialog(db => db

@@ -7,6 +7,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class MuteCommand : McCommand
     {
+        public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var name = Newtonsoft.Json.JsonConvert.DeserializeObject<string>(arguments);

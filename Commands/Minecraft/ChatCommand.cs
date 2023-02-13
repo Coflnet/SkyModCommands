@@ -14,6 +14,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         static ChatService chat;
         public static string CHAT_PREFIX = "[§1C§6hat§f]";
+        public override bool IsPublic => true;
 
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {

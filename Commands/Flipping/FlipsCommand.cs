@@ -10,6 +10,7 @@ namespace Coflnet.Sky.Commands.MC;
 
 public class FlipsCommand : ReadOnlyListCommand<Api.Client.Model.FlipDetails>
 {
+    public override bool IsPublic => true;
     public FlipsCommand()
     {
         sorters.Add("profit", e => e.OrderByDescending(f => f.Profit));

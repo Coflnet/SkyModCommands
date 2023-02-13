@@ -9,6 +9,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class BlacklistCommand : ListCommand<ListEntry, List<ListEntry>>
     {
+        public override bool IsPublic => true;
         FilterParser parser = new FilterParser();
         protected override string Format(ListEntry elem)
         {

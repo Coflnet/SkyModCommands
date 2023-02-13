@@ -10,6 +10,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class ImportTfmCommand : McCommand
     {
+        public override bool IsPublic => true;
         RestClient client = new RestClient("https://tfm.thom.club/");
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {

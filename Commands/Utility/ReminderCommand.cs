@@ -10,6 +10,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class ReminderCommand : ListCommand<Reminder, List<Reminder>>
     {
+        public override bool IsPublic => true;
         protected override Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)
         {
             var args = val.Split(' ');

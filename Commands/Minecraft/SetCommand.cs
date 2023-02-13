@@ -11,6 +11,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class SetCommand : McCommand
     {
+        public override bool IsPublic => true;
         private static SettingsUpdater updater = new SettingsUpdater();
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {

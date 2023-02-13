@@ -8,6 +8,7 @@ namespace Coflnet.Sky.Commands.MC;
 /// </summary>
 public class FlipCommand : McCommand
 {
+    public override bool IsPublic => true;
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var flipSettings = socket.sessionLifesycle.FlipSettings;
@@ -24,8 +25,8 @@ public class FlipCommand : McCommand
                 socket.SessionInfo.FlipsEnabled = true;
                 WriteCurrentState(socket);
                 socket.Dialog(db => db.CoflCommand<SetCommand>(
-                    $"To disable flipper autostart do \n{McColorCodes.AQUA}/cofl set modAutoStartFlipper false", 
-                    "modAutoStartFlipper false", 
+                    $"To disable flipper autostart do \n{McColorCodes.AQUA}/cofl set modAutoStartFlipper false",
+                    "modAutoStartFlipper false",
                     $"Click to turn autostart off, short hand to toggle is {McColorCodes.AQUA}/cl s fas"));
                 break;
             default:

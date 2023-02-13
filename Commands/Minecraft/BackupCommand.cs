@@ -10,6 +10,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class BackupCommand : ListCommand<BackupEntry, List<BackupEntry>>
     {
+        public override bool IsPublic => true;
         protected override Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)
         {
             return Task.FromResult(new CreationOption[]{new (){Element = new BackupEntry(){
