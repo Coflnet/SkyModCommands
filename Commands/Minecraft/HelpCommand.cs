@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 namespace Coflnet.Sky.Commands.MC;
 public class HelpCommand : McCommand
 {
+    public override bool IsPublic => true;
     public override Task Execute(MinecraftSocket socket, string arguments)
     {
-        public override bool IsPublic => true;
         switch (arguments.Trim('"'))
         {
             case "login":
