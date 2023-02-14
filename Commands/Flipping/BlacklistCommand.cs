@@ -54,6 +54,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var list = GetSettings(socket);
             list.Value.BlackList = newCol;
+            list.Value.RecompileMatchers();
             await list.Update(list.Value);
         }
 
