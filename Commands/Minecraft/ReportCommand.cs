@@ -48,17 +48,17 @@ namespace Coflnet.Sky.Commands.MC
             using (var settingsSpan = socket.CreateActivity("settings", reportSpan))
                 settingsSpan.Log(JsonConvert.SerializeObject(new
                 {
-                    socket.Settings.Visibility,
-                    socket.Settings.ModSettings,
-                    socket.Settings.BasedOnLBin,
-                    socket.Settings.AllowedFinders,
-                    socket.Settings.MaxCost,
-                    socket.Settings.MinProfit,
-                    socket.Settings.MinProfitPercent,
-                    socket.Settings.MinVolume,
-                    socket.Settings.WhitelistAfterMain,
-                    Blacklist = socket.Settings.BlackList.Select(b => new { b.filter, b.ItemTag }),
-                    Whitelist = socket.Settings.WhiteList.Select(b => new { b.filter, b.ItemTag })
+                    socket.Settings?.Visibility,
+                    socket.Settings?.ModSettings,
+                    socket.Settings?.BasedOnLBin,
+                    socket.Settings?.AllowedFinders,
+                    socket.Settings?.MaxCost,
+                    socket.Settings?.MinProfit,
+                    socket.Settings?.MinProfitPercent,
+                    socket.Settings?.MinVolume,
+                    socket.Settings?.WhitelistAfterMain,
+                    Blacklist = socket.Settings?.BlackList?.Select(b => new { b.filter, b.ItemTag }),
+                    Whitelist = socket.Settings?.WhiteList?.Select(b => new { b.filter, b.ItemTag })
 
                 }, Formatting.Indented));
             using (var blockedSpan = socket.CreateActivity("blocked", reportSpan))
