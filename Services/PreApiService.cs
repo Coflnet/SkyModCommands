@@ -172,7 +172,7 @@ public class PreApiService : BackgroundService
         if (e.Auction?.Context?.ContainsKey("cname") ?? false)
             e.Auction.Context["cname"] += McColorCodes.DARK_GRAY + ".";
 
-        var tilPurchasable = e.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow;
+        var tilPurchasable = e.Auction.Start + TimeSpan.FromSeconds(19.9) - DateTime.UtcNow;
         if (tilPurchasable < TimeSpan.Zero)
             tilPurchasable = TimeSpan.Zero;
         foreach (var item in localUsers.Keys)
@@ -193,13 +193,13 @@ public class PreApiService : BackgroundService
         if (profit > 1_000_000)
             logger.LogInformation($"Pre-api low price handler called for {e?.Auction?.Uuid} profit {profit} users {localUsers?.Count}");
 
-        await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(0.2)).ConfigureAwait(false);
         // check if flip was sent to anyone 
         if (sent.ContainsKey(e.Auction.Uuid))
             return e; // if not send to all users
 
         // send out after delay
-        await Task.Delay(10_000).ConfigureAwait(false);
+        await Task.Delay(6_000).ConfigureAwait(false);
         return e;
     }
 
@@ -224,7 +224,7 @@ public class PreApiService : BackgroundService
         {
             logger.LogInformation($"Waiting {tilPurchasable} for {flip.Auction.Uuid} to send to {connection.UserId} active users {JSON.Stringify(preApiUsers)}");
             await WaitTwoSecondsBefore(tilPurchasable).ConfigureAwait(false);
-            var extraWait = tilPurchasable > TimeSpan.Zero ? TimeSpan.FromSeconds(2) : TimeSpan.Zero;
+            var extraWait = tilPurchasable > TimeSpan.Zero ? TimeSpan.FromSeconds(1.8) : TimeSpan.Zero;
             // check if rr was sent to user, if not send to all users
             if (sent.ContainsKey(flip.Auction.Uuid))
                 await Task.Delay(TimeSpan.FromSeconds(3 + Random.Shared.NextDouble() * 1) + extraWait).ConfigureAwait(false);
