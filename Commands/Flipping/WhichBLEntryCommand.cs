@@ -33,6 +33,8 @@ namespace Coflnet.Sky.Commands.MC
                     return Task.CompletedTask;
                 }
             }
+            socket.Settings.ClearListMatchers();
+            socket.SendMessage(COFLNET + "This flip didn't match any of your filters. How did you do this?", null, "Reloaded the filter in an attempt to fix this");
             return Task.CompletedTask;
         }
 
