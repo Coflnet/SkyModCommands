@@ -213,7 +213,8 @@ namespace Coflnet.Sky.Commands.MC
             var endsIn = flip.Auction.Start + TimeSpan.FromSeconds(17) - DateTime.UtcNow;
             socket.sessionLifesycle.StartTimer(endsIn.TotalSeconds, McColorCodes.GREEN + "Bed in: §c");
             socket.SendSound("note.bass");
-            await Task.Delay(endsIn).ConfigureAwait(false);
+            if (endsIn > TimeSpan.Zero)
+                await Task.Delay(endsIn).ConfigureAwait(false);
             Interlocked.Decrement(ref waitingBedFlips);
             if (waitingBedFlips == 0)
             {
