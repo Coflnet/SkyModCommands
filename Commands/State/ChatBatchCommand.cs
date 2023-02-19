@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
-using Confluent.Kafka;
+using System.Linq;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
@@ -22,7 +22,7 @@ namespace Coflnet.Sky.Commands.MC
             var batch = JsonConvert.DeserializeObject<List<string>>(arguments);
             if (batch[0] == "You cannot view this auction!")
                 socket.SendMessage(COFLNET + "You have to use a booster cookie or be on the hub island to open auctions. \nClick to warp to hub", "/hub", "warp to hup");
-            if (batch[0].Contains("§a❈ Defense"))
+            if (batch.All(l => l.Contains("§a❈ Defense")))
                 return; // dismiss stat update
             var config = socket.GetService<IConfiguration>();
             var playerId = socket.SessionInfo?.McName;

@@ -171,6 +171,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<UpdateLocationCommand>();
             Commands.Add<UpdateBitsCommand>();
             Commands.Add<UploadTabCommand>();
+            Commands.Add<UploadScoreboardCommand>();
             Commands.Add<BackupCommand>();
             Commands.Add<RestoreCommand>();
             Commands.Add<CaptchaCommand>();
@@ -755,7 +756,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public bool HasFlippingDisabled()
         {
-            return (this.Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && this.Settings != null;
+            return (this.Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && this.Settings != null || SessionInfo.IsNotFlipable;
         }
 
         public void SheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
