@@ -13,7 +13,7 @@ namespace Coflnet.Sky.Commands.MC
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            if (!socket.SessionInfo.IsNotFlipable)
+            if (socket.SessionInfo.IsNotFlipable)
             {
                 socket.SendMessage(COFLNET + "You are not in a gamemode that does not have access to the auction house. \n"
                     + "Switch your gamemode/leave dungeons to flip");
