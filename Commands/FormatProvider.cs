@@ -72,6 +72,7 @@ namespace Coflnet.Sky.Commands.MC
                 LowPricedAuction.FinderType.SNIPER_MEDIAN => "MS",
                 LowPricedAuction.FinderType.USER => "USER",
                 LowPricedAuction.FinderType.STONKS => "RISKY",
+                LowPricedAuction.FinderType.TFM => "TFM",
                 _ => "FLIP"
             };
             var a = flip.Auction;
