@@ -13,6 +13,7 @@ public class ModeratorService
         "384a029294fc445e863f2c42fe9709cb", // ekwav
         "b2523d5215874abfa314a7a06c976830", // Hihi735 Fan
         "c0dafc539b664229aea0695bd9acea2c", // Livid
+        "34e8ac9671194cc594f0cf68b9c3966c", // Diamond
         };
     public bool IsModerator(MinecraftSocket socket)
     {
