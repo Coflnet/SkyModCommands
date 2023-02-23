@@ -222,6 +222,11 @@ namespace Coflnet.Sky.Commands.MC
         protected virtual async Task<ICollection<TElem>> Find(MinecraftSocket socket, string val)
         {
             var list = await GetList(socket);
+            return list.Where(l => GetId(l) == val).ToList();
+        }
+        protected virtual async Task<ICollection<TElem>> Search(MinecraftSocket socket, string val)
+        {
+            var list = await GetList(socket);
             return list.Where(l => GetId(l).Contains(val)).ToList();
         }
         /// <summary>
