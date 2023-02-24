@@ -8,15 +8,12 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class ProfitCommand : McCommand
     {
+        private const int MaxDaysHighestTier = 90;
+
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            var maxDaysHighestTier = 30;
-            var maxDays = (await socket.UserAccountTier()) switch
-            {
-                >= AccountTier.PREMIUM_PLUS => maxDaysHighestTier,
-                _ => 14
-            };
+            int maxDays = await GetMaxDaysPossible(socket);
             double days = 7;
             if (arguments.Length > 2 && !double.TryParse(arguments.Trim('"'), out days))
             {
@@ -29,9 +26,9 @@ namespace Coflnet.Sky.Commands.MC
             if (time > TimeSpan.FromDays(maxDays))
             {
                 socket.Dialog(db => db.MsgLine($"sorry the maximum is a {maxDays} days currently. Setting time to {maxDays} days"));
-                if (maxDays < maxDaysHighestTier)
+                if (maxDays < MaxDaysHighestTier)
                     socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
-                        $"you can upgrade to premium plus to get {maxDaysHighestTier} days", "premium_plus", "upgrade"));
+                        $"you can upgrade to premium plus to get {MaxDaysHighestTier} days", "premium_plus", "upgrade"));
                 time = TimeSpan.FromDays(maxDays);
             }
             else
@@ -61,6 +58,15 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier))}{best.ItemName}" +
                             $" {FormatPrice(socket, best.PricePaid)} -> {FormatPrice(socket, best.SoldFor)} (+{FormatPrice(socket, best.Profit)})",
                 "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction");
+        }
+
+        private static async Task<int> GetMaxDaysPossible(MinecraftSocket socket)
+        {
+            return (await socket.UserAccountTier()) switch
+            {
+                >= AccountTier.PREMIUM_PLUS => MaxDaysHighestTier,
+                _ => 14
+            };
         }
 
         private string GetHoverText(MinecraftSocket socket, FlipSumary response)
