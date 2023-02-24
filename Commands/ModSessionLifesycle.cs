@@ -452,6 +452,11 @@ namespace Coflnet.Sky.Commands.MC
                     span.SetTag("error", true);
                 SendReminders();
                 socket.TryAsyncTimes(RemoveTempFilters, "remove temp filters", 1);
+                if (AccountInfo.Value?.Tier == AccountTier.NONE)
+                    return;
+                if (socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-5)))
+                    return; // got a flip in the last 5 minutes
+                UpdateConnectionTier(AccountInfo.Value, span);
             }
             catch (System.InvalidOperationException)
             {
@@ -459,7 +464,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Exception e)
             {
-                span.Log("could not send ping");
+                span.Log("could not send ping\n" + e);
                 socket.Error(e, "on ping"); // CloseBecauseError(e);
             }
         }
