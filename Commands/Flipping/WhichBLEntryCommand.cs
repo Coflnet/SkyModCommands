@@ -28,7 +28,11 @@ namespace Coflnet.Sky.Commands.MC
                 if (Matches(flip, item))
                 {
                     var bl = BlacklistCommand.FormatEntry(item);
-                    socket.SendMessage(COFLNET + "This flip matched the filter " + bl);
+                    var text = "This flip matched the filter " + bl;
+                    if (args.WL)
+                        socket.Dialog(db => db.CoflCommand<WhitelistCommand>(text, "rm " + BlacklistCommand.FormatId(item), "Remove this filter"));
+                    else
+                        socket.Dialog(db => db.CoflCommand<BlacklistCommand>(text, "rm " + BlacklistCommand.FormatId(item), "Remove this filter"));
                     Activity.Current.Log(JSON.Stringify(bl));
                     return Task.CompletedTask;
                 }
