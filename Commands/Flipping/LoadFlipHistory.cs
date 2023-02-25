@@ -16,7 +16,7 @@ public class LoadFlipHistory : McCommand
         if (!socket.GetService<ModeratorService>().IsModerator(socket))
             throw new CoflnetException("forbidden", "You are not allowed to do this");
         var playerId = JsonConvert.DeserializeObject<string>(arguments);
-        socket.SendMessage(COFLNET + $"Started refreshing flips for {playerId}", null, "this might take a while")
+        socket.SendMessage(COFLNET + $"Started refreshing flips for {playerId}", null, "this might take a while");
         if (playerId.Length < 30)
             playerId = (await socket.GetPlayerUuid(playerId)).Trim('"');
 
