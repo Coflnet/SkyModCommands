@@ -5,6 +5,7 @@ using Coflnet.Sky.Filter;
 using Coflnet.Sky.Items.Client.Api;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -20,7 +21,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (elem.Type.HasFlag(FilterType.RANGE))
                     hover += $"\n{McColorCodes.GREEN} supports ranges{McColorCodes.RESET}\neg. \"1-10\" or \">2\"";
             }
-            db.MsgLine($"{McColorCodes.GRAY}>{McColorCodes.YELLOW}{elem.Name}", null, hover);
+            db.MsgLine($"{McColorCodes.GRAY}>{McColorCodes.YELLOW}{elem.Name} {McColorCodes.GRAY}{elem.Description}", null, hover);
         }
 
         protected override async Task<IEnumerable<FilterOptions>> GetElements(MinecraftSocket socket, string val)
@@ -28,8 +29,9 @@ namespace Coflnet.Sky.Commands.MC
             var itemsApi = socket.GetService<IItemsApi>();
             var fe = new Sky.Filter.FilterEngine();
             var optionsTask = itemsApi.ItemItemTagModifiersAllGetAsync("*");
-
+            socket.SendMessage("Loading all filters with all options, this may take a while");
             var all = await optionsTask;
+            IEnumerable<FilterOptions> extraFilters = GetOptionsForDetailedFlipFilters();
             return fe.AvailableFilters.Where(f =>
             {
                 try
@@ -42,8 +44,36 @@ namespace Coflnet.Sky.Commands.MC
                     dev.Logger.Instance.Error(e, "retrieving filter options");
                     return false;
                 }
-            }).Select(f => new FilterOptions(f, all)).ToList();
+            }).Select(f => new FilterOptions(f, all))
+            .Concat(extraFilters.Where(f => f != null))
+            .ToList();
 
+        }
+
+        private static IEnumerable<FilterOptions> GetOptionsForDetailedFlipFilters()
+        {
+            return FlipFilter.AdditionalFilters.Select(f =>
+            {
+                try
+                {
+                    var description = (f.Value.GetType().GetCustomAttributes(typeof(FilterDescriptionAttribute), true).FirstOrDefault() as FilterDescriptionAttribute);
+                    if (description != null)
+                        System.Console.WriteLine(description.Description);
+                    return new FilterOptions()
+                    {
+                        Name = f.Key,
+                        Options = f.Value.Options.Select(o => o.ToString()).ToList(),
+                        Type = f.Value.FilterType,
+                        LongType = f.Value.FilterType.ToString(),
+                        Description = description?.Description
+                    };
+                }
+                catch (System.Exception e)
+                {
+                    dev.Logger.Instance.Error(e, "retrieving detailed filter");
+                    return null;
+                }
+            });
         }
 
         protected override string GetId(FilterOptions elem)
