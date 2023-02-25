@@ -29,6 +29,11 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override string GetId(ListEntry elem)
         {
+            return FormatId(elem);
+        }
+
+        public static string FormatId(ListEntry elem)
+        {
             return $"{elem.ItemTag} {(elem.filter == null ? "" : string.Join(',', elem.filter.Select(f => $"{f.Key}={f.Value}")))}{string.Join(',', elem.Tags ?? new List<string>())}";
         }
 
