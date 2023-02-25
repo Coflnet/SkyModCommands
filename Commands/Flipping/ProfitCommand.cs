@@ -8,7 +8,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class ProfitCommand : McCommand
     {
-        private const int MaxDaysHighestTier = 90;
+        private const int MaxDaysHighestTier = 180;
 
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
