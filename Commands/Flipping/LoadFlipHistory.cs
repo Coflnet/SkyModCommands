@@ -16,6 +16,7 @@ public class LoadFlipHistory : McCommand
         if (!socket.GetService<ModeratorService>().IsModerator(socket))
             throw new CoflnetException("forbidden", "You are not allowed to do this");
         var playerId = JsonConvert.DeserializeObject<string>(arguments);
+        socket.SendMessage(COFLNET + $"Started refreshing flips for {playerId}", null, "this might take a while")
         if (playerId.Length < 30)
             playerId = (await socket.GetPlayerUuid(playerId)).Trim('"');
 
@@ -46,6 +47,6 @@ public class LoadFlipHistory : McCommand
             }
         }
         producer.Flush(TimeSpan.FromSeconds(10));
-        socket.SendMessage(COFLNET + $"Started refreshing {count} flips for {playerId}", null, "this might take a few minutes to complete");
+        socket.SendMessage(COFLNET + $"Potential {count} flips for {playerId} found, submitted for processing", null, "this might take a few minutes to complete");
     }
 }
