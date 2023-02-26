@@ -66,7 +66,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (CoflnetException e)
             {
-                socket.SendMessage(new ChatPart(COFLNET + e.Message));
+                socket.SendMessage(new ChatPart(COFLNET + McColorCodes.RED + e.Message));
                 dev.Logger.Instance.Error(e, "set setting");
             }
             catch (Exception e)
