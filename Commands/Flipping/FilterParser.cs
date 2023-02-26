@@ -53,6 +53,7 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         // tested further up
                     }
+                    else if (filterName == "tag" || filterName == "tags") { }
                     else
                     {
                         var allOptions = await DiHandler.GetService<IItemsApi>().ItemItemTagModifiersAllGetAsync("*");

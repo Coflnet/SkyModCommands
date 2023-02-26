@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.Items.Client.Model;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -66,7 +67,7 @@ namespace Coflnet.Sky.Commands.MC
         protected override async Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)
         {
             var filters = new Dictionary<string, string>();
-            var allFilters = FlipFilter.AllFilters.Append("removeAfter").Append("duration");
+            var allFilters = FlipFilter.AllFilters.Append("removeAfter").Append("duration").Append("tag");
             if (val.Contains('='))
             {
                 val = await parser.ParseFiltersAsync(socket, val, filters, allFilters);
@@ -76,6 +77,14 @@ namespace Coflnet.Sky.Commands.MC
             if (removeAfter != null)
             {
                 filters.Remove("removeAfter");
+            }
+            if (filters.TryGetValue("tag", out var tag))
+            {
+                filters.Remove("tag");
+            }
+            if (filters.TryGetValue("tags", out tag))
+            {
+                filters.Remove("tags");
             }
             if (filters.ContainsKey("duration"))
             {
@@ -97,16 +106,26 @@ namespace Coflnet.Sky.Commands.MC
             if (result == null)
                 throw new CoflnetException("search", "Sorry there was no result for your search. If you are sure there should be one please report this");
 
-            return result.Where(r => r?.Flags == null || r.Flags.Value.HasFlag(Items.Client.Model.ItemFlags.AUCTION)).Select(r =>
+            return result.Where(r => r?.Flags == null || r.Flags.Value.HasFlag(ItemFlags.AUCTION)).Select(r =>
             {
-                var entry = new ListEntry() { ItemTag = r.Tag, DisplayName = r.Text, filter = filters };
+                var entry = new ListEntry() { ItemTag = r.Tag, DisplayName = r.Text, filter = filters, Tags = tag?.Split(',').ToList() };
                 if (removeAfter != null)
                 {
                     entry.Tags = new List<string>() { "removeAfter=" + DateTime.Parse(removeAfter).RoundDown(TimeSpan.FromHours(1)).ToString("s") };
                 }
-                try
+                TestForExceptions(socket, r, entry);
+
+                return new CreationOption()
                 {
-                    
+                    Element = entry
+                };
+            }).Where(e => !isTag || string.IsNullOrEmpty(val) || e.Element.ItemTag == val);
+        }
+
+        private static void TestForExceptions(MinecraftSocket socket, SearchResult r, ListEntry entry)
+        {
+            try
+            {
                 entry.GetExpression().Compile().Invoke(new FlipInstance()
                 {
                     Auction = new Core.SaveAuction()
@@ -117,19 +136,13 @@ namespace Coflnet.Sky.Commands.MC
                         FlatenedNBT = new Dictionary<string, string>()
                     },
                 });
-                }
-                catch (System.Exception)
-                {
-                    Console.WriteLine(JSON.Stringify(entry));
-                    socket.SendMessage("The filter you provided is invalid, please check your syntax or report this");
-                    throw;
-                }
-
-                return new CreationOption()
-                {
-                    Element = entry
-                };
-            }).Where(e => !isTag || string.IsNullOrEmpty(val) || e.Element.ItemTag == val);
+            }
+            catch (System.Exception)
+            {
+                Console.WriteLine(JSON.Stringify(entry));
+                socket.SendMessage("The filter you provided is invalid, please check your syntax or report this");
+                throw;
+            }
         }
 
         /// <inheritdoc/>
