@@ -214,7 +214,6 @@ namespace Coflnet.Sky.Commands.MC
                 catch (System.Exception)
                 {
                     WhichBLEntryCommand.SendRemoveMessage(socket, item, McColorCodes.RED + "Please fix or remove this element on your blacklist, it is invalid: " + BlacklistCommand.FormatEntry(item), whiteList);
-                    throw;
                 }
             }
         }
