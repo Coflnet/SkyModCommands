@@ -385,6 +385,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 DiHandler.GetService<PreApiService>().AddUser(socket, accountInfo.ExpiresAt);
                 FlipperService.Instance.AddConnectionPlus(socket, false);
+                SessionInfo.captchaInfo.LastSolve = DateTime.UtcNow;
                 socket.SendMessage(McColorCodes.GRAY + "speedup enabled, remaining " + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("g"));
             }
         }
