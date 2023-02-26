@@ -165,6 +165,13 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (settings == null)
                 return;
+            var testFlip = new FlipInstance()
+            {
+                Auction = new SaveAuction() { Bin = true, StartingBid = 2, NBTLookup = new(), FlatenedNBT = new() },
+                Finder = LowPricedAuction.FinderType.SNIPER,
+                MedianPrice = 100000000,
+                LowestBin = 100000
+            };
             try
             {
                 if (FlipSettings.Value?.ModSettings?.Chat ?? false)
@@ -184,18 +191,31 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 settings.CopyListMatchers(this.FlipSettings);
                 // preload flip settings
-                settings.MatchesSettings(new FlipInstance()
-                {
-                    Auction = new SaveAuction() { Bin = true, StartingBid = 2, NBTLookup = new(), FlatenedNBT = new() },
-                    Finder = LowPricedAuction.FinderType.SNIPER,
-                    MedianPrice = 100000000,
-                    LowestBin = 100000
-                });
+                settings.MatchesSettings(testFlip);
                 span.Log(JSON.Stringify(settings));
             }
             catch (Exception e)
             {
                 socket.Error(e, "applying flip settings");
+                CheckListValidity(testFlip, settings.BlackList);
+                CheckListValidity(testFlip, settings.WhiteList, true);
+            }
+        }
+
+        private void CheckListValidity(FlipInstance testFlip, List<ListEntry> blacklist, bool whiteList = false)
+        {
+            foreach (var item in blacklist)
+            {
+                try
+                {
+                    var expression = item.GetExpression();
+                    expression.Compile()(testFlip);
+                }
+                catch (System.Exception)
+                {
+                    WhichBLEntryCommand.SendRemoveMessage(socket, item, McColorCodes.RED + "Please fix or remove this element on your blacklist, it is invalid: " + BlacklistCommand.FormatEntry(item), whiteList);
+                    throw;
+                }
             }
         }
 

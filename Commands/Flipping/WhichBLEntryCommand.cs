@@ -29,10 +29,8 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     var bl = BlacklistCommand.FormatEntry(item);
                     var text = "This flip matched the filter " + bl;
-                    if (args.WL)
-                        socket.Dialog(db => db.CoflCommand<WhitelistCommand>(text, "rm " + BlacklistCommand.FormatId(item), "Remove this filter"));
-                    else
-                        socket.Dialog(db => db.CoflCommand<BlacklistCommand>(text, "rm " + BlacklistCommand.FormatId(item), "Remove this filter"));
+                    var isWhitelist = args.WL;
+                    SendRemoveMessage(socket, item, text, isWhitelist);
                     Activity.Current.Log(JSON.Stringify(bl));
                     return Task.CompletedTask;
                 }
@@ -40,6 +38,14 @@ namespace Coflnet.Sky.Commands.MC
             socket.Settings.ClearListMatchers();
             socket.SendMessage(COFLNET + "This flip didn't match any of your filters. How did you do this?", null, "Reloaded the filter in an attempt to fix this");
             return Task.CompletedTask;
+        }
+
+        public static void SendRemoveMessage(MinecraftSocket socket, ListEntry item, string text, bool isWhitelist)
+        {
+            if (isWhitelist)
+                socket.Dialog(db => db.CoflCommand<WhitelistCommand>(text, "rm " + BlacklistCommand.FormatId(item), "Remove this filter"));
+            else
+                socket.Dialog(db => db.CoflCommand<BlacklistCommand>(text, "rm " + BlacklistCommand.FormatId(item), "Remove this filter"));
         }
 
         public static bool Matches(LowPricedAuction flip, ListEntry item)
