@@ -167,7 +167,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             var testFlip = new FlipInstance()
             {
-                Auction = new SaveAuction() { Bin = true, StartingBid = 2, NBTLookup = new(), FlatenedNBT = new() },
+                Auction = new SaveAuction() { Bin = true, StartingBid = 2, NBTLookup = new(), FlatenedNBT = new(), Enchantments = new() },
                 Finder = LowPricedAuction.FinderType.SNIPER,
                 MedianPrice = 100000000,
                 LowestBin = 100000

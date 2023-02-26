@@ -133,7 +133,8 @@ namespace Coflnet.Sky.Commands.MC
                         ItemName = "test",
                         Tag = r.Tag,
                         NBTLookup = new List<Core.NBTLookup>(),
-                        FlatenedNBT = new Dictionary<string, string>()
+                        FlatenedNBT = new Dictionary<string, string>(),
+                        Enchantments = new List<Core.Enchantment>(),
                     },
                 });
             }
