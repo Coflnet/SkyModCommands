@@ -135,7 +135,9 @@ namespace Coflnet.Sky.Commands.MC
                         NBTLookup = new List<Core.NBTLookup>(),
                         FlatenedNBT = new Dictionary<string, string>(),
                         Enchantments = new List<Core.Enchantment>(),
+                        Context = new()
                     },
+                    Context = new()
                 });
             }
             catch (System.Exception)
