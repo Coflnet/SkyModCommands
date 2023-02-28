@@ -300,12 +300,14 @@ namespace Coflnet.Sky.Commands.MC
                     if (!string.IsNullOrEmpty(FlipSettings.Value.Changer))
                         break;
                     await Task.Delay(300);
+                    span.Log("waiting for flipsettings");
                 }
                 if (FlipSettings.Value.ModSettings.AutoStartFlipper)
                 {
                     SendMessage(socket.formatProvider.WelcomeMessage());
                     SessionInfo.FlipsEnabled = true;
                     UpdateConnectionTier(info, span);
+                    span.AddTag("autoStart", "true");
                 }
                 else
                 {
@@ -315,6 +317,7 @@ namespace Coflnet.Sky.Commands.MC
                         .DialogLink<EchoDialog>(McColorCodes.BLUE + " use the pricing data ", "alright, nothing else to do :)", "I don't want to flip")
                         .Break);
                     await socket.TriggerTutorial<Welcome>();
+                    span.AddTag("autoStart", "false");
                 }
                 await userIsVerifiedTask;
                 return;
