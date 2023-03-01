@@ -277,6 +277,8 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (socket.TopBlocked.Take(100).Any(b => b.Flip.Auction.Uuid == flip.Auction.Uuid && b.Flip.TargetPrice == flip.TargetPrice))
                 return false; // don't count block twice
+            if(flip.Finder == LowPricedAuction.FinderType.TFM && Random.Shared.Next(0, 100) > 5 && socket.AccountInfo?.UserIdOld > 10)
+                return false; // ignore 95% of tfm flips until finished
             socket.TopBlocked.Enqueue(new()
             {
                 Flip = flip,
