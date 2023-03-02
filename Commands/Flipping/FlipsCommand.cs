@@ -8,7 +8,7 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC;
 
-public class FlipsCommand : ReadOnlyListCommand<Api.Client.Model.FlipDetails>
+public class FlipsCommand : ReadOnlyListCommand<Shared.FlipDetails>
 {
     public override bool IsPublic => true;
     public FlipsCommand()
@@ -21,19 +21,31 @@ public class FlipsCommand : ReadOnlyListCommand<Api.Client.Model.FlipDetails>
         sorters.Add("price", e => e.OrderByDescending(f => f.SoldFor));
     }
 
-    protected override void Format(MinecraftSocket socket, DialogBuilder db, Api.Client.Model.FlipDetails f)
+    protected override void Format(MinecraftSocket socket, DialogBuilder db, Shared.FlipDetails f)
     {
         db.MsgLine($"{socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(f.Tier, true))}{f.ItemName} {(f.Profit > 0 ? McColorCodes.GREEN : McColorCodes.RED)}Profit: {socket.formatProvider.FormatPrice(f.Profit)}",
                         $"https://sky.coflnet.com/auction/{f.OriginAuction}", $"Sold at: {f.SellTime:g}\nFound first by: {(LowPricedAuction.FinderType)f.Finder}");
     }
 
-    protected override async Task<IEnumerable<Api.Client.Model.FlipDetails>> GetElements(MinecraftSocket socket, string val)
+    protected override async Task<IEnumerable<Shared.FlipDetails>> GetElements(MinecraftSocket socket, string val)
     {
-        var response = await socket.GetService<IFlipApi>().ApiFlipStatsPlayerPlayerUuidGetAsync(socket.SessionInfo.McUuid, 7);
+        var dasys = val.Split(' ').Last();
+        if (int.TryParse(dasys, out int days))
+        {
+            val = val.Substring(0, val.Length - dasys.Length);
+        }
+        else
+        {
+            days = 7;
+        }
+        if (days > 14 && await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
+            throw new CoflnetException("not_allowed", "You need to be premium plus to see more than 14 days of flips");
+            var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+        var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, TimeSpan.FromDays(days));
         return response.Flips;
     }
 
-    protected override string GetId(Api.Client.Model.FlipDetails elem)
+    protected override string GetId(Shared.FlipDetails elem)
     {
         return elem.ItemName + elem.ItemTag + elem.PricePaid;
     }
