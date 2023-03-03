@@ -40,6 +40,10 @@ namespace Coflnet.Sky.Commands.MC
                     settings.Fields[line].Add(field);
                     break;
                 case "rm":
+                    if(line >= settings.Fields.Count){
+                        socket.SendMessage(McColorCodes.RED + "Not possible to remove field from line " + line + " as it doesn't exist");
+                        return;
+                    }
                     settings.Fields[line].Remove(field);
                     if (settings.Fields[line].Count == 0)
                         settings.Fields.RemoveAt(line);
