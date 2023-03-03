@@ -14,6 +14,7 @@ namespace Coflnet.Sky.Commands.MC
                 return; // minimal change not relevant (reduce load on db updates)
             socket.Settings.MaxCost = (long)newVal;
             socket.Settings.LastChanged = "preventUpdateMsg";
+            socket.Settings.Changer = socket.SessionInfo.McUuid;
             await socket.sessionLifesycle.FlipSettings.Update(socket.Settings);
         }
     }

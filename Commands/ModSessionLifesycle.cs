@@ -241,7 +241,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (changed != "preventUpdateMsg")
                 SendMessage($"{COFLNET}{changed}");
-
+            span.AddTag("changed", changed);
             ApplyFlipSettings(settings, span).Wait();
         }
 
