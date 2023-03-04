@@ -220,8 +220,9 @@ namespace Coflnet.Sky.Commands.MC
                     var expression = item.GetExpression();
                     expression.Compile()(testFlip);
                 }
-                catch (System.Exception)
+                catch (System.Exception e)
                 {
+                    socket.Error(e, "compiling expression");
                     WhichBLEntryCommand.SendRemoveMessage(socket, item, McColorCodes.RED + "Please fix or remove this element on your blacklist, it is invalid: " + BlacklistCommand.FormatEntry(item), whiteList);
                 }
             }

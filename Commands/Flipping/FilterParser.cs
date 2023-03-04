@@ -77,15 +77,11 @@ namespace Coflnet.Sky.Commands.MC
             var options = optionsObjects.Select(o => o.ToString()).ToList();
             if (options.Count > 1 && type.HasFlag(FilterType.Equal))
             {
-                var match = options.Where(o => o == filterVal).FirstOrDefault();
-                if (match == null)
-                {
-                    match = options.Where(o => o.ToLower() == filterVal.ToLower()).FirstOrDefault();
-                    if (match != null)
-                        return match;
-                }
+                var match = options.Where(o => o.ToLower() == filterVal.ToLower()).FirstOrDefault();
+                if (match != null)
+                    return match;
                 var closestOption = options.OrderBy(f => Fastenshtein.Levenshtein.Distance(f.ToLower(), filterVal.ToLower())).First();
-                throw new CoflnetException("invalid_value", $"The filter value {filterVal} did not match any option for {filterName}, {McColorCodes.WHITE}maybe you meant {McColorCodes.AQUA}{closestOption}");
+                throw new CoflnetException("invalid_value", $"The filter value {filterVal} did not match any option for {filterName}, {McColorCodes.WHITE}maybe you meant {McColorCodes.AQUA}{closestOption}.");
             }
             return filterVal;
         }
