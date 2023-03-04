@@ -69,7 +69,7 @@ public class DelayHandler
             return false; // afk users don't get instant flips
 
         // 20% chance of no delay so lowest ping macro doesn't get a huge advantage
-        if(random.NextDouble() > 0.8)
+        if (random.NextDouble() > 0.8)
             return false;
 
         var tag = flipInstance.Auction?.Tag;
@@ -118,7 +118,7 @@ public class DelayHandler
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(120))
                 currentDelay = AntiAfkDelay;
         }
-        if (breakdown?.MacroedFlips?.Count <= 2)
+        if (breakdown?.MacroedFlips?.Where(m=>m.BuyTime > DateTime.UtcNow - TimeSpan.FromHours(6)).Count() <= 2)
             macroPenalty = TimeSpan.Zero;
         else
         {
@@ -128,12 +128,15 @@ public class DelayHandler
         }
         if (accountInfo?.Value?.Tier >= AccountTier.SUPER_PREMIUM)
         {
-            currentDelay *= 0.7;
+            currentDelay *= (1 - DelayReduction);
             if (currentDelay > MaxSuperPremiumDelay)
                 currentDelay = MaxSuperPremiumDelay;
-            if (!breakdown.Buys.Values.Any(b => b > accountInfo.Value.ExpiresAt - TimeSpan.FromHours(1)))
-                currentDelay = TimeSpan.Zero;
             macroPenalty *= (1 - DelayReduction);
+            if (!breakdown.Buys.Values.Any(b => b > accountInfo.Value.ExpiresAt - TimeSpan.FromHours(1)))
+            {
+                currentDelay = TimeSpan.Zero;
+                macroPenalty = TimeSpan.Zero;
+            }
         }
         summary.Penalty = currentDelay;
         return summary;
