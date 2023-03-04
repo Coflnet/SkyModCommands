@@ -486,8 +486,8 @@ namespace Coflnet.Sky.Commands.MC
                 socket.TryAsyncTimes(RemoveTempFilters, "remove temp filters", 1);
                 if (AccountInfo.Value?.Tier == AccountTier.NONE)
                     return;
-                if (socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-5)))
-                    return; // got a flip in the last 5 minutes
+                if (socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-3)))
+                    return; // got a flip in the last 3 minutes
                 UpdateConnectionTier(AccountInfo.Value, span);
             }
             catch (System.InvalidOperationException)
