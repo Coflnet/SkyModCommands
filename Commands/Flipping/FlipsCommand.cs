@@ -29,26 +29,40 @@ public class FlipsCommand : ReadOnlyListCommand<Shared.FlipDetails>
 
     protected override async Task<IEnumerable<Shared.FlipDetails>> GetElements(MinecraftSocket socket, string val)
     {
-        var dasys = val.Split(' ').Last();
+        // [sort] [days] [page]
+        var argCount = val.Split(' ').Length;
+        var dasys = val.Split(' ').Skip((argCount) / 2).FirstOrDefault() ?? "7";
         if (int.TryParse(dasys, out int days))
         {
             val = val.Substring(0, val.Length - dasys.Length);
         }
         else
         {
-            days = 7;
+            throw new CoflnetException("invalid_days", "Format is: /flips [sort] [days] [page]");
         }
         if (days > 14 && await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
             throw new CoflnetException("not_allowed", "You need to be premium plus to see more than 14 days of flips");
-            var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+        var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
         var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, TimeSpan.FromDays(days));
         return response.Flips;
+    }
+
+    protected override string RemoveSortArgument(string arguments)
+    {
+        var args = base.RemoveSortArgument(arguments);
+        if (args.Split(' ').Length == 1)
+            return "";
+        args = args.Split(' ').Skip(1).Aggregate((a, b) => a + " " + b);
+        return args;
+    }
+
+    protected override string GetTitle(string arguments)
+    {
+        return "Your flips for the last " + arguments.Split(' ').Where(p=>int.TryParse(p, out _)).FirstOrDefault() + " days";
     }
 
     protected override string GetId(Shared.FlipDetails elem)
     {
         return elem.ItemName + elem.ItemTag + elem.PricePaid;
     }
-
-    protected override string Title => "Your flips";
 }

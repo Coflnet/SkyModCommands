@@ -13,6 +13,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
     public override async Task Execute(MinecraftSocket socket, string args)
     {
         var arguments = JsonConvert.DeserializeObject<string>(args);
+        var title = GetTitle(arguments);
         var elements = (await GetElements(socket, arguments)).ToList();
         if (sorters.TryGetValue(arguments.Split(' ')[0].Trim('"'), out var sorter))
         {
@@ -25,12 +26,12 @@ public abstract class ReadOnlyListCommand<T> : McCommand
             elements = elements.Where(e => GetId(e).ToLower().Contains(arguments.Trim('"').ToLower())).ToList();
         }
         if (page < 0)
-            page = elements.Count / 10 + page;
+            page = elements.Count / PageSize + page;
         if (page == 0)
             page = 1;
         var toDisplay = elements.Skip((page - 1) * PageSize).Take(PageSize);
         var totalPages = elements.Count / PageSize + 1;
-        var dialog = DialogBuilder.New.MsgLine($"{Title} (page {page}/{totalPages})")
+        var dialog = DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})")
             .ForEach(toDisplay, (db, elem) => Format(socket, db, elem));
         if(toDisplay.Count() == 0)
             dialog.MsgLine("No elements found");
@@ -38,7 +39,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
         socket.SendMessage(dialog.Build());
     }
 
-    private static string RemoveSortArgument(string arguments)
+    protected virtual string RemoveSortArgument(string arguments)
     {
         if(arguments.Split(' ').Length == 1)
             return "";
@@ -48,6 +49,10 @@ public abstract class ReadOnlyListCommand<T> : McCommand
 
     protected virtual void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<T> elements)
     {
+    }
+    protected virtual string GetTitle(string arguments)
+    {
+        return Title;
     }
     protected abstract Task<IEnumerable<T>> GetElements(MinecraftSocket socket, string val);
     protected abstract void Format(MinecraftSocket socket, DialogBuilder db, T elem);
