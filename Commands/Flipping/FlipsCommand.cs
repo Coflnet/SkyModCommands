@@ -31,10 +31,20 @@ public class FlipsCommand : ReadOnlyListCommand<Shared.FlipDetails>
     {
         // [sort] [days] [page]
         var argCount = val.Split(' ').Length;
-        var dasys = val.Split(' ').Skip((argCount) / 2).FirstOrDefault() ?? "7";
+        var dasys = val.Split(' ').Where(p => int.TryParse(p, out _)).FirstOrDefault();
         if (int.TryParse(dasys, out int days))
         {
             val = val.Substring(0, val.Length - dasys.Length);
+        }
+        else if (dasys == null)
+        {
+            days = 7;
+            socket.Dialog(db => db.MsgLine($"No days/sort order specified, \n"
+                    +"using 7 days and most recent first, \n"
+                    + $"format is: {McColorCodes.AQUA}/flips [sort] [days] [page]", null,
+                $"Available sorters: {string.Join(", ", sorters.Keys)}\n"
+                + $"Sorters are optional\n"
+                ));
         }
         else
         {
@@ -58,7 +68,7 @@ public class FlipsCommand : ReadOnlyListCommand<Shared.FlipDetails>
 
     protected override string GetTitle(string arguments)
     {
-        return "Your flips for the last " + arguments.Split(' ').Where(p=>int.TryParse(p, out _)).FirstOrDefault() + " days";
+        return "Your flips for the last " + arguments.Split(' ').Where(p => int.TryParse(p, out _)).FirstOrDefault() + " days";
     }
 
     protected override string GetId(Shared.FlipDetails elem)
