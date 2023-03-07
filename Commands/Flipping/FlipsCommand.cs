@@ -23,8 +23,12 @@ public class FlipsCommand : ReadOnlyListCommand<Shared.FlipDetails>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Shared.FlipDetails f)
     {
-        db.MsgLine($"{socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(f.Tier, true))}{f.ItemName} {(f.Profit > 0 ? McColorCodes.GREEN : McColorCodes.RED)}Profit: {socket.formatProvider.FormatPrice(f.Profit)}",
-                        $"https://sky.coflnet.com/auction/{f.OriginAuction}", $"Sold at: {f.SellTime:g}\nFound first by: {(LowPricedAuction.FinderType)f.Finder}");
+        var changes = string.Join("\n", f.PropertyChanges.Select(p => $"{p.Description:g} {socket.formatProvider.FormatPrice(p.Effect)}"));
+        db.Msg($"{socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(f.Tier, true))}{f.ItemName} {(f.Profit > 0 ? McColorCodes.GREEN : McColorCodes.RED)}Profit: {socket.formatProvider.FormatPrice(f.Profit)}",
+                        $"https://sky.coflnet.com/auction/{f.OriginAuction}",
+                        $"Sold at: {f.SellTime:g}\nFound first by: {(LowPricedAuction.FinderType)f.Finder}"
+                        + $"Profit Changes: \n{changes}")
+            .Msg($" Sell", $"https://sky.coflnet.com/auction/{f.SoldAuction}", "Opens the flip sell on the website");
     }
 
     protected override async Task<IEnumerable<Shared.FlipDetails>> GetElements(MinecraftSocket socket, string val)
@@ -40,7 +44,7 @@ public class FlipsCommand : ReadOnlyListCommand<Shared.FlipDetails>
         {
             days = 7;
             socket.Dialog(db => db.MsgLine($"No days/sort order specified, \n"
-                    +"using 7 days and most recent first, \n"
+                    + "using 7 days and most recent first, \n"
                     + $"format is: {McColorCodes.AQUA}/flips [sort] [days] [page]", null,
                 $"Available sorters: {string.Join(", ", sorters.Keys)}\n"
                 + $"Sorters are optional\n"
