@@ -34,7 +34,7 @@ public class LoadFlipHistory : McCommand
             var numericId = await context.Players.Where(p => p.UuId == playerId).Select(p => p.Id).FirstAsync();
             Console.WriteLine($"Loading flips for {playerId} ({numericId})");
             var auctions = context.Auctions
-                .Where(a => a.SellerId == numericId && a.End < maxTime)
+                .Where(a => a.SellerId == numericId && a.End < maxTime && a.HighestBidAmount > 0)
                 .Include(a => a.NbtData)
                 .Include(a => a.Enchantments);
             foreach (var auction in auctions)
