@@ -143,7 +143,7 @@ namespace Coflnet.Sky.Commands.MC
             catch (System.Exception)
             {
                 Console.WriteLine(JSON.Stringify(entry));
-                socket.SendMessage("The filter you provided is invalid, please check your syntax or report this");
+                socket.SendMessage("The filter could not be parsed or created, please check your syntax or report this");
                 throw;
             }
         }
