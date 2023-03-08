@@ -258,7 +258,7 @@ public class PreApiService : BackgroundService
         if (tilPurchasable > TimeSpan.FromSeconds(2.5))
             await Task.Delay(tilPurchasable - TimeSpan.FromSeconds(2.5)).ConfigureAwait(false);
 
-        if ((connection as MinecraftSocket)?.LastSent.Any(f=>f.UId == flip.UId) ?? false)
+        if ((connection as MinecraftSocket)?.LastSent.Any(f => f.UId == flip.UId) ?? false)
         {
             logger.LogInformation($"Flip was sent out to {(connection as MinecraftSocket).SessionInfo.McName} {flip.Auction.Uuid}");
             PublishReceive(flip.Auction.Uuid);
@@ -329,8 +329,6 @@ public class PreApiService : BackgroundService
                 return;
             logger.LogInformation($"skipcheck Changing used uuid to {buyer} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid}");
             var connectedFrom = connection.SessionInfo.McUuid;
-            connection.SessionInfo.McUuid = buyer;
-            connection.SessionInfo.VerifiedMc = false;
             connection.SessionInfo.MinecraftUuids.Add(buyer);
             try
             {
@@ -343,6 +341,8 @@ public class PreApiService : BackgroundService
                 {
                     logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} by {buyer} for {flip.Auction.Uuid}");
                     connection.AccountInfo.McIds.Add(buyer);
+                    connection.SessionInfo.McUuid = buyer;
+                    connection.SessionInfo.VerifiedMc = false;
                     await connection.sessionLifesycle.AccountInfo.Update();
                 }
             }
@@ -366,7 +366,7 @@ public class PreApiService : BackgroundService
 
     public void PublishReceive(string uuid)
     {
-        if(sold.ContainsKey(uuid))
+        if (sold.ContainsKey(uuid))
             return;
         redis.GetSubscriber().Publish("auction_sent", MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid }));
     }
