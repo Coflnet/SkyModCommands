@@ -45,7 +45,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     finalValue = await updater.Update(socket, name, newValue);
                 }
-                catch (UnkownSettingException e)
+                catch (UnknownSettingException e)
                 {
                     var altExecution = arguments.Replace(e.Passed, e.Closest);
                     socket.Dialog(db => db.CoflCommand<SetCommand>(
