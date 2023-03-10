@@ -47,6 +47,7 @@ namespace Coflnet.Sky.Commands.MC
         public DateTime LastBlockedMsg = default;
         public DateTime LastCaptchaSolve => captchaInfo.LastSolve;
         public IEnumerable<string> CaptchaSolutions => captchaInfo.CurrentSolutions;
+        public long Purse { get; internal set; }
 
         public bool IsIronman { get; internal set; }
         public bool IsBingo { get; internal set; }

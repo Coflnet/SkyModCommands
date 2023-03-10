@@ -7,15 +7,13 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            var newVal = double.Parse(arguments.Trim('"'));
+            socket.SessionInfo.Purse = (long)newVal;
             if (socket.Settings == null || socket.Settings.ModSettings.NoAdjustToPurse)
                 return;
-            var newVal = double.Parse(arguments.Trim('"'));
             if (Math.Abs(newVal - socket.Settings.MaxCost) < 50)
                 return; // minimal change not relevant (reduce load on db updates)
             socket.Settings.MaxCost = (long)newVal;
-            socket.Settings.LastChanged = "preventUpdateMsg";
-            socket.Settings.Changer = socket.SessionInfo.McUuid;
-            await socket.sessionLifesycle.FlipSettings.Update(socket.Settings);
         }
     }
 }

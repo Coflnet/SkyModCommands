@@ -40,7 +40,8 @@ namespace Coflnet.Sky.Commands.MC
 
             var prefiltered = flips.Where(f => !SentFlips.ContainsKey(f.UId)
                 && FinderEnabled(f)
-                && NotSold(f))
+                && NotSold(f)
+                && (f.Auction.StartingBid < socket.SessionInfo.Purse || socket.SessionInfo.Purse == 0))
                 .Select(f => (f, instance: FlipperService.LowPriceToFlip(f)))
                 .ToList();
 
