@@ -633,7 +633,7 @@ namespace Coflnet.Sky.Commands.MC
             error?.AddEvent(new ActivityEvent(message ?? "error", DateTimeOffset.Now, new(new Dictionary<string, object?> {
                 { "exception", exception },
                 { "additionalLog", additionalLog },
-                { "session", SessionInfo },
+                { "session", JsonConvert.SerializeObject(SessionInfo) },
                 { "account", sessionLifesycle.AccountInfo?.Value },
                 { "settings", Settings }})));
             return error?.Context.TraceId.ToString()!;

@@ -165,22 +165,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (settings == null)
                 return;
-            var testFlip = new FlipInstance()
-            {
-                Auction = new SaveAuction()
-                {
-                    Bin = true,
-                    StartingBid = 2,
-                    NBTLookup = new(),
-                    FlatenedNBT = new(),
-                    Enchantments = new(),
-                    Context = new()
-                },
-                Finder = LowPricedAuction.FinderType.SNIPER,
-                MedianPrice = 100000000,
-                LowestBin = 100000,
-                Context = new()
-            };
+            var testFlip = BlacklistCommand.GetTestFlip("test");
             try
             {
                 if (FlipSettings.Value?.ModSettings?.Chat ?? false)
@@ -222,8 +207,9 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 catch (System.Exception e)
                 {
-                    socket.Error(e, "compiling expression");
-                    WhichBLEntryCommand.SendRemoveMessage(socket, item, McColorCodes.RED + "Please fix or remove this element on your blacklist, it is invalid: " + BlacklistCommand.FormatEntry(item), whiteList);
+                    var formatted = BlacklistCommand.FormatEntry(item);
+                    socket.Error(e, "compiling expression " + formatted);
+                    WhichBLEntryCommand.SendRemoveMessage(socket, item, McColorCodes.RED + "Please fix or remove this element on your blacklist, it is invalid: " + formatted, whiteList);
                 }
             }
         }

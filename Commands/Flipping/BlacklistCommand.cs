@@ -126,19 +126,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             try
             {
-                entry.GetExpression().Compile().Invoke(new FlipInstance()
-                {
-                    Auction = new Core.SaveAuction()
-                    {
-                        ItemName = "test",
-                        Tag = r.Tag,
-                        NBTLookup = new List<Core.NBTLookup>(),
-                        FlatenedNBT = new Dictionary<string, string>(),
-                        Enchantments = new List<Core.Enchantment>(),
-                        Context = new()
-                    },
-                    Context = new()
-                });
+                entry.GetExpression().Compile().Invoke(GetTestFlip(r.Tag));
             }
             catch (System.Exception)
             {
@@ -146,6 +134,28 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage("The filter could not be parsed or created, please check your syntax or report this");
                 throw;
             }
+        }
+
+        public static FlipInstance GetTestFlip(string tag)
+        {
+            return new FlipInstance()
+            {
+                Auction = new Core.SaveAuction()
+                {
+                    ItemName = "test",
+                    Tag = tag,
+                    Bin = true,
+                    StartingBid = 2,
+                    NBTLookup = new(),
+                    FlatenedNBT = new(),
+                    Enchantments = new(),
+                    Context = new()
+                },
+                Finder = LowPricedAuction.FinderType.SNIPER,
+                MedianPrice = 100000000,
+                LowestBin = 100000,
+                Context = new()
+            };
         }
 
         /// <inheritdoc/>
