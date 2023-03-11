@@ -10,11 +10,14 @@ namespace Coflnet.Sky.Commands.MC
         }
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
+            var name = flip.Auction.Context["cname"];
+            if(flip.Auction.Count > 1)
+                name = $"{McColorCodes.GRAY}{flip.Auction.Count}x {name}";
             socket.Send(Response.Create("flip", new
             {
                 id = flip.Auction.Uuid,
                 startingBid = flip.Auction.StartingBid,
-                itemName = flip.Auction.Context["cname"]
+                itemName = name
             }));
 
             return true;
