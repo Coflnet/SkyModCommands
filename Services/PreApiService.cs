@@ -193,13 +193,16 @@ public class PreApiService : BackgroundService
         if (profit > 1_000_000)
             logger.LogInformation($"Pre-api low price handler called for {e?.Auction?.Uuid} profit {profit} users {localUsers?.Count}");
 
-        await Task.Delay(tilPurchasable + TimeSpan.FromSeconds(0.2)).ConfigureAwait(false);
+        if (tilPurchasable >= TimeSpan.Zero)
+            await Task.Delay(tilPurchasable).ConfigureAwait(false);
+        else
+            await Task.Delay(TimeSpan.FromSeconds(0.3)).ConfigureAwait(false);
         // check if flip was sent to anyone 
-        if (sent.ContainsKey(e.Auction.Uuid))
+        if (!sent.ContainsKey(e.Auction.Uuid))
             return e; // if not send to all users
 
         // send out after delay
-        await Task.Delay(6_000).ConfigureAwait(false);
+        await Task.Delay(4_000).ConfigureAwait(false);
         return e;
     }
 
