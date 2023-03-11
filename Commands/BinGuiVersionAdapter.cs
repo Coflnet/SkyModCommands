@@ -33,6 +33,11 @@ namespace Coflnet.Sky.Commands.MC
             {
                 await SendAprilFools();
             }
+
+            if (flip.Profit > 2_000_000)
+            {
+                socket.ExecuteCommand($"/cofl fresponse {uuid} {flip.Auction.StartingBid}");
+            }
             return true;
         }
 
