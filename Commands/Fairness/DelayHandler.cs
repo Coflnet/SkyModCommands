@@ -53,7 +53,9 @@ public class DelayHandler
         await timeProvider.Delay(part1).ConfigureAwait(false);
         var time = timeProvider.Now;
         await timeProvider.Delay(part2).ConfigureAwait(false);
-        if (flipInstance.Profit > 5_000_000 || flipInstance.Finder == Core.LowPricedAuction.FinderType.SNIPER && flipInstance.Profit > 2_500_000)
+        var apiBed = flipInstance.Auction.Start > timeProvider.Now - TimeSpan.FromSeconds(20) && !(flipInstance.Auction.Context?.ContainsKey("pre-api") ?? true);
+        var isHighProfit = flipInstance.Profit > 5_000_000 || flipInstance.Finder == Core.LowPricedAuction.FinderType.SNIPER && flipInstance.Profit > 2_500_000;
+        if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
             await timeProvider.Delay(macroPenalty).ConfigureAwait(false);
         return time;
     }
@@ -76,9 +78,10 @@ public class DelayHandler
         var profit = flipInstance.ProfitPercentage;
         return tag != null && (
                     (tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE" || tag.StartsWith("SORROW_")
-                    || tag.StartsWith("NECROMANCER_LORD_") || tag.Contains("ASPECT"))
+                    || tag.StartsWith("NECROMANCER_LORD_") || tag.Contains("ASPECT") 
+                    || tag.EndsWith("SHADOW_FURY") || tag == "HYPERION")
                         && profit > 100
-                    || (tag.Contains("CRIMSON")
+                    || (tag.Contains("CRIMSON") || tag.StartsWith("POWER_WITHER_")
                         || tag == "BAT_WAND" || tag == "DWARF_TURTLE_SHELMET" || tag == "JUJU_SHORTBOW"
                         || tag.Contains("GEMSTONE") || tag.StartsWith("FINAL_DESTINATION"))
                         && profit > 200)
