@@ -490,9 +490,13 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task AddBlacklistOfSpam()
         {
-            if(FlipSettings.Value?.ModSettings?.TempBlacklistSpam == false)
+            if (FlipSettings.Value?.ModSettings?.TempBlacklistSpam == false)
                 return;
-            var toBlock = socket.LastSent.Where(s => s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(2)).GroupBy(s => s.Auction.Tag).Where(g => g.Count() > 5).ToList();
+            var toBlock = socket.LastSent.Where(s =>
+                            s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(2)
+                            && s.TargetPrice > s.Auction.StartingBid * 2
+                        )
+                        .GroupBy(s => s.Auction.Tag).Where(g => g.Count() > 5).ToList();
             if (toBlock.Count == 0)
                 return;
             foreach (var item in toBlock)
