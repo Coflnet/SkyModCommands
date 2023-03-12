@@ -281,14 +281,7 @@ namespace Coflnet.Sky.Commands.MC
                 SessionInfo.SentWelcome = true;
                 await SendAuthorizedHello(info);
 
-                // there seems to be a racecondition where the flipsettings are not yet loaded
-                for (int i = 0; i < 10; i++)
-                {
-                    if (!string.IsNullOrEmpty(FlipSettings.Value.Changer))
-                        break;
-                    await Task.Delay(300);
-                    span.Log("waiting for flipsettings");
-                }
+                await WaitForSettingsLoaded(span);
                 if (FlipSettings.Value.ModSettings.AutoStartFlipper)
                 {
                     SendMessage(socket.formatProvider.WelcomeMessage());
@@ -314,6 +307,22 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Error(e, "loading modsocket");
                 span.AddTag("error", true);
                 SendMessage(COFLNET + $"Your settings could not be loaded, please relink again :)");
+            }
+        }
+
+        /// <summary>
+        /// there can be a racecondition where the flipsettings are not yet loaded
+        /// </summary>
+        /// <param name="span"></param>
+        /// <returns></returns>
+        private async Task WaitForSettingsLoaded(Activity span)
+        {
+            for (int i = 1; i < 10; i++)
+            {
+                if (!string.IsNullOrEmpty(FlipSettings.Value.Changer))
+                    break;
+                await Task.Delay(i * 100);
+                span.Log("waiting for flipsettings");
             }
         }
 
@@ -449,17 +458,7 @@ namespace Coflnet.Sky.Commands.MC
                 spamController.Reset();
                 if (blockedFlipFilterCount > 0 && SessionInfo.LastBlockedMsg.AddMinutes(FlipSettings.Value.ModSettings.MinutesBetweenBlocked) < DateTime.UtcNow)
                 {
-                    socket.SendMessage(new ChatPart(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute",
-                        "/cofl blocked",
-                        $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips"),
-                        new ChatPart(" ", "/cofl void", null));
-                    if (SessionInfo.LastBlockedMsg == default)
-                        socket.TryAsyncTimes(() => socket.TriggerTutorial<Sky.ModCommands.Tutorials.Blocked>(), "blocked tutorial");
-                    SessionInfo.LastBlockedMsg = DateTime.UtcNow;
-
-                    // remove blocked (if clear failed to do so)
-                    while (socket.TopBlocked.Count > 345)
-                        socket.TopBlocked.TryDequeue(out _);
+                    SendBlockedMessage(blockedFlipFilterCount);
                 }
                 else
                 {
@@ -470,12 +469,13 @@ namespace Coflnet.Sky.Commands.MC
                 if (blockedFlipFilterCount > 1000)
                     span.SetTag("error", true);
                 SendReminders();
-                socket.TryAsyncTimes(RemoveTempFilters, "remove temp filters", 1);
-                if (AccountInfo.Value?.Tier == AccountTier.NONE)
-                    return;
-                if (socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-3)))
-                    return; // got a flip in the last 3 minutes
-                UpdateConnectionTier(AccountInfo.Value, span);
+                socket.TryAsyncTimes(async () =>
+                {
+                    await RemoveTempFilters();
+                    await AddBlacklistOfSpam();
+                }, "adjust temp filters", 1);
+
+                UpdateConnectionIfNoFlipSent(span);
             }
             catch (System.InvalidOperationException)
             {
@@ -486,6 +486,58 @@ namespace Coflnet.Sky.Commands.MC
                 span.Log("could not send ping\n" + e);
                 socket.Error(e, "on ping"); // CloseBecauseError(e);
             }
+        }
+
+        private async Task AddBlacklistOfSpam()
+        {
+            if(FlipSettings.Value?.ModSettings?.TempBlacklistSpam == false)
+                return;
+            var toBlock = socket.LastSent.Where(s => s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(2)).GroupBy(s => s.Auction.Tag).Where(g => g.Count() > 5).ToList();
+            if (toBlock.Count == 0)
+                return;
+            foreach (var item in toBlock)
+            {
+                AddTempFilter(item.Key);
+                socket.SendMessage(COFLNET + $"Temporarily blacklisted {item.First().Auction.ItemName} for spamming");
+            }
+            await FlipSettings.Update();
+        }
+
+        private void AddTempFilter(string key)
+        {
+            FlipSettings.Value.BlackList.Add(new()
+            {
+                DisplayName = "automatic blacklist",
+                ItemTag = key,
+                filter = new(){
+                    {"removeAfter", DateTime.UtcNow.AddHours(8).ToString("s")},
+                    {"ForceBlacklist", "true"}
+                },
+            });
+        }
+
+        private void SendBlockedMessage(int blockedFlipFilterCount)
+        {
+            socket.SendMessage(new ChatPart(COFLNET + $"there were {blockedFlipFilterCount} flips blocked by your filter the last minute",
+                                    "/cofl blocked",
+                                    $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips"),
+                                    new ChatPart(" ", "/cofl void", null));
+            if (SessionInfo.LastBlockedMsg == default)
+                socket.TryAsyncTimes(() => socket.TriggerTutorial<Sky.ModCommands.Tutorials.Blocked>(), "blocked tutorial");
+            SessionInfo.LastBlockedMsg = DateTime.UtcNow;
+
+            // remove blocked (if clear failed to do so)
+            while (socket.TopBlocked.Count > 345)
+                socket.TopBlocked.TryDequeue(out _);
+        }
+
+        private void UpdateConnectionIfNoFlipSent(Activity span)
+        {
+            if (AccountInfo.Value?.Tier == AccountTier.NONE)
+                return;
+            if (socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-3)))
+                return; // got a flip in the last 3 minutes
+            UpdateConnectionTier(AccountInfo.Value, span);
         }
 
         private void SendReminders()
