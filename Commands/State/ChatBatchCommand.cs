@@ -20,6 +20,8 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var batch = JsonConvert.DeserializeObject<List<string>>(arguments);
+            if (batch.Count == 0)
+                return;
             if (batch[0] == "You cannot view this auction!")
                 socket.SendMessage(COFLNET + "You have to use a booster cookie or be on the hub island to open auctions. \nClick to warp to hub", "/hub", "warp to hup");
             if (batch.All(l => l.Contains("§a❈ Defense")))
