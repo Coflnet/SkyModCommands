@@ -492,19 +492,47 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (FlipSettings.Value?.ModSettings?.TempBlacklistSpam == false)
                 return;
+            var preApiService = socket.GetService<PreApiService>();
             var toBlock = socket.LastSent.Where(s =>
-                            s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(2)
+                            s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(3)
                             && s.TargetPrice > s.Auction.StartingBid * 2
+                            && preApiService.IsSold(s.Auction.Uuid)
                         )
-                        .GroupBy(s => s.Auction.Tag).Where(g => g.Count() > 5).ToList();
-            if (toBlock.Count == 0)
-                return;
+                        .GroupBy(s => s.Auction.Tag).Where(g => g.Count() >= 5).ToList();
+            var playersToBlock = BlockPlayerBaiting(preApiService);
             foreach (var item in toBlock)
             {
                 AddTempFilter(item.Key);
                 socket.SendMessage(COFLNET + $"Temporarily blacklisted {item.First().Auction.ItemName} for spamming");
             }
-            await FlipSettings.Update();
+            if (toBlock.Count > 0 || playersToBlock.Count > 0)
+                await FlipSettings.Update();
+        }
+
+        private List<IGrouping<string, LowPricedAuction>> BlockPlayerBaiting(PreApiService preApiService)
+        {
+            var playersToBlock = socket.LastSent.Where(s =>
+                                        s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(3)
+                                        && s.TargetPrice > s.Auction.StartingBid * 2
+                                        && !preApiService.IsSold(s.Auction.Uuid)
+                                    )
+                                    .GroupBy(s => s.Auction.AuctioneerId).Where(g => g.Count() >= 5).ToList();
+            foreach (var item in playersToBlock)
+            {
+                var player = item.Key;
+                FlipSettings.Value.BlackList.Add(new()
+                {
+                    DisplayName = "Automatic blacklist",
+                    filter = new(){
+                    {"removeAfter", DateTime.UtcNow.AddHours(8).ToString("s")},
+                    {"ForceBlacklist", "true"},
+                    {"Seller", player}
+                },
+                });
+                socket.SendMessage(COFLNET + $"Temporarily blacklisted {player} for baiting");
+            }
+
+            return playersToBlock;
         }
 
         private void AddTempFilter(string key)

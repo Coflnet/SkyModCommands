@@ -45,6 +45,8 @@ public class DelayHandler
             return timeProvider.Now;
         if (IsLikelyBot(flipInstance))
             return timeProvider.Now;
+        if(flipInstance.Profit < 200_000 && flipInstance.Finder == Core.LowPricedAuction.FinderType.FLIPPER)
+            return timeProvider.Now;
         var myIndex = FlipIndex;
         Interlocked.Increment(ref FlipIndex);
         TimeSpan delay = GetCorrectDelay(myIndex);
