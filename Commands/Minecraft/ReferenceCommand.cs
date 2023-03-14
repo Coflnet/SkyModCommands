@@ -23,6 +23,21 @@ namespace Coflnet.Sky.Commands.MC
                 await SniperReference(socket, uuid, flip, "median sniper");
                 return;
             }
+            if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.STONKS) ?? false)
+            {
+                await SniperReference(socket, uuid, flip, "STONKS");
+                return;
+            }
+            if(flip?.Finder.HasFlag(LowPricedAuction.FinderType.USER) ?? false)
+            {
+                socket.Dialog(d=>d.MsgLine("This is a custom flip that showed up because it matched your whitelist, no references are available"));
+                return;
+            }
+            if(flip?.Finder.HasFlag(LowPricedAuction.FinderType.TFM) ?? false)
+            {
+                socket.Dialog(d=>d.MsgLine("TFM flips have no references"));
+                return;
+            }
             socket.ModAdapter.SendMessage(new ChatPart("Caclulating references", "https://sky.coflnet.com/auction/" + uuid, "please give it a second"));
             var based = await CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
             if (based == null)
