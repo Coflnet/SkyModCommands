@@ -96,7 +96,8 @@ namespace Coflnet.Sky.Commands.MC
                 */
                 var source = flip.Auction.Context.ContainsKey("pre-api") ?
                         (flip.Context.ContainsKey("isRR") ? McColorCodes.RED + "PRE-RR" : "PRE")
-                        : (flip.Auction.Context["cname"].Contains(McColorCodes.DARK_GRAY + "!") ? "PREM+" : "");
+                        : (IsPremiumPlus(flip)
+                            ? "PREM+" : "");
                 return String.Format(Settings.ModSettings.Format,
                     finderType,
                     GetRarityColor(a.Tier),
@@ -142,6 +143,10 @@ namespace Coflnet.Sky.Commands.MC
             return builder.ToString();
         }
 
+        private static bool IsPremiumPlus(FlipInstance flip)
+        {
+            return flip.Auction.Context != null && flip.Auction.Context.TryGetValue("cname", out var colorName) && colorName.Contains(McColorCodes.DARK_GRAY + "!");
+        }
 
         public string GetRarityColor(Tier rarity)
         {
