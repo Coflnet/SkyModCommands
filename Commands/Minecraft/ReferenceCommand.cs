@@ -28,14 +28,14 @@ namespace Coflnet.Sky.Commands.MC
                 await SniperReference(socket, uuid, flip, "STONKS");
                 return;
             }
-            if(flip?.Finder.HasFlag(LowPricedAuction.FinderType.USER) ?? false)
+            if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.USER) ?? false)
             {
-                socket.Dialog(d=>d.MsgLine("This is a custom flip that showed up because it matched your whitelist, no references are available"));
+                socket.Dialog(d => d.MsgLine("This is a custom flip that showed up because it matched your whitelist, no references are available"));
                 return;
             }
-            if(flip?.Finder.HasFlag(LowPricedAuction.FinderType.TFM) ?? false)
+            if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.TFM) ?? false)
             {
-                socket.Dialog(d=>d.MsgLine("TFM flips have no references"));
+                socket.Dialog(d => d.MsgLine("TFM flips have no references"));
                 return;
             }
             socket.ModAdapter.SendMessage(new ChatPart("Caclulating references", "https://sky.coflnet.com/auction/" + uuid, "please give it a second"));
@@ -94,6 +94,8 @@ namespace Coflnet.Sky.Commands.MC
             var parts = new List<ChatPart>();
             parts.Add(new ChatPart($"{COFLNET}Finder algorithm: {algo}\n", "https://sky.coflnet.com/auction/" + uuid, explanation));
             //   parts.Add(new ChatPart($"It was compared to {McColorCodes.AQUA} these auctions {DEFAULT_COLOR}, open ah", $"/viewauction {reference.Uuid}", McColorCodes.GREEN + "open it on ah"));
+            if (flip.AdditionalProps.TryGetValue("closest", out var closestKey))
+                parts.Add(new ChatPart($"Used key {closestKey}"));
             parts.AddRange(references.Select(r =>
                 new ChatPart($"\n->{socket.formatProvider.GetRarityColor(r.Tier)} {r.ItemName}{McColorCodes.GRAY} for {McColorCodes.AQUA}{socket.FormatPrice(r.HighestBidAmount)}{McColorCodes.GRAY} {r.End}",
                                         "https://sky.coflnet.com/auction/" + r.Uuid,
