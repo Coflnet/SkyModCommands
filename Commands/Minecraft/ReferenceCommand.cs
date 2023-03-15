@@ -70,13 +70,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SniperReference(MinecraftSocket socket, string uuid, LowPricedAuction flip, string algo)
         {
-            var referenceId = flip.AdditionalProps["reference"].Trim('"');
-            if (referenceId == null)
-            {
-                socket.Log("reference is missing", Microsoft.Extensions.Logging.LogLevel.Error);
-                socket.ModAdapter.SendMessage(new ChatPart(COFLNET + "The reference for this flip could not be retrieved. It got lost"));
-                return;
-            }
+            flip.AdditionalProps.TryGetValue("reference", out var referenceId);
             Console.WriteLine(referenceId);
             Console.WriteLine(JSON.Stringify(flip.AdditionalProps));
             var references = new List<SaveAuction>();
