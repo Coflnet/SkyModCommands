@@ -105,6 +105,8 @@ namespace Coflnet.Sky.Commands.MC
         {
             get
             {
+                if (IsDevMode)
+                    return "1";
                 if (sessionLifesycle?.UserId?.Value == null)
                     throw new CoflnetException("no_login", "We could not determine your user account. Please make sure to login and try again.");
                 return sessionLifesycle.UserId.Value;
