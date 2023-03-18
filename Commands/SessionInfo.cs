@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Coflnet.Sky.Core;
 using StackExchange.Redis;
 
 namespace Coflnet.Sky.Commands.MC
@@ -57,6 +58,8 @@ namespace Coflnet.Sky.Commands.MC
         public CaptchaInfo captchaInfo = new();
 
         public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon;
+
+        public List<SaveAuction> Inventory { get; set; }
 
         public void Dispose()
         {

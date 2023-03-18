@@ -172,6 +172,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<UpdateLocationCommand>();
             Commands.Add<UpdateBitsCommand>();
             Commands.Add<UploadTabCommand>();
+            Commands.Add<UploadInventory>();
             Commands.Add<UploadScoreboardCommand>();
             Commands.Add<BackupCommand>();
             Commands.Add<RestoreCommand>();
