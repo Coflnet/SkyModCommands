@@ -29,6 +29,8 @@ public class PreApiService : BackgroundService
     static private ConcurrentDictionary<IFlipConnection, DateTime> localUsers = new();
     IProductsApi productsApi;
     IBaseApi baseApi;
+    Prometheus.Counter flipsPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased", "Flips purchased");
+    Prometheus.Counter preApiFlipPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased_preapi", "Flips bought by a preapi user");
     private List<string> preApiUsers = new();
     private ConcurrentDictionary<string, AccountTier> sold = new();
     private ConcurrentDictionary<string, DateTime> sent = new();
@@ -303,6 +305,9 @@ public class PreApiService : BackgroundService
             logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.UtcNow}");
             PublishSell(uuid, connection.UserAccountTier().Result);
             CheckHighProfitpurchaser(connection, flip);
+            flipsPurchased.Inc();
+            if(connection.AccountInfo.Tier >= AccountTier.SUPER_PREMIUM)
+                preApiFlipPurchased.Inc();
         }
         else
             logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");

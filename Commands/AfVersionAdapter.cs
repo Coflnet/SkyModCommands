@@ -57,6 +57,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     Slot = index,
                     Price = item.Second.Median * 0.95,
+                    Duration = 96,
                     ItemName = item.First.ItemName,
                 }));
             }

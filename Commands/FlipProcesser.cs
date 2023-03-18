@@ -16,6 +16,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
         private static Prometheus.Histogram flipSendTiming = Prometheus.Metrics.CreateHistogram("sky_mod_send_time", "Full run through time of flips");
+        private static Prometheus.Counter preApiFlipSent = Prometheus.Metrics.CreateCounter("sky_mod_flips_sent_preapi", "Flips sent to a preapi user");
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
         protected MinecraftSocket socket;
@@ -245,6 +246,8 @@ namespace Coflnet.Sky.Commands.MC
 
             _ = socket.TryAsyncTimes(async () =>
             {
+                if (socket.AccountInfo.Tier >= AccountTier.SUPER_PREMIUM)
+                    preApiFlipSent.Inc();
 
                 // this is actually syncronous
                 await socket.GetService<FlipTrackingService>()
@@ -278,7 +281,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (socket.TopBlocked.Take(100).Any(b => b.Flip.Auction.Uuid == flip.Auction.Uuid && b.Flip.TargetPrice == flip.TargetPrice))
                 return false; // don't count block twice
-            if(flip.Finder == LowPricedAuction.FinderType.TFM && Random.Shared.Next(0, 100) > 5 && socket.AccountInfo?.UserIdOld > 10)
+            if (flip.Finder == LowPricedAuction.FinderType.TFM && Random.Shared.Next(0, 100) > 5 && socket.AccountInfo?.UserIdOld > 10)
                 return false; // ignore 95% of tfm flips until finished
             socket.TopBlocked.Enqueue(new()
             {
