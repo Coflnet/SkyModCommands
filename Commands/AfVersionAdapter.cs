@@ -36,7 +36,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             lastListing = DateTime.UtcNow;
             var apiService = socket.GetService<IPlayerApi>();
-            var filters = new Dictionary<string, string>() { { "EndfAfter", DateTime.UtcNow.ToUnix().ToString() } };
+            var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
             var auctions = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters);
             if (auctions.Count > 4)
                 return; // ah full
