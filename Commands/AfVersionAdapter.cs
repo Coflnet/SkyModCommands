@@ -38,14 +38,14 @@ namespace Coflnet.Sky.Commands.MC
             var apiService = socket.GetService<IPlayerApi>();
             var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
             var auctions = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters);
-            if (auctions.Count > 4)
+            if (auctions.Count >= 4)
                 return; // ah full
             socket.Send(Response.Create("getInventory", new
             {
                 Location = "main"
             }));
             await Task.Delay(1000);
-            var inventory = socket.SessionInfo.Inventory ?? new List<SaveAuction>();
+            var inventory = socket.SessionInfo.Inventory ?? throw new Exception("no inventory");
             // retrieve price
             var sniperService = socket.GetService<ISniperClient>();
             var values = await sniperService.GetPrices(inventory);
