@@ -297,7 +297,10 @@ public class PreApiService : BackgroundService
         var itemName = match.Groups[1].Value;
         var priceString = match.Groups[2].Value;
         var price = double.Parse(priceString, NumberStyles.Number, CultureInfo.InvariantCulture);
-        var flips = connection.LastSent.OrderByDescending(s => s.Auction.Start).Where(f => f.Auction.ItemName == itemName && f.Auction.StartingBid == price);
+        var flips = connection.LastSent.OrderByDescending(s => s.Auction.Start)
+            .Where(f => f.Auction.ItemName == itemName 
+                    && f.Auction.StartingBid == price 
+                    && f.Auction.Start > DateTime.UtcNow.AddMinutes(-2));
         if (flips.Count() == 1)
         {
             var flip = flips.FirstOrDefault();
