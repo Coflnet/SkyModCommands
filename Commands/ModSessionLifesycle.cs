@@ -565,7 +565,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void UpdateConnectionIfNoFlipSent(Activity span)
         {
-            if (AccountInfo.Value?.Tier == AccountTier.NONE)
+            if (AccountInfo?.Value?.Tier == AccountTier.NONE)
                 return;
             if (socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-3)))
                 return; // got a flip in the last 3 minutes
@@ -644,6 +644,8 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         if (SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
                         {
+                            socket.Send(Response.Create("getMods", 0));
+                            await Task.Delay(1000).ConfigureAwait(false);
                             SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                             SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
                         }

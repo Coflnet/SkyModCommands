@@ -41,7 +41,7 @@ namespace Coflnet.Sky.Commands.MC
             info.LastGenerated = DateTime.UtcNow;
             var captchaType = socket.AccountInfo.CaptchaType;
             return new DialogBuilder().LineBreak()
-                .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text))
+                .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text)).Break
                 .MsgLine($"{challenge.Question}", null, "anti macro question, please click on the answer")
                 .If(() => captchaType != "vertical", db => db.LineBreak()
                             .CoflCommand<CaptchaCommand>(McColorCodes.AQUA + "Vertical |", "vertical",
@@ -94,14 +94,14 @@ namespace Coflnet.Sky.Commands.MC
             var chars = new List<List<Option>>();
             chars.Add(lines);
             var index = 0;
-            while (chars.Sum(c => c.First().Text.Length) < 70)
+            while (chars.Sum(c => c.First().Text.Length) < 69)
                 chars.Add(RenderCharLines(alphaBet[index++], socket.AccountInfo));
 
             //socket.Dialog(db => db.LineBreak().Lines(lines.Select(m => m + "|").ToArray()));
             var challenge = new CaptchaChallenge()
             {
                 Question = "Select the letter " + McColorCodes.AQUA + letter +
-                    $"\n{McColorCodes.GRAY}Click what looks the most like the letter" + McColorCodes.AQUA + letter
+                    $"\n{McColorCodes.GRAY}Click what looks the most like the letter " + McColorCodes.AQUA + letter
             };
             var bigger = chars.Max(l => l.Count);
             chars = chars.OrderBy(r => random.Next()).ToList();
@@ -151,7 +151,7 @@ namespace Coflnet.Sky.Commands.MC
                 return AddParts(lines[i].Text);
             else
             {
-                var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length - (l.Text.Count(c => c == '´' || c == '!' || c == '|') / 2 + l.Text.Count(c => c == ';') / 3));
+                var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length - (l.Text.Count(c => c == '´' || c == '!' || c == '|' || c == '.') / 2 + l.Text.Count(c => c == ';') / 3));
                 var padding = "".PadLeft(length);
                 if (Random.Shared.Next(6) == 0)
                     padding = padding.Remove(1, 1).Insert(Random.Shared.Next(0, length - 1), "🇧🇾".First().ToString());
@@ -226,20 +226,20 @@ namespace Coflnet.Sky.Commands.MC
             string[] lines = null;
             if (info.CaptchaType == "optifine")
             {
-                builder.Replace("!!", "`")
-                .Replace("🇧🇾"[0], '`')
-                .Replace("🇧🇾"[1], '`')
-                .Replace("``", ";;;")
-                .Replace("´´´´´", "´´´´");
+                builder//.Replace("!!", "`")
+                //.Replace("🇧🇾"[0], '`')
+                //.Replace("🇧🇾"[1], '`')
+                //.Replace("``", ";;;")
+                .Replace("´", ".");
 
                 lines = builder.ToString().Split("\n").Select(l =>
                 {
-                    var count = l.Count(c => c == '´');
+                    /*var count = l.Count(c => c == '´');
                     for (int i = 0; i < count / 5 + random.Next(2); i++)
                     {
                         if (count > 0 && l.Length > i * 4 + 2)
                             l = l.Remove(l.IndexOf('´', i * 2), 1);
-                    }
+                    }*/
                     return l;
                 }).ToArray();
             }
