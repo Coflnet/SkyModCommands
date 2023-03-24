@@ -104,7 +104,7 @@ namespace Coflnet.Sky.Commands.MC
             ItemPrices.AuctionPreview targetAuction = null;
             foreach (var type in new List<string> { "STICK", "RABBIT_HAT", "WOOD_SWORD", "VACCINE_TALISMAN" })
             {
-                targetAuction = await NewMethod(bid, type);
+                targetAuction = await GetauctionToBidOn(bid, type);
                 if (targetAuction != null)
                     break;
             }
@@ -125,15 +125,18 @@ namespace Coflnet.Sky.Commands.MC
             return LastVerificationRequest > DateTime.UtcNow - TimeSpan.FromSeconds(5);
         }
 
-        private static async Task<ItemPrices.AuctionPreview> NewMethod(int bid, string type)
+        private static async Task<ItemPrices.AuctionPreview> GetauctionToBidOn(int bid, string type)
         {
-            var r = new Random();
             var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
             {
                 name = type,
+                Filter = new Dictionary<string, string>()
+                {
+                    {"Bin","false"}
+                }
             });
 
-            var targetAuction = activeAuction.Where(a => a.Price < bid).OrderBy(x => r.Next()).FirstOrDefault();
+            var targetAuction = activeAuction.Where(a => a.Price < bid).OrderBy(x => Random.Shared.Next()).FirstOrDefault();
             return targetAuction;
         }
     }
