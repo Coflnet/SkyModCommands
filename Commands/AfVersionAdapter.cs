@@ -44,15 +44,24 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Location = "main"
             }));
-            await Task.Delay(1000);
+            await Task.Delay(800);
             var inventory = socket.SessionInfo.Inventory ?? throw new Exception("no inventory");
             // retrieve price
             var sniperService = socket.GetService<ISniperClient>();
             var values = await sniperService.GetPrices(inventory);
-            var toList = inventory.Zip(values).Where(x => x.First != null && x.Second.Median > 0).Take(4 - auctions.Count);
+            var toList = inventory.Zip(values).Where(x => x.First != null && x.Second.Median > 1000);
             foreach (var item in toList)
             {
                 var index = inventory.IndexOf(item.First);
+                var uid = item.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value?.Split('-').Last();
+                var foundInSent = socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uid").Value == uid);
+                if (!foundInSent && !string.IsNullOrEmpty(uid))
+                {
+                    filters = new Dictionary<string, string>() { { "Uid", uid } };
+                    var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, filters);
+                    if(purchases.Count == 0)
+                        continue; // not bought, keep existing items
+                }
                 socket.Send(Response.Create("createAuction", new
                 {
                     Slot = index,
@@ -60,6 +69,7 @@ namespace Coflnet.Sky.Commands.MC
                     Duration = 96,
                     ItemName = item.First.ItemName,
                 }));
+                break;
             }
         }
 
