@@ -104,7 +104,14 @@ namespace Coflnet.Sky.Commands.MC
             ItemPrices.AuctionPreview targetAuction = null;
             foreach (var type in new List<string> { "STICK", "RABBIT_HAT", "WOOD_SWORD", "VACCINE_TALISMAN" })
             {
-                targetAuction = await GetauctionToBidOn(bid, type);
+                try 
+                {
+                    targetAuction = await GetauctionToBidOn(bid, type);
+                }
+                catch (System.Exception e)
+                {
+                    socket.Error(e, "Could not get auction to bid on");
+                }
                 if (targetAuction != null)
                     break;
             }
