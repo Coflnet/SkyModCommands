@@ -27,46 +27,46 @@ namespace Coflnet.Sky.Commands.MC
             for (int i = 0; i < parts.Count; i++)
             {
                 var part = parts[i];
-                if (part.Contains('='))
+                if (!part.Contains('='))
+                    continue;
+
+                var filterParts = part.Split('=');
+                var filterName = allFilters.Where(f => f.ToLower() == filterParts[0].ToLower()).FirstOrDefault();
+                if (filterName == null)
                 {
-                    var filterParts = part.Split('=');
-                    var filterName = allFilters.Where(f => f.ToLower() == filterParts[0].ToLower()).FirstOrDefault();
-                    if (filterName == null)
-                    {
-                        filterName = allFilters.OrderBy(f => Fastenshtein.Levenshtein.Distance(f.ToLower(), filterParts[0].ToLower())).First();
-                        socket.SendMessage(new DialogBuilder().MsgLine($"{McColorCodes.RED}Could not find {McColorCodes.AQUA}{filterParts[0]}{McColorCodes.WHITE}, using closest match {McColorCodes.AQUA}{filterName}{McColorCodes.WHITE} instead"));
-                    }
-                    var filterVal = filterParts[1];
-                    if (FlipFilter.AdditionalFilters.TryGetValue(filterName, out DetailedFlipFilter dff))
-                    {
-                        var type = dff.FilterType;
-                        var options = dff.Options;
-                        AssertValidNumberFilter(filterName, filterVal, type);
-                        filterVal = AssertValidOptionsFilter(filterName, filterVal, type, options);
-                    }
-                    else if (filterName == "removeAfter")
-                    {
-                        // is parseable
-                        DateTime.Parse(filterVal);
-                    }
-                    else if (filterName == "duration")
-                    {
-                        // tested further up
-                    }
-                    else if (filterName == "tag" || filterName == "tags") { }
-                    else
-                    {
-                        var allOptions = await DiHandler.GetService<IItemsApi>().ItemItemTagModifiersAllGetAsync("*");
-                        var filter = FlipFilter.FilterEngine.AvailableFilters.Where(f => f.Name == filterName).First();
-                        var type = filter.FilterType;
-                        var options = filter.OptionsGet(new OptionValues(allOptions));
-                        AssertValidNumberFilter(filterName, filterVal, type);
-                        filterVal = AssertValidOptionsFilter(filterName, filterVal, type, options);
-                    }
-                    filters.Add(filterName, filterVal);
-                    // remove filter from search
-                    val = val.Substring(0, val.Length - part.Length).Trim();
+                    filterName = allFilters.OrderBy(f => Fastenshtein.Levenshtein.Distance(f.ToLower(), filterParts[0].ToLower())).First();
+                    socket.SendMessage(new DialogBuilder().MsgLine($"{McColorCodes.RED}Could not find {McColorCodes.AQUA}{filterParts[0]}{McColorCodes.WHITE}, using closest match {McColorCodes.AQUA}{filterName}{McColorCodes.WHITE} instead"));
                 }
+                var filterVal = filterParts[1];
+                if (FlipFilter.AdditionalFilters.TryGetValue(filterName, out DetailedFlipFilter dff))
+                {
+                    var type = dff.FilterType;
+                    var options = dff.Options;
+                    AssertValidNumberFilter(filterName, filterVal, type);
+                    filterVal = AssertValidOptionsFilter(filterName, filterVal, type, options);
+                }
+                else if (filterName == "removeAfter")
+                {
+                    // is parseable
+                    DateTime.Parse(filterVal);
+                }
+                else if (filterName == "duration")
+                {
+                    // tested further up
+                }
+                else if (filterName == "tag" || filterName == "tags") { }
+                else
+                {
+                    var allOptions = await DiHandler.GetService<IItemsApi>().ItemItemTagModifiersAllGetAsync("*");
+                    var filter = FlipFilter.FilterEngine.AvailableFilters.Where(f => f.Name == filterName).First();
+                    var type = filter.FilterType;
+                    var options = filter.OptionsGet(new OptionValues(allOptions));
+                    AssertValidNumberFilter(filterName, filterVal, type);
+                    filterVal = AssertValidOptionsFilter(filterName, filterVal, type, options);
+                }
+                filters.Add(filterName, filterVal);
+                // remove filter from search
+                val = val.Substring(0, val.Length - part.Length).Trim();
             }
 
             return val;
