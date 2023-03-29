@@ -11,6 +11,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var list = GetSettings(socket);
             list.Value.WhiteList = newCol;
+            list.Value.LastChanged = "whitelist";
             await list.Update(list.Value);
         }
 
