@@ -66,6 +66,8 @@ namespace Coflnet.Sky.Commands.MC
                     if (purchases.Count == 0)
                         continue; // not bought, keep existing items
                 }
+                if(item.First.FlatenedNBT.ContainsKey("donated_museum"))
+                    continue; // sould bound
                 span.Log($"Listing {item.First.ItemName} for {item.Second.Median * 0.95} (median: {item.Second.Median})");
                 socket.Send(Response.Create("createAuction", new
                 {
