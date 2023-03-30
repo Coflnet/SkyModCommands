@@ -61,7 +61,7 @@ namespace Coflnet.Sky.Commands.MC
                 var foundInSent = socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uid").Value == uid);
                 if (!foundInSent && !string.IsNullOrEmpty(uid))
                 {
-                    filters = new Dictionary<string, string>() { { "Uid", uid }, { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(1)).ToUnix().ToString() } };
+                    filters = new Dictionary<string, string>() { { "UId", uid }, { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(1)).ToUnix().ToString() } };
                     var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, filters);
                     span.Log($"Found {purchases.Count} purchases of {item.First.ItemName}");
                     if (purchases.Count == 0)
