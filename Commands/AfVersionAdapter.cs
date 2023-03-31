@@ -69,11 +69,11 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 if (item.First.FlatenedNBT.ContainsKey("donated_museum"))
                     continue; // sould bound
-                span.Log($"Listing {item.First.ItemName} for {item.Second.Median * 0.95} (median: {item.Second.Median})");
+                span.Log($"Listing {item.First.ItemName} for {item.Second.Median * 0.98} (median: {item.Second.Median})");
                 socket.Send(Response.Create("createAuction", new
                 {
                     Slot = index,
-                    Price = item.Second.Median * 0.95,
+                    Price = item.Second.Median * 0.98,
                     Duration = 96,
                     ItemName = item.First.ItemName,
                 }));
