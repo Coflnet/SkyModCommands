@@ -28,7 +28,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (Matches(flip, item))
                 {
                     var bl = BlacklistCommand.FormatEntry(item);
-                    var text = "This flip matched the filter " + bl;
+                    var text = $"This flip matched the filter {bl} {McColorCodes.GRAY}[{McColorCodes.RED}REMOVE{McColorCodes.GRAY}]";
                     var isWhitelist = args.WL;
                     SendRemoveMessage(socket, item, text, isWhitelist);
                     Activity.Current.Log(JSON.Stringify(bl));
@@ -36,7 +36,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }
             socket.Settings.ClearListMatchers();
-            socket.SendMessage(COFLNET + "This flip didn't match any of your filters. How did you do this?", null, "Reloaded the filter in an attempt to fix this");
+            socket.SendMessage(COFLNET + "This flip didn't match any of your current filters. Most likely it matched an already removed entry or one with a bed filter", null, "Reloaded the filter in an attempt to fix this");
             return Task.CompletedTask;
         }
 
@@ -51,6 +51,11 @@ namespace Coflnet.Sky.Commands.MC
         public static bool Matches(LowPricedAuction flip, ListEntry item)
         {
             return item.MatchesSettings(FlipperService.LowPriceToFlip(flip));
+        }
+
+        public static ChatPart CreatePart(string text, Args target, string hover = null)
+        {
+            return new ChatPart(text, "/cofl whichblentry " + JSON.Stringify(target), hover);
         }
 
         public class Args

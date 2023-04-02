@@ -33,7 +33,8 @@ namespace Coflnet.Sky.Commands.MC
             var openCommand = "/viewauction " + flip.Auction.Uuid;
             var message = socket.GetFlipMsg(flip);
             var interesting = flip.Interesting;
-            var extraText = "\n" + String.Join(McColorCodes.DARK_GRAY + ", " + McColorCodes.WHITE, interesting.Take(socket.Settings.Visibility?.ExtraInfoMax ?? 0));
+            var toTake = socket.Settings.Visibility?.ExtraInfoMax ?? 0;
+            var extraText = String.Join(McColorCodes.DARK_GRAY + ", " + McColorCodes.WHITE, interesting.Take(toTake));
 
             var uuid = flip.Auction.Uuid;
             var seller = flip.SellerName;
@@ -42,11 +43,18 @@ namespace Coflnet.Sky.Commands.MC
 
             var parts = new List<ChatPart>(){
                 new ChatPart(message, openCommand, socket.formatProvider.GetHoverText(flip)),
-                new ChatPart(" ✥ ", "/cofl dialog flipoptions " + uuid, "Expand flip options"),
+                new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + uuid, "Expand flip options"),
                 //new ChatPart(" ❤", $"/cofl rate {uuid} {flip.Finder} up", "Vote this flip up"),
                 //new ChatPart("✖ ", $"/cofl rate {uuid} {flip.Finder} down", "Vote this flip down"),
                 new ChatPart(extraText, openCommand, null)
             };
+            if(flip.Context.TryGetValue("match", out var type) && type.StartsWith("whitelist"))
+            {
+                parts.Insert(2, WhichBLEntryCommand.CreatePart(
+                    "Whitelisted ", 
+                    new() { Uuid = flip.Uuid, WL = true }, 
+                    "This flip matched one of your whitelist entries\nClick to calculate which one"));
+            }
 
 
             if ((socket.Settings.Visibility?.Seller ?? false) && !NoSeller(seller))

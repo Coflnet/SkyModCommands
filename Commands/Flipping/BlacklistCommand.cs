@@ -35,7 +35,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public static string FormatId(ListEntry elem)
         {
-            return $"{elem.ItemTag} {(elem.filter == null ? "" : string.Join(',', elem.filter.Select(f => $"{f.Key}={f.Value}")))}{string.Join(',', elem.Tags ?? new List<string>())}";
+            return $"{elem.ItemTag}{(elem.filter == null ? "" : string.Join(',', elem.filter.Select(f => $"{f.Key}={f.Value}")))}{string.Join(',', elem.Tags ?? new List<string>())}";
         }
 
         protected override Task<List<ListEntry>> GetList(MinecraftSocket socket)
@@ -61,7 +61,7 @@ namespace Coflnet.Sky.Commands.MC
             var list = GetSettings(socket);
             list.Value.BlackList = newCol;
             list.Value.RecompileMatchers();
-            list.Value.LastChanged = "updated blacklist";
+            list.Value.LastChanged = "preventUpdateMsg";
             await list.Update(list.Value);
         }
 
