@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 namespace Coflnet.Sky.Commands.MC;
 public class UploadScoreboardCommand : McCommand
 {
-    public override Task Execute(MinecraftSocket socket, string arguments)
+    public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var args = JsonConvert.DeserializeObject<string[]>(arguments);
         var isIronman = false;
@@ -23,6 +23,8 @@ public class UploadScoreboardCommand : McCommand
                 isStranded = true;
             if (item.Contains("the catacombs"))
                 isDungeon = true;
+            if(item.StartsWith("Purse:"))
+                await new UpdatePurseCommand().Execute(socket,item.Substring(7).Replace(",",""));
         }
         var wasNotFlippable = socket.SessionInfo.IsNotFlipable;
         socket.SessionInfo.IsIronman = isIronman;
@@ -37,6 +39,5 @@ public class UploadScoreboardCommand : McCommand
         {
             socket.Dialog(db => db.MsgLine("Flips disabled because you are in a gamemode with no auction house"));
         }
-        return Task.CompletedTask;
     }
 }
