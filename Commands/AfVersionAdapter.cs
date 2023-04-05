@@ -54,6 +54,7 @@ namespace Coflnet.Sky.Commands.MC
             var values = await sniperService.GetPrices(inventory);
             var toList = inventory.Zip(values).Where(x => x.First != null && x.Second.Median > 1000);
             span.Log(JsonConvert.SerializeObject(socket.LastSent));
+            span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
             foreach (var item in toList)
             {
                 var index = inventory.IndexOf(item.First);
@@ -77,7 +78,7 @@ namespace Coflnet.Sky.Commands.MC
                     Duration = 96,
                     ItemName = item.First.ItemName,
                 }));
-                break;
+                await Task.Delay(5000);
             }
         }
 
