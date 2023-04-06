@@ -6,6 +6,7 @@ using Coflnet.Sky.ModCommands.Services;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using Newtonsoft.Json;
+using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -15,6 +16,11 @@ namespace Coflnet.Sky.Commands.MC
 
         public ThirdVersionAdapter(MinecraftSocket socket) : base(socket)
         {
+            socket.TryAsyncTimes(async () =>
+            {
+                await Task.Delay(5000);
+                SendOutDated();
+            }, "updatemsg");
         }
 
         public override async Task<bool> SendFlip(FlipInstance flip)
@@ -78,6 +84,13 @@ namespace Coflnet.Sky.Commands.MC
         public override void SendMessage(params ChatPart[] parts)
         {
             socket.Send(Response.Create("chatMessage", parts));
+        }
+
+        private void SendOutDated()
+        {
+            SendMessage(new DialogBuilder().MsgLine("There is a newer mod version available. Please update as soon as possible. \nYou can click this to be redirected to the download.",
+                                        "https://github.com/Coflnet/skyblockmod/releases",
+                                        "opens github"));
         }
     }
 
