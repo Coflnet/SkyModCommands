@@ -58,9 +58,11 @@ namespace Coflnet.Sky.Commands.MC
             span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
             foreach (var item in socket.LastSent)
             {
-                var uid = item.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uid").Value;
-                var inventoryRepresent = inventory.Where(x => x.FlatenedNBT.TryGetValue("uuid", out var uuid) && uuid.Split('-').Last() == uid).FirstOrDefault();
-                if(inventoryRepresent==null)
+                var uid = item.Auction.FlatenedNBT?.FirstOrDefault(y => y.Key == "uid").Value;
+                if (uid == null)
+                    continue;
+                var inventoryRepresent = inventory.Where(x => x != null && x.FlatenedNBT != null && x.FlatenedNBT.TryGetValue("uuid", out var uuid) && uuid.Split('-').Last() == uid).FirstOrDefault();
+                if (inventoryRepresent == null)
                     continue;
                 var index = inventory.IndexOf(inventoryRepresent);
                 if (await ShouldSkip(span, apiService, item.Auction))
