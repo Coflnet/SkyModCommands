@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Client.Api;
@@ -53,33 +54,58 @@ namespace Coflnet.Sky.Commands.MC
             var sniperService = socket.GetService<ISniperClient>();
             var values = await sniperService.GetPrices(inventory);
             var toList = inventory.Zip(values).Where(x => x.First != null && x.Second.Median > 1000);
-            span.Log(JsonConvert.SerializeObject(socket.LastSent));
+            span.Log(JsonConvert.SerializeObject(values));
             span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
+            foreach (var item in socket.LastSent)
+            {
+                var uid = item.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uid").Value;
+                var inventoryRepresent = inventory.Where(x => x.FlatenedNBT.TryGetValue("uuid", out var uuid) && uuid.Split('-').Last() == uid).FirstOrDefault();
+                if(inventoryRepresent==null)
+                    continue;
+                var index = inventory.IndexOf(inventoryRepresent);
+                if (await ShouldSkip(span, apiService, item.Auction))
+                    continue;
+                await SendListing(span, item.Auction, item.TargetPrice, index);
+                return; // created listing
+            }
             foreach (var item in toList)
             {
                 var index = inventory.IndexOf(item.First);
-                var uid = item.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value?.Split('-').Last();
-                var foundInSent = socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uid").Value == uid);
-                if (!foundInSent && !string.IsNullOrEmpty(uid))
-                {
-                    filters = new Dictionary<string, string>() { { "UId", uid }, { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(1)).ToUnix().ToString() } };
-                    var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, filters);
-                    span.Log($"Found {purchases.Count} purchases of {item.First.ItemName}");
-                    if (purchases.Count == 0)
-                        continue; // not bought, keep existing items
-                }
-                if (item.First.FlatenedNBT.ContainsKey("donated_museum"))
-                    continue; // sould bound
-                span.Log($"Listing {item.First.ItemName} for {item.Second.Median * 0.98} (median: {item.Second.Median})");
-                socket.Send(Response.Create("createAuction", new
-                {
-                    Slot = index,
-                    Price = item.Second.Median * 0.98,
-                    Duration = 96,
-                    ItemName = item.First.ItemName,
-                }));
-                await Task.Delay(5000);
+                if (await ShouldSkip(span, apiService, item.First))
+                    continue;
+                await SendListing(span, item.First, item.Second.Median, index);
             }
+        }
+
+        private async Task SendListing(Activity span, SaveAuction auction, long price, int index)
+        {
+            span.Log($"Listing {auction.ItemName} for {price * 0.98} (median: {price})");
+            socket.Send(Response.Create("createAuction", new
+            {
+                Slot = index,
+                Price = price * 0.98,
+                Duration = 96,
+                ItemName = auction.ItemName,
+            }));
+            await Task.Delay(5000);
+        }
+
+        private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)
+        {
+            var shouldContinue = false;
+            var uid = item.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value?.Split('-').Last();
+            var foundInSent = socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uid").Value == uid);
+            if (!foundInSent && !string.IsNullOrEmpty(uid))
+            {
+                var checkFilters = new Dictionary<string, string>() { { "UId", uid }, { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(1)).ToUnix().ToString() } };
+                var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
+                span.Log($"Found {purchases.Count} purchases of {item.ItemName}");
+                if (purchases.Count == 0)
+                    shouldContinue = true; // not bought, keep existing items
+            }
+            if (item.FlatenedNBT.ContainsKey("donated_museum"))
+                shouldContinue = true; // sould bound
+            return shouldContinue;
         }
 
         public override void SendMessage(params ChatPart[] parts)
