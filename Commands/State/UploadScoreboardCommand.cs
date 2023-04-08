@@ -24,7 +24,7 @@ public class UploadScoreboardCommand : McCommand
             if (item.Contains("the catacombs"))
                 isDungeon = true;
             if(item.StartsWith("Purse:"))
-                await new UpdatePurseCommand().Execute(socket,item.Substring(7).Replace(",",""));
+                await new UpdatePurseCommand().Execute(socket,item.Substring(7).Replace(",","").Split(" ")[0]);
         }
         var wasNotFlippable = socket.SessionInfo.IsNotFlipable;
         socket.SessionInfo.IsIronman = isIronman;
