@@ -189,7 +189,7 @@ public class PreApiService : BackgroundService
                 {
                     logger.LogError(e, "Error while sending flip to user");
                 }
-            }).ConfigureAwait(false);
+            }, new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token).ConfigureAwait(false);
         }
         var profit = e.TargetPrice - e.Auction?.StartingBid;
         if (profit > 1_000_000)

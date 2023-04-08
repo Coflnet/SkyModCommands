@@ -111,7 +111,7 @@ namespace Coflnet.Sky.ModCommands.Services
                     {
                         logger.LogError(e, "bfcs error");
                     }
-                }).ConfigureAwait(false);
+                }, new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token).ConfigureAwait(false);
             });
             logger.LogInformation("Subscribed to " + multiplexer.IsConnected + multiplexer.GetEndPoints().Select(e =>
             {

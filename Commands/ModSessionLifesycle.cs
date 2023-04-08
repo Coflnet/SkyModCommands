@@ -134,7 +134,7 @@ namespace Coflnet.Sky.Commands.MC
             _ = socket.TryAsyncTimes(() => AccountInfo.Update(AccountInfo.Value), "accountInfo update");
 
             FlipSettings.OnChange += UpdateSettings;
-            AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai));
+            AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
             if (AccountInfo.Value != default)
                 await UpdateAccountInfo(AccountInfo);
             else

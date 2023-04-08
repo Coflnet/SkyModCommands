@@ -231,7 +231,7 @@ namespace Coflnet.Sky.Commands.MC
                 DateTime next = await GetNext10SecTime();
                 updateSpan?.SetTag("time", next.ToString());
                 tenSecTimer.Change(next - DateTime.UtcNow, TimeSpan.FromMinutes(1));
-            }, new System.Threading.CancellationTokenSource(15000).Token);
+            }, new CancellationTokenSource(15000).Token);
         }
 
         private static async Task<DateTime> GetNext10SecTime()
@@ -271,7 +271,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     Error(e, "starting connection");
                 }
-            }).ConfigureAwait(false);
+            }, new CancellationTokenSource(TimeSpan.FromHours(1)).Token).ConfigureAwait(false);
 
             System.Console.CancelKeyPress += OnApplicationStop;
 
@@ -321,7 +321,7 @@ namespace Coflnet.Sky.Commands.MC
 
             FlipperService.Instance.AddNonConnection(this, false);
             SetLifecycleVersion(Version);
-            System.Threading.Tasks.Task.Run(async () =>
+            Task.Run(async () =>
             {
                 try
                 {
@@ -362,7 +362,7 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         Error(e, errorMessage);
                     }
-            }).ConfigureAwait(false);
+            }, new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token).ConfigureAwait(false);
         }
 
         public async Task<string> GetPlayerName(string uuid)
@@ -485,7 +485,7 @@ namespace Coflnet.Sky.Commands.MC
                     using var commandSpan = CreateActivity(a.type, span);
                     await InvokeCommand(a, command);
                 }
-            }).ConfigureAwait(false);
+            }, new CancellationTokenSource(TimeSpan.FromMinutes(2)).Token).ConfigureAwait(false);
         }
 
         private async Task InvokeCommand(Response a, McCommand command)
