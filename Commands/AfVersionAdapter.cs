@@ -81,11 +81,14 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendListing(Activity span, SaveAuction auction, long price, int index)
         {
-            span.Log($"Listing {auction.ItemName} for {price * 0.98} (median: {price})");
+            var sellPrice = price * 0.98;
+            if(sellPrice < 100_000)
+                sellPrice = price;
+            span.Log($"Listing {auction.ItemName} for {sellPrice} (median: {price})");
             socket.Send(Response.Create("createAuction", new
             {
                 Slot = index,
-                Price = price * 0.98,
+                Price = sellPrice,
                 Duration = 96,
                 ItemName = auction.ItemName,
             }));
@@ -101,7 +104,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var checkFilters = new Dictionary<string, string>() { { "UId", uid }, { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(1)).ToUnix().ToString() } };
                 var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
-                span.Log($"Found {purchases.Count} purchases of {item.ItemName}");
+                span.Log($"Found {purchases.Count} purchases of {item.Tag} {item.Uuid}");
                 if (purchases.Count == 0)
                     shouldContinue = true; // not bought, keep existing items
             }
