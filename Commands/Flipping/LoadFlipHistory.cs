@@ -24,7 +24,7 @@ public class LoadFlipHistory : McCommand
         else if (!socket.GetService<ModeratorService>().IsModerator(socket))
             throw new CoflnetException("forbidden", "You are not allowed to do this");
         if (days == 0)
-            days = 1000;
+            days = 7;
         var redis = socket.GetService<ConnectionMultiplexer>();
         if ((await redis.GetDatabase().StringGetAsync("flipreload" + playerId)).HasValue)
         {
