@@ -7,15 +7,29 @@ using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using StackExchange.Redis;
 
 namespace Coflnet.Sky.Commands.MC;
 public class LoadFlipHistory : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if (!socket.GetService<ModeratorService>().IsModerator(socket))
-            throw new CoflnetException("forbidden", "You are not allowed to do this");
         var playerId = JsonConvert.DeserializeObject<string>(arguments);
+        if (string.IsNullOrEmpty(playerId))
+        {
+            playerId = socket.SessionInfo.McUuid;
+        }
+        else if (!socket.GetService<ModeratorService>().IsModerator(socket))
+            throw new CoflnetException("forbidden", "You are not allowed to do this");
+
+        var redis = socket.GetService<ConnectionMultiplexer>();
+        // check if "hi" exists
+        if ((await redis.GetDatabase().StringGetAsync("flipreload" + playerId)).HasValue)
+        {
+            socket.Dialog(db => db.MsgLine("Flips are already being reloaded, this can take multiple hours. \nLots of number crunshing :)"));
+            return;
+        }
+        await redis.GetDatabase().StringSetAsync("flipreload" + playerId, "true", TimeSpan.FromHours(12));
         socket.SendMessage(COFLNET + $"Started refreshing flips for {playerId}", null, "this might take a while");
         if (playerId.Length < 30)
             playerId = (await socket.GetPlayerUuid(playerId)).Trim('"');
@@ -30,7 +44,7 @@ public class LoadFlipHistory : McCommand
         var count = 0;
         using (var context = new HypixelContext())
         {
-            var maxTime = new DateTime(2023, 1, 10);
+            var maxTime = DateTime.UtcNow; new DateTime(2023, 1, 10);
             var numericId = await context.Players.Where(p => p.UuId == playerId).Select(p => p.Id).FirstAsync();
             Console.WriteLine($"Loading flips for {playerId} ({numericId})");
             var auctions = context.Auctions
