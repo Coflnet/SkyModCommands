@@ -14,6 +14,8 @@ public class LoadFlipHistory : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
+        if (!socket.SessionInfo.VerifiedMc)
+            throw new CoflnetException("not_verified", "You need to verify your minecraft account before executing this command.");
         var playerId = JsonConvert.DeserializeObject<string>(arguments);
         if (string.IsNullOrEmpty(playerId))
         {
@@ -23,7 +25,6 @@ public class LoadFlipHistory : McCommand
             throw new CoflnetException("forbidden", "You are not allowed to do this");
 
         var redis = socket.GetService<ConnectionMultiplexer>();
-        // check if "hi" exists
         if ((await redis.GetDatabase().StringGetAsync("flipreload" + playerId)).HasValue)
         {
             socket.Dialog(db => db.MsgLine("Flips are already being reloaded, this can take multiple hours. \nLots of number crunshing :)"));
