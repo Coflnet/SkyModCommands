@@ -133,7 +133,7 @@ public class PreApiService : BackgroundService
     {
         try
         {
-            preApiUsers = await productsApi.ProductsServiceServiceSlugIdsGetAsync("pre_api");
+            preApiUsers = await productsApi.ProductsServiceServiceSlugIdsGetAsync("pre_api") ?? new();
             if (notifyWhenUserLeave.TryGetValue(preApiUsers.Count, out var sockets))
             {
                 foreach (var item in sockets)
