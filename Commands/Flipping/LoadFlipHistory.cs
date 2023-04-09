@@ -17,7 +17,7 @@ public class LoadFlipHistory : McCommand
         if (!socket.SessionInfo.VerifiedMc)
             throw new CoflnetException("not_verified", "You need to verify your minecraft account before executing this command.");
         var playerId = JsonConvert.DeserializeObject<string>(arguments);
-        if (!int.TryParse(playerId, out var days))
+        if (int.TryParse(playerId, out var days) || string.IsNullOrEmpty(playerId))
         {
             playerId = socket.SessionInfo.McUuid;
         }
