@@ -17,13 +17,14 @@ public class LoadFlipHistory : McCommand
         if (!socket.SessionInfo.VerifiedMc)
             throw new CoflnetException("not_verified", "You need to verify your minecraft account before executing this command.");
         var playerId = JsonConvert.DeserializeObject<string>(arguments);
-        if (string.IsNullOrEmpty(playerId))
+        if (!int.TryParse(playerId, out var days))
         {
             playerId = socket.SessionInfo.McUuid;
         }
         else if (!socket.GetService<ModeratorService>().IsModerator(socket))
             throw new CoflnetException("forbidden", "You are not allowed to do this");
-
+        if (days == 0)
+            days = 1000;
         var redis = socket.GetService<ConnectionMultiplexer>();
         if ((await redis.GetDatabase().StringGetAsync("flipreload" + playerId)).HasValue)
         {
@@ -46,10 +47,11 @@ public class LoadFlipHistory : McCommand
         using (var context = new HypixelContext())
         {
             var maxTime = DateTime.UtcNow; new DateTime(2023, 1, 10);
+            var minTime = maxTime.AddDays(-days);
             var numericId = await context.Players.Where(p => p.UuId == playerId).Select(p => p.Id).FirstAsync();
             Console.WriteLine($"Loading flips for {playerId} ({numericId})");
             var auctions = context.Auctions
-                .Where(a => a.SellerId == numericId && a.End < maxTime && a.HighestBidAmount > 0)
+                .Where(a => a.SellerId == numericId && a.End < maxTime && a.End > minTime && a.HighestBidAmount > 0)
                 .Include(a => a.NbtData)
                 .Include(a => a.Enchantments);
             foreach (var auction in auctions)
