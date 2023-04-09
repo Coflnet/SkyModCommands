@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections;
 using System.Collections.Generic;
 using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Commands.MC;
 
 namespace Coflnet.Sky.ModCommands.Controllers
 {
@@ -34,6 +36,31 @@ namespace Coflnet.Sky.ModCommands.Controllers
         public Task TrackFlip()
         {
             return Task.CompletedTask;
+        }
+        [HttpGet]
+        [Route("/users")]
+        public IEnumerable<string> GetConnectedUserIds()
+        {
+            return FlipperService.Instance.Connections.Select(c => {
+                try
+                {
+                    return c.Connection.UserId;
+                }
+                catch (Exception e)
+                {
+                    return e.Message;
+                }
+            });
+        }
+        [HttpDelete]
+        [Route("/users/{userId}")]
+        public void KickUser(string userId)
+        {
+            var user = FlipperService.Instance.Connections.FirstOrDefault(c => c.Connection.UserId == userId);
+            if (user != null)
+            {
+                (user.Connection as MinecraftSocket).Close();
+            }
         }
     }
 }
