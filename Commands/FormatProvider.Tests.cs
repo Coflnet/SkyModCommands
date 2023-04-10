@@ -42,5 +42,13 @@ public class FormatProviderTests
         Assert.AreEqual("§8FLIP ->  §cPRE-RR ", output);
     }
 
+    [TestCase(1,"1")]
+    [TestCase(-1_200_000,"-1.2M")]
+    [TestCase(12_200_000_000,"12.2B")]
+    public void FormatNumberSort(long input, string expected)
+    {
+        Assert.AreEqual(expected, FormatProvider.FormatPriceShort(input));
+    }
+
 }
 #pragma warning restore CS0101
