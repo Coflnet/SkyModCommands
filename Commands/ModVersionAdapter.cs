@@ -34,7 +34,6 @@ namespace Coflnet.Sky.Commands.MC
             var message = socket.GetFlipMsg(flip);
             var interesting = flip.Interesting;
             var toTake = socket.Settings.Visibility?.ExtraInfoMax ?? 0;
-            var extraText = String.Join(McColorCodes.DARK_GRAY + ", " + McColorCodes.WHITE, interesting.Take(toTake));
 
             var uuid = flip.Auction.Uuid;
             var seller = flip.SellerName;
@@ -43,17 +42,24 @@ namespace Coflnet.Sky.Commands.MC
 
             var parts = new List<ChatPart>(){
                 new ChatPart(message, openCommand, socket.formatProvider.GetHoverText(flip)),
-                new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + uuid, "Expand flip options"),
+                new ChatPart(" ✥ ", "/cofl dialog flipoptions " + uuid, "Expand flip options"),
                 //new ChatPart(" ❤", $"/cofl rate {uuid} {flip.Finder} up", "Vote this flip up"),
                 //new ChatPart("✖ ", $"/cofl rate {uuid} {flip.Finder} down", "Vote this flip down"),
-                new ChatPart(extraText, openCommand, null)
             };
-            if(flip.Context.TryGetValue("match", out var type) && type.StartsWith("whitelist"))
+            if (flip.Context.TryGetValue("match", out var type) && type.StartsWith("whitelist"))
             {
-                parts.Insert(2, WhichBLEntryCommand.CreatePart(
-                    "Whitelisted ", 
-                    new() { Uuid = flip.Uuid, WL = true }, 
+                parts.Add(WhichBLEntryCommand.CreatePart(
+                    "\nWhitelisted ",
+                    new() { Uuid = flip.Uuid, WL = true },
                     "This flip matched one of your whitelist entries\nClick to calculate which one"));
+            }
+            if (toTake > 0)
+            {
+                var hasLineBreak = parts.Count >= 3;
+                var extraText = String.Join(McColorCodes.DARK_GRAY + ", " + McColorCodes.WHITE, interesting.Take(toTake));
+                if (hasLineBreak)
+                    extraText = "\n" + extraText;
+                parts.Add(new ChatPart(extraText, openCommand, null));
             }
 
 
