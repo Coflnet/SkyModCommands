@@ -92,7 +92,7 @@ public class DelayHandler
 
     public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime)
     {
-        var breakdown = await flipTrackingService.GetSpeedComp(ids);
+        var breakdown = await flipTrackingService.GetSpeedComp(ids.Where(i => !string.IsNullOrEmpty(i)));
         var hourCount = breakdown?.Times?.Where(t => t.TotalSeconds > 1).GroupBy(t => System.TimeSpan.Parse(t.Age).Hours).Count() ?? 0;
         var recommendedPenalty = breakdown?.Penalty ?? 2;
         currentDelay = TimeSpan.FromSeconds(recommendedPenalty);
