@@ -45,7 +45,7 @@ public class DelayHandler
             return timeProvider.Now;
         if (IsLikelyBot(flipInstance))
             return timeProvider.Now;
-        if(flipInstance.Profit < 200_000 && flipInstance.Finder == Core.LowPricedAuction.FinderType.FLIPPER)
+        if (flipInstance.Profit < 200_000 && flipInstance.Finder == Core.LowPricedAuction.FinderType.FLIPPER)
             return timeProvider.Now;
         var myIndex = FlipIndex;
         Interlocked.Increment(ref FlipIndex);
@@ -80,7 +80,7 @@ public class DelayHandler
         var profit = flipInstance.ProfitPercentage;
         return tag != null && (
                     (tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE" || tag.StartsWith("SORROW_")
-                    || tag.StartsWith("NECROMANCER_LORD_") || tag.Contains("ASPECT") 
+                    || tag.StartsWith("NECROMANCER_LORD_") || tag.Contains("ASPECT")
                     || tag.EndsWith("SHADOW_FURY") || tag == "HYPERION")
                         && profit > 100
                     || (tag.Contains("CRIMSON") || tag.StartsWith("POWER_WITHER_")
@@ -92,7 +92,10 @@ public class DelayHandler
 
     public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime)
     {
-        var breakdown = await flipTrackingService.GetSpeedComp(ids.Where(i => !string.IsNullOrEmpty(i)));
+        var filteredIds = ids.Where(i => !string.IsNullOrEmpty(i)).ToArray();
+        if (filteredIds.Length == 0)
+            return new Summary() { Penalty = TimeSpan.FromSeconds(2.5) };
+        var breakdown = await flipTrackingService.GetSpeedComp(filteredIds);
         var hourCount = breakdown?.Times?.Where(t => t.TotalSeconds > 1).GroupBy(t => System.TimeSpan.Parse(t.Age).Hours).Count() ?? 0;
         var recommendedPenalty = breakdown?.Penalty ?? 2;
         currentDelay = TimeSpan.FromSeconds(recommendedPenalty);
@@ -123,7 +126,7 @@ public class DelayHandler
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(120))
                 currentDelay = AntiAfkDelay;
         }
-        if (breakdown?.MacroedFlips?.Where(m=>m.BuyTime > DateTime.UtcNow - TimeSpan.FromHours(6)).Count() <= 2)
+        if (breakdown?.MacroedFlips?.Where(m => m.BuyTime > DateTime.UtcNow - TimeSpan.FromHours(6)).Count() <= 2)
             macroPenalty = TimeSpan.Zero;
         else
         {
