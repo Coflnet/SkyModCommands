@@ -99,6 +99,9 @@ namespace Coflnet.Sky.ModCommands.Services
                     try
                     {
                         var flip = MessagePackSerializer.Deserialize<LowPricedAuction>(val);
+                        if (flip.Finder == LowPricedAuction.FinderType.TFM)
+                            FixTfmMetadata(flip);
+
                         if (flip.Auction.Context.ContainsKey("cname"))
                             flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
                         flip.AdditionalProps?.TryAdd("bfcs", "redis");
@@ -141,6 +144,15 @@ namespace Coflnet.Sky.ModCommands.Services
                     logger.LogInformation($"Status of Redis multiplexer: {multiplexer.IsConnected}");
                 }
             });
+        }
+
+        private static void FixTfmMetadata(LowPricedAuction flip)
+        {
+            // rarange nbt
+            var compound = flip.Auction.NbtData.Root();
+            flip.Auction.Tag = NBT.ItemID(compound);
+            flip.Auction.Enchantments = NBT.Enchantments(compound);
+            flip.Auction.NbtData.SetData(NBT.GetReducedExtra(compound));
         }
 
         private ModService GetService()
