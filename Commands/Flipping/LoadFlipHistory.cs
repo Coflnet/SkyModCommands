@@ -44,25 +44,28 @@ public class LoadFlipHistory : McCommand
         };
         using var producer = new ProducerBuilder<string, SaveAuction>(producerConfig).SetValueSerializer(SerializerFactory.GetSerializer<SaveAuction>()).Build();
         var count = 0;
-        using (var context = new HypixelContext())
-        {
-            var maxTime = DateTime.UtcNow; new DateTime(2023, 1, 10);
-            var minTime = maxTime.AddDays(-days);
-            var numericId = await context.Players.Where(p => p.UuId == playerId).Select(p => p.Id).FirstAsync();
-            Console.WriteLine($"Loading flips for {playerId} ({numericId})");
-            var auctions = context.Auctions
-                .Where(a => a.SellerId == numericId && a.End < maxTime && a.End > minTime && a.HighestBidAmount > 0)
-                .Include(a => a.NbtData)
-                .Include(a => a.Enchantments);
-            foreach (var auction in auctions)
+        var maxTime = DateTime.UtcNow; new DateTime(2023, 1, 10);
+        var minTime = maxTime.AddDays(-1);
+        for (int i = 0; i < days; i++)
+            using (var context = new HypixelContext())
             {
-                if (!auction.FlatenedNBT.ContainsKey("uid"))
-                    continue;
+                var numericId = await context.Players.Where(p => p.UuId == playerId).Select(p => p.Id).FirstAsync();
+                Console.WriteLine($"Loading flips for {playerId} ({numericId})");
+                var auctions = context.Auctions
+                    .Where(a => a.SellerId == numericId && a.End < maxTime && a.End > minTime && a.HighestBidAmount > 0)
+                    .Include(a => a.NbtData)
+                    .Include(a => a.Enchantments);
+                foreach (var auction in auctions)
+                {
+                    if (!auction.FlatenedNBT.ContainsKey("uid"))
+                        continue;
 
-                producer.Produce(config["TOPICS:LOAD_FLIPS"], new Message<string, SaveAuction> { Key = auction.Uuid, Value = auction });
-                count++;
+                    producer.Produce(config["TOPICS:LOAD_FLIPS"], new Message<string, SaveAuction> { Key = auction.Uuid, Value = auction });
+                    count++;
+                }
+                maxTime = minTime;
+                minTime = maxTime.AddDays(-1);
             }
-        }
         producer.Flush(TimeSpan.FromSeconds(10));
         socket.SendMessage(COFLNET + $"Potential {count} flips for {playerId} found, submitted for processing", null, "this might take a few minutes to complete");
     }
