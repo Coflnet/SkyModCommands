@@ -9,6 +9,7 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Controllers;
 using Coflnet.Sky.ModCommands.Models;
 using Confluent.Kafka;
+using fNbt;
 using MessagePack;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -149,10 +150,9 @@ namespace Coflnet.Sky.ModCommands.Services
         private static void FixTfmMetadata(LowPricedAuction flip)
         {
             // rarange nbt
-            var compound = flip.Auction.NbtData.Root();
-            flip.Auction.Tag = NBT.ItemID(compound);
-            flip.Auction.Enchantments = NBT.Enchantments(compound);
-            flip.Auction.NbtData.SetData(NBT.GetReducedExtra(compound));
+            var compound = flip.Auction.NbtData.Root().Get<NbtList>("i")
+                ?.Get<NbtCompound>(0);
+            NBT.FillFromTag(flip.Auction, compound, true);
         }
 
         private ModService GetService()
