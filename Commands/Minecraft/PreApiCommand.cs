@@ -36,12 +36,15 @@ public class PreApiCommand : McCommand
             socket.Dialog(db => db.MsgLine($"Your pre-api expires in {McColorCodes.AQUA}{socket.AccountInfo.ExpiresAt.Subtract(DateTime.UtcNow).ToString(@"mm\:ss")}", null, "Thats minutes:seconds"));
             return;
         }
+        socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}pre api{McColorCodes.GRAY} is currently disabled"));
+        /*
         socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
             $"{McColorCodes.GOLD}You currently don't have {McColorCodes.RED}pre-api\n"
             + $"{McColorCodes.YELLOW}You can click this to purchase it\n",
             "pre_api", $"Click to purchase pre-api")
             .CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.WHITE}notify me when there are less than {preapiService.PreApiUserCount} users using it{McColorCodes.GREEN}]", "notify", "Click to get notified").Break
             .CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.GRAY}Get last days profit{McColorCodes.GREEN}]", "profit", "Click to see the profit"));
+        */
     }
 
     private static async Task SendBackLastDaysProfit(MinecraftSocket socket)
