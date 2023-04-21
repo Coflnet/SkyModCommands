@@ -20,11 +20,13 @@ namespace Coflnet.Sky.ModCommands.Controllers
     [Route("[controller]")]
     public class StatsController : ControllerBase
     {
+        FlipperService flipperService;
         /// <summary>
         /// Creates a new instance of <see cref="StatsController"/>
         /// </summary>
-        public StatsController()
+        public StatsController(FlipperService flipperService)
         {
+            this.flipperService = flipperService;
         }
 
         /// <summary>
@@ -41,7 +43,7 @@ namespace Coflnet.Sky.ModCommands.Controllers
         [Route("/users")]
         public IEnumerable<string> GetConnectedUserIds()
         {
-            return FlipperService.Instance.Connections.Select(c => {
+            return flipperService.Connections.Select(c => {
                 try
                 {
                     return c.Connection.UserId;
@@ -56,7 +58,7 @@ namespace Coflnet.Sky.ModCommands.Controllers
         [Route("/users/{userId}")]
         public void KickUser(string userId)
         {
-            var user = FlipperService.Instance.Connections.FirstOrDefault(c => c.Connection.UserId == userId);
+            var user = flipperService.Connections.FirstOrDefault(c => c.Connection.UserId == userId);
             if (user != null)
             {
                 (user.Connection as MinecraftSocket).Close();

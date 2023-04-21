@@ -26,15 +26,17 @@ namespace Coflnet.Sky.ModCommands.Services
         private IServiceScopeFactory scopeFactory;
         private IConfiguration config;
         private ILogger<ModBackgroundService> logger;
+        private FlipperService flipperService;
 
         private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
 
         public ModBackgroundService(
-            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger)
+            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger, FlipperService flipperService)
         {
             this.scopeFactory = scopeFactory;
             this.config = config;
             this.logger = logger;
+            this.flipperService = flipperService;
         }
         /// <summary>
         /// Called by asp.net on startup
@@ -106,7 +108,7 @@ namespace Coflnet.Sky.ModCommands.Services
                         if (flip.Auction.Context.ContainsKey("cname"))
                             flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
                         flip.AdditionalProps?.TryAdd("bfcs", "redis");
-                        await FlipperService.Instance.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
+                        await flipperService.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
                         if (flip.TargetPrice - flip.Auction.StartingBid > 2000000)
                             logger.LogInformation($"sheduled bfcs {flip.Auction.Uuid} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond}");
                         fastTrackSnipes.Inc();

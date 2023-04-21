@@ -74,16 +74,16 @@ namespace Coflnet.Sky.Commands.MC
                 using var singlesnapshotSpan = socket.CreateActivity("snapshot", snapshotSpan);
                 singlesnapshotSpan.Log(item.Time + " " + item.State);
             }
-            TryAddingAllSettings(reportSpan);
+            TryAddingAllSettings(socket, reportSpan);
             socket.Send(Response.Create("getMods", 0));
             reportSpan.Dispose();
         }
 
-        public static void TryAddingAllSettings(Activity reportSpan)
+        public static void TryAddingAllSettings(MinecraftSocket socket, Activity reportSpan)
         {
             try
             {
-                AddAllSettings(reportSpan);
+                AddAllSettings(socket, reportSpan);
             }
             catch (Exception e)
             {
@@ -91,9 +91,9 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private static void AddAllSettings(Activity reportSpan)
+        private static void AddAllSettings(MinecraftSocket socket, Activity reportSpan)
         {
-            var otherUsers = FlipperService.Instance.Connections;
+            var otherUsers = socket.GetService<FlipperService>().Connections;
             var result = otherUsers.Select(c => new
             {
                 c.ChannelCount,

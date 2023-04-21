@@ -19,8 +19,8 @@ namespace Coflnet.Sky.ModCommands.Services
 
         public void Take()
         {
-            var otherUsers = FlipperService.Instance.Connections;
-            premUserCount.Set(FlipperService.Instance.PremiumUserCount);
+            var otherUsers = DiHandler.GetService<FlipperService>().Connections;
+            premUserCount.Set(DiHandler.GetService<FlipperService>().PremiumUserCount);
             var result = otherUsers.Where(c => c?.Connection != null).Select(c => {
                 try
                 {

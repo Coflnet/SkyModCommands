@@ -11,6 +11,13 @@ namespace Coflnet.Sky.ModCommands.Controllers
     [Route("[controller]")]
     public class FlipController : ControllerBase
     {
+        FlipperService flipperService;
+
+        public FlipController(FlipperService flipperService)
+        {
+            this.flipperService = flipperService;
+        }
+
         /// <summary>
         /// Indicates status of service, should be 200 (OK)
         /// </summary>
@@ -25,7 +32,7 @@ namespace Coflnet.Sky.ModCommands.Controllers
                 item.Auction.Context = new() { { "pre-api", "" }, { "cname", item.Auction.ItemName } };
             }
             //Console.WriteLine(JsonConvert.SerializeObject(flips, Formatting.Indented));
-            await FlipperService.Instance.DeliverLowPricedAuctions(flips);
+            await flipperService.DeliverLowPricedAuctions(flips);
         }
     }
 }

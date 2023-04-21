@@ -12,7 +12,7 @@ namespace Coflnet.Sky.Commands.MC
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            socket.SendMessage(COFLNET + $"There are {McColorCodes.AQUA}{FlipperService.Instance.PremiumUserCount}{McColorCodes.GRAY} users connected to this server",
+            socket.SendMessage(COFLNET + $"There are {McColorCodes.AQUA}{socket.GetService<FlipperService>().PremiumUserCount}{McColorCodes.GRAY} users connected to this server",
                     null, McColorCodes.GRAY + "there is more than one server");
             var countTask = socket.GetService<Commands.FlipTrackingService>().ActiveFlipperCount();
             var preApiUsers = await socket.GetService<ProductsApi>().ProductsServiceServiceSlugOwnedGetAsync(socket.GetService<IConfiguration>()["PRODUCTS:PRE_API"], start: System.DateTime.UtcNow.AddHours(-1));

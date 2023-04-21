@@ -319,7 +319,7 @@ namespace Coflnet.Sky.Commands.MC
             (this.Id, stringId) = GetService<IdConverter>().ComputeConnectionId(passedId, SessionInfo.clientSessionId);
             ConSpan.SetTag("conId", stringId);
 
-            FlipperService.Instance.AddNonConnection(this, false);
+            GetService<FlipperService>().AddNonConnection(this, false);
             SetLifecycleVersion(Version);
             Task.Run(async () =>
             {
@@ -527,7 +527,7 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnClose(CloseEventArgs? e)
         {
             base.OnClose(e);
-            FlipperService.Instance.RemoveConnection(this);
+            GetService<FlipperService>().RemoveConnection(this);
             ConSpan.SetTag("close reason", e?.Reason);
 
             ConSpan?.Dispose();
@@ -579,7 +579,7 @@ namespace Coflnet.Sky.Commands.MC
         public Activity? RemoveMySelf()
         {
             var span = CreateActivity("removing", ConSpan);
-            FlipperService.Instance.RemoveConnection(this);
+            GetService<FlipperService>().RemoveConnection(this);
             sessionLifesycle.Dispose();
             Task.Run(async () =>
             {

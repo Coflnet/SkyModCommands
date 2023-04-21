@@ -336,7 +336,7 @@ namespace Coflnet.Sky.Commands.MC
             info.ExpiresAt = expires.Item2;
             if (info.Tier != previousTier)
             {
-                FlipperService.Instance.RemoveConnection(socket);
+                socket.GetService<FlipperService>().RemoveConnection(socket);
                 await AccountInfo.Update(info);
             }
             return info.Tier;
@@ -398,20 +398,21 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (accountInfo.ExpiresAt < DateTime.UtcNow)
                 accountInfo.Tier--;
+            var flipperService = socket.GetService<FlipperService>();
             if (accountInfo.Tier == AccountTier.NONE)
-                FlipperService.Instance.AddNonConnection(socket, false);
+                flipperService.AddNonConnection(socket, false);
             if (accountInfo.Tier == AccountTier.PREMIUM)
-                FlipperService.Instance.AddConnection(socket, false);
+                flipperService.AddConnection(socket, false);
             else if (accountInfo.Tier == AccountTier.PREMIUM_PLUS)
             {
-                FlipperService.Instance.AddConnectionPlus(socket, false);
+                flipperService.AddConnectionPlus(socket, false);
             }
             else if (accountInfo.Tier == AccountTier.STARTER_PREMIUM)
-                FlipperService.Instance.AddStarterConnection(socket, false);
+                flipperService.AddStarterConnection(socket, false);
             else if (accountInfo.Tier == AccountTier.SUPER_PREMIUM)
             {
                 DiHandler.GetService<PreApiService>().AddUser(socket, accountInfo.ExpiresAt);
-                FlipperService.Instance.AddConnectionPlus(socket, false);
+                flipperService.AddConnectionPlus(socket, false);
                 SessionInfo.captchaInfo.LastSolve = DateTime.UtcNow;
                 socket.SendMessage(McColorCodes.GRAY + "speedup enabled, remaining " + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("g"));
             }

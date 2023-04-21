@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Coflnet.Kafka;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 using Confluent.Kafka;
@@ -42,7 +43,7 @@ public class LoadFlipHistory : McCommand
             BootstrapServers = config["KAFKA_HOST"],
             LingerMs = 100
         };
-        using var producer = new ProducerBuilder<string, SaveAuction>(producerConfig).SetValueSerializer(SerializerFactory.GetSerializer<SaveAuction>()).Build();
+        using var producer = socket.GetService<KafkaCreator>().BuildProducer<string, SaveAuction>();
         var count = 0;
         var maxTime = DateTime.UtcNow; new DateTime(2023, 1, 10);
         var minTime = maxTime.AddDays(-1);

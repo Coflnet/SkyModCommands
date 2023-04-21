@@ -271,7 +271,7 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         slowSpan.Log(snapshot.Time + " " + snapshot.State);
                     }
-                    ReportCommand.TryAddingAllSettings(slowSpan);
+                    ReportCommand.TryAddingAllSettings(socket, slowSpan);
                 }
             }, "tracking flip");
         }

@@ -26,7 +26,7 @@ public class MinecraftSocketTests
         var mockSocket = new Mock<MinecraftSocket>();
         var config = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
         mockSocket.Setup(s => s.GetService<FlipTrackingService>())
-            .Returns(new FlipTrackingService(null, null, null, config.Object, null, null));
+            .Returns(new FlipTrackingService(null, null, null, config.Object, null, null, null));
         var session = new Mock<ModSessionLifesycle>(mockSocket.Object);
         session.Setup(s => s.StartTimer(It.IsAny<int>(), It.IsAny<string>()));
         var socket = new TestSocket(session.Object);
@@ -70,17 +70,18 @@ public class FlipStreamTests
         collection.AddLogging();
         collection.AddCoflService();
         collection.AddSingleton<GemPriceService, MockGemService>();
+        var provider = collection.BuildServiceProvider();
         var socket = new MinecraftSocket();
         socket.SetLifecycleVersion("1.4.2-Alpha");
         socket.sessionLifesycle.FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => new FlipSettings());
         socket.sessionLifesycle.AccountInfo = await SelfUpdatingValue<AccountInfo>.CreateNoUpdate(() => new AccountInfo() { Tier = AccountTier.PREMIUM });
-        FlipperService.Instance.AddConnection(socket);
+        provider.GetRequiredService<FlipperService>().AddConnection(socket);
 
         //_ = Task.Run(async () =>
         // {
         for (int i = 0; i < 1000; i++)
         {
-            await FlipperService.Instance.DeliverLowPricedAuction(new Core.LowPricedAuction() { Auction = new(), Finder = Core.LowPricedAuction.FinderType.SNIPER });
+            await provider.GetRequiredService<FlipperService>().DeliverLowPricedAuction(new Core.LowPricedAuction() { Auction = new(), Finder = Core.LowPricedAuction.FinderType.SNIPER });
         }
         // });
         await Task.Delay(10);
