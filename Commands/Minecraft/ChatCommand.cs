@@ -87,7 +87,7 @@ namespace Coflnet.Sky.Commands.MC
                     chat = socket.GetService<ChatService>();
                 }
                 var sub = await chat.Subscribe(OnMessage(socket));
-                var dm = await chat.SubscribeToChannel("dm-" + socket.SessionInfo.McName, OnMessage(socket));
+                var dm = await chat.SubscribeToChannel("dm-" + socket.SessionInfo.McName.ToLower(), OnMessage(socket));
                 socket.SessionInfo.ListeningToChat = true;
 
                 socket.OnConClose += () =>

@@ -15,7 +15,13 @@ public class ShareItemCommand : McCommand
     {
         var args = arguments.Trim('"').Split(' ');
         var targetPlayer = args[0];
+        var playerUuidTask = socket.GetPlayerUuid(targetPlayer);
         var inventory = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
+        if(await playerUuidTask == null)
+        {
+            socket.Dialog(db => db.MsgLine($"§cPlayer {targetPlayer} not found, please check the spelling and try again"));
+            return;
+        }
         if (args.Length > 1)
         {
             var index = int.Parse(args.Last());
@@ -26,7 +32,7 @@ public class ShareItemCommand : McCommand
                 return;
             }
             socket.Dialog(db => db.MsgLine($"Sent {item.ItemName} to {targetPlayer}").CoflCommand<ShareItemCommand>($"\"{targetPlayer}\"", targetPlayer, "send another item"));
-            await socket.GetService<ChatService>().SendToChannel("dm-" + targetPlayer, new ()
+            await socket.GetService<ChatService>().SendToChannel("dm-" + targetPlayer.ToLower(), new ()
             {
                 Prefix = "§7[§6§lDM§7]§r",
                 Message = $"sent you an item to look at \n 物{JsonConvert.SerializeObject(item)}物",
