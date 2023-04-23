@@ -25,11 +25,16 @@ public class ChatService
     }
     public async Task<ChannelMessageQueue> Subscribe(Func<ChatMessage, bool> OnMessage)
     {
+        return await SubscribeToChannel("chat", OnMessage);
+    }
+
+    public async Task<ChannelMessageQueue> SubscribeToChannel(string channel, Func<ChatMessage, bool> OnMessage)
+    {
         for (int i = 0; i < 3; i++)
         {
             try
             {
-                var sub = await GetCon().SubscribeAsync("chat");
+                var sub = await GetCon().SubscribeAsync(channel);
 
                 sub.OnMessage((value) =>
                 {
@@ -47,6 +52,11 @@ public class ChatService
             }
         }
         throw new CoflnetException("connection_failed", "connection to chat failed");
+    }
+
+    public async Task SendToChannel(string channel, ChatMessage message)
+    {
+        await GetCon().PublishAsync(channel, JsonConvert.SerializeObject(message));
     }
 
     public async Task Send(ModChatMessage message)

@@ -87,11 +87,13 @@ namespace Coflnet.Sky.Commands.MC
                     chat = socket.GetService<ChatService>();
                 }
                 var sub = await chat.Subscribe(OnMessage(socket));
+                var dm = await chat.SubscribeToChannel("dm-" + socket.SessionInfo.McName, OnMessage(socket));
                 socket.SessionInfo.ListeningToChat = true;
 
                 socket.OnConClose += () =>
                 {
                     sub.Unsubscribe();
+                    dm.Unsubscribe();
                 };
             }
         }
@@ -118,8 +120,19 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     var color = m.Prefix;
                     socket.TryAsyncTimes(() => socket.TriggerTutorial<Sky.ModCommands.Tutorials.ChatTutorial>(), "chat tutorial");
+                    var message = m.Message;
+                    var optionsCmd = $"/cofl dialog chatoptions {m.Name} {m.ClientName} {m.Message} {m.Uuid}";
+                    if (message.Contains("物"))
+                    {
+                        var parts = message.Split('物');
+                        var itemJson = parts[1];
+                        var item = JsonConvert.DeserializeObject<Coflnet.Sky.PlayerState.Client.Model.Item>(itemJson);
+                        return socket.SendMessage(new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {parts[0]}", optionsCmd, $"click for more options"),
+                        new ChatPart(item.ItemName, "", item.Description),
+                            new ChatPart("", "/cofl void"));
+                    }
                     return socket.SendMessage(
-                        new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", $"/cofl dialog chatoptions {m.Name} {m.ClientName} {m.Message} {m.Uuid}", $"click for more options"),
+                        new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", optionsCmd, $"click for more options"),
                         new ChatPart("", "/cofl void"));
                 }
                 catch (Exception e)

@@ -2,8 +2,10 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.PlayerState.Client.Api;
 using Coflnet.Sky.PlayerState.Client.Model;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -11,12 +13,12 @@ public class ShareItemCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        var args = arguments.Trim('"');
-        var targetPlayer = args.Split(' ')[0];
+        var args = arguments.Trim('"').Split(' ');
+        var targetPlayer = args[0];
         var inventory = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
         if (args.Length > 1)
         {
-            var index = int.Parse(args.Split(' ').Last());
+            var index = int.Parse(args.Last());
             var item = inventory[index];
             if (item == null)
             {
@@ -24,7 +26,13 @@ public class ShareItemCommand : McCommand
                 return;
             }
             socket.Dialog(db => db.MsgLine($"Sent {item.ItemName} to {targetPlayer}").CoflCommand<ShareItemCommand>($"\"{targetPlayer}\"", targetPlayer, "send another item"));
-            
+            await socket.GetService<ChatService>().SendToChannel("dm-" + targetPlayer, new ()
+            {
+                Prefix = "§7[§6§lDM§7]§r",
+                Message = $"sent you an item to look at \n 物{JsonConvert.SerializeObject(item)}物",
+                Name = socket.SessionInfo.McName,
+                Uuid = socket.SessionInfo.McUuid
+            });
             return;
         }
         socket.Dialog(db => db.MsgLine("Select the item you want to share").ForEach(inventory.Batch(9),
