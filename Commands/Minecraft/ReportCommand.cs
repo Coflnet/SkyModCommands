@@ -7,6 +7,7 @@ using Coflnet.Sky.ModCommands.Services;
 using Newtonsoft.Json;
 using OpenTracing;
 using System.Diagnostics;
+using Coflnet.Sky.PlayerState.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -31,6 +32,8 @@ namespace Coflnet.Sky.Commands.MC
             await Task.Delay(2000).ConfigureAwait(false);
             // repost 
             CreateReport(socket, arguments, singleReportSpan, out string generalspanId);
+            var inventory = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
+            socket.CreateActivity("inventory", singleReportSpan).Log(JsonConvert.SerializeObject(inventory));
         }
 
         private static void CreateReport(MinecraftSocket socket, string arguments, Activity parentSpan, out string spanId)
