@@ -15,6 +15,11 @@ public class ShareItemCommand : McCommand
     {
         var args = arguments.Trim('"').Split(' ');
         var targetPlayer = args[0];
+        if(string.IsNullOrWhiteSpace(targetPlayer))
+        {
+            socket.Dialog(db => db.MsgLine("§cPlease specify a player to share the item with. Usage: /cofl shareitem <player>"));
+            return;
+        }
         var playerUuidTask = socket.GetPlayerUuid(targetPlayer);
         var inventory = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
         if(await playerUuidTask == null)
