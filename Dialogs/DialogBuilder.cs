@@ -32,6 +32,15 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             }
             return this;
         }
+        public DialogBuilder ForEach<T>(IEnumerable<T> collection, Action<DialogBuilder,T, int> action)
+        {
+            int i = 0;
+            foreach (var item in collection)
+            {
+                action(this, item, i++);
+            }
+            return this;
+        }
 
         public DialogBuilder LineBreak()
         {
