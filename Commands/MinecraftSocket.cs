@@ -291,9 +291,17 @@ namespace Coflnet.Sky.Commands.MC
             Console.WriteLine(Context.RequestUri.Query);
             if (args["uuid"] == null && args["player"] == null)
                 Send(Response.Create("error", "the connection query string needs to include 'player'"));
-            if (args["SId"] != null)
-                SessionInfo.clientSessionId = args["SId"].Truncate(60);
-            if (args["version"] != null)
+            if (args["SId"] == null)
+            {
+                Send(Response.Create("error", "the connection query string needs to include 'SId' with a random string to save login to"));
+                SendMessage("§cYou client did not specify a 'SId', your account is vurnable, please update your client to the latest version");
+            }
+            SessionInfo.clientSessionId = args["SId"].Truncate(60);
+            if (args["version"] == null)
+            {
+                Send(Response.Create("error", "the connection query string needs to include 'version' with client version"));
+                return;
+            }
                 Version = args["version"].Truncate(14);
 
             ModAdapter = Version switch

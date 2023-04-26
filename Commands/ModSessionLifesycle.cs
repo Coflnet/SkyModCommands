@@ -111,8 +111,7 @@ namespace Coflnet.Sky.Commands.MC
             var index = 1;
             while (UserId.Value == null)
             {
-                SendMessage(COFLNET + $"Please {McColorCodes.WHITE}§lclick this [LINK] to login{McColorCodes.GRAY} so we can load your settings §8(do '/cofl help login' to get more info)",
-                    GetAuthLink(stringId));
+                socket.ModAdapter.SendLoginPrompt(GetAuthLink(stringId));
                 await Task.Delay(TimeSpan.FromSeconds(300 * index++)).ConfigureAwait(false);
 
                 if (UserId.Value != default)

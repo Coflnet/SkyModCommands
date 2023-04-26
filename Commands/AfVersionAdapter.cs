@@ -95,6 +95,11 @@ namespace Coflnet.Sky.Commands.MC
             await Task.Delay(5000);
         }
 
+        public override void SendLoginPrompt(string loginLink)
+        {
+            socket.Dialog(db=>db.Msg($"Please §lclick {loginLink} to login"));
+        }
+
         private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)
         {
             var shouldContinue = false;

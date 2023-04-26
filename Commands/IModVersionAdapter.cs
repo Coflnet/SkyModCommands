@@ -9,5 +9,6 @@ namespace Coflnet.Sky.Commands.MC
         Task<bool> SendFlip(FlipInstance flip);
         void SendSound(string name, float pitch = 1);
         void SendMessage(params ChatPart[] parts);
+        void SendLoginPrompt(string v);
     }
 }

@@ -112,7 +112,10 @@ namespace Coflnet.Sky.Commands.MC
             aprilJoke.Inc();
         }
 
-
+        public virtual void SendLoginPrompt(string loginLink)
+        {
+            socket.Dialog(db=>db.Msg($"Please {McColorCodes.WHITE}§lclick this [LINK] to login{McColorCodes.GRAY} so we can load your settings §8(do '/cofl help login' to get more info)", loginLink));
+        }
 
         private FlipInstance Joke => new FlipInstance()
         {

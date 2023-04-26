@@ -40,5 +40,10 @@ namespace Coflnet.Sky.Commands.MC
             // no support
             SendUpdateMessage();
         }
+
+        public void SendLoginPrompt(string v)
+        {
+            SendUpdateMessage();
+        }
     }
 }
