@@ -632,50 +632,44 @@ namespace Coflnet.Sky.Commands.MC
 
         private void UpdateExtraDelay()
         {
-            _ = Task.Run(async () =>
+            socket.TryAsyncTimes(async () =>
             {
                 await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
-                try
+                var ids = await GetMinecraftAccountUuids();
+
+                var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
+
+                if (sumary.AntiAfk && !socket.HasFlippingDisabled())
                 {
-                    var ids = await GetMinecraftAccountUuids();
-
-                    var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
-
-                    if (sumary.AntiAfk && !socket.HasFlippingDisabled())
+                    if (SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
                     {
-                        if (SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
-                        {
-                            socket.Send(Response.Create("getMods", 0));
-                            await Task.Delay(1000).ConfigureAwait(false);
-                            SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
-                            SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
-                        }
-                        else if (SessionInfo.captchaInfo.LastGenerated.Minute % 4 == 1)
-                        {
-                            socket.Dialog(db => db.CoflCommand<CaptchaCommand>($"You are currently delayed for likely being afk. Click to get a letter captcha to prove you are not.", "", "Generates a new captcha"));
-                        }
+                        socket.Send(Response.Create("getMods", 0));
+                        await Task.Delay(1000).ConfigureAwait(false);
+                        SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
+                        SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
                     }
-                    if (sumary.MacroWarning)
+                    else if (SessionInfo.captchaInfo.LastGenerated.Minute % 4 == 1)
                     {
-                        using var span = socket.CreateActivity("macroWarning", ConSpan).AddTag("name", SessionInfo.McName);
-                        SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
-                    }
-
-                    if (sumary.Penalty > TimeSpan.Zero)
-                    {
-                        using var span = socket.CreateActivity("nerv", ConSpan);
-                        span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
-                        span.Log(JsonConvert.SerializeObject(sumary, Formatting.Indented));
+                        socket.Dialog(db => db.CoflCommand<CaptchaCommand>($"You are currently delayed for likely being afk. Click to get a letter captcha to prove you are not.", "", "Generates a new captcha"));
                     }
                 }
-                catch (Exception e)
+                if (sumary.MacroWarning)
                 {
-                    socket.Error(e, "retrieving penalty");
+                    using var span = socket.CreateActivity("macroWarning", ConSpan).AddTag("name", SessionInfo.McName);
+                    SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
                 }
-            });
+
+                if (sumary.Penalty > TimeSpan.Zero)
+                {
+                    using var span = socket.CreateActivity("nerv", ConSpan);
+                    span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
+                    span.Log(JsonConvert.SerializeObject(sumary, Formatting.Indented));
+                }
+            }, "retrieving penalty");
         }
 
-        private DateTime LastCaptchaSolveTime => (AccountInfo?.Value?.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
+        private DateTime LastCaptchaSolveTime => socket.ModAdapter is AfVersionAdapter ? DateTime.Now :
+                    (AccountInfo?.Value?.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
 
         internal async Task SendFlipBatch(IEnumerable<LowPricedAuction> flips)
         {
