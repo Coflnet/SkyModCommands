@@ -348,12 +348,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             sessionLifesycle = version switch
             {
-                "1.5.0-Alpha" => new InventoryModSession(this),
-                "1.4-Alpha" => new InventoryModSession(this),
-                "1.4.2-Alpha" => new InventoryModSession(this),
-                "1.4.3-Alpha" => new InventoryModSession(this),
-                "1.4.4-Alpha" => new InventoryModSession(this),
-                _ => new ModSessionLifesycle(this)
+                _ => new InventoryModSession(this)
             };
         }
 

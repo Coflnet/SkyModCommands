@@ -434,6 +434,7 @@ namespace Coflnet.Sky.Commands.MC
             else
                 SendMessage(COFLNET + messageStart + $"You use the {McColorCodes.BOLD}FREE{McColorCodes.RESET} version of the flip finder");
 
+            socket.ModAdapter.OnAuthorize(accountInfo);
             await Task.Delay(300).ConfigureAwait(false);
         }
 

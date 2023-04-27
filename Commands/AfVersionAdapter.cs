@@ -82,7 +82,7 @@ namespace Coflnet.Sky.Commands.MC
         private async Task SendListing(Activity span, SaveAuction auction, long price, int index)
         {
             var sellPrice = price * 0.98;
-            if(sellPrice < 100_000)
+            if (sellPrice < 100_000)
                 sellPrice = price;
             span.Log($"Listing {auction.ItemName} for {sellPrice} (median: {price})");
             socket.Send(Response.Create("createAuction", new
@@ -97,7 +97,12 @@ namespace Coflnet.Sky.Commands.MC
 
         public override void SendLoginPrompt(string loginLink)
         {
-            socket.Dialog(db=>db.Msg($"Please §lclick {loginLink} to login"));
+            socket.Dialog(db => db.Msg($"Please §lclick {loginLink} to login"));
+        }
+
+        public override void OnAuthorize(AccountInfo accountInfo)
+        {
+            socket.Dialog(db => db.Msg($"Your session id is {socket.ConSpan.TraceId}, copy that if you encounter an error"));
         }
 
         private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)

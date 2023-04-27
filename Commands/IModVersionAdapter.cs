@@ -10,5 +10,6 @@ namespace Coflnet.Sky.Commands.MC
         void SendSound(string name, float pitch = 1);
         void SendMessage(params ChatPart[] parts);
         void SendLoginPrompt(string v);
+        void OnAuthorize(AccountInfo accountInfo);
     }
 }

@@ -45,5 +45,10 @@ namespace Coflnet.Sky.Commands.MC
         {
             SendUpdateMessage();
         }
+
+        public void OnAuthorize(AccountInfo accountInfo)
+        {
+            
+        }
     }
 }
