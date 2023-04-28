@@ -454,7 +454,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 SendMessage(COFLNET + "Your command could not be executed.\n" +
                     "Make sure you send a valid json object {type: \"command\", data: \"your command\"} where the data is another json string");
-                Error(ex, "handling command");
+                Error(ex, "handling command", e.Data);
             }
         }
 
