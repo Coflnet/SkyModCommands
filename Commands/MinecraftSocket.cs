@@ -302,7 +302,7 @@ namespace Coflnet.Sky.Commands.MC
                 Send(Response.Create("error", "the connection query string needs to include 'version' with client version"));
                 return;
             }
-                Version = args["version"].Truncate(14);
+            Version = args["version"].Truncate(14);
 
             ModAdapter = Version switch
             {
@@ -438,14 +438,24 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
                 return;
             }
-            var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
-            if (e.Data.Contains("\"nobestflip\""))
+            try
             {
-                HandleCommand(e, null, a);
-                return;
+
+                var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
+                if (e.Data.Contains("\"nobestflip\""))
+                {
+                    HandleCommand(e, null, a);
+                    return;
+                }
+                using var span = CreateActivity("command", ConSpan);
+                HandleCommand(e, span, a);
             }
-            using var span = CreateActivity("command", ConSpan);
-            HandleCommand(e, span, a);
+            catch (Exception ex)
+            {
+                SendMessage(COFLNET + "Your command could not be executed.\n" +
+                    "Make sure you send a valid json object {type: \"command\", data: \"your command\"} where the data is another json string");
+                Error(ex, "handling command");
+            }
         }
 
         private void HandleCommand(MessageEventArgs e, Activity? span, Response a)
