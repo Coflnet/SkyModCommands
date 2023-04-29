@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
 using Newtonsoft.Json;
@@ -14,7 +15,8 @@ public class UploadScoreboardCommand : McCommand
         var isStranded = false;
         foreach (var item in args)
         {
-
+            if(item.Contains("SKYBLOCK GUEST"))
+                return; // can't determine mode when visiting
             if (item.Contains("♲"))
                 isIronman = true;
             if (item.Contains("Ⓑ"))
