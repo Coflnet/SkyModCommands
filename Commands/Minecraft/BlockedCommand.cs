@@ -67,8 +67,11 @@ namespace Coflnet.Sky.Commands.MC
                         "Open in game"),
                         new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + b.Flip.Auction.Uuid, "Expand flip options")
                 };
-            }).Append(new ChatPart() { text = COFLNET + "These are examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray()
-            );
+            }).Append(new ChatPart() { text = COFLNET + "These are examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray());
+            if (await socket.UserAccountTier() == AccountTier.NONE)
+            {
+                socket.Dialog(db => db.CoflCommand<PurchaseCommand>("Note that you don't have premium, flips will show up very late if at all", "", "Click to select a premium plan"));
+            }
         }
 
         private static List<MinecraftSocket.BlockedElement> GetRandomFlips(MinecraftSocket socket)
