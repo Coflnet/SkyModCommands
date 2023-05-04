@@ -23,7 +23,7 @@ namespace Coflnet.Sky.Commands.MC
             if (batch.Count == 0)
                 return;
             if (batch[0] == "You cannot view this auction!")
-                socket.SendMessage(COFLNET + "You have to use a booster cookie or be on the hub island to open auctions. \nClick to warp to hub", "/hub", "warp to hup");
+                socket.SendMessage(COFLNET + "You have to use a booster cookie or be on the hub island to open auctions. \nClick to warp to hub", "/hub", "warp to hub");
             if (batch.All(l => l.Contains("§a❈ Defense")))
                 return; // dismiss stat update
             var config = socket.GetService<IConfiguration>();
