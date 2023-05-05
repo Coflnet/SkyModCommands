@@ -735,7 +735,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SendTimer()
         {
-            using var loadSpan = CreateActivity("timer", ConSpan);
+            using var timer = CreateActivity("timer", ConSpan);
             if (base.ConnectionState == WebSocketState.Closed)
             {
                 NextUpdateStart -= SendTimer;
@@ -757,9 +757,10 @@ namespace Coflnet.Sky.Commands.MC
                     sessionLifesycle.StartTimer(10 - SessionInfo.RelativeSpeed.TotalSeconds);
                 else
                 {
-                    SheduleTimer(mod, loadSpan);
+                    SheduleTimer(mod, timer);
                 }
-            }
+            } else 
+                timer.Log("timer disabled");
             if (!(Settings?.ModSettings?.BlockTenSecondsMsg ?? true))
             {
                 SendMessage(

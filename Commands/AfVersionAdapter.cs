@@ -18,6 +18,12 @@ namespace Coflnet.Sky.Commands.MC
         }
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
+            var purse = socket.SessionInfo.Purse;
+            if(purse != 0 && flip.Auction.StartingBid > purse / 3)
+            {
+                Activity.Current?.SetTag("blocked", "not enough purse");
+                return true;
+            }
             var name = flip.Auction?.Context?.GetValueOrDefault("cname");
             if (flip.Auction.Count > 1)
                 name = $"{McColorCodes.GRAY}{flip.Auction.Count}x {name}";
@@ -26,7 +32,8 @@ namespace Coflnet.Sky.Commands.MC
                 id = flip.Auction.Uuid,
                 startingBid = flip.Auction.StartingBid,
                 purchaseAt = flip.Auction.Start + TimeSpan.FromMilliseconds(19980),
-                itemName = name
+                itemName = name,
+                target = flip.MedianPrice
             }));
             _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
 
@@ -81,7 +88,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendListing(Activity span, SaveAuction auction, long price, int index)
         {
-            var sellPrice = price * 0.98;
+            var sellPrice = price * 0.99;
             if (sellPrice < 100_000)
                 sellPrice = price;
             span.Log($"Listing {auction.ItemName} for {sellPrice} (median: {price})");
@@ -91,8 +98,9 @@ namespace Coflnet.Sky.Commands.MC
                 Price = sellPrice,
                 Duration = 96,
                 ItemName = auction.ItemName,
+                Id = auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value ?? auction.Tag
             }));
-            await Task.Delay(5000);
+            await Task.Delay(3000);
         }
 
         public override void SendLoginPrompt(string loginLink)
