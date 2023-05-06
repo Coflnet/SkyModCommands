@@ -88,7 +88,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendListing(Activity span, SaveAuction auction, long price, int index)
         {
-            var sellPrice = price * 0.99;
+            long sellPrice = (long)(price * 0.99);
             if (sellPrice < 100_000)
                 sellPrice = price;
             span.Log($"Listing {auction.ItemName} for {sellPrice} (median: {price}) slot {index}");
