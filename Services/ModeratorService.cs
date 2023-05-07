@@ -11,7 +11,7 @@ public class ModeratorService
         "cdb572dfafed43c789ae5c4c009b7019", // matis
         "384a029294fc445e863f2c42fe9709cb", // ekwav
         "b2523d5215874abfa314a7a06c976830", // Hihi735 Fan
-        "c0dafc539b664229aea0695bd9acea2c", // Livid
+        "5ce7bdadba6943a3bfbf91c93ef2bbdf", // Livid
         "cc4fe6e3a3b24e998d36680f85f681b0", // Dylan
         };
     public bool IsModerator(MinecraftSocket socket)
