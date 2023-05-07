@@ -35,6 +35,10 @@ namespace Coflnet.Sky.Commands.MC
                 itemName = name,
                 target = flip.MedianPrice
             }));
+            Activity.Current?.SetTag("finder", flip.Finder);
+            Activity.Current?.SetTag("target", flip.MedianPrice);
+            Activity.Current?.SetTag("itemName", name);
+
             _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
 
             return true;

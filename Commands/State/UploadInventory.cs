@@ -11,7 +11,6 @@ public class UploadInventory : McCommand
     public override Task Execute(MinecraftSocket socket, string arguments)
     {
         socket.SessionInfo.Inventory = parser.Parse(arguments).ToList();
-        socket.SendMessage("Inventory uploaded " + socket.SessionInfo.Inventory.Count + " items");
         Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.Inventory));
         // does nothing for now
         return Task.CompletedTask;
