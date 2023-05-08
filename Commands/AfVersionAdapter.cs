@@ -78,7 +78,8 @@ namespace Coflnet.Sky.Commands.MC
                 var index = inventory.IndexOf(inventoryRepresent);
                 if (await ShouldSkip(span, apiService, item.Auction))
                     continue;
-                await SendListing(span, item.Auction, item.TargetPrice, index);
+                var uuid = GetUuid(inventoryRepresent);
+                await SendListing(span, item.Auction, item.TargetPrice, index, uuid);
                 return; // created listing
             }
             foreach (var item in toList)
@@ -86,23 +87,30 @@ namespace Coflnet.Sky.Commands.MC
                 var index = inventory.IndexOf(item.First);
                 if (await ShouldSkip(span, apiService, item.First))
                     continue;
-                await SendListing(span, item.First, item.Second.Median, index);
+                var uuid = GetUuid(item.First);
+                await SendListing(span, item.First, item.Second.Median, index, uuid);
             }
         }
 
-        private async Task SendListing(Activity span, SaveAuction auction, long price, int index)
+        private static string GetUuid(SaveAuction inventoryRepresent)
+        {
+            return inventoryRepresent.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value;
+        }
+
+        private async Task SendListing(Activity span, SaveAuction auction, long price, int index, string uuid)
         {
             long sellPrice = (long)(price * 0.99);
             if (sellPrice < 100_000)
                 sellPrice = price;
-            span.Log($"Listing {auction.ItemName} for {sellPrice} (median: {price}) slot {index}");
+            var id = uuid ?? auction.Tag;
+            span.Log($"Listing {auction.ItemName} for {sellPrice} (median: {price}) slot {index} id: {id}");
             socket.Send(Response.Create("createAuction", new
             {
                 Slot = index,
                 Price = sellPrice,
                 Duration = 96,
                 ItemName = auction.ItemName,
-                Id = auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value ?? auction.Tag
+                Id = id
             }));
             await Task.Delay(3000);
         }
