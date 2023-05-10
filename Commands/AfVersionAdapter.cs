@@ -19,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
             var purse = socket.SessionInfo.Purse;
-            if(purse != 0 && flip.Auction.StartingBid > purse / 3)
+            if (purse != 0 && flip.Auction.StartingBid > purse / 3)
             {
                 Activity.Current?.SetTag("blocked", "not enough purse");
                 return true;
@@ -123,6 +123,10 @@ namespace Coflnet.Sky.Commands.MC
         public override void OnAuthorize(AccountInfo accountInfo)
         {
             socket.Dialog(db => db.Msg($"Your session id is {socket.ConSpan.TraceId}, copy that if you encounter an error"));
+            socket.sessionLifesycle.SessionInfo.FlipsEnabled = true;
+            if (socket.sessionLifesycle.FlipSettings.Value?.ModSettings?.AutoStartFlipper == null)
+                return;
+            socket.sessionLifesycle.FlipSettings.Value.ModSettings.AutoStartFlipper = true;
         }
 
         private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)
@@ -146,6 +150,11 @@ namespace Coflnet.Sky.Commands.MC
         public override void SendMessage(params ChatPart[] parts)
         {
             socket.Send(Response.Create("chatMessage", parts));
+        }
+
+        public override void SendSound(string name, float pitch = 1)
+        {
+            // ignore
         }
     }
 }
