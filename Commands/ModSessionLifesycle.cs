@@ -636,28 +636,9 @@ namespace Coflnet.Sky.Commands.MC
             {
                 await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
                 var ids = await GetMinecraftAccountUuids();
+                var isBot = socket.ModAdapter is AfVersionAdapter;
 
                 var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
-
-                if (sumary.AntiAfk && !socket.HasFlippingDisabled())
-                {
-                    if (SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
-                    {
-                        socket.Send(Response.Create("getMods", 0));
-                        await Task.Delay(1000).ConfigureAwait(false);
-                        SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
-                        SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
-                    }
-                    else if (SessionInfo.captchaInfo.LastGenerated.Minute % 4 == 1)
-                    {
-                        socket.Dialog(db => db.CoflCommand<CaptchaCommand>($"You are currently delayed for likely being afk. Click to get a letter captcha to prove you are not.", "", "Generates a new captcha"));
-                    }
-                }
-                if (sumary.MacroWarning)
-                {
-                    using var span = socket.CreateActivity("macroWarning", ConSpan).AddTag("name", SessionInfo.McName);
-                    SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
-                }
 
                 if (sumary.Penalty > TimeSpan.Zero)
                 {
@@ -665,7 +646,34 @@ namespace Coflnet.Sky.Commands.MC
                     span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     span.Log(JsonConvert.SerializeObject(sumary, Formatting.Indented));
                 }
+                if (isBot)
+                    return;
+                await SendAfkWarningMessages(isBot, sumary).ConfigureAwait(false);
+
             }, "retrieving penalty");
+        }
+
+        private async Task SendAfkWarningMessages(bool isBot, DelayHandler.Summary sumary)
+        {
+            if (sumary.AntiAfk && !socket.HasFlippingDisabled() && !isBot)
+            {
+                if (SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
+                {
+                    socket.Send(Response.Create("getMods", 0));
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
+                    SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
+                }
+                else if (SessionInfo.captchaInfo.LastGenerated.Minute % 4 == 1)
+                {
+                    socket.Dialog(db => db.CoflCommand<CaptchaCommand>($"You are currently delayed for likely being afk. Click to get a letter captcha to prove you are not.", "", "Generates a new captcha"));
+                }
+            }
+            if (sumary.MacroWarning)
+            {
+                using var span = socket.CreateActivity("macroWarning", ConSpan).AddTag("name", SessionInfo.McName);
+                SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
+            }
         }
 
         private DateTime LastCaptchaSolveTime => socket.ModAdapter is AfVersionAdapter ? DateTime.Now :
