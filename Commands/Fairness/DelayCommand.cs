@@ -60,7 +60,7 @@ namespace Coflnet.Sky.Commands.MC
                         "To verify your minecraft account, bid",
                         "the exact amount the message says on a random auction.",
                         "Alternatively click this link and then `Claim account`.")))
-            .If(() => delayAmount >= TimeSpan.FromSeconds(8), db => db
+            .If(() => delayAmount >= TimeSpan.FromSeconds(8) && delayAmount < TimeSpan.FromSeconds(12) || delayAmount >= TimeSpan.FromSeconds(16), db => db
                 .MsgLine(FormatTimeWithReason(8, "One of your accounts got blacklisted for bad behaviour"), null,
                     FormatLines(
                         "Your account was manually reviewed",

@@ -57,6 +57,8 @@ public class DelayHandler
         await timeProvider.Delay(part2).ConfigureAwait(false);
         var apiBed = flipInstance.Auction.Start > timeProvider.Now - TimeSpan.FromSeconds(20) && !(flipInstance.Auction.Context?.ContainsKey("pre-api") ?? true);
         var isHighProfit = flipInstance.Profit > 5_000_000 || flipInstance.Finder == Core.LowPricedAuction.FinderType.SNIPER && flipInstance.Profit > 2_500_000;
+        if(sessionInfo.IsMacroBot && flipInstance.Profit > 1_000_000)
+            await timeProvider.Delay(TimeSpan.FromMicroseconds(flipInstance.Profit / 20000)).ConfigureAwait(false);
         if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
             await timeProvider.Delay(macroPenalty).ConfigureAwait(false);
         return time;

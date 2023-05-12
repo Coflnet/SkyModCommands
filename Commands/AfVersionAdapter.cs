@@ -124,6 +124,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             socket.Dialog(db => db.Msg($"Your session id is {socket.ConSpan.TraceId}, copy that if you encounter an error"));
             socket.sessionLifesycle.SessionInfo.FlipsEnabled = true;
+            socket.SessionInfo.IsMacroBot = true;
             if (socket.sessionLifesycle.FlipSettings.Value?.ModSettings?.AutoStartFlipper == null)
                 return;
             socket.sessionLifesycle.FlipSettings.Value.ModSettings.AutoStartFlipper = true;
