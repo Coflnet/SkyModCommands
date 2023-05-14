@@ -197,7 +197,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void CheckListValidity(FlipInstance testFlip, List<ListEntry> blacklist, bool whiteList = false)
         {
-            foreach (var item in blacklist)
+            foreach (var item in blacklist.ToList())
             {
                 try
                 {
@@ -206,6 +206,13 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 catch (System.Exception e)
                 {
+                    if (item.filter.Any(f => f.Key.ToLower() == "seller"))
+                    {
+                        blacklist.Remove(item);
+                        socket.Dialog(db => db.Lines($"{McColorCodes.RED}You had a seller filter in your {(whiteList ? "whitelist" : "blacklist")} for a playername that does no longer exist.",
+                                $"The following element was automatically removed: {BlacklistCommand.FormatEntry(item)}"));
+                        continue;
+                    }
                     var formatted = BlacklistCommand.FormatEntry(item);
                     socket.Error(e, "compiling expression " + formatted);
                     WhichBLEntryCommand.SendRemoveMessage(socket, item, McColorCodes.RED + "Please fix or remove this element on your blacklist, it is invalid: " + formatted, whiteList);
