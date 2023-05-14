@@ -386,7 +386,7 @@ namespace Coflnet.Sky.Commands.MC
                 Error(e, $"loading uuid for name '{name}'");
                 if (!blockError)
                     throw new CoflnetException("name_retrieve", "Could not find the player " + name);
-                return null;
+                return String.Empty;
             }
         }
 

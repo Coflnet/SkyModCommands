@@ -69,6 +69,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var filters = new Dictionary<string, string>();
             var allFilters = FlipFilter.AllFilters.Append("removeAfter").Append("duration").Append("tag");
+            var originalVal = val;
             if (val.Contains('='))
             {
                 val = await parser.ParseFiltersAsync(socket, val, filters, allFilters);
@@ -98,7 +99,8 @@ namespace Coflnet.Sky.Commands.MC
             if (val.Length < 1)
             {
                 // filter only element
-                result.Add(new Items.Client.Model.SearchResult());
+                result.Add(new Items.Client.Model.SearchResult() { Text = originalVal });
+                Console.WriteLine("filter only element");
             }
             else
                 result = await socket.GetService<Items.Client.Api.IItemsApi>().ItemsSearchTermGetAsync(val);

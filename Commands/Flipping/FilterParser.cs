@@ -54,6 +54,15 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     // tested further up
                 }
+                else if (filterName.ToLower() == "seller")
+                {
+                    if (filterVal.Length < 30)
+                    {
+                        var uuid = await socket.GetPlayerUuid(filterVal);
+                        if(!string.IsNullOrEmpty(uuid))
+                            filterVal = uuid;
+                    }
+                }
                 else if (filterName == "tag" || filterName == "tags") { }
                 else
                 {
