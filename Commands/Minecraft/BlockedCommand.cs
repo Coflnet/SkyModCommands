@@ -26,7 +26,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (socket.TopBlocked.Count == 0)
             {
-                socket.SendMessage(COFLNET + "No blocked flips found, make sure you don't click this shortly after the 'flips in 10 seconds' message. (the list gets reset when that message appears)");
+                socket.SendMessage(COFLNET + "No blocked flips found, it can take a while after you connected");
                 return;
             }
             List<MinecraftSocket.BlockedElement> flipsToSend;
@@ -68,6 +68,10 @@ namespace Coflnet.Sky.Commands.MC
                         new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + b.Flip.Auction.Uuid, "Expand flip options")
                 };
             }).Append(new ChatPart() { text = COFLNET + "These are examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray());
+            var sentCount = socket.LastSent.Where(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-10)).Count();
+            if (sentCount > 2 && socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(10).All(s => !s.AdditionalProps.ContainsKey("clickT")))
+                socket.Dialog(db => db.MsgLine($"There were {sentCount} flips sent in the last 10 minutes, but you didn't click any of them.")
+                            .MsgLine("Make sure none of your other mods are blocking the chat messages."));
             if (await socket.UserAccountTier() == AccountTier.NONE)
             {
                 socket.Dialog(db => db.CoflCommand<PurchaseCommand>("Note that you don't have premium, flips will show up very late if at all", "", "Click to select a premium plan"));
