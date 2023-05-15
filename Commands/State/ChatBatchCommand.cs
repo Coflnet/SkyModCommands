@@ -7,7 +7,9 @@ using System.Linq;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-
+using Coflnet.Sky.Proxy.Client.Api;
+using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -44,7 +46,13 @@ namespace Coflnet.Sky.Commands.MC
                 foreach (var item in batch)
                 {
                     if (item.StartsWith("You purchased"))
+                    {
                         socket.GetService<PreApiService>().PurchaseMessage(socket, item);
+                        var secondLine = batch.Last();
+                        if (!secondLine.StartsWith("You claimed"))
+                            continue;
+                        await UpdateSellerAuction(socket, secondLine);
+                    }
                     if (item.StartsWith("BIN Auction started"))
                         await socket.GetService<PreApiService>().ListingMessage(socket, item);
                 }
@@ -53,6 +61,15 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Console.WriteLine("chat produce failed " + e);
             }
+        }
+
+        private static async Task UpdateSellerAuction(MinecraftSocket socket, string secondLine)
+        {
+            var name = Regex.Match(secondLine, @"from (\[.*\] |)(.*)'s auction!").Groups[2];
+            Activity.Current?.Log("claiming " + name.Value);
+            var uuid = await socket.GetPlayerUuid(name.Value);
+            var baseApi = socket.GetService<IBaseApi>();
+            await baseApi.BaseAhPlayerIdPostAsync(uuid);
         }
     }
 }
