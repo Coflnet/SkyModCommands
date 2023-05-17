@@ -96,7 +96,7 @@ namespace Coflnet.Sky.Commands.MC
                 var uuid = GetUuid(item.First);
                 // get target 
                 var flips = await GetFlipData(await GetPurchases(apiService, GetUuid(item.First)));
-                var target = flips.Select(f => f.TargetPrice).Average();
+                var target = (flips.Select(f => f.TargetPrice).Average() + item.Second.Median) / 2;
                 await SendListing(span, item.First, (long)target, index, uuid);
             }
         }
