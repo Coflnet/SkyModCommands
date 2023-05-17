@@ -94,7 +94,10 @@ namespace Coflnet.Sky.Commands.MC
                 if (await ShouldSkip(span, apiService, item.First))
                     continue;
                 var uuid = GetUuid(item.First);
-                await SendListing(span, item.First, item.Second.Median, index, uuid);
+                // get target 
+                var flips = await GetFlipData(await GetPurchases(apiService, GetUuid(item.First)));
+                var target = flips.Select(f => f.TargetPrice).Average();
+                await SendListing(span, item.First, (long)target, index, uuid);
             }
         }
 
@@ -151,22 +154,34 @@ namespace Coflnet.Sky.Commands.MC
                 return true; // sould bound
             if (!string.IsNullOrEmpty(uid))
             {
-                var checkFilters = new Dictionary<string, string>() { { "UId", uid }, { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(48)).ToUnix().ToString() } };
-                var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
+                List<Api.Client.Model.BidResult> purchases = await GetPurchases(apiService, uid);
                 span.Log($"Found {purchases.Count} purchases of {item.Tag} {item.Uuid}");
                 if (purchases.Count == 0)
                     return true; // not bought, keep existing items
                 else
                 {
-                    var purchase = purchases.OrderByDescending(x => x.End).First();
-                    var longId = socket.GetService<AuctionService>().GetId(purchase.AuctionId);
-                    var flipData = await socket.GetService<ITrackerApi>().TrackerFlipsAuctionIdGetAsync(longId);
+                    var flipData = await GetFlipData(purchases);
                     var target = flipData.OrderBy(f => f.Timestamp).Select(f => f.TargetPrice).FirstOrDefault();
-                    Activity.Current?.Log($"Found {flipData.Count} flips for {longId} target {target}");
+                    Activity.Current?.Log($"Found {flipData.Count} flips for target {target}");
                     return !flipData.Any();
                 }
             }
             return true;
+        }
+
+        private async Task<List<FlipTracker.Client.Model.Flip>> GetFlipData(List<Api.Client.Model.BidResult> purchases)
+        {
+            var purchase = purchases.OrderByDescending(x => x.End).First();
+            var longId = socket.GetService<AuctionService>().GetId(purchase.AuctionId);
+            return await socket.GetService<ITrackerApi>().TrackerFlipsAuctionIdGetAsync(longId);
+        }
+        private async Task<List<Api.Client.Model.BidResult>> GetPurchases(IPlayerApi apiService, string uid)
+        {
+            var checkFilters = new Dictionary<string, string>() {
+                { "UId", uid },
+                { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(48)).ToUnix().ToString() } };
+            var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
+            return purchases;
         }
 
         public override void SendMessage(params ChatPart[] parts)
