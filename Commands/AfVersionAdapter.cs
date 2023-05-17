@@ -132,20 +132,30 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)
         {
-            var shouldContinue = false;
             var uid = item.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value?.Split('-').Last();
             var foundInSent = socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uid").Value == uid);
-            if (!foundInSent && !string.IsNullOrEmpty(uid))
+            if (foundInSent)
+                return false;
+            if (item.FlatenedNBT.ContainsKey("donated_museum"))
+                return true; // sould bound
+            if (!string.IsNullOrEmpty(uid))
             {
-                var checkFilters = new Dictionary<string, string>() { { "UId", uid }, { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(1)).ToUnix().ToString() } };
+                var checkFilters = new Dictionary<string, string>() { { "UId", uid }, { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(48)).ToUnix().ToString() } };
                 var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
                 span.Log($"Found {purchases.Count} purchases of {item.Tag} {item.Uuid}");
                 if (purchases.Count == 0)
-                    shouldContinue = true; // not bought, keep existing items
+                    return true; // not bought, keep existing items
+                else
+                {
+                    var purchase = purchases.OrderByDescending(x => x.End).First();
+                    var longId = socket.GetService<AuctionService>().GetId(purchase.AuctionId);
+                    var flipData = await socket.GetService<Coflnet.Sky.FlipTracker.Client.Api.TrackerApi>().TrackerFlipsAuctionIdGetAsync(longId);
+                    var target = flipData.OrderBy(f => f.Timestamp).Select(f => f.TargetPrice).FirstOrDefault();
+                    Activity.Current?.Log($"Found {flipData.Count} flips for {longId} target {target}");
+                    return !flipData.Any();
+                }
             }
-            if (item.FlatenedNBT.ContainsKey("donated_museum"))
-                shouldContinue = true; // sould bound
-            return shouldContinue;
+            return true;
         }
 
         public override void SendMessage(params ChatPart[] parts)
