@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Api.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.FlipTracker.Client.Api;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
@@ -60,7 +61,12 @@ namespace Coflnet.Sky.Commands.MC
                 Location = "main"
             }));
             await Task.Delay(800);
-            var inventory = socket.SessionInfo.Inventory ?? throw new Exception("no inventory");
+            var inventory = socket.SessionInfo.Inventory;
+            if (inventory == null)
+            {
+                socket.Dialog(db => db.Msg("No inventory uploaded, can't list auctions"));
+                throw new Exception("no inventory");
+            }
             // retrieve price
             var sniperService = socket.GetService<ISniperClient>();
             var values = await sniperService.GetPrices(inventory);
@@ -101,7 +107,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var roundTarget = price > 5_000_000 ? 100_000 : 10_000;
             long sellPrice = (long)(price * 0.99) / roundTarget * roundTarget;
-            if(Random.Shared.NextDouble() < 0.3)
+            if (Random.Shared.NextDouble() < 0.3)
                 sellPrice -= 1;
             else if (Random.Shared.NextDouble() < 0.3)
                 sellPrice -= 1000;
@@ -154,7 +160,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     var purchase = purchases.OrderByDescending(x => x.End).First();
                     var longId = socket.GetService<AuctionService>().GetId(purchase.AuctionId);
-                    var flipData = await socket.GetService<Coflnet.Sky.FlipTracker.Client.Api.TrackerApi>().TrackerFlipsAuctionIdGetAsync(longId);
+                    var flipData = await socket.GetService<ITrackerApi>().TrackerFlipsAuctionIdGetAsync(longId);
                     var target = flipData.OrderBy(f => f.Timestamp).Select(f => f.TargetPrice).FirstOrDefault();
                     Activity.Current?.Log($"Found {flipData.Count} flips for {longId} target {target}");
                     return !flipData.Any();
