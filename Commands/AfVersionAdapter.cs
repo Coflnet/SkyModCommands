@@ -64,7 +64,7 @@ namespace Coflnet.Sky.Commands.MC
             var inventory = socket.SessionInfo.Inventory;
             if (inventory == null)
             {
-                socket.Dialog(db => db.Msg("No inventory uploaded, can't list auctions"));
+                socket.Dialog(db => db.Msg(McColorCodes.RED + "No inventory uploaded, can't list auctions, no clue what client you use but its either outdated or broken. Please contact Äkwav#0421 on discord"));
                 throw new Exception("no inventory");
             }
             // retrieve price
@@ -142,6 +142,7 @@ namespace Coflnet.Sky.Commands.MC
             if (socket.sessionLifesycle.FlipSettings.Value?.ModSettings?.AutoStartFlipper == null)
                 return;
             socket.sessionLifesycle.FlipSettings.Value.ModSettings.AutoStartFlipper = true;
+            socket.sessionLifesycle.FlipSettings.Value.Visibility.Seller = false;
         }
 
         private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)
