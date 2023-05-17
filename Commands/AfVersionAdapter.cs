@@ -99,7 +99,12 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendListing(Activity span, SaveAuction auction, long price, int index, string uuid)
         {
-            long sellPrice = (long)(price * 0.99);
+            var roundTarget = price > 5_000_000 ? 100_000 : 10_000;
+            long sellPrice = (long)(price * 0.99) / roundTarget * roundTarget;
+            if(Random.Shared.NextDouble() < 0.3)
+                sellPrice -= 1;
+            else if (Random.Shared.NextDouble() < 0.3)
+                sellPrice -= 1000;
             if (sellPrice < 100_000)
                 sellPrice = price;
             var id = uuid ?? auction.Tag;
