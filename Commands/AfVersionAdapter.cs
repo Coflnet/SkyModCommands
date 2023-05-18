@@ -14,6 +14,7 @@ namespace Coflnet.Sky.Commands.MC
     public class AfVersionAdapter : ModVersionAdapter
     {
         DateTime lastListing = DateTime.MinValue;
+        private int membersOnIsland = 0;
         public AfVersionAdapter(MinecraftSocket socket) : base(socket)
         {
         }
@@ -55,7 +56,22 @@ namespace Coflnet.Sky.Commands.MC
             var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
             var auctions = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters);
             if (auctions.Count >= 4)
-                return; // ah full
+            {
+                if (membersOnIsland == 0)
+                {
+                    // get member count
+                    var res = await socket.GetService<Proxy.Client.Api.IProxyApi>().ProxyHypixelGetAsync($"/skyblock/profiles?uuid={socket.SessionInfo.McUuid}");
+                    var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(res);
+                    var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
+                    if (profile != null)
+                        membersOnIsland = profile.Members.Count;
+                }
+                var listSpace = 4 + 3 * (membersOnIsland - 1);
+                if (auctions.Count >= listSpace)
+                    return; // ah full
+                dev.Logger.Instance.Log($"Auction house full, {auctions.Count} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
+                return; // security check
+            }
             socket.Send(Response.Create("getInventory", new
             {
                 Location = "main"
@@ -194,5 +210,16 @@ namespace Coflnet.Sky.Commands.MC
         {
             // ignore
         }
+    }
+
+    public class ProfilesResponse
+    {
+        public List<Profile> Profiles { get; set; }
+    }
+
+    public class Profile
+    {
+        public bool Selected { get; set; }
+        public Dictionary<string, object> Members { get; set; }
     }
 }
