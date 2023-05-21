@@ -110,8 +110,13 @@ namespace Coflnet.Sky.Commands.MC
                 if (await ShouldSkip(span, apiService, item.First))
                     continue;
                 var uuid = GetUuid(item.First);
+                if (uuid == null)
+                {
+                    Activity.Current?.SetTag("error", "no uuid").Log(JsonConvert.SerializeObject(item.First));
+                    continue;
+                }
                 // get target 
-                var flips = await GetFlipData(await GetPurchases(apiService, GetUuid(item.First)));
+                var flips = await GetFlipData(await GetPurchases(apiService, uuid));
                 var target = (flips.Select(f => f.TargetPrice).Average() + item.Second.Median) / 2;
                 await SendListing(span, item.First, (long)target, index, uuid);
             }

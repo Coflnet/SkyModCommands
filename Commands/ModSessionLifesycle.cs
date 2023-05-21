@@ -573,7 +573,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void UpdateConnectionIfNoFlipSent(Activity span)
         {
-            if (AccountInfo?.Value?.Tier == AccountTier.NONE)
+            if (AccountInfo == null || AccountInfo?.Value?.Tier == AccountTier.NONE)
                 return;
             if (socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-3)))
                 return; // got a flip in the last 3 minutes
