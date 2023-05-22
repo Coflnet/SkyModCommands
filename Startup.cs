@@ -65,6 +65,7 @@ namespace Coflnet.Sky.ModCommands
             services.AddSingleton<PreApiService>();
             services.AddSingleton<ConnectionMultiplexer>(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));
             services.AddSingleton<IBaseApi, BaseApi>(s => new BaseApi(Configuration["PROXY_BASE_URL"]));
+            services.AddSingleton<IProxyApi, ProxyApi>(s => new ProxyApi(Configuration["PROXY_BASE_URL"]));
             services.AddCoflService();
             services.AddHostedService<PreApiService>(s => s.GetRequiredService<PreApiService>());
         }
