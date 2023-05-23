@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.PlayerState.Client.Model;
@@ -27,6 +28,7 @@ public class ShareItemCommand : ItemSelectCommand<ShareItemCommand>
 
     protected override async Task SelectedItem(MinecraftSocket socket, string targetPlayer, Item item)
     {
+        Activity.Current?.Log($"Sending item {item.ItemName} to {targetPlayer}\nJSON {JsonConvert.SerializeObject(item)}");
         socket.Dialog(db => db.MsgLine($"Sent {item.ItemName} to {targetPlayer}").CoflCommand<ShareItemCommand>($"\"{targetPlayer}\"", targetPlayer, "send another item"));
         await socket.GetService<ChatService>().SendToChannel("dm-" + targetPlayer.ToLower(), new()
         {
