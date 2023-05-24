@@ -54,6 +54,10 @@ namespace Coflnet.Sky.Commands.MC
             lastListing = DateTime.UtcNow;
             var apiService = socket.GetService<IPlayerApi>();
             var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
+            socket.Send(Response.Create("getInventory", new
+            {
+                Location = "main"
+            }));
             var auctions = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters);
             if (auctions.Count >= 4)
             {
@@ -61,7 +65,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     // get member count
                     var res = await socket.GetService<Proxy.Client.Api.IProxyApi>().ProxyHypixelGetAsync($"/skyblock/profiles?uuid={socket.SessionInfo.McUuid}");
-                    var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(res);
+                    var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(JsonConvert.DeserializeObject<string>(res));
                     var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
                     if (profile != null)
                         membersOnIsland = profile.Members.Count;
@@ -72,10 +76,6 @@ namespace Coflnet.Sky.Commands.MC
                 dev.Logger.Instance.Log($"Auction house full, {auctions.Count} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
                 return; // security check
             }
-            socket.Send(Response.Create("getInventory", new
-            {
-                Location = "main"
-            }));
             await Task.Delay(800);
             var inventory = socket.SessionInfo.Inventory;
             if (inventory == null)
