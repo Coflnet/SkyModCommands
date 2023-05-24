@@ -155,6 +155,8 @@ namespace Coflnet.Sky.ModCommands.Services
             var compound = flip.Auction.NbtData.Root().Get<NbtList>("i")
                 ?.Get<NbtCompound>(0);
             NBT.FillFromTag(flip.Auction, compound, true);
+            var lore = string.Join("\n", NBT.GetLore(compound));
+            flip.Auction.Context["lore"] = lore;
         }
 
         private ModService GetService()
