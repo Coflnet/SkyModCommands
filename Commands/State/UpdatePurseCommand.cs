@@ -13,7 +13,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             if (Math.Abs(newVal - socket.Settings.MaxCost) < 50)
                 return; // minimal change not relevant (reduce load on db updates)
-            socket.Settings.MaxCost = (long)newVal;
+            //socket.Settings.MaxCost = (long)newVal;
         }
     }
 }
