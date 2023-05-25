@@ -26,6 +26,11 @@ namespace Coflnet.Sky.Commands.MC
                 Activity.Current?.SetTag("blocked", "not enough purse");
                 return true;
             }
+            if(flip.Finder == LowPricedAuction.FinderType.USER)
+            {
+                Activity.Current?.SetTag("blocked", "user finder");
+                return true;
+            }
             var name = flip.Auction?.Context?.GetValueOrDefault("cname");
             if (flip.Auction.Count > 1)
                 name = $"{McColorCodes.GRAY}{flip.Auction.Count}x {name}";
@@ -69,7 +74,8 @@ namespace Coflnet.Sky.Commands.MC
                     var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
                     var membersOnIsland = profile.Members.Count;
                     listSpace = 4 + 3 * (membersOnIsland - 1);
-                    dev.Logger.Instance.Log($"Auction house fill, {auctions.Count} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
+                    using var listLog = socket.CreateActivity("listLog", span);
+                    listLog.Log($"Auction house fill, {auctions.Count} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
                 }
                 if (auctions.Count >= listSpace)
                     return; // ah full
