@@ -15,22 +15,16 @@ namespace Coflnet.Sky.Commands.MC
     {
         DateTime lastListing = DateTime.MinValue;
         private int listSpace = 0;
+        private int activeAuctionCount = 0;
+        private int RemainingListings => listSpace - activeAuctionCount;
         public AfVersionAdapter(MinecraftSocket socket) : base(socket)
         {
         }
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
-            var purse = socket.SessionInfo.Purse;
-            if (purse != 0 && flip.Auction.StartingBid > purse / 3)
-            {
-                Activity.Current?.SetTag("blocked", "not enough purse");
+            _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
+            if(ShouldSkipFlip(flip))
                 return true;
-            }
-            if(flip.Finder == LowPricedAuction.FinderType.USER)
-            {
-                Activity.Current?.SetTag("blocked", "user finder");
-                return true;
-            }
             var name = flip.Auction?.Context?.GetValueOrDefault("cname");
             if (flip.Auction.Count > 1)
                 name = $"{McColorCodes.GRAY}{flip.Auction.Count}x {name}";
@@ -46,9 +40,31 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current?.SetTag("target", flip.MedianPrice);
             Activity.Current?.SetTag("itemName", name);
 
-            _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
-
             return true;
+        }
+
+        private bool ShouldSkipFlip(FlipInstance flip)
+        {
+            var purse = socket.SessionInfo.Purse;
+            if (purse != 0 && flip.Auction.StartingBid > purse / 3)
+            {
+                Activity.Current?.SetTag("blocked", "not enough purse");
+                return true;
+            }
+            if (flip.Finder == LowPricedAuction.FinderType.USER)
+            {
+                Activity.Current?.SetTag("blocked", "user finder");
+                return true;
+            }
+            var minProfitPercent = Math.Max(3, socket.Settings?.MinProfitPercent ?? 0);
+            if (RemainingListings < 3)
+                minProfitPercent *= 3;
+            if (flip.ProfitPercentage < minProfitPercent)
+            {
+                Activity.Current?.SetTag("blocked", "profitpercent too low");
+                return true;
+            }
+            return false;
         }
 
         private async Task TryToListAuction()
@@ -63,8 +79,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Location = "main"
             }));
-            var auctions = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters);
-            if (auctions.Count >= 4)
+            activeAuctionCount = (await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters)).Count() + 10;
+            if (activeAuctionCount >= 14)
             {
                 if (listSpace == 0)
                 {
@@ -73,11 +89,11 @@ namespace Coflnet.Sky.Commands.MC
                     var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(JsonConvert.DeserializeObject<string>(res));
                     var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
                     var membersOnIsland = profile.Members.Count;
-                    listSpace = 4 + 3 * (membersOnIsland - 1);
+                    listSpace = 14 + 3 * (membersOnIsland - 1);
                     using var listLog = socket.CreateActivity("listLog", span);
-                    listLog.Log($"Auction house fill, {auctions.Count} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
+                    listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
                 }
-                if (auctions.Count >= listSpace)
+                if (activeAuctionCount >= listSpace)
                     return; // ah full
             }
             await Task.Delay(800);
