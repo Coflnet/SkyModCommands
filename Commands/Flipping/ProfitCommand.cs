@@ -46,10 +46,11 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             string hover = GetHoverText(socket, response);
+            var paidSum = response.Flips.Sum(f => f.PricePaid);
             socket.SendMessage(COFLNET + $"According to our data you made {FormatPrice(socket, response.TotalProfit)} "
                 + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions"
                 + (accounts.Count() > 1 ? $" across your {accounts.Count()} accounts" : "")
-                + $"\nYou spent {FormatPrice(socket, response.Flips.Sum(f => f.PricePaid))} with an average {FormatPrice(socket, (long)response.Flips.Average(f => f.Profit / Math.Max(f.PricePaid,1)))}% profit margin",
+                + $"\nYou spent {FormatPrice(socket, paidSum)} with an average {FormatPrice(socket, (long)response.Flips.Sum(f => f.Profit) / (paidSum == 0 ? 1 : paidSum))}% profit margin",
                 null, hover);
             var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
             var best = sorted.FirstOrDefault();
