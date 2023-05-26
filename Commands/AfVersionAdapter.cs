@@ -79,7 +79,6 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 if (auctions.Count >= listSpace)
                     return; // ah full
-                return; // security check
             }
             await Task.Delay(800);
             var inventory = socket.SessionInfo.Inventory;
@@ -123,6 +122,10 @@ namespace Coflnet.Sky.Commands.MC
                 // get target 
                 var flips = await GetFlipData(await GetPurchases(apiService, uuid));
                 var target = (flips.Select(f => f.TargetPrice).Average() + item.Second.Median) / 2;
+                if(flips.All(x => x.Timestamp > DateTime.UtcNow.AddHours(-1)))
+                {
+                    target = flips.Select(f => f.TargetPrice).Average();
+                }
                 await SendListing(span, item.First, (long)target, index, uuid);
             }
         }
