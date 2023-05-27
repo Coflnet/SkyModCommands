@@ -141,7 +141,8 @@ namespace Coflnet.Sky.Commands.MC
 
             SetupFlipProcessor(AccountInfo);
             AccountSettings = await accountSettingsTask;
-            SubSessionToEventsFor(val);
+            if (val != null)
+                SubSessionToEventsFor(val);
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
         }
 
