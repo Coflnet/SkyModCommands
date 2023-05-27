@@ -52,6 +52,8 @@ namespace Coflnet.Sky.Commands.MC
                     "\nWhitelisted ",
                     new() { Uuid = flip.Uuid, WL = true },
                     "This flip matched one of your whitelist entries\nClick to calculate which one"));
+                if(socket.Settings?.ModSettings?.Format?.Contains("ZYZZ CFG") ?? false)
+                    parts.Add(new ChatPart($"{McColorCodes.BOLD}{McColorCodes.OBFUSCATED}!!{McColorCodes.RESET}{McColorCodes.BOLD}THIS IS WHITELISTED", null, null));
             }
             if (toTake > 0)
             {
