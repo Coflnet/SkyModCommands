@@ -128,8 +128,11 @@ namespace Coflnet.Sky.Commands.MC
                         var parts = message.Split('物');
                         var itemJson = parts[1];
                         var item = JsonConvert.DeserializeObject<Coflnet.Sky.PlayerState.Client.Model.Item>(itemJson);
+                        var displayDescription = item.Description;
+                        if (item.Color != null)
+                            displayDescription += displayDescription + $"\nHex Color: {item.Color.Value.ToString("X").PadLeft(6, '0')}";
                         return socket.SendMessage(new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {parts[0]}", optionsCmd, $"click for more options"),
-                        new ChatPart(item.ItemName, "", item.Description),
+                        new ChatPart(item.ItemName, "", displayDescription),
                             new ChatPart("", "/cofl void"));
                     }
                     return socket.SendMessage(
