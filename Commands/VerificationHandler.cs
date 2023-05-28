@@ -57,7 +57,15 @@ namespace Coflnet.Sky.Commands.MC
                 SessionInfo.VerifiedMc = true;
                 verificationSpan.AddTag("verified", "via accountInfo");
                 // dispatch access request to update last request time (and keep)
-                _ = socket.TryAsyncTimes(() => McAccountService.Instance.ConnectAccount(userId, mcUuid), "", 1);
+                _ = socket.TryAsyncTimes(async () =>
+                {
+                    var connected = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
+                    if (connected.IsConnected)
+                        return;
+                    socket.Dialog(db => db.MsgLine("There was an account verification missmatch. Everything is fine for you but you can't receive tfm balance. Please click this message and then ping Äkwav on the support discord with the printed code.", "/cofl report mcaccount link"));
+                    verificationSpan.AddTag("verified", "missmatch");
+                    throw new Exception("Could not connect account");
+                }, "", 1);
                 return SessionInfo.VerifiedMc;
             }
             McAccountService.ConnectionRequest connect = null;
@@ -104,7 +112,7 @@ namespace Coflnet.Sky.Commands.MC
             ItemPrices.AuctionPreview targetAuction = null;
             foreach (var type in new List<string> { "STICK", "RABBIT_HAT", "WOOD_SWORD", "VACCINE_TALISMAN" })
             {
-                try 
+                try
                 {
                     targetAuction = await GetauctionToBidOn(bid, type);
                 }
