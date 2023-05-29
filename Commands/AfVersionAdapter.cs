@@ -25,7 +25,7 @@ namespace Coflnet.Sky.Commands.MC
             _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
             if(ShouldSkipFlip(flip))
                 return true;
-            var name = flip.Auction?.Context?.GetValueOrDefault("cname");
+            var name = flip.Auction?.Context?.GetValueOrDefault("cname") ?? flip.Auction.ItemName;
             if (flip.Auction.Count > 1)
                 name = $"{McColorCodes.GRAY}{flip.Auction.Count}x {name}";
             socket.Send(Response.Create("flip", new
