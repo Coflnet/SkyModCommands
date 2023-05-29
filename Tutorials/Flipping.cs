@@ -8,7 +8,7 @@ public class Flipping : TutorialBase
     public override void Trigger(DialogBuilder builder, IMinecraftSocket socket)
     {
         builder.MsgLine($"{McColorCodes.YELLOW}The flipping system uses a complex comparison system to determine how much an item is worth.", 
-                "https://youtu.be/nfMo5CeJDgc", "Click to watch explanation video")
+                "https://www.youtube.com/watch?v=nfMo5CeJDgc&list=PLDpPmxIcq9tAssQlyJMBlSmSg5JOpq699&index=9&pp=iAQB", "Click to watch explanation video")
             .MsgLine($"{McColorCodes.AQUA}If you think the comparison missed something and/or estimated the value incorrectly, please report the flip via the ✥", 
                     "https://discord.com/channels/267680588666896385/884002032392998942", 
                 $"{McColorCodes.YELLOW}Reporting is done via the flip menu (thats the {McColorCodes.WHITE}✥{McColorCodes.YELLOW} at the end of every flip)\n"
