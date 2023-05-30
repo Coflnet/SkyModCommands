@@ -20,7 +20,7 @@ namespace Coflnet.Sky.Commands.MC
                 messages = await GetMessageparts(flip),
                 id = uuid,
                 worth = worth,
-                sound = new { name = (string)(string)(socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000 ? "note.pling" : null), pitch = 1 },
+                sound = new { name = (string)(socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000 ? "note.pling" : null), pitch = 1 },
                 auction = flip.Auction,
                 target = flip.MedianPrice,
                 render = Random.Shared.Next(3) switch
