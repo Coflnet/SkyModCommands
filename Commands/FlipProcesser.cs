@@ -257,6 +257,8 @@ namespace Coflnet.Sky.Commands.MC
 
                 socket.LastSent.Enqueue(flip);
                 sentFlipsCount.Inc();
+                if(Settings.DebugMode)
+                    socket.SendMessage($"Sent flip {flip.Auction.ItemName} {flip.Auction.StartingBid}->{flip.TargetPrice}", $"https://sky.coflnet.com/auction/{flip.Auction.Uuid}", "Open in browser");
 
                 socket.sessionLifesycle.PingTimer.Change(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(59));
 
