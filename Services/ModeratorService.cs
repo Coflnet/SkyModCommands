@@ -13,6 +13,7 @@ public class ModeratorService
         "b2523d5215874abfa314a7a06c976830", // Hihi735 Fan
         "5ce7bdadba6943a3bfbf91c93ef2bbdf", // Livid
         "cc4fe6e3a3b24e998d36680f85f681b0", // Dylan
+        "839271a6a485403492fb96f98ff620c1", // SkilledBear
         };
     public bool IsModerator(MinecraftSocket socket)
     {

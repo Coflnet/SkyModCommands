@@ -16,6 +16,7 @@ namespace Coflnet.Sky.Commands.MC
         DateTime lastListing = DateTime.MinValue;
         private int listSpace = 0;
         private int activeAuctionCount = 0;
+        private Dictionary<string, int> CheckedPurchase = new();
         private int RemainingListings => listSpace - activeAuctionCount;
         public AfVersionAdapter(MinecraftSocket socket) : base(socket)
         {
@@ -23,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
             _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
-            if(ShouldSkipFlip(flip))
+            if (ShouldSkipFlip(flip))
                 return true;
             var name = flip.Auction?.Context?.GetValueOrDefault("cname") ?? flip.Auction.ItemName;
             if (flip.Auction.Count > 1)
@@ -137,8 +138,8 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 // get target 
                 var flips = await GetFlipData(await GetPurchases(apiService, uuid));
-                var target = (flips.Select(f => f.TargetPrice).Average() + item.Second.Median) / 2;
-                if(flips.All(x => x.Timestamp > DateTime.UtcNow.AddHours(-1)))
+                var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
+                if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddHours(-1)))
                 {
                     target = flips.Select(f => f.TargetPrice).Average();
                 }
@@ -217,16 +218,21 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task<List<FlipTracker.Client.Model.Flip>> GetFlipData(List<Api.Client.Model.BidResult> purchases)
         {
-            var purchase = purchases.OrderByDescending(x => x.End).First();
+            var purchase = purchases.OrderByDescending(x => x.End).FirstOrDefault();
+            if (purchase == null)
+                return new List<FlipTracker.Client.Model.Flip>();
             var longId = socket.GetService<AuctionService>().GetId(purchase.AuctionId);
             return await socket.GetService<ITrackerApi>().TrackerFlipsAuctionIdGetAsync(longId);
         }
         private async Task<List<Api.Client.Model.BidResult>> GetPurchases(IPlayerApi apiService, string uid)
         {
+            if(CheckedPurchase.GetValueOrDefault(uid) > 3)
+                return new List<Api.Client.Model.BidResult>();
             var checkFilters = new Dictionary<string, string>() {
                 { "UId", uid },
                 { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(48)).ToUnix().ToString() } };
             var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
+            CheckedPurchase[uid] = CheckedPurchase.GetValueOrDefault(uid) + 1;
             return purchases;
         }
 

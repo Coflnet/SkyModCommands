@@ -168,8 +168,6 @@ namespace Coflnet.Sky.Commands.MC
             var testFlip = BlacklistCommand.GetTestFlip("test");
             try
             {
-                if (FlipSettings.Value?.ModSettings?.Chat ?? false)
-                    await ChatCommand.MakeSureChatIsConnected(socket);
                 if (settings.BasedOnLBin && settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
                 {
                     socket.SendMessage(new DialogBuilder().CoflCommand<SetCommand>(McColorCodes.RED + "Your profit is based on lbin, therefore you should only use the `sniper` flip finder to maximise speed", "finders sniper", "Click to only use the sniper"));
@@ -187,6 +185,8 @@ namespace Coflnet.Sky.Commands.MC
                 // preload flip settings
                 settings.MatchesSettings(testFlip);
                 span.Log(JSON.Stringify(settings));
+                if (FlipSettings.Value?.ModSettings?.Chat ?? false)
+                    await ChatCommand.MakeSureChatIsConnected(socket);
             }
             catch (Exception e)
             {
@@ -261,7 +261,7 @@ namespace Coflnet.Sky.Commands.MC
                     if (info.ActiveConnectionId != SessionInfo.ConnectionId)
                     {
                         // another connection of this account was opened, close this one
-                        SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "We closed this connection because you opened another one", null,
+                        SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "Closing this connection because your account opened another one. There can only be one per account. Use /cofl logout to close all.", null,
                             "To protect against your mod opening\nmultiple connections which you can't stop,\nwe closed this one.\nThe latest one you opened should still be active");
                         socket.ExecuteCommand("/cofl stop");
                         span.Log("connected from somewhere else");
