@@ -37,6 +37,8 @@ namespace Coflnet.Sky.Commands.MC
                 itemName = name,
                 target = flip.MedianPrice
             }));
+            if(flip.Finder == LowPricedAuction.FinderType.USER)
+                socket.Dialog(db => db.Msg($"You had {name} for {flip.Auction.StartingBid} is Whitelisted"));
             Activity.Current?.SetTag("finder", flip.Finder);
             Activity.Current?.SetTag("target", flip.MedianPrice);
             Activity.Current?.SetTag("itemName", name);
@@ -50,17 +52,13 @@ namespace Coflnet.Sky.Commands.MC
             if (purse != 0 && flip.Auction.StartingBid > purse / 3)
             {
                 Activity.Current?.SetTag("blocked", "not enough purse");
+                socket.Dialog(db => db.Msg($"Skipped buying {flip.Auction.ItemName} for {flip.Auction.StartingBid} because you only have {purse} purse left (max 1/3 used for one flip)"));
                 return true;
             }
-            if (flip.Finder == LowPricedAuction.FinderType.USER)
-            {
-                Activity.Current?.SetTag("blocked", "user finder");
-                return true;
-            }
-            var minProfitPercent = Math.Max(3, socket.Settings?.MinProfitPercent ?? 0);
+            var minProfitPercent = socket.Settings?.MinProfitPercent ?? 0;
             if (RemainingListings < 3)
-                minProfitPercent *= 3;
-            if (flip.ProfitPercentage < minProfitPercent)
+                minProfitPercent *= Math.Max(9, minProfitPercent);
+            if (flip.Finder != LowPricedAuction.FinderType.USER && flip.ProfitPercentage < minProfitPercent)
             {
                 Activity.Current?.SetTag("blocked", "profitpercent too low");
                 return true;
@@ -110,7 +108,7 @@ namespace Coflnet.Sky.Commands.MC
             var toList = inventory.Zip(values).Where(x => x.First != null && x.Second.Median > 1000);
             span.Log(JsonConvert.SerializeObject(values));
             span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
-            foreach (var item in socket.LastSent)
+            foreach (var item in socket.LastSent.Where(x => x.Finder != LowPricedAuction.FinderType.USER))
             {
                 var uid = item.Auction.FlatenedNBT?.FirstOrDefault(y => y.Key == "uid").Value;
                 if (uid == null)
@@ -226,7 +224,7 @@ namespace Coflnet.Sky.Commands.MC
         }
         private async Task<List<Api.Client.Model.BidResult>> GetPurchases(IPlayerApi apiService, string uid)
         {
-            if(CheckedPurchase.GetValueOrDefault(uid) > 3)
+            if (CheckedPurchase.GetValueOrDefault(uid) > 3)
                 return new List<Api.Client.Model.BidResult>();
             var checkFilters = new Dictionary<string, string>() {
                 { "UId", uid },
