@@ -101,7 +101,7 @@ namespace Coflnet.Sky.Commands.MC
             var inventory = socket.SessionInfo.Inventory;
             if (inventory == null)
             {
-                socket.Dialog(db => db.Msg(McColorCodes.RED + "No inventory uploaded, can't list auctions, no clue what client you use but its either outdated or broken. Please contact Äkwav#0421 on discord"));
+                socket.Dialog(db => db.Msg(McColorCodes.RED + "No inventory uploaded, can't list auctions, no clue what client you use but its either outdated or broken. Please contact Äkwav#0421 on discord and include " + socket.ConSpan.TraceId));
                 throw new Exception("no inventory");
             }
             // retrieve price
@@ -182,7 +182,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public override void OnAuthorize(AccountInfo accountInfo)
         {
-            socket.Dialog(db => db.Msg($"Your session id is {socket.ConSpan.TraceId}, copy that if you encounter an error"));
+            socket.Dialog(db => db.Msg($"Your connection id is {socket.ConSpan.TraceId}, copy that if you encounter an error"));
             socket.sessionLifesycle.SessionInfo.FlipsEnabled = true;
             socket.SessionInfo.IsMacroBot = true;
             if (socket.sessionLifesycle.FlipSettings.Value?.ModSettings?.AutoStartFlipper == null)
