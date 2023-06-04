@@ -14,7 +14,7 @@ public class ItemInfoCommand : ItemSelectCommand<ItemInfoCommand>
         await HandleSelectionOrDisplaySelect(socket, args, socket.SessionInfo.McName, "Get about this item: \n");
     }
 
-    protected override async Task SelectedItem(MinecraftSocket socket, string targetPlayer, Item item)
+    protected override async Task SelectedItem(MinecraftSocket socket, string targetPlayer, PlayerState.Client.Model.Item item)
     {
         var auction = new SaveAuction()
         {

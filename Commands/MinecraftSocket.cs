@@ -54,7 +54,7 @@ namespace Coflnet.Sky.Commands.MC
         Task SendBatch(IEnumerable<LowPricedAuction> flips);
         Task<bool> SendFlip(LowPricedAuction flip);
         Task<bool> SendFlip(FlipInstance flip);
-        void SendMessage(string text, string clickAction = null, string hoverText = null);
+        void SendMessage(string text, string? clickAction = null, string? hoverText = null);
         Activity? CreateActivity(string name, Activity? parent = null);
         bool SendMessage(params ChatPart[] parts);
         Task<bool> SendSold(string uuid);

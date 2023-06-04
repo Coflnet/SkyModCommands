@@ -35,10 +35,10 @@ public abstract class ItemSelectCommand<T> : McCommand where T : ItemSelectComma
     }
 
 
-    protected abstract Task SelectedItem(MinecraftSocket socket, string context, Item item);
+    protected abstract Task SelectedItem(MinecraftSocket socket, string context, PlayerState.Client.Model.Item item);
 
 
-    private static string GetInventoryRepresent(MinecraftSocket socket, Item item)
+    private static string GetInventoryRepresent(MinecraftSocket socket, PlayerState.Client.Model.Item item)
     {
         if (string.IsNullOrWhiteSpace(item.ItemName))
             return "§7[   ] ";
