@@ -120,12 +120,12 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        protected virtual async Task SubToSettings(string val)
+        protected virtual async Task SubToSettings(string userId)
         {
-            ConSpan.Log("subbing to settings of " + val);
-            var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(val, "flipSettings", () => DEFAULT_SETTINGS);
-            var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(val, "accountSettings");
-            AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(val, "accountInfo", () => new AccountInfo() { UserId = val });
+            ConSpan.Log("subbing to settings of " + userId);
+            var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DEFAULT_SETTINGS);
+            var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings");
+            AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
             FlipSettings = await flipSettingsTask;
 
             // make sure there is only one connection
@@ -133,6 +133,7 @@ namespace Coflnet.Sky.Commands.MC
             _ = socket.TryAsyncTimes(() => AccountInfo.Update(AccountInfo.Value), "accountInfo update");
 
             FlipSettings.OnChange += UpdateSettings;
+            FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
             AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
             if (AccountInfo.Value != default)
                 await UpdateAccountInfo(AccountInfo);
@@ -141,8 +142,8 @@ namespace Coflnet.Sky.Commands.MC
 
             SetupFlipProcessor(AccountInfo);
             AccountSettings = await accountSettingsTask;
-            if (val != null)
-                SubSessionToEventsFor(val);
+            if (userId != null)
+                SubSessionToEventsFor(userId);
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
         }
 
