@@ -175,7 +175,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public override void SendLoginPrompt(string loginLink)
         {
-            socket.Dialog(db => db.Msg($"Please §lclick {loginLink} to login"));
+            socket.Dialog(db => db.MsgLine($"Please §lclick {loginLink} to login").MsgLine("Until you do you are using the free version which will make less profit"));
         }
 
         public override void OnAuthorize(AccountInfo accountInfo)

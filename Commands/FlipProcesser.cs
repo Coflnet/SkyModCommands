@@ -245,7 +245,7 @@ namespace Coflnet.Sky.Commands.MC
 
             _ = socket.TryAsyncTimes(async () =>
             {
-                if (socket.AccountInfo.Tier >= AccountTier.SUPER_PREMIUM)
+                if (socket.AccountInfo?.Tier >= AccountTier.SUPER_PREMIUM)
                     preApiFlipSent.Inc();
 
                 // this is actually syncronous
