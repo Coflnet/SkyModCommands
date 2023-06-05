@@ -123,7 +123,8 @@ namespace Coflnet.Sky.Commands.MC
                 await SendListing(span, item.Auction, item.TargetPrice, index, uuid);
                 return; // created listing
             }
-            foreach (var item in toList)
+            var withoutAmror = toList.Skip(9);
+            foreach (var item in withoutAmror)
             {
                 var index = inventory.IndexOf(item.First);
                 if (await ShouldSkip(span, apiService, item.First))
@@ -197,6 +198,9 @@ namespace Coflnet.Sky.Commands.MC
                 return false;
             if (item.FlatenedNBT.ContainsKey("donated_museum"))
                 return true; // sould bound
+            // ⬇⬇ sell able items ⬇⬇
+            if(socket.SessionInfo.SellAll )
+                return true;
             if (!string.IsNullOrEmpty(uid))
             {
                 List<Api.Client.Model.BidResult> purchases = await GetPurchases(apiService, uid);

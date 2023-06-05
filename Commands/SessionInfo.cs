@@ -61,6 +61,7 @@ namespace Coflnet.Sky.Commands.MC
         public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon;
 
         public List<SaveAuction> Inventory { get; set; }
+        public bool SellAll;
 
         public void Dispose()
         {

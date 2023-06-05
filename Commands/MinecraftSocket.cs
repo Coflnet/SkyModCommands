@@ -195,6 +195,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<FoundModsCommand>();
             Commands.Add<ShareItemCommand>();
             Commands.Add<ItemInfoCommand>();
+            Commands.Add<SellInventoryCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
