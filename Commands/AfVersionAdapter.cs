@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
     public class AfVersionAdapter : ModVersionAdapter
     {
         DateTime lastListing = DateTime.MinValue;
-        private int listSpace = 0;
+        private int listSpace = 2;
         private int activeAuctionCount = 0;
         private Dictionary<string, int> CheckedPurchase = new();
         private int RemainingListings => listSpace - activeAuctionCount;
@@ -56,11 +56,11 @@ namespace Coflnet.Sky.Commands.MC
                 return true;
             }
             var minProfitPercent = socket.Settings?.MinProfitPercent ?? 0;
-            if (RemainingListings < 3)
-                minProfitPercent *= Math.Max(9, minProfitPercent);
+            if (RemainingListings < 2)
+                minProfitPercent = Math.Max(9, minProfitPercent);
             if (flip.Finder != LowPricedAuction.FinderType.USER && flip.ProfitPercentage < minProfitPercent)
             {
-                Activity.Current?.SetTag("blocked", "profitpercent too low");
+                Activity.Current?.SetTag("blocked", "profitpercent too low < " + minProfitPercent);
                 return true;
             }
             return false;
