@@ -33,7 +33,9 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             if (string.IsNullOrEmpty(attempt))
-                socket.SendMessage(COFLNET + McColorCodes.BLUE + "You requested to get a new captcha. Have fun.");
+                socket.Dialog(db=> db
+                    .MsgLine($"{McColorCodes.BLUE}You requested to get a new captcha.")
+                    .MsgLine($"{McColorCodes.OBFUSCATED}OOO{McColorCodes.RESET + McColorCodes.BLUE} This counts as a failed attempt. Have fun."));
             else
             {
                 socket.SendMessage(COFLNET + "Checking your response");
