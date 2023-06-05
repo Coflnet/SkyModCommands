@@ -62,6 +62,7 @@ namespace Coflnet.Sky.Commands.MC
             list.Value.BlackList = newCol;
             list.Value.RecompileMatchers();
             list.Value.LastChanged = "preventUpdateMsg";
+            list.Value.Changer = socket.SessionInfo.ConnectionId;
             await list.Update(list.Value);
         }
 
