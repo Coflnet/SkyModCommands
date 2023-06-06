@@ -37,7 +37,7 @@ namespace Coflnet.Sky.Commands.MC
                 itemName = name,
                 target = flip.MedianPrice
             }));
-            if(flip.Finder == LowPricedAuction.FinderType.USER)
+            if (flip.Finder == LowPricedAuction.FinderType.USER)
                 socket.Dialog(db => db.Msg($"You had {name} for {flip.Auction.StartingBid} is Whitelisted"));
             Activity.Current?.SetTag("finder", flip.Finder);
             Activity.Current?.SetTag("target", flip.MedianPrice);
@@ -123,8 +123,8 @@ namespace Coflnet.Sky.Commands.MC
                 await SendListing(span, item.Auction, item.TargetPrice, index, uuid);
                 return; // created listing
             }
-            var withoutAmror = toList.Skip(9);
-            foreach (var item in withoutAmror)
+            var withoutArmor = toList.Skip(9);
+            foreach (var item in withoutArmor)
             {
                 var index = inventory.IndexOf(item.First);
                 if (await ShouldSkip(span, apiService, item.First))
@@ -138,9 +138,15 @@ namespace Coflnet.Sky.Commands.MC
                 // get target 
                 var flips = await GetFlipData(await GetPurchases(apiService, uuid));
                 var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
+                if (flips.Count == 0)
+                {
+                    Activity.Current?.SetTag("state", "no sent flips").Log(JsonConvert.SerializeObject(item.First));
+                    socket.Dialog(db => db.Msg($"Found unkown item in inventory: {item.First.ItemName} {item.First.Tag} {item.First.Uuid} could have been whitelisted, please manually remove it, prevented auto listing"));
+                    continue;
+                }
                 if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddHours(-1)))
                 {
-                    target = flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average();
+                    target = flips.Select(f => f.TargetPrice).Average();
                 }
                 await SendListing(span, item.First, (long)target, index, uuid);
             }
@@ -199,7 +205,7 @@ namespace Coflnet.Sky.Commands.MC
             if (item.FlatenedNBT.ContainsKey("donated_museum"))
                 return true; // sould bound
             // ⬇⬇ sell able items ⬇⬇
-            if(socket.SessionInfo.SellAll )
+            if (socket.SessionInfo.SellAll)
                 return true;
             if (!string.IsNullOrEmpty(uid))
             {
