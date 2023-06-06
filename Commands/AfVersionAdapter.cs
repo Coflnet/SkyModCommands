@@ -140,7 +140,7 @@ namespace Coflnet.Sky.Commands.MC
                 var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
                 if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddHours(-1)))
                 {
-                    target = flips.Select(f => f.TargetPrice).Average();
+                    target = flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average();
                 }
                 await SendListing(span, item.First, (long)target, index, uuid);
             }
