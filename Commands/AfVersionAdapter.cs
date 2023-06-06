@@ -37,14 +37,14 @@ namespace Coflnet.Sky.Commands.MC
                 itemName = name,
                 target = flip.MedianPrice
             }));
-            if (flip.Finder == LowPricedAuction.FinderType.USER || flip.Context.TryGetValue("match", out var type) && type.StartsWith("whitelist"))
+            if (flip.Context.TryGetValue("match", out var type) && type.StartsWith("whitelist"))
             {
                 foreach (var item in socket.Settings.WhiteList)
                 {
                     if (!item.MatchesSettings(flip))
                         continue;
 
-                    socket.Dialog(db => db.Msg($"{name} for {flip.Auction.StartingBid} matched your Whitelist entry: {BlacklistCommand.FormatEntry(item)} execute {McColorCodes.AQUA}/cofl bl rm {BlacklistCommand.FormatId(item)}{McColorCodes.RESET} to remove it"));
+                    socket.Dialog(db => db.Msg($"{name} for {flip.Auction.StartingBid} matched your Whitelist entry: {BlacklistCommand.FormatEntry(item)}"));
                 }
             }
             Activity.Current?.SetTag("finder", flip.Finder);
