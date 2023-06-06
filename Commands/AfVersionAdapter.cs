@@ -45,7 +45,7 @@ namespace Coflnet.Sky.Commands.MC
                         continue;
 
                     socket.Dialog(db => db.Msg($"{name} for {flip.Auction.StartingBid} matched your Whitelist entry: {BlacklistCommand.FormatEntry(item)}"));
-                    yield break;
+                    break;
                 }
             }
             Activity.Current?.SetTag("finder", flip.Finder);
