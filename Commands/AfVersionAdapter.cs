@@ -90,7 +90,7 @@ namespace Coflnet.Sky.Commands.MC
             activeAuctionCount = (await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters)).Count() + 10;
             if (activeAuctionCount >= 14)
             {
-                if (listSpace == 0)
+                if (listSpace <= 2)
                 {
                     // get member count
                     var res = await socket.GetService<Proxy.Client.Api.IProxyApi>().ProxyHypixelGetAsync($"/skyblock/profiles?uuid={socket.SessionInfo.McUuid}");
