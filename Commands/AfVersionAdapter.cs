@@ -37,8 +37,8 @@ namespace Coflnet.Sky.Commands.MC
                 itemName = name,
                 target = flip.MedianPrice
             }));
-            if (flip.Finder == LowPricedAuction.FinderType.USER)
-                socket.Dialog(db => db.Msg($"You had {name} for {flip.Auction.StartingBid} is Whitelisted"));
+            if (flip.Finder == LowPricedAuction.FinderType.USER || flip.Context.TryGetValue("match", out var type) && type.StartsWith("whitelist"))
+                socket.Dialog(db => db.Msg($"You had {name} for {flip.Auction.StartingBid} Whitelisted"));
             Activity.Current?.SetTag("finder", flip.Finder);
             Activity.Current?.SetTag("target", flip.MedianPrice);
             Activity.Current?.SetTag("itemName", name);
