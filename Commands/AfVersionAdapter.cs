@@ -95,7 +95,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (activeAuctionCount >= listSpace)
                     return; // ah full
             }
-            await Task.Delay(800);
+            await Task.Delay(TimeSpan.FromSeconds(2));
             var inventory = socket.SessionInfo.Inventory;
             if (inventory == null)
             {
