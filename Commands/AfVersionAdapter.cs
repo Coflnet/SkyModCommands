@@ -140,11 +140,15 @@ namespace Coflnet.Sky.Commands.MC
                 var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
                 if (flips.Count == 0)
                 {
-                    Activity.Current?.SetTag("state", "no sent flips").Log(JsonConvert.SerializeObject(item.First));
-                    socket.Dialog(db => db.Msg($"Found unkown item in inventory: {item.First.ItemName} {item.First.Tag} {item.First.Uuid} could have been whitelisted, please manually remove it, prevented auto listing"));
-                    continue;
+                    if (!socket.SessionInfo.SellAll)
+                    {
+                        Activity.Current?.SetTag("state", "no sent flips").Log(JsonConvert.SerializeObject(item.First));
+                        socket.Dialog(db => db.Msg($"Found unkown item in inventory: {item.First.ItemName} {item.First.Tag} {item.First.Uuid} could have been whitelisted, please manually remove it or execute {McColorCodes.AQUA}/cofl sellinventory"));
+                        continue;
+                    }
+                    target = item.Second.Median;
                 }
-                if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddHours(-1)))
+                else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddHours(-1)))
                 {
                     target = flips.Select(f => f.TargetPrice).Average();
                 }
