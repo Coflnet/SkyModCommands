@@ -157,8 +157,9 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     target = item.Second.Median;
                 }
-                else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddHours(-1)))
+                else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-1)))
                 {
+                    // all are more recent than a day, still usable
                     target = flips.Select(f => f.TargetPrice).Average();
                 }
                 await SendListing(span, item.First, (long)target, index, uuid);
