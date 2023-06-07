@@ -102,7 +102,10 @@ namespace Coflnet.Sky.Commands.MC
                     listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
                 }
                 if (activeAuctionCount >= listSpace)
+                {
+                    span.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName}");
                     return; // ah full
+                }
             }
             await Task.Delay(TimeSpan.FromSeconds(2));
             var inventory = socket.SessionInfo.Inventory;
