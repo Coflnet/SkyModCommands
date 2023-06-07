@@ -164,6 +164,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     // all are more recent than a day, still usable
                     target = flips.Select(f => f.TargetPrice).Average();
+                    span.Log($"Found {flips.Count} flips for target {target}");
                 }
                 await SendListing(span, item.First, (long)target, index, uuid);
             }

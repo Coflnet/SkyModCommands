@@ -48,13 +48,12 @@ namespace Coflnet.Sky.Commands.MC
                     if (item.StartsWith("You purchased"))
                     {
                         socket.GetService<PreApiService>().PurchaseMessage(socket, item);
-                        var secondLine = batch.Last();
-                        if (!secondLine.StartsWith("You claimed"))
-                            continue;
-                        await UpdateSellerAuction(socket, secondLine);
                     }
                     if (item.StartsWith("BIN Auction started"))
                         await socket.GetService<PreApiService>().ListingMessage(socket, item);
+                    var secondLine = batch.Last();
+                    if (secondLine.StartsWith("You claimed"))
+                        await UpdateSellerAuction(socket, secondLine);
                 }
             }
             catch (System.Exception e)
