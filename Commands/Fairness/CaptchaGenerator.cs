@@ -2,12 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Figgle;
 using Newtonsoft.Json;
-using OpenTracing;
 using WebSocketSharp;
 
 namespace Coflnet.Sky.Commands.MC
@@ -97,7 +95,6 @@ namespace Coflnet.Sky.Commands.MC
             while (chars.Sum(c => c.First().Text.Length) < 69)
                 chars.Add(RenderCharLines(alphaBet[index++], socket.AccountInfo));
 
-            //socket.Dialog(db => db.LineBreak().Lines(lines.Select(m => m + "|").ToArray()));
             var challenge = new CaptchaChallenge()
             {
                 Question = "Select the letter " + McColorCodes.AQUA + letter +
@@ -185,16 +182,12 @@ namespace Coflnet.Sky.Commands.MC
                 currentIndex += length;
             }
             while (str.Length > currentIndex);
-            // return Enumerable.Range(0, str.Length / chunkSize)
-            //     .Select(i => str.Substring(i * chunkSize, chunkSize)).Append(str.Substring((str.Length / chunkSize) * chunkSize));
         }
 
         private List<Option> RenderCharLines(char letter, AccountInfo info)
         {
             var selectedRenderer = readableFonts.OrderBy(r => Random.Shared.Next()).First();
             var rendered = selectedRenderer.Render(letter.ToString());
-
-            //Console.WriteLine(rendered);
 
             var builder = new System.Text.StringBuilder(rendered.Length);
             var hasSpaceEnd = rendered.Split('\n').All(l => string.IsNullOrEmpty(l) || l.Last() == ' ');
@@ -226,22 +219,9 @@ namespace Coflnet.Sky.Commands.MC
             string[] lines = null;
             if (info.CaptchaType == "optifine")
             {
-                builder//.Replace("!!", "`")
-                //.Replace("🇧🇾"[0], '`')
-                //.Replace("🇧🇾"[1], '`')
-                //.Replace("``", ";;;")
-                .Replace("´", ".");
+                builder.Replace("´", ".");
 
-                lines = builder.ToString().Split("\n").Select(l =>
-                {
-                    /*var count = l.Count(c => c == '´');
-                    for (int i = 0; i < count / 5 + random.Next(2); i++)
-                    {
-                        if (count > 0 && l.Length > i * 4 + 2)
-                            l = l.Remove(l.IndexOf('´', i * 2), 1);
-                    }*/
-                    return l;
-                }).ToArray();
+                lines = builder.ToString().Split("\n").ToArray();
             }
             else
                 lines = builder.ToString().Split('\n');

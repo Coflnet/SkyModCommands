@@ -8,9 +8,19 @@ public class SellInventoryCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if(socket.ModAdapter is not AfVersionAdapter)
+        if (socket.ModAdapter is not AfVersionAdapter)
             throw new CoflnetException("forbidden", "This command is only available with an autoflipper client");
         socket.SessionInfo.SellAll = true;
+        if (socket.SessionInfo.Inventory == null)
+        {
+            socket.Send(Response.Create("getInventory", new
+            {
+                Location = "main"
+            }));
+            await Task.Delay(1500);
+            if (socket.SessionInfo.Inventory == null)
+                throw new CoflnetException("missing_inventory", "Your client did not upload an inventory yet, please try again in a few seconds");
+        }
         foreach (var item in socket.SessionInfo.Inventory.Skip(9).Where(i => i != null))
         {
             socket.Dialog(db => db.MsgLine($"§7[§6§lSelling§7]§r{item.ItemName}"));
