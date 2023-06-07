@@ -11,7 +11,7 @@ public class SellInventoryCommand : McCommand
         if(socket.ModAdapter is not AfVersionAdapter)
             throw new CoflnetException("forbidden", "This command is only available with an autoflipper client");
         socket.SessionInfo.SellAll = true;
-        foreach (var item in socket.SessionInfo.Inventory.Skip(9))
+        foreach (var item in socket.SessionInfo.Inventory.Skip(9).Where(i => i != null))
         {
             socket.Dialog(db => db.MsgLine($"§7[§6§lSelling§7]§r{item.ItemName}"));
         }
