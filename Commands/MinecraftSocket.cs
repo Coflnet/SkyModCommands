@@ -157,7 +157,8 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<DialogCommand>();
             Commands.Add<ProfitCommand>();
             Commands.Add<LoadFlipHistory>();
-            Commands.Add<LeaderboardCommand>();
+            Commands.Add<LeaderboardCommand>("lb");
+            Commands.Add<TradesCommand>();
             Commands.Add<FlipsCommand>();
             Commands.Add<AhOpenCommand>();
             Commands.Add<GetMcNameForCommand>();
@@ -762,7 +763,8 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     SheduleTimer(mod, timer);
                 }
-            } else 
+            }
+            else
                 timer.Log("timer disabled");
             if (!(Settings?.ModSettings?.BlockTenSecondsMsg ?? true))
             {

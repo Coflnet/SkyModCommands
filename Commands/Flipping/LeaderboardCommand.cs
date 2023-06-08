@@ -13,7 +13,7 @@ public class LeaderboardCommand : McCommand
 
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if(await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
+        if (await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
             throw new CoflnetException("forbidden", "You need to have at least premium plus to use this command");
         var api = socket.GetService<IScoresApi>();
         var nameApi = socket.GetService<PlayerNameApi>();
