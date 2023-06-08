@@ -126,9 +126,8 @@ namespace Coflnet.Sky.Commands.MC
             // retrieve price
             var sniperService = socket.GetService<ISniperClient>();
             var values = await sniperService.GetPrices(inventory);
-            var toList = inventory.Zip(values).Where(x => x.First != null && x.Second.Median > 1000);
-            span.Log(JsonConvert.SerializeObject(values));
-            span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
+            var toList = inventory.Zip(values).Skip(9).Where(x => x.First != null && x.Second.Median > 1000);
+            span.Log(JsonConvert.SerializeObject(toList));
             foreach (var item in socket.LastSent.Where(x => x.Finder != LowPricedAuction.FinderType.USER))
             {
                 var uid = item.Auction.FlatenedNBT?.FirstOrDefault(y => y.Key == "uid").Value;
@@ -144,8 +143,8 @@ namespace Coflnet.Sky.Commands.MC
                 await SendListing(span, item.Auction, item.TargetPrice, index, uuid);
                 return; // created listing
             }
-            var withoutArmor = toList.Skip(9);
-            foreach (var item in withoutArmor)
+            span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
+            foreach (var item in toList)
             {
                 var index = inventory.IndexOf(item.First);
                 if (await ShouldSkip(span, apiService, item.First))
@@ -248,6 +247,7 @@ namespace Coflnet.Sky.Commands.MC
                     return !flipData.Any();
                 }
             }
+            span.Log($"No uuid found, can't determine skip status of {item.Tag} {item.Uuid}");
             return true;
         }
 
