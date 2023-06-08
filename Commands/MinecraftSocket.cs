@@ -157,6 +157,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<DialogCommand>();
             Commands.Add<ProfitCommand>();
             Commands.Add<LoadFlipHistory>();
+            Commands.Add<LeaderboardCommand>();
             Commands.Add<FlipsCommand>();
             Commands.Add<AhOpenCommand>();
             Commands.Add<GetMcNameForCommand>();
