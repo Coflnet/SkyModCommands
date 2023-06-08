@@ -21,7 +21,7 @@ public class SellInventoryCommand : McCommand
             if (socket.SessionInfo.Inventory == null)
                 throw new CoflnetException("missing_inventory", "Your client did not upload an inventory yet, please try again in a few seconds");
         }
-        foreach (var item in socket.SessionInfo.Inventory.Skip(9).Where(i => i != null))
+        foreach (var item in socket.SessionInfo.Inventory.Skip(9).Where(i => i != null && !i.ItemName.Contains("Menu")))
         {
             socket.Dialog(db => db.MsgLine($"§7[§6§lSelling§7]§r{item.ItemName}"));
         }
