@@ -26,7 +26,7 @@ public class MinecraftSocketTests
         var mockSocket = new Mock<MinecraftSocket>();
         var config = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
         mockSocket.Setup(s => s.GetService<FlipTrackingService>())
-            .Returns(new FlipTrackingService(null, null, null, config.Object, null, null, null));
+            .Returns(new FlipTrackingService(null, null, config.Object, null, null, null));
         var session = new Mock<ModSessionLifesycle>(mockSocket.Object);
         session.Setup(s => s.StartTimer(It.IsAny<int>(), It.IsAny<string>()));
         var socket = new TestSocket(session.Object);
