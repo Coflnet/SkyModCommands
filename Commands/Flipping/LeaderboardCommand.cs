@@ -15,7 +15,7 @@ public class LeaderboardCommand : McCommand
     {
         if(await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
             throw new CoflnetException("forbidden", "You need to have at least premium plus to use this command");
-        var api = socket.GetService<ScoresApi>();
+        var api = socket.GetService<IScoresApi>();
         var nameApi = socket.GetService<PlayerNameApi>();
         var boardSlug = $"sky-flippers-{DateTime.UtcNow.RoundDown(TimeSpan.FromDays(7)).ToString("yyyy-MM-dd")}";
         var leaderboardData = await api.ScoresLeaderboardSlugGetAsync(boardSlug);
