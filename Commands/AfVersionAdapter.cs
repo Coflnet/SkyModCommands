@@ -7,6 +7,7 @@ using Coflnet.Sky.Api.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.FlipTracker.Client.Api;
+using Coflnet.Sky.ModCommands.Services;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
@@ -70,6 +71,14 @@ namespace Coflnet.Sky.Commands.MC
             if (flip.Finder != LowPricedAuction.FinderType.USER && flip.ProfitPercentage < minProfitPercent)
             {
                 Activity.Current?.SetTag("blocked", "profitpercent too low < " + minProfitPercent);
+                return true;
+            }
+            var preService = socket.GetService<PreApiService>();
+            if (preService.IsSold(flip.Uuid))
+            {
+                Activity.Current?.SetTag("blocked", "sold");
+                if (socket.Settings.DebugMode)
+                    socket.Dialog(db => db.Msg($"Skipped buying {flip.Auction.ItemName} for {flip.Auction.StartingBid} because it was likely already sold"));
                 return true;
             }
             return false;
@@ -222,7 +231,7 @@ namespace Coflnet.Sky.Commands.MC
                 return false;
             if (item.FlatenedNBT.ContainsKey("donated_museum"))
                 return true; // sould bound
-            // ⬇⬇ sell able items ⬇⬇
+                             // ⬇⬇ sell able items ⬇⬇
             if (socket.SessionInfo.SellAll)
                 return true;
             if (!string.IsNullOrEmpty(uid))

@@ -1,6 +1,9 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.ModCommands.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -13,6 +16,18 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
             var uuid = flip.Auction.Uuid;
+            var preService = socket.GetService<PreApiService>();
+            if (preService.IsSold(uuid) && !(socket.Settings?.ModSettings?.NormalSoldFlips ?? false))
+            {
+                var parts = await GetMessageparts(flip);
+                parts.Insert(0, new ChatPart(McColorCodes.RED + "[SOLD]",
+                                             "/viewauction " + uuid,
+                                             $"This auction has likely been sold to a {preService.SoldToTier(uuid)} user"));
+                socket.Send(Response.Create("chatMessage", parts.ToArray()));
+                Activity.Current?.AddTag("sold", "true");
+                socket.GetService<ILogger<BinGuiVersionAdapter>>().LogInformation($"Not sending flip {uuid} to {socket.SessionInfo.McName} because it was sold");
+                return true;
+            }
             long worth = GetWorth(flip);
 
             socket.Send(Response.Create("flip", new
