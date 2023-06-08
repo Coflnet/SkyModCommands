@@ -22,7 +22,7 @@ namespace Coflnet.Sky.Commands.MC
                 worth = worth,
                 sound = new { name = (string)(socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false && flip.Profit > 1_000_000 ? "note.pling" : null), pitch = 1 },
                 auction = flip.Auction,
-                target = flip.MedianPrice,
+                target = flip.Target,
                 render = Random.Shared.Next(3) switch
                 {
                     1 => "21d837ca222cbc0bc12426f5da018c3a931b406008800960a9df112a596e7d62",
