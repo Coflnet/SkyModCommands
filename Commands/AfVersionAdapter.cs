@@ -36,7 +36,7 @@ namespace Coflnet.Sky.Commands.MC
                 startingBid = flip.Auction.StartingBid,
                 purchaseAt = flip.Auction.Start + TimeSpan.FromMilliseconds(19980),
                 itemName = name,
-                target = flip.MedianPrice
+                target = flip.Target
             }));
             if (flip.Context.TryGetValue("match", out var type) && type.StartsWith("whitelist"))
             {
