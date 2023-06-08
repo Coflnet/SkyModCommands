@@ -231,9 +231,9 @@ namespace Coflnet.Sky.Commands.MC
                 return false;
             if (item.FlatenedNBT.ContainsKey("donated_museum"))
                 return true; // sould bound
-                             // ⬇⬇ sell able items ⬇⬇
+            // ⬇⬇ sell able items ⬇⬇
             if (socket.SessionInfo.SellAll)
-                return true;
+                return false;
             if (!string.IsNullOrEmpty(uid))
             {
                 List<Api.Client.Model.BidResult> purchases = await GetPurchases(apiService, uid);
