@@ -157,7 +157,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)
     {
-        var uid = item.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value?.Split('-').Last();
+        var uid = item.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid" || y.Key == "uid").Value?.Split('-').Last();
         var foundInSent = socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uid").Value == uid);
         if (foundInSent)
             return false;
