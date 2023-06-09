@@ -15,16 +15,16 @@ public class TradesCommand : McCommand
         socket.Dialog(db => db.MsgLine($"Stored trades:")
             .ForEach(transactions, (db, data) =>
             {
-                var start = "Sent";
+                var start = $" {McColorCodes.RED}-{McColorCodes.RESET}";
                 if (data.Type.Value.HasFlag(PlayerState.Client.Model.TransactionType.NUMBER_1))
-                    start = "Received";
+                    start = $" {McColorCodes.GREEN}+{McColorCodes.RESET}";
 
                 var thing = "an item";
-                if (data.ItemId != 1000001)
+                if (data.ItemId == 1000001)
                     thing = $"{socket.FormatPrice(data.Amount / 10)} coins";
                 // format for TimeSpan HH:mm:ss
                 var format = @"hh\:mm\:ss";
-                db.MsgLine($"{start} {thing}  {(DateTime.UtcNow - data.TimeStamp).ToString(format)} ago");
+                db.MsgLine($"{start} {thing} {McColorCodes.GRAY}{(DateTime.UtcNow - data.TimeStamp).ToString(format)} ago");
             }));
     }
 }
