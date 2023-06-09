@@ -90,6 +90,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 Activity.Current?.SetTag("error", "no uuid").Log(JsonConvert.SerializeObject(item.First));
                 continue;
             }
+            if(socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid))
+                continue; // ignore recently sent they are handled by the loop above
             // get target 
             var flips = await GetFlipData(await GetPurchases(apiService, uuid));
             var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
@@ -98,7 +100,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 if (!socket.SessionInfo.SellAll)
                 {
                     Activity.Current?.SetTag("state", "no sent flips").Log(JsonConvert.SerializeObject(item.First));
-                    socket.Dialog(db => db.Msg($"Found unkown item in inventory: {item.First.ItemName} {item.First.Tag} {item.First.Uuid} could have been whitelisted, please manually remove it or execute {McColorCodes.AQUA}/cofl sellinventory"));
+                    socket.Dialog(db => db.Msg($"Found unknown item in inventory: {item.First.ItemName} {item.First.Tag} {item.First.Uuid} could have been whitelisted, please manually remove it from inventory or execute {McColorCodes.AQUA}/cofl sellinventory"));
                     continue;
                 }
                 target = item.Second.Median;
