@@ -22,8 +22,9 @@ public class TradesCommand : McCommand
                 var thing = "an item";
                 if (data.ItemId != 1000001)
                     thing = $"{socket.FormatPrice(data.Amount / 10)} coins";
-
-                db.MsgLine($"{start} {thing}  {(DateTime.UtcNow - data.TimeStamp).ToString("HH:mm:ss")} ago");
+                // format for TimeSpan HH:mm:ss
+                var format = @"hh\:mm\:ss";
+                db.MsgLine($"{start} {thing}  {(DateTime.UtcNow - data.TimeStamp).ToString(format)} ago");
             }));
     }
 }
