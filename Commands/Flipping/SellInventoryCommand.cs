@@ -8,7 +8,7 @@ public class SellInventoryCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if (socket.ModAdapter is not AfVersionAdapter)
+        if (socket.ModAdapter is not AfVersionAdapter adapter)
             throw new CoflnetException("forbidden", "This command is only available with an autoflipper client");
         socket.SessionInfo.SellAll = true;
         if (socket.SessionInfo.Inventory == null)
@@ -26,5 +26,6 @@ public class SellInventoryCommand : McCommand
             socket.Dialog(db => db.MsgLine($"§7[§6§lSelling§7]§r{item.ItemName}"));
         }
         socket.Dialog(db => db.Msg("Starting to sell all items in your inventory (except armor). \nPlease make sure there is nothing in your inventory you don't want to sell (see above for list)."));
+        await adapter.TryToListAuction();
     }
 }
