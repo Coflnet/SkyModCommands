@@ -45,7 +45,8 @@ namespace Coflnet.Sky.Commands.MC
                                     .AddTag("uuid", socket.SessionInfo.McUuid)
                                     .AddTag("userId", JsonConvert.SerializeObject(socket.sessionLifesycle.AccountInfo?.Value))
                                     .AddTag("timestamp", DateTime.UtcNow.ToLongTimeString())
-                                    .AddTag("instance", System.Net.Dns.GetHostName());
+                                    .AddTag("instance", System.Net.Dns.GetHostName())
+                                    .AddTag("clientIp", socket.ClientIp);
             spanId = reportSpan?.Context.TraceId.ToString().Truncate(6);
             reportSpan.SetTag("id", spanId);
             using (var settingsSpan = socket.CreateActivity("settings", reportSpan))

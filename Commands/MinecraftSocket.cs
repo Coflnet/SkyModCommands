@@ -89,6 +89,7 @@ namespace Coflnet.Sky.Commands.MC
         public ModSessionLifesycle sessionLifesycle { get; protected set; }
 
         public static bool IsDevMode { get; } = System.Net.Dns.GetHostName().Contains("ekwav");
+        public string ClientIp => Context.Headers["X-Real-Ip"] ?? Context.UserEndPoint.Address.ToString();
 
         public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
 
