@@ -387,7 +387,15 @@ namespace Coflnet.Sky.Commands.MC
         }
         public virtual string GetAuthLink(string stringId)
         {
-            return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(stringId)}";
+            var decoded = Convert.FromBase64String(stringId);
+            var sum = 0;
+            for (int i = 0; i < 16; i++)
+            {
+                sum += decoded[i];
+            }
+            var newid = Convert.ToBase64String(decoded.Append((byte)(sum % 256) ).ToArray());
+
+            return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(newid)}";
         }
 
         public void UpdateConnectionTier(AccountInfo accountInfo, Activity span = null)
