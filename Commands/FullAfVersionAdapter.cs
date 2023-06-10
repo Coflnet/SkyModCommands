@@ -105,7 +105,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 }
                 target = item.Second.Median;
             }
-            else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-1)))
+            else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-2)))
             {
                 // all are more recent than a day, still usable
                 target = flips.Select(f => f.TargetPrice).Average();

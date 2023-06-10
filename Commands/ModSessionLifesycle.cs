@@ -88,7 +88,10 @@ namespace Coflnet.Sky.Commands.MC
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
             _ = socket.TryAsyncTimes(() => SendLoginPromptMessage(stringId), "login prompt");
             if (MinecraftSocket.IsDevMode)
+            {
+                SendMessage(COFLNET + "You are in dev mode, login link would be " + GetAuthLink(stringId));
                 await UserId.Update("1");
+            }
             if (UserId.Value == default)
             {
                 using var waitLogin = socket.CreateActivity("waitLogin", ConSpan);
@@ -393,7 +396,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 sum += decoded[i];
             }
-            var newid = Convert.ToBase64String(decoded.Append((byte)(sum % 256) ).ToArray());
+            var newid = Convert.ToBase64String(decoded.Append((byte)(sum % 256)).ToArray());
 
             return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(newid)}";
         }
