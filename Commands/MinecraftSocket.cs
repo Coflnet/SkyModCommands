@@ -199,6 +199,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<ShareItemCommand>();
             Commands.Add<ItemInfoCommand>();
             Commands.Add<SellInventoryCommand>();
+            Commands.Add<ClientErrorCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
