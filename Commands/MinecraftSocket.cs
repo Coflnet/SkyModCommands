@@ -269,7 +269,7 @@ namespace Coflnet.Sky.Commands.MC
             base.OnOpen();
             Task.Run(() =>
             {
-                using var openSpan = CreateActivity("open", ConSpan);
+                using var openSpan = CreateActivity("open", ConSpan)?.AddTag("clientIp", ClientIp);
                 try
                 {
                     StartConnection();
