@@ -64,10 +64,10 @@ public class AfVersionAdapter : ModVersionAdapter
     private bool ShouldSkipFlip(FlipInstance flip)
     {
         var purse = socket.SessionInfo.Purse;
-        if (purse != 0 && flip.Auction.StartingBid > purse / 3)
+        if (purse != 0 && flip.Auction.StartingBid > purse / 3 * 2)
         {
             Activity.Current?.SetTag("blocked", "not enough purse");
-            socket.Dialog(db => db.Msg($"Skipped buying {flip.Auction.ItemName} for {flip.Auction.StartingBid} because you only have {purse} purse left (max 1/3 used for one flip)"));
+            socket.Dialog(db => db.Msg($"Skipped buying {flip.Auction.ItemName} for {flip.Auction.StartingBid} because you only have {purse} purse left (max 2/3 used for one flip)"));
             return true;
         }
         var minProfitPercent = socket.Settings?.MinProfitPercent ?? 0;
