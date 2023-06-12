@@ -50,12 +50,12 @@ namespace Coflnet.Sky.Commands.MC
                         altExecution, $"Click to rerun {McColorCodes.AQUA}/cofl set {altExecution}"));
                     return;
                 }
-                //socket.LatestSettings.Settings.Changer = "mod-" + socket.SessionInfo.sessionId;
                 if (string.IsNullOrEmpty(socket.sessionLifesycle.UserId))
                     socket.SendMessage(new ChatPart($"{COFLNET}You are not logged in, setting will reset when you stop the connection"));
                 else
                 {
                     var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();
+                    socket.Settings.Changer = socket.SessionInfo.ConnectionId;
                     await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
                 }
                 var doc = updater.GetDocFor(name);
@@ -115,18 +115,18 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         PrintChangeCommand(socket, page, db, setting, metaData, (int)(float)setting.current, 1);
                     }
-                    if(metaData.Type == "Double")
+                    if (metaData.Type == "Double")
                     {
                         PrintChangeCommand(socket, page, db, setting, metaData, (int)(double)setting.current, 1);
                     }
-                    if(metaData.Type == "Boolean-")
+                    if (metaData.Type == "Boolean-")
                     {
                         var current = (bool)setting.current;
                         db.CoflCommand<SetCommand>($"{MC.McColorCodes.YELLOW}{McColorCodes.ITALIC}Toggle",
                         $"{page} {setting.o.Key} {!current}",
                         $"Click to set {MC.McColorCodes.AQUA}{setting.o.Key}{MC.McColorCodes.GRAY} to {MC.McColorCodes.GREEN}{!current}");
                     }
-                    if(setting.o.Key == "finders")
+                    if (setting.o.Key == "finders")
                     {
                         PrintFinderOption(page, db, setting, metaData, FinderType.SNIPER, " LBin");
                         PrintFinderOption(page, db, setting, metaData, FinderType.FLIPPER_AND_SNIPERS, " Median ");
