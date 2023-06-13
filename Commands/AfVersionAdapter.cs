@@ -19,7 +19,7 @@ public class AfVersionAdapter : ModVersionAdapter
     public override Task<bool> SendFlip(FlipInstance flip)
     {
         _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
-        if (ShouldSkipFlip(flip))
+        if (ShouldSkipFlip(flip) || ShouldStopBuying())
             return Task.FromResult(true);
         var name = flip.Auction?.Context?.GetValueOrDefault("cname") ?? flip.Auction.ItemName;
         if (flip.Auction.Count > 1)
@@ -86,6 +86,11 @@ public class AfVersionAdapter : ModVersionAdapter
                 socket.Dialog(db => db.Msg($"Skipped buying {flip.Auction.ItemName} for {flip.Auction.StartingBid} because it was likely already sold"));
             return true;
         }
+        return false;
+    }
+
+    protected virtual bool ShouldStopBuying()
+    {
         return false;
     }
 

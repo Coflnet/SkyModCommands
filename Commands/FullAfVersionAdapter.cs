@@ -115,6 +115,12 @@ public class FullAfVersionAdapter : AfVersionAdapter
             await SendListing(span, item.First, (long)target, index, uuid);
         }
     }
+    protected override bool ShouldStopBuying()
+    {
+        if(Random.Shared.NextDouble() < 0.1)
+            socket.SendMessage("§cAuction house and inventory full, paused buying");
+        return socket.SessionInfo.Inventory.Skip(10).All(x => x != null);
+    }
 
     private static string GetUuid(SaveAuction inventoryRepresent)
     {
