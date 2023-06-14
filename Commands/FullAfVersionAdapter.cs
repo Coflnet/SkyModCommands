@@ -27,10 +27,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         lastListing = DateTime.UtcNow;
         var apiService = socket.GetService<IPlayerApi>();
         var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
-        socket.Send(Response.Create("getInventory", new
-        {
-            Location = "main"
-        }));
+        RequestInventory();
         activeAuctionCount = (await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters)).Count() + 10;
         if (activeAuctionCount >= 14)
         {
@@ -111,7 +108,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 // all are more recent than a day, still usable
                 target = flips.Select(f => f.TargetPrice).Average();
                 span.Log($"Found {flips.Count} flips for target {target}");
-            } else if(flips.All(f=>f.FinderType == FlipTracker.Client.Model.FinderType.FLIPPER))
+            }
+            else if (flips.All(f => f.FinderType == FlipTracker.Client.Model.FinderType.FLIPPER))
             {
                 // very different from median, might include more, diverge from median
                 target = flips.Select(f => f.TargetPrice).Average() * 0.95;
@@ -119,11 +117,26 @@ public class FullAfVersionAdapter : AfVersionAdapter
             await SendListing(span, item.First, (long)target, index, uuid);
         }
     }
+
+    private void RequestInventory()
+    {
+        socket.Send(Response.Create("getInventory", new
+        {
+            Location = "main"
+        }));
+    }
+
     protected override bool ShouldStopBuying()
     {
-        if(Random.Shared.NextDouble() < 0.1)
-            socket.SendMessage("§cAuction house and inventory full, paused buying");
-        return socket.SessionInfo.Inventory.Skip(10).All(x => x != null);
+        var stop = socket.SessionInfo.Inventory.Skip(10).All(x => x != null);
+        if (stop)
+        {
+            if (Random.Shared.NextDouble() < 0.1)
+                socket.SendMessage("§cAuction house and inventory full, paused buying");
+            if (Random.Shared.NextDouble() < 0.3)
+                RequestInventory();
+        }
+        return stop;
     }
 
     private static string GetUuid(SaveAuction inventoryRepresent)
