@@ -111,6 +111,10 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 // all are more recent than a day, still usable
                 target = flips.Select(f => f.TargetPrice).Average();
                 span.Log($"Found {flips.Count} flips for target {target}");
+            } else if(flips.All(f=>f.FinderType == FlipTracker.Client.Model.FinderType.FLIPPER))
+            {
+                // very different from median, might include more, diverge from median
+                target = flips.Select(f => f.TargetPrice).Average() * 0.95;
             }
             await SendListing(span, item.First, (long)target, index, uuid);
         }
