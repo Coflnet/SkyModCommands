@@ -28,7 +28,7 @@ public class AfVersionAdapter : ModVersionAdapter
         {
             id = flip.Auction.Uuid,
             startingBid = flip.Auction.StartingBid,
-            purchaseAt = flip.Auction.Start + TimeSpan.FromSeconds(20) - TimeSpan.FromMilliseconds(10),
+            purchaseAt = flip.Auction.Start + TimeSpan.FromSeconds(20) - TimeSpan.FromMilliseconds(4),
             itemName = name,
             target = flip.Target
         }));
