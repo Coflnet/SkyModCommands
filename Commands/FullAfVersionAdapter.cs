@@ -85,7 +85,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (uuid == null)
             {
                 Activity.Current?.SetTag("error", "no uuid").Log(JsonConvert.SerializeObject(item.First));
-                continue;
+                await SendListing(span, item.First, (long)item.Second.Median, index, uuid);
+                return; // only list one without uuid
             }
             if (socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid))
                 continue; // ignore recently sent they are handled by the loop above
