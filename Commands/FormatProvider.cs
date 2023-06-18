@@ -71,7 +71,9 @@ namespace Coflnet.Sky.Commands.MC
             if (Settings.ModSettings == null)
                 Settings.ModSettings = new ModSettings();
 
-            Settings.GetPrice(flip, out long targetPrice, out long profit);
+            //Settings.GetPrice(flip, out long targetPrice, out long profit);
+            var profit = flip.Profit;
+            var targetPrice = flip.Target;
             var priceColor = GetProfitColor((int)profit);
             var finderType = flip.Finder switch
             {
@@ -113,14 +115,14 @@ namespace Coflnet.Sky.Commands.MC
                     FormatPrice(cost),
                     FormatPrice(targetPrice), // this is {5}
                     FormatPrice(profit),
-                    FormatPrice((profit * 100 / cost)),
+                    FormatPrice(flip.ProfitPercentage),
                     FormatPrice(flip.MedianPrice),
                     FormatPrice(flip.LowestBin ?? 0),
                     flip.Volume.ToString("0.#"),  // this is {10}
                     source
                 );
             }
-            var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice((profit * 100 / cost))}%{priceColor}" : "";
+            var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice(flip.ProfitPercentage)}%{priceColor}" : "";
 
             var builder = new StringBuilder(80);
 
