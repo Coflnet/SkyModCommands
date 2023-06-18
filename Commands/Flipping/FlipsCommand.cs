@@ -8,6 +8,11 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription("Shows your flips for the last x days", 
+    "Usage /flips [sort] [days] [page]", 
+    "Where sort is one of: profit, best, time, recent, name, price",
+    "Days is the number of days to look back",
+    "Page is the page to show (default 1)")]
 public class FlipsCommand : ReadOnlyListCommand<Shared.FlipDetails>
 {
     public override bool IsPublic => true;

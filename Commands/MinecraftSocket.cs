@@ -169,7 +169,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<PurchaseCommand>("buy");
             Commands.Add<TransactionsCommand>();
             Commands.Add<BalanceCommand>();
-            Commands.Add<HelpCommand>();
+            Commands.Add<HelpCommand>("h");
             Commands.Add<LogoutCommand>();
             Commands.Add<UpdatePurseCommand>();
             Commands.Add<UpdateServerCommand>();

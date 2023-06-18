@@ -7,6 +7,7 @@ using Coflnet.Sky.PlayerName.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription("Flippers with the most profit", "Most profit in the current week")]
 public class LeaderboardCommand : McCommand
 {
     public override bool IsPublic => true;

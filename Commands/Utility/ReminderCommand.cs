@@ -8,6 +8,10 @@ using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Manage your reminders", 
+        "Reminders are messages that will be sent to you after a certain time",
+        "to add use /cofl reminder add 1h30m <message>",
+        "to remove use /cofl reminder remove <message>")]
     public class ReminderCommand : ListCommand<Reminder, List<Reminder>>
     {
         public override bool IsPublic => true;

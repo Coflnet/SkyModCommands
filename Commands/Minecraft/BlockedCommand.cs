@@ -8,6 +8,11 @@ using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Shows you which flips were blocked and why",
+        "Usage: /cofl blocked [search]",
+        "Use this to find out why you don't get any flips",
+        "or didn't get a specific flip",
+        "Example: /cofl blocked Hyperion")]
     public class BlockedCommand : McCommand
     {
         public override bool IsPublic => true;

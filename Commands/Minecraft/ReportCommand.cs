@@ -11,6 +11,12 @@ using Coflnet.Sky.PlayerState.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Reports an issue to the developer", 
+        "/cofl report <message>",
+        "When executed returns you a case id.",
+        "Please use that id to post into the bug report channel on discord.",
+        "Isses can be fixed very quickly if",
+        "you include as much information as possible.")]
     public class ReportCommand : McCommand
     {
         public override bool IsPublic => true;

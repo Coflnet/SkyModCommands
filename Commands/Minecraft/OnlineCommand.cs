@@ -7,6 +7,7 @@ using System;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Shows the number of players online")]
     public class OnlineCommand : McCommand
     {
         public override bool IsPublic => true;

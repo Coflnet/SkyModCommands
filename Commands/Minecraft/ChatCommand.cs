@@ -10,6 +10,11 @@ using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
 {
+
+    [CommandDescription("Writes a message to the chat", 
+        "Alias /fc <msg>", 
+        "Writes a message to the cofl chat", 
+        "Be nice and don't advertise or you may get muted")]
     public class ChatCommand : McCommand
     {
         static ChatService chat;

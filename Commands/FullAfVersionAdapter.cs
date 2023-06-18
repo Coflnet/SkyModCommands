@@ -129,7 +129,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     protected override bool ShouldStopBuying()
     {
-        var stop = socket.SessionInfo.Inventory.Skip(10).All(x => x != null);
+        var stop = socket.SessionInfo.Inventory?.Skip(10).All(x => x != null) ?? false;
         if (stop)
         {
             if (Random.Shared.NextDouble() < 0.1)

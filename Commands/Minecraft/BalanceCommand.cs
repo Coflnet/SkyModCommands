@@ -3,6 +3,7 @@ using Coflnet.Payments.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Check how many CoflCoins you have")]
     public class BalanceCommand : McCommand
     {
         public override bool IsPublic => true;

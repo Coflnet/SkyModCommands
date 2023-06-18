@@ -5,6 +5,11 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
+
+    [CommandDescription("Mutes a user", 
+        "Muting an user will hide their chat messages from you",
+        "This does not prevent their auctions from showing up as flips",
+        "For that use /cl bl add Seller=PlayerName")]
     public class MuteCommand : McCommand
     {
         public override bool IsPublic => true;

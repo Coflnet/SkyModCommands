@@ -8,6 +8,9 @@ using RestSharp;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Import blacklists from tfm", 
+        "Usage: /cofl importtfm <identifier> <userName>",
+        "where <identifier> is one of user, enchant or item (counter part to /tfm export <identifier>)")]
     public class ImportTfmCommand : McCommand
     {
         public override bool IsPublic => true;

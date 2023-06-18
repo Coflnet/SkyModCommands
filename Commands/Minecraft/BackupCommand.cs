@@ -8,6 +8,10 @@ using Coflnet.Sky.ModCommands.Models;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Create a backup of your settings", 
+        "to create use /cofl backup add <name>",
+        "to restore use /cofl restore <name>", 
+        "You can create up to 3 backups")]
     public class BackupCommand : ListCommand<BackupEntry, List<BackupEntry>>
     {
         public override bool IsPublic => true;

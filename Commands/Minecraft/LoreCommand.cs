@@ -7,6 +7,9 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Change whats appended to item lore", 
+        "Displays a chat menu to modify whats put in what line",
+        "Some options may take longer to load than others")]
     public class LoreCommand : McCommand
     {
         public override bool IsPublic => true;

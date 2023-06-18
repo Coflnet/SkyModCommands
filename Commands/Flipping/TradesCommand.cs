@@ -4,6 +4,10 @@ using Coflnet.Sky.PlayerState.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription("Recorded item movements (WIP)", 
+    "Shows you item movements the mod detected",
+    "Targets recoginizing more kinds of flips",
+    "Eg. lowballing through trade menu")]
 public class TradesCommand : McCommand
 {
     public override bool IsPublic => true;

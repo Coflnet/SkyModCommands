@@ -6,6 +6,7 @@ namespace Coflnet.Sky.Commands.MC;
 /// <summary>
 /// Toggles flipping on or off
 /// </summary>
+[CommandDescription("Toggles flipping on or off", "Usage: /cl flip <never|always>")]
 public class FlipCommand : McCommand
 {
     public override bool IsPublic => true;

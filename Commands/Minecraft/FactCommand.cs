@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Gives you a random fact")]
     public class FactCommand : McCommand
     {
         public override bool IsPublic => true;

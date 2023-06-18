@@ -112,6 +112,14 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 builder(this);
             return this;
         }
+        public DialogBuilder If(Func<bool> condition, Action<DialogBuilder> builder, Action<DialogBuilder> elseBuilder)
+        {
+            if(condition())
+                builder(this);
+            else
+                elseBuilder(this);
+            return this;
+        }
 
         /// <summary>
         /// Creates a onclik to another command

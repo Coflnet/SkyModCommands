@@ -6,6 +6,13 @@ using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Solve a captcha",
+        "You will be asked to solve a captcha if you are afk for too long",
+        "You can also use this command to get a new captcha",
+        "Example: /cl captcha another",
+        "Use /cl captcha vertical to letters below each other",
+        "Which helps if you have a mod with different font",
+        "Captchas are necesary to prevent bots from using the flipper")]
     public class CaptchaCommand : McCommand
     {
         public override bool IsPublic => true;

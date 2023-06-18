@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC;
+[CommandDescription("Pre api submenu", "Usage: /cofl preapi <notify|profit>")]
 public class PreApiCommand : McCommand
 {
     public override bool IsPublic => true;

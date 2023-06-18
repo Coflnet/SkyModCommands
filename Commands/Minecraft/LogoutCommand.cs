@@ -3,6 +3,9 @@ using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("logout all minecraft accounts", 
+        "Security command in case you think",
+        "someone else has access to your account")]
     public class LogoutCommand : McCommand
     {
         public override bool IsPublic => true;

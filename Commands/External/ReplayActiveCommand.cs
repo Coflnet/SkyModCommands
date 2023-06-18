@@ -5,6 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription("Replay all active auctions against your filter", 
+    "Useful to recheck auctions that have been listed",
+    "while you were offline",
+    "This will take a while", 
+    "to dearchive all active auctions")]
 public class ReplayActiveCommand : McCommand
 {
     public override bool IsPublic => true;

@@ -6,6 +6,12 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
+
+    [CommandDescription("Start purchase of a paid plan", 
+        "To buy a plan use /cofl buy <plan> [count]", 
+        "Allows you to buy premium and other plans", 
+        "Buy premium to support the server <3", 
+        "Example /cofl buy premium+ 3")]
     public class PurchaseCommand : McCommand
     {
         public override bool IsPublic => true;

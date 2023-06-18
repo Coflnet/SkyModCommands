@@ -7,6 +7,9 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Past /cofl buy transactions", 
+        "A list of transactions of CoflCoins",
+        "Allows you to check where they came from and went to")]
     public class TransactionsCommand : ReadOnlyListCommand<ExternalTransaction>
     {
         public override bool IsPublic => true;

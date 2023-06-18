@@ -9,6 +9,9 @@ using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("List filters and their options",
+        "Supports pages and search",
+        "Example: /cl filters sharpness")]
     public class FiltersCommand : ReadOnlyListCommand<FilterOptions>
     {
         public override bool IsPublic => true;

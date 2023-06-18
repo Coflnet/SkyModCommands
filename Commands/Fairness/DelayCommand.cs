@@ -7,6 +7,13 @@ using Coflnet.Sky.ModCommands.Tutorials;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Shows your current delay", 
+        "To allow everyone to get some flips, each",
+        "user gets delayed when he is found to buy too fast",
+        "The delay decreases over time",
+        "and is not fully applied to all flips",
+        "You can reduce this by buying slower",
+        "Very high profit flips are excepted from this")]
     public class DelayCommand : McCommand
     {
         public override bool IsPublic => true;

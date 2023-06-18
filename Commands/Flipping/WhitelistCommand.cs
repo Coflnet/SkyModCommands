@@ -4,6 +4,11 @@ using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription("Manage your whitelist", 
+        "to add use /cl wl add <item> [filterName=Value]",
+        "Allows you to skip entries on your blacklist",
+        "Whitelist only things you definetly want to see",
+        "Example /cl wl add Hyperion StartingBid=<50m")]
     public class WhitelistCommand : BlacklistCommand
     {
         public override bool IsPublic => true;
