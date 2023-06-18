@@ -7,7 +7,7 @@ using Coflnet.Sky.Core;
 namespace Coflnet.Sky.Commands.MC
 {
 
-    [CommandDescription("Shows you how much profit you made through flipping", 
+    [CommandDescription("How much profit you made through flipping", 
         "Usage: /cl profit {days}",
         "The default is 7 days",
         "Flip tracking includes modifications to items and craft flips")]

@@ -72,11 +72,14 @@ public class HelpCommand : McCommand
             Console.WriteLine($"{item.Key} {item.First().description}");
         }
         var toDisplay = withDescription.Skip(page * pageSize).Take(pageSize);
-        socket.Dialog(d => d.MsgLine($"AvailableCommands are (page {(page + 1)}/{withDescription.Count() / pageSize}):")
+        var pageToNavigateTo = page + 2;
+        if(pageToNavigateTo > withDescription.Count() / pageSize)
+            pageToNavigateTo = 1;
+        socket.Dialog(d => d.CoflCommand<HelpCommand>($"AvailableCommands are (page {(page + 1)}/{withDescription.Count() / pageSize}):\n", "c " + pageToNavigateTo, "click to get next page")
             .ForEach(toDisplay, (db, c) =>
                 db.If(() => c.Count() == 1,
-                    db => FormatLine(c, $"{McColorCodes.AQUA}{c.First().Key}{McColorCodes.GRAY} -", db),
-                    db => FormatLine(c, $"{McColorCodes.AQUA}{c.First().Key}{McColorCodes.GRAY} ({c.Last().Key}) -", db)
+                    db => FormatLine(c, $" {McColorCodes.AQUA}{c.First().Key}{McColorCodes.GRAY} -", db),
+                    db => FormatLine(c, $" {McColorCodes.AQUA}{c.First().Key}{McColorCodes.GRAY} ({c.Last().Key}) -", db)
             )));
 
         static ModCommands.Dialogs.DialogBuilder FormatLine(IGrouping<McCommand, (string Key, McCommand Command, string description)> c, string startText, ModCommands.Dialogs.DialogBuilder db)
