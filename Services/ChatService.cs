@@ -64,7 +64,8 @@ public class ChatService
         try
         {
             var chatMsg = new Chat.Client.Model.ChatMessage(
-                message.SenderUuid, message.SenderName,
+                message.SenderUuid ?? throw new CoflnetException("invalid_sender", "Sender uuid is null"), 
+                message.SenderName,
                 message.Tier switch
                 {
                     AccountTier.SUPER_PREMIUM => McColorCodes.RED,
@@ -74,7 +75,7 @@ public class ChatService
                     _ => McColorCodes.GRAY
                 },
                 message.Message);
-            Activity.Current.Log("sending to service");
+            Activity.Current?.Log("sending to service");
             await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
             return;
         }

@@ -65,6 +65,11 @@ namespace Coflnet.Sky.Commands.MC
         private static async Task UpdateSellerAuction(MinecraftSocket socket, string secondLine)
         {
             var name = Regex.Match(secondLine, @"from (\[.*\] |)(.*)'s auction!").Groups[2];
+            if(string.IsNullOrEmpty(name.Value))
+            {
+                Activity.Current?.Log("no name found in " + secondLine);
+                return;
+            }
             Activity.Current?.Log("claiming " + name.Value);
             var uuid = await socket.GetPlayerUuid(name.Value);
             var baseApi = socket.GetService<IBaseApi>();
