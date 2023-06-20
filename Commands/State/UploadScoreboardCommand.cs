@@ -16,7 +16,7 @@ public class UploadScoreboardCommand : McCommand
         var isRift = false;
         foreach (var item in args)
         {
-            if(item.Contains("SKYBLOCK GUEST"))
+            if (item.Contains("SKYBLOCK GUEST"))
                 return; // can't determine mode when visiting
             if (item.Contains("♲"))
                 isIronman = true;
@@ -26,10 +26,13 @@ public class UploadScoreboardCommand : McCommand
                 isStranded = true;
             if (item.Contains("the catacombs"))
                 isDungeon = true;
-            if(item.Contains("Motes:"))
+            if (item.Contains("Motes:") || item.Contains("The Rift"))
+            {
+                System.Console.WriteLine("Rift detected");
                 isRift = true;
-            if(item.StartsWith("Purse:"))
-                await new UpdatePurseCommand().Execute(socket,item.Substring(7).Replace(",","").Split(" ")[0]);
+            }
+            if (item.StartsWith("Purse:"))
+                await new UpdatePurseCommand().Execute(socket, item.Substring(7).Replace(",", "").Split(" ")[0]);
         }
         var wasNotFlippable = socket.SessionInfo.IsNotFlipable;
         socket.SessionInfo.IsIronman = isIronman;
