@@ -54,11 +54,12 @@ namespace Coflnet.Sky.Commands.MC
         public bool IsBingo { get; internal set; }
         public bool IsStranded { get; internal set; }
         public bool IsDungeon { get; internal set; }
+        public bool IsRift { get; internal set; }
         public bool IsMacroBot { get; set; }
 
         public CaptchaInfo captchaInfo = new();
 
-        public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon;
+        public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon || IsRift;
 
         public List<SaveAuction> Inventory { get; set; }
         public bool SellAll;
