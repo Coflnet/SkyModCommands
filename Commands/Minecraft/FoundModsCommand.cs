@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -13,8 +14,11 @@ public class FoundModsCommand : McCommand
         if (current != "optifine" && current != "vertical" && mods.FileNames.Any(n => n.ToLower().Contains("optifine")))
         {
             socket.AccountInfo.CaptchaType = "optifine";
+            Activity.Current.Log("Changed captcha type because you use optifine");
             socket.Dialog(db => db.Msg("Changed captcha type because you use optifine"));
         }
+        else
+            Activity.Current.Log("No optifine found");
         return Task.CompletedTask;
     }
 
