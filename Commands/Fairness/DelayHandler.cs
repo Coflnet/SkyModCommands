@@ -142,7 +142,7 @@ public class DelayHandler
             if (currentDelay > MaxSuperPremiumDelay)
                 currentDelay = MaxSuperPremiumDelay;
             macroPenalty *= (1 - DelayReduction);
-            if (!breakdown.Buys.Values.Any(b => b > accountInfo.Value.ExpiresAt - TimeSpan.FromHours(1)))
+            if (!breakdown.Buys.Values.Any(b => b > accountInfo.Value.ExpiresAt - TimeSpan.FromMinutes(4)))
             {
                 currentDelay = TimeSpan.Zero;
                 macroPenalty = TimeSpan.Zero;
