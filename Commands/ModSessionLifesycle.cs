@@ -415,20 +415,21 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage(COFLNET + "you currently don't receive flips because you disabled them", "/cofl set disableflips false", "click to enable");
                 return;
             }
+            var tier = accountInfo.Tier;
             if (accountInfo.ExpiresAt < DateTime.UtcNow)
-                accountInfo.Tier--;
+                tier = AccountTier.NONE;
             var flipperService = socket.GetService<FlipperService>();
-            if (accountInfo.Tier == AccountTier.NONE)
+            if (tier == AccountTier.NONE)
                 flipperService.AddNonConnection(socket, false);
-            if (accountInfo.Tier == AccountTier.PREMIUM)
+            if (tier == AccountTier.PREMIUM)
                 flipperService.AddConnection(socket, false);
-            else if (accountInfo.Tier == AccountTier.PREMIUM_PLUS)
+            else if (tier == AccountTier.PREMIUM_PLUS)
             {
                 flipperService.AddConnectionPlus(socket, false);
             }
-            else if (accountInfo.Tier == AccountTier.STARTER_PREMIUM)
+            else if (tier == AccountTier.STARTER_PREMIUM)
                 flipperService.AddStarterConnection(socket, false);
-            else if (accountInfo.Tier == AccountTier.SUPER_PREMIUM)
+            else if (tier == AccountTier.SUPER_PREMIUM)
             {
                 DiHandler.GetService<PreApiService>().AddUser(socket, accountInfo.ExpiresAt);
                 flipperService.AddConnectionPlus(socket, false);
@@ -487,8 +488,6 @@ namespace Coflnet.Sky.Commands.MC
 
                     UpdateConnectionTier(AccountInfo, span);
                 }
-                if (blockedFlipFilterCount > 1000)
-                    span.SetTag("error", true);
                 SendReminders();
                 socket.TryAsyncTimes(async () =>
                 {
@@ -497,6 +496,8 @@ namespace Coflnet.Sky.Commands.MC
                 }, "adjust temp filters", 1);
 
                 UpdateConnectionIfNoFlipSent(span);
+                if (AccountInfo.Value?.ExpiresAt < DateTime.UtcNow && AccountInfo.Value?.ExpiresAt > DateTime.UtcNow - TimeSpan.FromMinutes(2))
+                    UpdateConnectionTier(AccountInfo, span);
             }
             catch (System.InvalidOperationException)
             {
