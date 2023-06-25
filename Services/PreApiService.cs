@@ -173,6 +173,8 @@ public class PreApiService : BackgroundService
     {
         if (e.Auction?.Context?.ContainsKey("cname") ?? false)
             e.Auction.Context["cname"] += McColorCodes.DARK_GRAY + ".";
+        if(PreApiUserCount == 0)
+            return e;
 
         var tilPurchasable = e.Auction.Start + TimeSpan.FromSeconds(19.9) - DateTime.UtcNow;
         if (tilPurchasable < TimeSpan.Zero)
