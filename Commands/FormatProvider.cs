@@ -85,6 +85,11 @@ namespace Coflnet.Sky.Commands.MC
                 _ => "FLIP"
             };
             var a = flip.Auction;
+            string itemName = flip.Auction?.Context?.ContainsKey("cname") ?? false ? flip.Auction.Context["cname"] : $"{GetRarityColor(a.Tier)}{a.ItemName}";
+            if(Settings.ModSettings.ShortNames)
+            {
+                itemName = ItemReferences.RemoveReforge(itemName);
+            }
             var cost = a.HighestBidAmount == 0 ? a.StartingBid : a.HighestBidAmount;
             if (!string.IsNullOrWhiteSpace(Settings.ModSettings?.Format) && flip.Auction.Context != null)
             {
@@ -110,7 +115,7 @@ namespace Coflnet.Sky.Commands.MC
                 return String.Format(Settings.ModSettings.Format,
                     finderType,
                     GetRarityColor(a.Tier),
-                    flip.Auction.Context.ContainsKey("cname") ? flip.Auction.Context["cname"] : a.ItemName,
+                    itemName,
                     priceColor,
                     FormatPrice(cost),
                     FormatPrice(targetPrice), // this is {5}
@@ -125,8 +130,6 @@ namespace Coflnet.Sky.Commands.MC
             var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice(flip.ProfitPercentage)}%{priceColor}" : "";
 
             var builder = new StringBuilder(80);
-
-            string itemName = flip.Auction?.Context?.ContainsKey("cname") ?? false ? flip.Auction.Context["cname"] : $"{GetRarityColor(a.Tier)}{a.ItemName}";
 
             builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(cost)} -> {FormatPrice(targetPrice)} ");
             try
