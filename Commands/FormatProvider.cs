@@ -88,7 +88,11 @@ namespace Coflnet.Sky.Commands.MC
             string itemName = flip.Auction?.Context?.ContainsKey("cname") ?? false ? flip.Auction.Context["cname"] : $"{GetRarityColor(a.Tier)}{a.ItemName}";
             if(Settings.ModSettings.ShortNames)
             {
-                itemName = ItemReferences.RemoveReforge(itemName);
+                foreach (var item in ItemReferences.reforges)
+                {
+                    if(itemName.Contains(item))
+                        itemName = itemName.Replace(item, "");
+                }
             }
             var cost = a.HighestBidAmount == 0 ? a.StartingBid : a.HighestBidAmount;
             if (!string.IsNullOrWhiteSpace(Settings.ModSettings?.Format) && flip.Auction.Context != null)
