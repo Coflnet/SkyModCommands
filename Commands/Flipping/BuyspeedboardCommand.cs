@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.Commands.MC;
 
-[CommandDescription("Fastest buying players", "Ranked by milliseconds after grace period", "resets weekly", "you can opt out of showing up", "with §b/cl buyspeed disable")]
+[CommandDescription("Fastest buying players", "Ranked by milliseconds after grace period", "resets weekly", "you can opt out of showing up", "with §b/cl buyspeedboard disable")]
 public class BuyspeedboardCommand : LeaderboardCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
@@ -15,18 +15,24 @@ public class BuyspeedboardCommand : LeaderboardCommand
             throw new CoflnetException("forbidden", "You need to be verified to use this command");
         if (arguments.Trim('"') == "disable")
         {
-            await OptOutOfBuyspeed(socket);
-            socket.Dialog(db => db.MsgLine("Disabled buyspeedboard"));
+            await DisableBuySpeedBoard(socket);
+            socket.Dialog(db => db.MsgLine("Disabled showing on buyspeedboard, you can enable it again with §b/cl buyspeedboard enable"));
+            return;
+        }
+        if(arguments.Trim('"') == "enable")
+        {
+            await DisableBuySpeedBoard(socket, null);
+            socket.Dialog(db => db.MsgLine("Enabled showing on buyspeedboard"));
             return;
         }
         await base.Execute(socket, arguments);
     }
 
-    public static async Task OptOutOfBuyspeed(MinecraftSocket socket)
+    public static async Task DisableBuySpeedBoard(MinecraftSocket socket, string setting = "true")
     {
         try
         {
-            await socket.GetService<ISettingsApi>().SettingsUserIdSettingKeyPostAsync(socket.SessionInfo.McUuid, "disable-buy-speed-board", "true");
+            await socket.GetService<ISettingsApi>().SettingsUserIdSettingKeyPostAsync(socket.SessionInfo.McUuid, "disable-buy-speed-board", setting);
         }
         catch (Exception e)
         {

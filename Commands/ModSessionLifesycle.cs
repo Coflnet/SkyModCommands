@@ -437,7 +437,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(McColorCodes.GRAY + "speedup enabled, remaining " + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("g"));
             }
             if(tier > AccountTier.NONE && accountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(1))
-                _ = BuyspeedboardCommand.OptOutOfBuyspeed(socket);
+                _ = BuyspeedboardCommand.DisableBuySpeedBoard(socket);
         }
 
 
