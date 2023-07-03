@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription("Fastest buying players", "Ranked by milliseconds after grace period", "resets weekly", "you can opt out of showing up", "with §b/cl buyspeed disable")]
 public class BuyspeedboardCommand : LeaderboardCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
