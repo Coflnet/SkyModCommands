@@ -90,8 +90,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 foreach (var item in ItemReferences.reforges)
                 {
-                    if(itemName.Contains(item))
-                        itemName = itemName.Replace(item, "");
+                    if(itemName.ToLower().Contains(item))
+                        itemName = itemName.Replace(item, "", true, CultureInfo.InvariantCulture);
                 }
             }
             var cost = a.HighestBidAmount == 0 ? a.StartingBid : a.HighestBidAmount;
