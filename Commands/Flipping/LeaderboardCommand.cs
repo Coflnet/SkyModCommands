@@ -18,7 +18,7 @@ public class LeaderboardCommand : McCommand
             throw new CoflnetException("forbidden", "You need to have at least premium plus to use this command");
         var api = socket.GetService<IScoresApi>();
         var nameApi = socket.GetService<PlayerNameApi>();
-        var boardSlug = $"sky-flippers-{DateTime.UtcNow.RoundDown(TimeSpan.FromDays(7)).ToString("yyyy-MM-dd")}";
+        string boardSlug = GetBoardName();
         int.TryParse(arguments.Trim('"'), out var page);
         var ownTask = api.ScoresLeaderboardSlugUserUserIdRankGetAsync(boardSlug, socket.SessionInfo.McUuid);
         var leaderboardData = await api.ScoresLeaderboardSlugGetAsync(boardSlug, page * 10, 10);
@@ -29,5 +29,10 @@ public class LeaderboardCommand : McCommand
             var displayName = names.Where(n => n.Key == data.UserId).Select(d => d.Value).FirstOrDefault() ?? "unknown";
             db.MsgLine($"§6{socket.FormatPrice(data.Score)} §7{(displayName)}", $"https://sky.coflnet.com/player/{data.UserId}/flips", "See flips");
         }).MsgLine($"You are rank: §6{socket.FormatPrice(rank)}"));
+    }
+
+    protected virtual string GetBoardName()
+    {
+        return $"sky-flippers-{DateTime.UtcNow.RoundDown(TimeSpan.FromDays(7)).ToString("yyyy-MM-dd")}";
     }
 }
