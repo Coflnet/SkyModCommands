@@ -1,6 +1,8 @@
 using System;
 using System.Threading.Tasks;
+using Coflnet.Leaderboard.Client.Model;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Settings.Client.Api;
 using Microsoft.Extensions.Logging;
 
@@ -26,6 +28,12 @@ public class BuyspeedboardCommand : LeaderboardCommand
             return;
         }
         await base.Execute(socket, arguments);
+    }
+
+
+    protected override void PrintLine(MinecraftSocket socket, DialogBuilder db, BoardScore data, string displayName)
+    {
+        db.MsgLine($"{McColorCodes.RED}{socket.FormatPrice(-data.Score)}ms §7{(displayName)}", $"https://sky.coflnet.com/player/{data.UserId}/flips", "See flips");
     }
 
     public static async Task DisableBuySpeedBoard(MinecraftSocket socket, string setting = "true")

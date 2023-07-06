@@ -2,7 +2,9 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Leaderboard.Client.Api;
+using Coflnet.Leaderboard.Client.Model;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.PlayerName.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -27,8 +29,13 @@ public class LeaderboardCommand : McCommand
         socket.Dialog(db => db.MsgLine($"Top players for this week:").ForEach(leaderboardData, (db, data) =>
         {
             var displayName = names.Where(n => n.Key == data.UserId).Select(d => d.Value).FirstOrDefault() ?? "unknown";
-            db.MsgLine($"§6{socket.FormatPrice(data.Score)} §7{(displayName)}", $"https://sky.coflnet.com/player/{data.UserId}/flips", "See flips");
+            PrintLine(socket, db, data, displayName);
         }).MsgLine($"You are rank: §6{socket.FormatPrice(rank)}"));
+    }
+
+    protected virtual void PrintLine(MinecraftSocket socket, DialogBuilder db, BoardScore data, string displayName)
+    {
+        db.MsgLine($"§6{socket.FormatPrice(data.Score)} §7{(displayName)}", $"https://sky.coflnet.com/player/{data.UserId}/flips", "See flips");
     }
 
     protected virtual string GetBoardName()
