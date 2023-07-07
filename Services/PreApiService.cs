@@ -351,8 +351,8 @@ public class PreApiService : BackgroundService
                     return;
                 logger.LogInformation($"skipcheck Changing used uuid to {buyer} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid}");
                 connection.SessionInfo.MinecraftUuids.Add(buyer);
-                logger.LogInformation($"skipcheck Found {sim.BoughtCount} {sim.TargetReceived} similar buys from {sim.PlayerId} for {buyerUid} {connectedUid} connected as {connection.SessionInfo.McName}");
-                if (sim.BoughtCount > 25 && sim.BoughtCount - sim.TargetReceived <= 1)
+                logger.LogInformation($"skipcheck Found {sim.BoughtCount} {sim.TargetReceived} similar buys from {simPlayerId} for {buyerUid} {connectedUid} connected as {connection.SessionInfo.McName}");
+                if (sim.BoughtCount > 25 && Math.Abs(sim.BoughtCount - sim.TargetReceived) <= 1 && simPlayerId == buyerUid)
                 {
                     logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} by {buyer} for {flip.Auction.Uuid}");
                     connection.AccountInfo.McIds.Add(buyer);
