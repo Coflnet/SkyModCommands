@@ -62,6 +62,8 @@ namespace Coflnet.Sky.Commands.MC
                     var connected = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
                     if (connected.IsConnected)
                         return;
+                    accountInfo.McIds.Remove(mcUuid);
+                    await socket.sessionLifesycle.AccountInfo.Update(accountInfo);
                     using var failSpan = socket.CreateActivity("verifyFail", ConSpan);
                     socket.Dialog(db => db.MsgLine("There was an account verification missmatch. Everything is fine for you but you can't receive tfm balance. Please click this message and then ping Äkwav on the support discord with the printed code.", "/cofl report mcaccount link"));
                     failSpan.AddTag("verified", "missmatch");
