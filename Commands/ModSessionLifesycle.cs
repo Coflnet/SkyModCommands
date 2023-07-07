@@ -695,7 +695,7 @@ namespace Coflnet.Sky.Commands.MC
             if (sumary.MacroWarning)
             {
                 using var span = socket.CreateActivity("macroWarning", ConSpan).AddTag("name", SessionInfo.McName);
-                SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
+      //          SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
             }
         }
 
