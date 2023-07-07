@@ -173,7 +173,7 @@ public class PreApiService : BackgroundService
     {
         if (e.Auction?.Context?.ContainsKey("cname") ?? false)
             e.Auction.Context["cname"] += McColorCodes.DARK_GRAY + ".";
-        if(PreApiUserCount == 0)
+        if (PreApiUserCount == 0)
             return e;
 
         var tilPurchasable = e.Auction.Start + TimeSpan.FromSeconds(19.9) - DateTime.UtcNow;
@@ -300,8 +300,8 @@ public class PreApiService : BackgroundService
         var priceString = match.Groups[2].Value;
         var price = double.Parse(priceString, NumberStyles.Number, CultureInfo.InvariantCulture);
         var flips = connection.LastSent.OrderByDescending(s => s.Auction.Start)
-            .Where(f => f.Auction.ItemName == itemName 
-                    && f.Auction.StartingBid == price 
+            .Where(f => f.Auction.ItemName == itemName
+                    && f.Auction.StartingBid == price
                     && f.Auction.Start > DateTime.UtcNow.AddMinutes(-2));
         if (flips.Count() == 1)
         {
@@ -311,7 +311,7 @@ public class PreApiService : BackgroundService
             PublishSell(uuid, connection.UserAccountTier().Result);
             CheckHighProfitpurchaser(connection, flip);
             flipsPurchased.Inc();
-            if(connection.AccountInfo.Tier >= AccountTier.SUPER_PREMIUM)
+            if (connection.AccountInfo.Tier >= AccountTier.SUPER_PREMIUM)
                 preApiFlipPurchased.Inc();
         }
         else
@@ -340,17 +340,19 @@ public class PreApiService : BackgroundService
             }
             if (buyer == connection.SessionInfo.McUuid)
                 return;
-            logger.LogInformation($"skipcheck Changing used uuid to {buyer} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid}");
             var connectedFrom = connection.SessionInfo.McUuid;
-            connection.SessionInfo.MinecraftUuids.Add(buyer);
             try
             {
                 var sim = await connection.GetService<FlipTracker.Client.Api.IAnalyseApi>().PlayerPlayerIdAlternativeGetAsync(buyer, 1);
                 var simPlayerId = long.Parse(sim.PlayerId);
                 var connectedUid = AuctionService.Instance.GetId(connectedFrom);
                 var buyerUid = AuctionService.Instance.GetId(buyer);
+                if (sim.BoughtCount < 20)
+                    return;
+                logger.LogInformation($"skipcheck Changing used uuid to {buyer} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid}");
+                connection.SessionInfo.MinecraftUuids.Add(buyer);
                 logger.LogInformation($"skipcheck Found {sim.BoughtCount} {sim.TargetReceived} similar buys from {sim.PlayerId} for {buyerUid} {connectedUid} connected as {connection.SessionInfo.McName}");
-                if (sim.BoughtCount > 20 && sim.BoughtCount - sim.TargetReceived < 5 && simPlayerId == connectedUid)
+                if (sim.BoughtCount > 25 && sim.BoughtCount - sim.TargetReceived <= 1)
                 {
                     logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} by {buyer} for {flip.Auction.Uuid}");
                     connection.AccountInfo.McIds.Add(buyer);
