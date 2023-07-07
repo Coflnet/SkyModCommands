@@ -276,6 +276,9 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     ReportCommand.TryAddingAllSettings(socket, slowSpan);
                 }
+
+                if (flip.TargetPrice - flip.Auction.StartingBid > 10_000_000)
+                    socket.GetService<PreApiService>().CheckHighProfitpurchaser(socket, flip);
             }, "tracking flip");
         }
 

@@ -318,7 +318,7 @@ public class PreApiService : BackgroundService
             logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");
     }
 
-    private void CheckHighProfitpurchaser(IMinecraftSocket connection, LowPricedAuction flip)
+    public void CheckHighProfitpurchaser(IMinecraftSocket connection, LowPricedAuction flip)
     {
         if (flip.TargetPrice - flip.Auction.StartingBid < 3_000_000)
             return;
