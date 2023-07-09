@@ -355,6 +355,9 @@ public class PreApiService : BackgroundService
                     connection.SessionInfo.MinecraftUuids.Add(buyer);
                 var hasMostSimilarBoughtThatAuction = simPlayerId == buyerUid;
                 var didMostSimilarBuyLittleToNoAuctions = sim.SelfBought < 2;
+                var isSimilarConnected = simPlayerId == connectedUid;
+                if(isSimilarConnected)
+                    logger.LogInformation($"skipcheck !! {connection.SessionInfo.McName} {connection.SessionInfo.McUuid} is similar connected to {buyer} {buyerUid}");
                 if (sim.BoughtCount > 25 && Math.Abs(sim.BoughtCount - sim.TargetReceived) <= 1 && hasMostSimilarBoughtThatAuction && didMostSimilarBuyLittleToNoAuctions)
                 {
                     logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} by {buyer} for {flip.Auction.Uuid}");
