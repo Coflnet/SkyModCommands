@@ -41,6 +41,8 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + $"While using {McColorCodes.RED}pre api{DEFAULT_COLOR} your delay increases {McColorCodes.GREEN}{DelayHandler.DelayReduction * 100}% slower{DEFAULT_COLOR} "
                     + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
                     null, "Enjoy flipping at high speed☻");
+            
+            socket.RecheckVerifiedAccounts();
             await socket.TriggerTutorial<DelayTutorial>();
             if (delayAmount >= TimeSpan.FromSeconds(1))
             {

@@ -378,6 +378,22 @@ namespace Coflnet.Sky.Commands.MC
             }, new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token).ConfigureAwait(false);
         }
 
+        public void RecheckVerifiedAccounts()
+        {
+            _ = TryAsyncTimes(async () =>
+            {
+                foreach (var item in AccountInfo.McIds)
+                {
+                    var connectedCheck = await McAccountService.Instance.ConnectAccount(UserId, item);
+                    if (connectedCheck.IsConnected)
+                        continue;
+                    AccountInfo.McIds.Remove(item);
+                    await sessionLifesycle.AccountInfo.Update(AccountInfo);
+                    Dialog(db => db.MsgLine($"Removed an invalid account from your connected accounts. We are sorry for the inconvenience caused by us working hard to find abusive users"));
+                }
+            }, "rechecking verification");
+        }
+
         public async Task<string> GetPlayerName(string uuid)
         {
             return await Shared.DiHandler.GetService<PlayerName.PlayerNameService>()

@@ -349,10 +349,7 @@ public class PreApiService : BackgroundService
                 var buyerUid = AuctionService.Instance.GetId(buyer);
                 if (sim.BoughtCount < 20)
                     return;
-                logger.LogInformation($"skipcheck Changing used uuid to {buyer} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid}");
-                logger.LogInformation($"skipcheck Found {sim.BoughtCount} {sim.TargetReceived} similar buys from {simPlayerId} for {buyerUid} {connectedUid} connected as {connection.SessionInfo.McName} {sim.SelfBought}");
-                if (sim.SelfBought < 2)
-                    connection.SessionInfo.MinecraftUuids.Add(buyer);
+                logger.LogInformation($"skipcheck Found {sim.BoughtCount} {sim.TargetReceived} similar buys from {simPlayerId}={connectedUid} for {buyerUid}  connected as {connection.SessionInfo.McName} {sim.SelfBought}");
                 var didMostSimilarBuyLittleToNoAuctions = sim.SelfBought < 2;
                 var isSimilarConnected = simPlayerId == connectedUid;
                 if(isSimilarConnected)
@@ -363,6 +360,7 @@ public class PreApiService : BackgroundService
                     connection.AccountInfo.McIds.Add(buyer);
                     connection.SessionInfo.McUuid = buyer;
                     connection.SessionInfo.VerifiedMc = false;
+                    connection.SessionInfo.MinecraftUuids.Add(buyer);
                     await connection.sessionLifesycle.AccountInfo.Update();
                 }
             }

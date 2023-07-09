@@ -7,7 +7,7 @@ using Coflnet.Sky.Core;
 namespace Coflnet.Sky.Commands.MC
 {
 
-    [CommandDescription("How much profit you made through flipping", 
+    [CommandDescription("How much profit you made through flipping",
         "Usage: /cl profit {days}",
         "The default is 7 days",
         "Flip tracking includes modifications to items and craft flips")]
@@ -42,8 +42,9 @@ namespace Coflnet.Sky.Commands.MC
             }
             // replace this call with stored socket.sessionLifesycle.AccountInfo.Value.McIds
 
-            var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+            socket.RecheckVerifiedAccounts();
 
+            var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
             var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, time);
             if (response.Flips.Count() == 0)
             {

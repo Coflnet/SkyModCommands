@@ -59,14 +59,6 @@ namespace Coflnet.Sky.Commands.MC
                 // dispatch access request to update last request time (and keep)
                 _ = socket.TryAsyncTimes(async () =>
                 {
-                    foreach (var item in accountInfo.McIds.Where(i => i != mcUuid))
-                    {
-                        var connectedCheck = await McAccountService.Instance.ConnectAccount(userId, item);
-                        if (connectedCheck.IsConnected)
-                            continue;
-                        accountInfo.McIds.Remove(item);
-                        await socket.sessionLifesycle.AccountInfo.Update(accountInfo);
-                    }
                     var connected = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
                     if (connected.IsConnected)
                         return;
