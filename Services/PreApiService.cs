@@ -350,8 +350,9 @@ public class PreApiService : BackgroundService
                 if (sim.BoughtCount < 20)
                     return;
                 logger.LogInformation($"skipcheck Changing used uuid to {buyer} for {connection.SessionInfo.McName} from {connection.SessionInfo.McUuid}");
-                connection.SessionInfo.MinecraftUuids.Add(buyer);
-                logger.LogInformation($"skipcheck Found {sim.BoughtCount} {sim.TargetReceived} similar buys from {simPlayerId} for {buyerUid} {connectedUid} connected as {connection.SessionInfo.McName}");
+                logger.LogInformation($"skipcheck Found {sim.BoughtCount} {sim.TargetReceived} similar buys from {simPlayerId} for {buyerUid} {connectedUid} connected as {connection.SessionInfo.McName} {sim.SelfBought}");
+                if (sim.SelfBought < 2)
+                    connection.SessionInfo.MinecraftUuids.Add(buyer);
                 var hasMostSimilarBoughtThatAuction = simPlayerId == buyerUid;
                 var didMostSimilarBuyLittleToNoAuctions = sim.SelfBought < 2;
                 if (sim.BoughtCount > 25 && Math.Abs(sim.BoughtCount - sim.TargetReceived) <= 1 && hasMostSimilarBoughtThatAuction && didMostSimilarBuyLittleToNoAuctions)
