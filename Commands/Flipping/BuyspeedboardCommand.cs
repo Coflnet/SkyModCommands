@@ -5,6 +5,7 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Settings.Client.Api;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -40,7 +41,7 @@ public class BuyspeedboardCommand : LeaderboardCommand
     {
         try
         {
-            await socket.GetService<ISettingsApi>().SettingsUserIdSettingKeyPostAsync(socket.SessionInfo.McUuid, "disable-buy-speed-board", setting);
+            await socket.GetService<ISettingsApi>().SettingsUserIdSettingKeyPostAsync(socket.SessionInfo.McUuid, "disable-buy-speed-board", JsonConvert.SerializeObject(setting));
         }
         catch (Exception e)
         {
