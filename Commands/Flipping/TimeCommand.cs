@@ -21,15 +21,15 @@ namespace Coflnet.Sky.Commands.MC
             Dictionary<string, string> context = flip?.Auction.Context;
             var msg = new DialogBuilder()
                 .MsgLine("These are the relatives times to the api update")
-                .AddTime(context, "FindTime", "fT")
-                .AddTime(context, "Flipper Receive", "frec")
-                .AddTime(context, "Flipper Send", "fsend")
-                .AddTime(context, "Command Receive", "crec")
-                .AddTime(context, "Shedule", "csh")
-                .AddTime(flip.AdditionalProps, "Filter", "da")
-                .AddTime(flip.AdditionalProps, "Delay", "dl")
-                .AddTime(flip.AdditionalProps, "Command Send", "csend")
-                .AddTime(flip.AdditionalProps, "Click ", "clickT")
+                .AddTime(context, "FindTime", "fT", "When the auction was first found and parsed")
+                .AddTime(context, "Flipper Receive", "frec", "When the flip finder algorithm received the auction")
+                .AddTime(context, "Flipper Send", "fsend", "When the flip finder was done calulating and sent the auction queue")
+                .AddTime(context, "Command Receive", "crec", "When the mod backend server received the flip", "Mod backend is called `Command` because it handles commands")
+                .AddTime(context, "Shedule", "csh", "Flip was scheduled to be filtered", "(here is prem+ difference)")
+                .AddTime(flip.AdditionalProps, "Filter", "da", "Filtering started")
+                .AddTime(flip.AdditionalProps, "Delay", "dl", "Filtering was done, flip met filter", "and is waiting for fairness delay")
+                .AddTime(flip.AdditionalProps, "Command Send", "csend", "Time when flip left the mod backend server")
+                .AddTime(flip.AdditionalProps, "Click ", "clickT", "Estimated time when the flip message was clicked")
             ;
             socket.SendMessage(msg.Build());
             return Task.CompletedTask;
@@ -40,9 +40,9 @@ namespace Coflnet.Sky.Commands.MC
 
     public static class TimeCommandOverloads
     {
-        public static DialogBuilder AddTime(this DialogBuilder msg, Dictionary<string, string> context, string label, string key)
+        public static DialogBuilder AddTime(this DialogBuilder msg, Dictionary<string, string> context, string label, string key, params string[] desc)
         {
-            return msg.MsgLine($"{McColorCodes.GRAY}{label.PadRight(15)}: {McColorCodes.WHITE}" + context?.GetValueOrDefault(key, "§onotavailable§r"));
+            return msg.MsgLine($"{McColorCodes.GRAY}{label.PadRight(15)}: {McColorCodes.WHITE}" + context?.GetValueOrDefault(key, "§onotavailable§r"), null, string.Join("\n", desc));
         }
     }
 }
