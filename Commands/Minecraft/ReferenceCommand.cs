@@ -45,7 +45,7 @@ namespace Coflnet.Sky.Commands.MC
                     socket.Dialog(d => d.MsgLine("This flip was found by the AI, but no breakdown was available :("));
                     return;
                 }
-                var lines = breakdown.Split('\n').Select(l=>l.Split(':')).Select(l => $"{l[0]}: {McColorCodes.AQUA}{l[1]}{McColorCodes.GRAY}");
+                var lines = breakdown.Split(',').Select(l=>l.Split(':')).Select(l => $"{l[0]}: {McColorCodes.AQUA}{l[1]}{McColorCodes.GRAY}");
                 socket.Dialog(d => d.MsgLine($"Here is the breakdown of values:")
                     .ForEach(lines, (d,l) => d.MsgLine(l)));
                 return;
