@@ -31,7 +31,7 @@ public class MinecraftSocketTests
         session.Setup(s => s.StartTimer(It.IsAny<int>(), It.IsAny<string>()));
         var socket = new TestSocket(session.Object);
         socket.SetNextFlipTime(DateTime.UtcNow + TimeSpan.FromSeconds(updateIn));
-        socket.SheduleTimer(new Commands.Shared.ModSettings() { TimerSeconds = countdown });
+        socket.ScheduleTimer(new Commands.Shared.ModSettings() { TimerSeconds = countdown });
         await Task.Delay(10).ConfigureAwait(false);
         session.Verify(s => s.StartTimer(It.Is<double>(v => Math.Round(v, 1) == expected), It.IsAny<string>()), Times.Once);
     }

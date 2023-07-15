@@ -48,7 +48,7 @@ namespace Coflnet.Sky.Commands.MC
         Task<bool> SendSold(string uuid);
         void SendSound(string soundId, float pitch = 1);
         void SetLifecycleVersion(string version);
-        void SheduleTimer(ModSettings? mod = null, Activity? timerSpan = null);
+        void ScheduleTimer(ModSettings? mod = null, Activity? timerSpan = null);
         ConfiguredTaskAwaitable TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3);
         Task<AccountTier> UserAccountTier();
     }

@@ -110,7 +110,7 @@ namespace Coflnet.Sky.ModCommands.Services
                         flip.AdditionalProps?.TryAdd("bfcs", "redis");
                         await flipperService.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
                         if (flip.TargetPrice - flip.Auction.StartingBid > 2000000)
-                            logger.LogInformation($"sheduled bfcs {flip.Auction.Uuid} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond}");
+                            logger.LogInformation($"scheduled bfcs {flip.Auction.Uuid} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond}");
                         fastTrackSnipes.Inc();
                     }
                     catch (Exception e)

@@ -221,7 +221,7 @@ namespace Coflnet.Sky.Commands.MC
             if (waitingBedFlips == 0)
             {
                 socket.sessionLifesycle.StartTimer(0, "clear timer");
-                socket.SheduleTimer();
+                socket.ScheduleTimer();
             }
             // update interesting props because the bed time is different now
             flip.Interesting = Helper.PropertiesSelector.GetProperties(flip.Auction)

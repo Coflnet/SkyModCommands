@@ -740,7 +740,7 @@ namespace Coflnet.Sky.Commands.MC
                     sessionLifesycle.StartTimer(10 - SessionInfo.RelativeSpeed.TotalSeconds);
                 else
                 {
-                    SheduleTimer(mod, timer);
+                    ScheduleTimer(mod, timer);
                 }
             }
             else
@@ -764,7 +764,7 @@ namespace Coflnet.Sky.Commands.MC
             return (this.Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && this.Settings != null || SessionInfo.IsNotFlipable;
         }
 
-        public void SheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
+        public void ScheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
         {
             if (mod == null)
                 mod = Settings.ModSettings;
@@ -776,7 +776,7 @@ namespace Coflnet.Sky.Commands.MC
             if (nextUpdateIn < countdownSize)
             {
                 sessionLifesycle.StartTimer(nextUpdateIn.TotalSeconds);
-                timerSpan?.Log("sheduled timer to " + nextUpdateIn.TotalSeconds + " seconds");
+                timerSpan?.Log("scheduled timer to " + nextUpdateIn.TotalSeconds + " seconds");
                 return;
             }
             var delay = nextUpdateIn - countdownSize - SessionInfo.RelativeSpeed;

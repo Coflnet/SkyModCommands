@@ -25,7 +25,7 @@ namespace Coflnet.Sky.Commands.MC
                 .AddTime(context, "Flipper Receive", "frec", "When the flip finder algorithm received the auction")
                 .AddTime(context, "Flipper Send", "fsend", "When the flip finder was done calulating and sent the auction queue")
                 .AddTime(context, "Command Receive", "crec", "When the mod backend server received the flip", "Mod backend is called `Command` because it handles commands")
-                .AddTime(context, "Shedule", "csh", "Flip was scheduled to be filtered", "(here is prem+ difference)")
+                .AddTime(context, "Schedule", "csh", "Flip was scheduled to be filtered", "(here is prem+ difference)")
                 .AddTime(flip.AdditionalProps, "Filter", "da", "Filtering started")
                 .AddTime(flip.AdditionalProps, "Delay", "dl", "Filtering was done, flip met filter", "and is waiting for fairness delay")
                 .AddTime(flip.AdditionalProps, "Command Send", "csend", "Time when flip left the mod backend server")
