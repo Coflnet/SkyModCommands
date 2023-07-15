@@ -38,6 +38,18 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(d => d.MsgLine("TFM flips have no references"));
                 return;
             }
+            if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.AI) ?? false)
+            {
+                if (!flip.AdditionalProps.TryGetValue("breakdwon", out var breakdown))
+                {
+                    socket.Dialog(d => d.MsgLine("This flip was found by the AI, but no breakdown was available :("));
+                    return;
+                }
+                var lines = breakdown.Split('\n').Select(l=>l.Split(':')).Select(l => $"{l[0]}: {McColorCodes.AQUA}{l[1]}{McColorCodes.GRAY}");
+                socket.Dialog(d => d.MsgLine($"Here is the breakdown of values:")
+                    .ForEach(lines, (d,l) => d.MsgLine(l)));
+                return;
+            }
             socket.ModAdapter.SendMessage(new ChatPart("Caclulating references", "https://sky.coflnet.com/auction/" + uuid, "please give it a second"));
             var based = await CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
             if (based == null)
