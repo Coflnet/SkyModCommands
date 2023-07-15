@@ -40,12 +40,13 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.AI) ?? false)
             {
-                if (!flip.AdditionalProps.TryGetValue("breakdwon", out var breakdown))
+                if (!flip.AdditionalProps.TryGetValue("breakdown", out var breakdown))
                 {
                     socket.Dialog(d => d.MsgLine("This flip was found by the AI, but no breakdown was available :("));
                     return;
                 }
-                var lines = breakdown.Split(',').Select(l=>l.Split(':')).Select(l => $"{l[0]}: {McColorCodes.AQUA}{l[1]}{McColorCodes.GRAY}");
+                // split on first occurance of : and then add the color codes
+                var lines = breakdown.Split('\n').Select(l=>l.Split(':')).Select(l => $" {l[0]}: {McColorCodes.AQUA}{string.Join(":",l.Skip(1))}{McColorCodes.GRAY}");
                 socket.Dialog(d => d.MsgLine($"Here is the breakdown of values:")
                     .ForEach(lines, (d,l) => d.MsgLine(l)));
                 return;
