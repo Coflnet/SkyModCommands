@@ -60,11 +60,17 @@ namespace Coflnet.Sky.Commands.MC
                 null, hover);
             var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
             var best = sorted.FirstOrDefault();
+            var worst = sorted.LastOrDefault();
             if (best == null)
                 return;
             socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier))}{best.ItemName}" +
-                            $" {FormatPrice(socket, best.PricePaid)} -> {FormatPrice(socket, best.SoldFor)} (+{FormatPrice(socket, best.Profit)})",
-                "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction");
+                            FormatFlip(socket, best),
+                "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction\n"+FormatFlip(socket, worst));
+
+            string FormatFlip(MinecraftSocket socket, FlipDetails best)
+            {
+                return $" {FormatPrice(socket, best.PricePaid)} -> {FormatPrice(socket, best.SoldFor)} (+{FormatPrice(socket, best.Profit)})";
+            }
         }
 
         private static async Task<int> GetMaxDaysPossible(MinecraftSocket socket)
