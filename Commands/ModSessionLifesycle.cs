@@ -39,6 +39,17 @@ namespace Coflnet.Sky.Commands.MC
         public VerificationHandler VerificationHandler;
         public FlipProcesser flipProcesser;
         public TimeSpan CurrentDelay => delayHandler?.CurrentDelay ?? DelayHandler.DefaultDelay;
+        public event Action<TimeSpan> OnDelayChange
+        {
+            add
+            {
+                delayHandler.OnDelayChange += value;
+            }
+            remove
+            {
+                delayHandler.OnDelayChange -= value;
+            }
+        }
 
         public static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
         {
@@ -311,6 +322,7 @@ namespace Coflnet.Sky.Commands.MC
                     span.AddTag("autoStart", "false");
                 }
                 await userIsVerifiedTask;
+                socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc }));
                 return;
             }
             catch (Exception e)

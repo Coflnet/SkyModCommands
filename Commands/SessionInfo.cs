@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Coflnet.Sky.Core;
+using Newtonsoft.Json;
 using StackExchange.Redis;
 
 namespace Coflnet.Sky.Commands.MC
@@ -25,6 +26,7 @@ namespace Coflnet.Sky.Commands.MC
         public DateTime LastMessage;
         public bool SentWelcome;
 
+        [JsonIgnore]
         public ChannelMessageQueue EventBrokerSub { get; internal set; }
 
         /// <summary>
@@ -47,6 +49,7 @@ namespace Coflnet.Sky.Commands.MC
         public TimeSpan RelativeSpeed = default;
         public DateTime LastBlockedMsg = default;
         public DateTime LastCaptchaSolve => captchaInfo.LastSolve;
+        [JsonIgnore]
         public IEnumerable<string> CaptchaSolutions => captchaInfo.CurrentSolutions;
         public long Purse { get; internal set; }
 
@@ -56,7 +59,7 @@ namespace Coflnet.Sky.Commands.MC
         public bool IsDungeon { get; internal set; }
         public bool IsRift { get; internal set; }
         public bool IsMacroBot { get; set; }
-
+        [JsonIgnore]
         public CaptchaInfo captchaInfo = new();
 
         public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon || IsRift;
