@@ -160,6 +160,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SellInventoryCommand>();
             Commands.Add<ClientErrorCommand>();
             Commands.Add<CompensateCommand>();
+            Commands.Add<ProxyReqSyncCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
