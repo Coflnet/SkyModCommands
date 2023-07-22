@@ -300,12 +300,12 @@ namespace Coflnet.Sky.Commands.MC
                     UpdateConnectionTier(info, span);
                     span.AddTag("autoStart", "true");
                 }
-                else
+                else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
                 {
                     socket.Dialog(db => db.Msg("What do you want to do?").Break
                         .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)\nexecutes {McColorCodes.AQUA}/cofl flip")
                         .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
-                        .DialogLink<EchoDialog>(McColorCodes.BLUE + " use the pricing data ", "alright, nothing else to do :)", "I don't want to flip")
+                        .CoflCommand<FlipCommand>(McColorCodes.BLUE + " use the pricing data ", "never", "I don't want to flip")
                         .Break);
                     await socket.TriggerTutorial<Welcome>();
                     span.AddTag("autoStart", "false");
@@ -436,7 +436,7 @@ namespace Coflnet.Sky.Commands.MC
                 SessionInfo.captchaInfo.LastSolve = DateTime.UtcNow;
                 socket.SendMessage(McColorCodes.GRAY + "speedup enabled, remaining " + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("g"));
             }
-            if(tier > AccountTier.NONE && accountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(1))
+            if (tier > AccountTier.NONE && accountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(1))
                 _ = BuyspeedboardCommand.DisableBuySpeedBoard(socket);
         }
 
@@ -695,7 +695,7 @@ namespace Coflnet.Sky.Commands.MC
             if (sumary.MacroWarning)
             {
                 using var span = socket.CreateActivity("macroWarning", ConSpan).AddTag("name", SessionInfo.McName);
-      //          SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
+                //          SendMessage("\nWe detected macro usage on your account. \nPlease stop using any sort of unfair advantage immediately. You may be additionally and permanently delayed if you don't.");
             }
         }
 

@@ -17,6 +17,7 @@ public class FlipCommand : McCommand
         {
             case "never":
                 flipSettings.Value.DisableFlips = true;
+                flipSettings.Value.ModSettings.AhDataOnlyMode = true;
                 await flipSettings.Update();
                 break;
             case "always":
