@@ -49,7 +49,14 @@ namespace Coflnet.Sky.ModCommands.Services
             var instances = await GetConnections();
             foreach (var multiplexer in instances)
             {
-                SubscribeConnection(multiplexer, stoppingToken);
+                try
+                {
+                    SubscribeConnection(multiplexer, stoppingToken);
+                }
+                catch (System.Exception e)
+                {
+                    logger.LogError(e, "redis error");
+                }
             }
             logger.LogInformation("set up fast track flipper");
             await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
