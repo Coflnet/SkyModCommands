@@ -200,6 +200,7 @@ namespace Coflnet.Sky.Commands.MC
                 // preload flip settings
                 settings.MatchesSettings(testFlip);
                 span.Log(JSON.Stringify(settings));
+                socket.GetService<FlipperService>().UpdateFilterSumaries();
                 if (FlipSettings.Value?.ModSettings?.Chat ?? false)
                     await ChatCommand.MakeSureChatIsConnected(socket);
             }

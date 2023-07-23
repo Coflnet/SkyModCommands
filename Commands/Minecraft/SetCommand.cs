@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using static Coflnet.Sky.Core.LowPricedAuction;
 
 namespace Coflnet.Sky.Commands.MC;
-[CommandDescription("Sets a setting", 
+[CommandDescription("Sets a setting",
     "Usage: /cl set <setting> <value>",
     "Suggests corrections in case you have a typo",
     "Use only /cl set to get a list of all settings",
@@ -67,6 +67,8 @@ public class SetCommand : McCommand
             socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{doc.RealName}{DEFAULT_COLOR} to {McColorCodes.WHITE}{finalValue}", null, doc.Info));
             if (page > 0)
                 await PrintSettingsPage(socket, page);
+
+            socket.GetService<FlipperService>().UpdateFilterSumaries();
         }
         catch (CoflnetException e)
         {
