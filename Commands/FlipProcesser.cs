@@ -64,7 +64,7 @@ namespace Coflnet.Sky.Commands.MC
                 item.f.AdditionalProps["dl"] = (timeToSend).ToString();
             }
             using (var span = socket.CreateActivity("Flip", socket.ConSpan)
-                .AddTag("uuid", matches.First().f.Auction.Uuid)
+                ?.AddTag("uuid", matches.First().f.Auction.Uuid)
                 .AddTag("batchSize", matches.Count))
                 try
                 {
@@ -232,7 +232,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendAndTrackFlip(FlipInstance item, LowPricedAuction flip, DateTime sendTime, bool blockSold = false)
         {
-            var isSold = socket.GetService<PreApiService>().IsSold(flip.Auction.Uuid);
+            var isSold = socket.GetService<IIsSold>().IsSold(flip.Auction.Uuid);
             if (isSold)
             {
                 BlockedFlip(flip, "sold");

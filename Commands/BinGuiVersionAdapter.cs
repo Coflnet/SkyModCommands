@@ -16,9 +16,10 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task<bool> SendFlip(FlipInstance flip)
         {
             var uuid = flip.Auction.Uuid;
-            var preService = socket.GetService<PreApiService>();
-            if (preService.IsSold(uuid) && !(socket.Settings?.ModSettings?.NormalSoldFlips ?? false))
+            var isSoldService = socket.GetService<IIsSold>();
+            if (isSoldService.IsSold(uuid) && !(socket.Settings?.ModSettings?.NormalSoldFlips ?? false))
             {
+                var preService = socket.GetService<PreApiService>();
                 var parts = await GetMessageparts(flip);
                 parts.Insert(0, new ChatPart(McColorCodes.RED + "[SOLD]",
                                              "/viewauction " + uuid,

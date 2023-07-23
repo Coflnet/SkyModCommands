@@ -19,10 +19,29 @@ using System.Net;
 using Payments.Client.Api;
 using Microsoft.EntityFrameworkCore;
 
+public interface IPreApiService : IIsSold
+{
+    int PreApiUserCount { get; }
+
+    void AddNotify(int count, IMinecraftSocket socket);
+    void AddUser(IFlipConnection connection, DateTime expires);
+    void CheckHighProfitpurchaser(IMinecraftSocket connection, LowPricedAuction flip);
+    Task ListingMessage(IMinecraftSocket connection, string message);
+    void PublishReceive(string uuid);
+    void PurchaseMessage(IMinecraftSocket connection, string message);
+    Task SendFlipCorrectly(LowPricedAuction flip, TimeSpan tilPurchasable, IFlipConnection connection);
+    AccountTier SoldToTier(string uuid);
+}
+
+public interface IIsSold
+{
+    bool IsSold(string uuid);
+}
+
 /// <summary>
 /// Handles events before the api update
 /// </summary>
-public class PreApiService : BackgroundService
+public class PreApiService : BackgroundService, IPreApiService
 {
     ConnectionMultiplexer redis;
     ILogger<PreApiService> logger;
@@ -352,7 +371,7 @@ public class PreApiService : BackgroundService
                 logger.LogInformation($"skipcheck Found {sim.BoughtCount} {sim.TargetReceived} similar buys from {simPlayerId}={connectedUid} for {buyerUid}  connected as {connection.SessionInfo.McName} {sim.SelfBought}");
                 var didMostSimilarBuyLittleToNoAuctions = sim.SelfBought < 2;
                 var isSimilarConnected = simPlayerId == connectedUid;
-                if(isSimilarConnected)
+                if (isSimilarConnected)
                     logger.LogInformation($"skipcheck !! {connection.SessionInfo.McName} {connection.SessionInfo.McUuid} is similar connected to {buyer} {buyerUid}");
                 if (sim.BoughtCount > 25 && Math.Abs(sim.BoughtCount - sim.TargetReceived) <= 1 && isSimilarConnected && didMostSimilarBuyLittleToNoAuctions)
                 {
