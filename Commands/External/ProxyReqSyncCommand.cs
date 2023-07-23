@@ -12,7 +12,11 @@ public class ProxyReqSyncCommand : McCommand
     {
         SendState(socket);
         socket.sessionLifesycle.AccountInfo.OnChange += (a) => SendState(socket);
-        socket.sessionLifesycle.FlipSettings.OnChange += (a) => SendState(socket);
+        socket.sessionLifesycle.FlipSettings.ShouldPreventUpdate += (a) =>
+        {
+            SendState(socket);
+            return false;
+        };
         socket.sessionLifesycle.OnDelayChange += (a) => SendState(socket);
         socket.OnConClose += () =>
         {

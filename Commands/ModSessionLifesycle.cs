@@ -476,11 +476,12 @@ namespace Coflnet.Sky.Commands.MC
         /// <summary>
         /// Execute every minute to clear collections
         /// </summary>
-        internal void HouseKeeping()
+        public void HouseKeeping()
         {
             flipProcesser.MinuteCleanup();
             while (socket.TopBlocked.Count > 300)
                 socket.TopBlocked.TryDequeue(out _);
+            spamController.Reset();
         }
 
         private void SendPing()

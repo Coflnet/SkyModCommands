@@ -87,6 +87,11 @@ namespace Coflnet.Sky.Commands.MC
             public DateTime Now = DateTime.UtcNow;
         }
 
+        public MinecraftSocket()
+        {
+            formatProvider = new FormatProvider(this);
+        }
+
         static MinecraftSocket()
         {
             Commands.Add<TestCommand>();
@@ -223,10 +228,9 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnOpen()
         {
             ConSpan = CreateActivity("connection") ?? new Activity("connection");
-            SendMessage(COFLNET + "§fNOTE §7This is a development preview, it is NOT stable/bugfree",
+            SendMessage(COFLNET + "§7Established connection, loading settings...",
                         $"https://discord.gg/wvKXfTgCfb",
                         "Attempting to load your settings on " + System.Net.Dns.GetHostName() + " conId: " + ConSpan.Context.TraceId);
-            formatProvider = new FormatProvider(this);
             base.OnOpen();
             Task.Run(() =>
             {
@@ -254,42 +258,10 @@ namespace Coflnet.Sky.Commands.MC
 
         private void StartConnection()
         {
-            var args = System.Web.HttpUtility.ParseQueryString(Context.RequestUri.Query);
-            Console.WriteLine(Context.RequestUri.Query);
-            if (args["uuid"] == null && args["player"] == null)
-                Send(Response.Create("error", "the connection query string needs to include 'player'"));
-            if (args["SId"] == null)
-            {
-                Send(Response.Create("error", "the connection query string needs to include 'SId' with a random string to save login to"));
-                SendMessage("§cYou client did not specify a 'SId', your account is vurnable, please update your client to the latest version");
-            }
-            SessionInfo.clientSessionId = args["SId"].Truncate(60);
-            if (args["version"] == null)
-            {
-                Send(Response.Create("error", "the connection query string needs to include 'version' with client version"));
-                return;
-            }
-            Version = args["version"].Truncate(14);
-
-            ModAdapter = Version switch
-            {
-                "1.5.2-Alpha" => new BinGuiVersionAdapter(this),
-                "1.5.0-Alpha" => new BinGuiVersionAdapter(this),
-                "1.4-Alpha" => new InventoryVersionAdapter(this),
-                "1.4.2-Alpha" => new InventoryVersionAdapter(this),
-                "1.4.3-Alpha" => new InventoryVersionAdapter(this),
-                "1.4.4-Alpha" => new InventoryVersionAdapter(this),
-                "1.3.3-Alpha" => new ThirdVersionAdapter(this),
-                "1.3-Alpha" => new ThirdVersionAdapter(this),
-                "1.2-Alpha" => new SecondVersionAdapter(this),
-                "1.5.0-af" => new FullAfVersionAdapter(this),
-                "1.5.0-afclient" => new AfVersionAdapter(this),
-                _ => new FirstModVersionAdapter(this)
-            };
+            NameValueCollection args = SetupModAdapter();
 
             var passedId = args["player"] ?? args["uuid"];
             TryAsyncTimes(async () => await LoadPlayerName(passedId!), "loading PlayerName");
-            Activity.Current?.SetTag("version", Version);
             Activity.Current?.SetTag("player", passedId);
 
             string stringId;
@@ -310,6 +282,44 @@ namespace Coflnet.Sky.Commands.MC
                     SendMessage(new DialogBuilder().CoflCommand<ReportCommand>("Whoops, we are very sorry but the connection setup failed. If this persists please click this message to create a report.", "failed to setup connection", "create a report"));
                 }
             }).ConfigureAwait(false);
+        }
+
+        protected NameValueCollection SetupModAdapter()
+        {
+            var args = System.Web.HttpUtility.ParseQueryString(Context.RequestUri.Query);
+            Console.WriteLine(Context.RequestUri.Query);
+            if (args["uuid"] == null && args["player"] == null)
+                Send(Response.Create("error", "the connection query string needs to include 'player'"));
+            if (args["SId"] == null)
+            {
+                Send(Response.Create("error", "the connection query string needs to include 'SId' with a random string to save login to"));
+                SendMessage("§cYou client did not specify a 'SId', your account is vurnable, please update your client to the latest version");
+            }
+            SessionInfo.clientSessionId = args["SId"].Truncate(60);
+            if (args["version"] == null)
+            {
+                Send(Response.Create("error", "the connection query string needs to include 'version' with client version"));
+                // return;
+            }
+            Version = args["version"].Truncate(14);
+
+            ModAdapter = Version switch
+            {
+                "1.5.2-Alpha" => new BinGuiVersionAdapter(this),
+                "1.5.0-Alpha" => new BinGuiVersionAdapter(this),
+                "1.4-Alpha" => new InventoryVersionAdapter(this),
+                "1.4.2-Alpha" => new InventoryVersionAdapter(this),
+                "1.4.3-Alpha" => new InventoryVersionAdapter(this),
+                "1.4.4-Alpha" => new InventoryVersionAdapter(this),
+                "1.3.3-Alpha" => new ThirdVersionAdapter(this),
+                "1.3-Alpha" => new ThirdVersionAdapter(this),
+                "1.2-Alpha" => new SecondVersionAdapter(this),
+                "1.5.0-af" => new FullAfVersionAdapter(this),
+                "1.5.0-afclient" => new AfVersionAdapter(this),
+                _ => new FirstModVersionAdapter(this)
+            };
+            Activity.Current?.SetTag("version", Version);
+            return args;
         }
 
         public void SetLifecycleVersion(string version)
@@ -613,8 +623,8 @@ namespace Coflnet.Sky.Commands.MC
 
         private void CloseBecauseError(Exception e)
         {
-            dev.Logger.Instance.Log("removing connection because " + e.Message);
-            dev.Logger.Instance.Error(System.Environment.StackTrace);
+            dev.Logger.Instance.Log("removing connection because ");
+            dev.Logger.Instance.Error(e);
             using var span = CreateActivity("error", ConSpan)?.AddTag("message", e.Message).AddTag("error", "true");
             OnClose(null);
             sessionLifesycle.Dispose();
