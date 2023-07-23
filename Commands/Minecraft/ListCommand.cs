@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
             var args = Newtonsoft.Json.JsonConvert.DeserializeObject<string>(arguments).Replace(@"\u003d", "=");
             var subArgStart = args.IndexOf(' ');
             var subArgs = args.Substring(subArgStart + 1);
-            if(subArgStart == -1)
+            if (subArgStart == -1)
                 subArgs = "";
             switch (args.Split(' ').First())
             {
@@ -155,6 +155,14 @@ namespace Coflnet.Sky.Commands.MC
 
         protected virtual async Task Remove(MinecraftSocket socket, string arguments)
         {
+            if (arguments == "*")
+            {
+                var fullList = await GetList(socket);
+                fullList.Clear();
+                socket.SendMessage(new DialogBuilder().MsgLine($"Removed all entries"));
+                await Update(socket, fullList);
+                return;
+            }
             var toRemove = await Find(socket, arguments);
             if (toRemove.Count == 0)
             {

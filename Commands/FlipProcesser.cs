@@ -250,7 +250,7 @@ namespace Coflnet.Sky.Commands.MC
                     preApiFlipSent.Inc();
 
                 // this is actually syncronous
-                await socket.GetService<FlipTrackingService>()
+                await socket.GetService<IFlipReceiveTracker>()
                     .ReceiveFlip(item.Auction.Uuid, socket.sessionLifesycle.SessionInfo.McUuid, sendTime);
 
                 var timeToSend = DateTime.UtcNow - item.Auction.FindTime;
@@ -261,7 +261,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (Settings.DebugMode)
                     socket.SendMessage($"Sent flip {flip.Auction.ItemName} {flip.Auction.StartingBid}->{flip.TargetPrice}", $"https://sky.coflnet.com/auction/{flip.Auction.Uuid}", "Open in browser");
 
-                socket.sessionLifesycle.PingTimer.Change(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(59));
+                socket.sessionLifesycle.PingTimer?.Change(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(59));
 
                 if (timeToSend > TimeSpan.FromSeconds(15) && socket.AccountInfo?.Tier >= AccountTier.PREMIUM
                     && flip.Finder != LowPricedAuction.FinderType.FLIPPER && !(item.Interesting.FirstOrDefault()?.StartsWith("Bed") ?? false))

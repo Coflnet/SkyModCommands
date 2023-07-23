@@ -20,6 +20,7 @@ using Coflnet.Sky.Proxy.Client.Api;
 using Prometheus;
 using Coflnet.Sky.Api.Client.Api;
 using StackExchange.Redis;
+using Coflnet.Sky.Commands;
 
 namespace Coflnet.Sky.ModCommands
 {
@@ -63,6 +64,8 @@ namespace Coflnet.Sky.ModCommands
             services.AddSingleton<ITutorialService, TutorialService>();
             services.AddSingleton<IFlipApi, FlipApi>(s => new FlipApi(Configuration["API_BASE_URL"]));
             services.AddSingleton<PreApiService>();
+            services.AddSingleton<IIsSold>(s => s.GetRequiredService<PreApiService>());
+            services.AddSingleton<IFlipReceiveTracker>(s => s.GetRequiredService<FlipTrackingService>());
             services.AddSingleton<ConnectionMultiplexer>(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));
             services.AddSingleton<IBaseApi, BaseApi>(s => new BaseApi(Configuration["PROXY_BASE_URL"]));
             services.AddSingleton<IProxyApi, ProxyApi>(s => new ProxyApi(Configuration["PROXY_BASE_URL"]));
