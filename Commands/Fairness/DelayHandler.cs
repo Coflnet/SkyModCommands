@@ -7,10 +7,19 @@ using System.Threading;
 
 namespace Coflnet.Sky.Commands.MC;
 
+public interface IDelayHandler
+{
+    event Action<TimeSpan> OnDelayChange;
+    TimeSpan CurrentDelay { get; }
+    Task<DateTime> AwaitDelayForFlip(FlipInstance flipInstance);
+    bool IsLikelyBot(FlipInstance flipInstance);
+    Task<DelayHandler.Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime);
+}
+
 /// <summary>
 /// Handles fairness delays to balance flips amongst all users
 /// </summary>
-public class DelayHandler
+public class DelayHandler : IDelayHandler
 {
     private static readonly TimeSpan AntiAfkDelay = TimeSpan.FromSeconds(12);
     private int FlipIndex = 0;
@@ -20,7 +29,7 @@ public class DelayHandler
 
 
     private readonly ITimeProvider timeProvider;
-    internal TimeSpan CurrentDelay => currentDelay;
+    public TimeSpan CurrentDelay => currentDelay;
     private TimeSpan currentDelay = DefaultDelay;
     private TimeSpan macroPenalty = TimeSpan.Zero;
     private SessionInfo sessionInfo;

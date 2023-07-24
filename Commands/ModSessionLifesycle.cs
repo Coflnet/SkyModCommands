@@ -35,19 +35,19 @@ namespace Coflnet.Sky.Commands.MC
         public Activity ConSpan => socket.ConSpan;
         public System.Threading.Timer PingTimer;
         private SpamController spamController = new SpamController();
-        private DelayHandler delayHandler;
+        public IDelayHandler DelayHandler { get; set; }
         public VerificationHandler VerificationHandler;
         public FlipProcesser flipProcesser;
-        public TimeSpan CurrentDelay => delayHandler?.CurrentDelay ?? DelayHandler.DefaultDelay;
+        public TimeSpan CurrentDelay => DelayHandler?.CurrentDelay ?? MC.DelayHandler.DefaultDelay;
         public event Action<TimeSpan> OnDelayChange
         {
             add
             {
-                delayHandler.OnDelayChange += value;
+                DelayHandler.OnDelayChange += value;
             }
             remove
             {
-                delayHandler.OnDelayChange -= value;
+                DelayHandler.OnDelayChange -= value;
             }
         }
 
@@ -69,9 +69,9 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SetupFlipProcessor(SelfUpdatingValue<AccountInfo> info)
         {
-            delayHandler = new DelayHandler(TimeProvider.Instance, socket.GetService<FlipTrackingService>(), this.SessionInfo, info);
+            DelayHandler = new DelayHandler(TimeProvider.Instance, socket.GetService<FlipTrackingService>(), this.SessionInfo, info);
 
-            flipProcesser = new FlipProcesser(socket, spamController, delayHandler);
+            flipProcesser = new FlipProcesser(socket, spamController, DelayHandler);
         }
 
         public async Task SetupConnectionSettings(string stringId)
@@ -311,6 +311,10 @@ namespace Coflnet.Sky.Commands.MC
                     SessionInfo.FlipsEnabled = true;
                     UpdateConnectionTier(info, span);
                     span.AddTag("autoStart", "true");
+                    if (info.Tier >= AccountTier.PREMIUM_PLUS && Random.Shared.NextDouble() < 0.1)
+                    {
+                        socket.Dialog(db => db.MsgLine("Do you want to try out our new us flipping instance? Click this message", "/cofl connect wss://sky-us.coflnet.com/modsocket", "click to connect to us instance\nhas lower ping after ah update for us users"));
+                    }
                 }
                 else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
                 {
@@ -675,7 +679,7 @@ namespace Coflnet.Sky.Commands.MC
                 var ids = await GetMinecraftAccountUuids();
                 var isBot = socket.ModAdapter is AfVersionAdapter;
 
-                var sumary = await delayHandler.Update(ids, LastCaptchaSolveTime);
+                var sumary = await DelayHandler.Update(ids, LastCaptchaSolveTime);
 
                 if (sumary.Penalty > TimeSpan.Zero)
                 {

@@ -22,12 +22,12 @@ namespace Coflnet.Sky.Commands.MC
         protected MinecraftSocket socket;
         private FlipSettings Settings => socket.Settings;
         private SpamController spamController;
-        private DelayHandler delayHandler;
+        private IDelayHandler delayHandler;
         private int waitingBedFlips = 0;
         private int _blockedFlipCounter = 0;
         public int BlockedFlipCount => _blockedFlipCounter;
 
-        public FlipProcesser(MinecraftSocket socket, SpamController spamController, DelayHandler delayHandler)
+        public FlipProcesser(MinecraftSocket socket, SpamController spamController, IDelayHandler delayHandler)
         {
             this.socket = socket;
             this.spamController = spamController;
