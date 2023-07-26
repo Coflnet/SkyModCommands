@@ -313,7 +313,7 @@ namespace Coflnet.Sky.Commands.MC
                     span.AddTag("autoStart", "true");
                     if (info.Tier >= AccountTier.PREMIUM_PLUS && Random.Shared.NextDouble() < 0.1)
                     {
-                        socket.Dialog(db => db.MsgLine("Do you want to try out our new us flipping instance? Click this message", "/cofl connect wss://sky-us.coflnet.com/modsocket", "click to connect to us instance\nhas lower ping after ah update for us users"));
+                        socket.Dialog(db => db.MsgLine("Do you want to try out our new us flipping instance? Click this message", "/cofl connect ws://sky-us.coflnet.com/modsocket", "click to connect to us instance\nhas lower ping after ah update for us users"));
                     }
                 }
                 else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
