@@ -7,7 +7,7 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    [CommandDescription("Past /cofl buy transactions", 
+    [CommandDescription("Past /cofl buy transactions",
         "A list of transactions of CoflCoins",
         "Allows you to check where they came from and went to")]
     public class TransactionsCommand : ReadOnlyListCommand<ExternalTransaction>
@@ -15,28 +15,28 @@ namespace Coflnet.Sky.Commands.MC
         public override bool IsPublic => true;
         protected override void Format(MinecraftSocket socket, DialogBuilder db, ExternalTransaction elem)
         {
-            if(elem.Amount < 0)
+            if (elem.Amount < 0)
             {
                 var product = elem.ProductId;
-                if(product.StartsWith("transfer"))
+                if (product.StartsWith("transfer"))
                 {
                     product = "transfer";
-                    db.MsgLine($"{McColorCodes.YELLOW}Transferred {McColorCodes.RED}{elem.Amount}{McColorCodes.YELLOW} to another user on {McColorCodes.AQUA}{elem.TimeStamp}{McColorCodes.YELLOW}");
+                    db.MsgLine($"{McColorCodes.YELLOW}Transferred {McColorCodes.RED}{elem.Amount}{McColorCodes.YELLOW} to another user on {McColorCodes.AQUA}{elem.TimeStamp}{McColorCodes.YELLOW}", null, elem.Reference);
                     return;
                 }
-                if(product.StartsWith("premium_plus"))
+                if (product.StartsWith("premium_plus"))
                     product = "prem+";
-                else if(product.StartsWith("premium"))
+                else if (product.StartsWith("premium"))
                     product = "premium";
-                else if(product.StartsWith("pre_api"))
+                else if (product.StartsWith("pre_api"))
                     product = $"{McColorCodes.RED}pre_api";
-                else if(product.StartsWith("starter"))
+                else if (product.StartsWith("starter"))
                     product = "starter";
-                else if(product.StartsWith("test-premium"))
+                else if (product.StartsWith("test-premium"))
                     product = "test-premium";
                 db.MsgLine($"{McColorCodes.YELLOW}Purchased {McColorCodes.AQUA}{product}{McColorCodes.YELLOW} on {McColorCodes.AQUA}{elem.TimeStamp}{McColorCodes.YELLOW} for {McColorCodes.RED}{elem.Amount} ");
             }
-            else if(elem.ProductId == "compensation")
+            else if (elem.ProductId == "compensation")
                 db.MsgLine($"{McColorCodes.GREEN}Received {elem.ProductId} {McColorCodes.GREEN}{elem.Amount} {McColorCodes.YELLOW}on {McColorCodes.AQUA}{elem.TimeStamp}{McColorCodes.YELLOW} for {elem.Reference}");
             else if (elem.ProductId == "transfer")
                 db.MsgLine($"{McColorCodes.GREEN}Received {elem.ProductId}{McColorCodes.YELLOW} on {McColorCodes.AQUA}{elem.TimeStamp}{McColorCodes.YELLOW} for {McColorCodes.GREEN}{elem.Amount} ");
