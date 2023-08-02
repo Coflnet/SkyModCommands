@@ -472,7 +472,7 @@ namespace Coflnet.Sky.Commands.MC
                     $"That is in {McColorCodes.GREEN + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("d'd 'h'h 'm'm 's's'")}"
                 );
             else
-                SendMessage(COFLNET + messageStart + $"You use the {McColorCodes.BOLD}FREE{McColorCodes.RESET} version of the flip finder");
+                SendMessage(COFLNET + messageStart + $"You use the {McColorCodes.BOLD}FREE{McColorCodes.RESET} version of the flip finder", "/cofl buy", "Click to upgrade tier");
 
             await Task.Delay(300).ConfigureAwait(false);
             socket.ModAdapter.OnAuthorize(accountInfo);
