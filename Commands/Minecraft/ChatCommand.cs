@@ -11,9 +11,9 @@ using Newtonsoft.Json;
 namespace Coflnet.Sky.Commands.MC
 {
 
-    [CommandDescription("Writes a message to the chat", 
-        "Alias /fc <msg>", 
-        "Writes a message to the cofl chat", 
+    [CommandDescription("Writes a message to the chat",
+        "Alias /fc <msg>",
+        "Writes a message to the cofl chat",
         "Be nice and don't advertise or you may get muted")]
     public class ChatCommand : McCommand
     {
@@ -36,6 +36,11 @@ namespace Coflnet.Sky.Commands.MC
 
             if (socket.sessionLifesycle.UserId.Value == null)
             {
+                if (socket.SessionInfo.IsMacroBot)
+                {
+                    socket.SendMessage(COFLNET + "Sorry, you have to be logged in to send messages, open this link to login:\n" + socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId));
+                    return;
+                }
                 socket.SendMessage(COFLNET + "Sorry, you have to be logged in to send messages, click [HERE] to do that", socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId), "Some idiot abused the chat system so sadly this is necessary now");
                 return;
             }
