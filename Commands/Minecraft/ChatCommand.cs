@@ -38,7 +38,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (socket.SessionInfo.IsMacroBot)
                 {
-                    socket.SendMessage(COFLNET + "Sorry, you have to be logged in to send messages, open this link to login:\n" + socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId));
+                    socket.SendMessage(COFLNET + "Sorry, you have to be logged in to send messages, open this link to login:\n" + socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId), socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId));
                     return;
                 }
                 socket.SendMessage(COFLNET + "Sorry, you have to be logged in to send messages, click [HERE] to do that", socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId), "Some idiot abused the chat system so sadly this is necessary now");

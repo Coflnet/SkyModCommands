@@ -17,6 +17,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     public FullAfVersionAdapter(MinecraftSocket socket) : base(socket)
     {
+        socket.SessionInfo.IsMacroBot = true;
     }
 
     public override async Task TryToListAuction()
