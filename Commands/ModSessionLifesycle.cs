@@ -373,11 +373,16 @@ namespace Coflnet.Sky.Commands.MC
         public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
         {
             if (SessionInfo.MinecraftUuids.Count() > 0)
-                return SessionInfo.MinecraftUuids;
+                if (AccountInfo.Value != null)
+                {
+                    return SessionInfo.MinecraftUuids.Concat(AccountInfo.Value.McIds).ToHashSet();
+                }
+                else
+                    return SessionInfo.MinecraftUuids;
             var result = await McAccountService.Instance.GetAllAccounts(UserId.Value, DateTime.UtcNow - TimeSpan.FromDays(30));
             var loadSuccess = result != null;
             if (result == null || result.Count() == 0)
-                return new HashSet<string>() { SessionInfo.McUuid };
+                result = new HashSet<string>() { SessionInfo.McUuid };
             else
             {
                 /*if (AccountInfo.Value != null && AccountInfo.Value.McIds.Except(result).Any())
@@ -388,10 +393,6 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (!result.Contains(SessionInfo.McUuid))
                 result = result.Append(SessionInfo.McUuid);
-            if (AccountInfo.Value != null)
-            {
-                result = result.Concat(AccountInfo.Value.McIds).ToHashSet();
-            }
             if (!SessionInfo.McUuid.IsNullOrEmpty() && loadSuccess)
                 SessionInfo.MinecraftUuids = result.ToHashSet();
             return result;
