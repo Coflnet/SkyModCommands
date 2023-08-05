@@ -117,7 +117,7 @@ namespace Coflnet.Sky.Commands.MC
                         (flip.Context.ContainsKey("isRR") ? McColorCodes.RED + "PRE-RR" : "PRE")
                         : (IsPremiumPlus(flip)
                             ? "PREM+" : "");
-                return String.Format(Settings.ModSettings.Format,
+                return String.Format(Settings.ModSettings.Format.Replace("\\n", "\n"),
                     finderType,
                     GetRarityColor(a.Tier),
                     itemName,
