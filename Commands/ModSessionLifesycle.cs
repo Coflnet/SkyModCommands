@@ -454,8 +454,6 @@ namespace Coflnet.Sky.Commands.MC
                 SessionInfo.captchaInfo.LastSolve = DateTime.UtcNow;
                 socket.SendMessage(McColorCodes.GRAY + "speedup enabled, remaining " + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("g"));
             }
-            if (tier > AccountTier.NONE && accountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(1))
-                _ = BuyspeedboardCommand.DisableBuySpeedBoard(socket);
         }
 
 
