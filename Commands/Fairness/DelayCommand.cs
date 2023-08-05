@@ -42,7 +42,6 @@ namespace Coflnet.Sky.Commands.MC
                     + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
                     null, "Enjoy flipping at high speed☻");
             
-            socket.RecheckVerifiedAccounts();
             await socket.TriggerTutorial<DelayTutorial>();
             if (delayAmount >= TimeSpan.FromSeconds(1))
             {

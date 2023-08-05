@@ -42,8 +42,6 @@ namespace Coflnet.Sky.Commands.MC
             }
             // replace this call with stored socket.sessionLifesycle.AccountInfo.Value.McIds
 
-            socket.RecheckVerifiedAccounts();
-
             var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
             var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, time);
             if (response.Flips.Count() == 0)

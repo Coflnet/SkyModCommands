@@ -375,7 +375,7 @@ public class PreApiService : BackgroundService, IPreApiService
                     logger.LogInformation($"skipcheck !! {connection.SessionInfo.McName} {connection.SessionInfo.McUuid} is similar connected to {buyer} {buyerUid}");
                 if (sim.BoughtCount > 25 && Math.Abs(sim.BoughtCount - sim.TargetReceived) <= 1 && isSimilarConnected && didMostSimilarBuyLittleToNoAuctions)
                 {
-                    logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} by {buyer} for {flip.Auction.Uuid}");
+                    logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} buyer name {buyer} for {flip.Auction.Uuid} userId {connection.UserId}");
                     connection.AccountInfo.McIds.Add(buyer);
                     connection.SessionInfo.McUuid = buyer;
                     connection.SessionInfo.VerifiedMc = false;
