@@ -51,7 +51,7 @@ namespace Coflnet.Sky.Commands.MC
             if (flip.Profit > 2_000_000)
             {
                 socket.ExecuteCommand($"/cofl fresponse {uuid} {worth}");
-                socket.ReceivedConfirm.TryAdd(uuid, flip);
+                (socket as MinecraftSocket).ReceivedConfirm.TryAdd(uuid, flip);
                 _ = socket.TryAsyncTimes(async () =>
                 {
                     if ((socket.AccountInfo?.Tier ?? 0) >= Shared.AccountTier.SUPER_PREMIUM)
@@ -60,7 +60,7 @@ namespace Coflnet.Sky.Commands.MC
                         socket.GetService<PreApiService>().PublishReceive(uuid);
                     }
                     await Task.Delay(1000);
-                    if (socket.ReceivedConfirm.TryRemove(uuid, out var value))
+                    if ((socket as MinecraftSocket).ReceivedConfirm.TryRemove(uuid, out var value))
                     {
                         socket.Log($"Flip with id {uuid} was not confirmed\n" + JsonConvert.SerializeObject(value), LogLevel.Error);
                         Console.WriteLine($"Flip with id {uuid} was not confirmed by {socket.SessionInfo.McName} on {System.Net.Dns.GetHostName()}\n"

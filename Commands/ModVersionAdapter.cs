@@ -10,10 +10,10 @@ namespace Coflnet.Sky.Commands.MC
     public abstract class ModVersionAdapter : IModVersionAdapter
     {
         public static Prometheus.Counter aprilJoke = Prometheus.Metrics.CreateCounter("sky_commands_april_flips", "How many april fools flips were sent");
-        protected MinecraftSocket socket;
+        protected IMinecraftSocket socket;
         private DateTime lastSound = DateTime.UtcNow;
 
-        public ModVersionAdapter(MinecraftSocket socket)
+        public ModVersionAdapter(IMinecraftSocket socket)
         {
             this.socket = socket;
         }
@@ -39,10 +39,9 @@ namespace Coflnet.Sky.Commands.MC
             var seller = flip.SellerName;
             if (string.IsNullOrEmpty(seller) && (socket.Settings?.Visibility?.Seller ?? false))
                 seller = await socket.GetPlayerName(flip.Auction.AuctioneerId);
-
+            var flipHover = socket.formatProvider.GetHoverText(flip);
             var parts = new List<ChatPart>(){
-                new ChatPart(message, openCommand, socket.formatProvider.GetHoverText(flip)),
-                new ChatPart(" ✥ ", "/cofl dialog flipoptions " + uuid, "Expand flip options"),
+                new ChatPart(message, openCommand, flipHover),
                 //new ChatPart(" ❤", $"/cofl rate {uuid} {flip.Finder} up", "Vote this flip up"),
                 //new ChatPart("✖ ", $"/cofl rate {uuid} {flip.Finder} down", "Vote this flip down"),
             };
@@ -52,7 +51,7 @@ namespace Coflnet.Sky.Commands.MC
                     "\nWhitelisted ",
                     new() { Uuid = flip.Uuid, WL = true },
                     "This flip matched one of your whitelist entries\nClick to calculate which one"));
-                if(socket.Settings?.ModSettings?.Format?.Contains("ZYZZ CFG") ?? false)
+                if (socket.Settings?.ModSettings?.Format?.Contains("ZYZZ CFG") ?? false)
                     parts.Add(new ChatPart($"{McColorCodes.BOLD}{McColorCodes.OBFUSCATED}!!{McColorCodes.RESET}{McColorCodes.BOLD}THIS IS WHITELISTED", null, null));
             }
             if (toTake > 0)
@@ -74,8 +73,11 @@ namespace Coflnet.Sky.Commands.MC
                 var hover = $"{McColorCodes.GRAY}Open the ah for the seller";
                 if (seller == "not-found")
                     hover = $"The seller name could not be found. Click to try openening their ah anyways. \nYou can also permanently activate this button instead of the name to improve flip speeds.";
-                parts.Insert(1, new ChatPart(McColorCodes.GRAY + " sellers ah", $"/cofl ahopen {flip.Auction.AuctioneerId}", hover));
+                var buttonPart = new ChatPart(McColorCodes.GRAY + " sellers ah", $"/cofl ahopen {flip.Auction.AuctioneerId}", hover);
+                var placeholder = "[sellerbtn]";
+                AppendOrInsert(message, parts, buttonPart, placeholder);
             }
+            AppendOrInsert(message, parts, new ChatPart(" ✥ ", "/cofl dialog flipoptions " + uuid, "Expand flip options"), "[menu]");
 
             return parts;
 
@@ -83,6 +85,24 @@ namespace Coflnet.Sky.Commands.MC
             {
                 return seller == "not-found" || string.IsNullOrEmpty(seller);
             }
+        }
+
+        private static void AppendOrInsert(string message, List<ChatPart> parts, ChatPart buttonPart, string placeholder)
+        {
+            if (message.ToLower().Contains(placeholder))
+            {
+                var match = parts.Where(p => p.text.ToLower().Contains(placeholder)).FirstOrDefault();
+                var index = parts.IndexOf(match);
+                parts.Remove(match);
+                // split first part and replace
+                var start = match.text.IndexOf(placeholder);
+                var split = new string[] { match.text.Substring(0, start), match.text.Substring(start + placeholder.Length) };
+                parts.Insert(0, new ChatPart(split[0], match.onClick, match.hover));
+                parts.Insert(1, buttonPart);
+                parts.Insert(2, new ChatPart(split[1], match.onClick, match.hover));
+            }
+            else
+                parts.Add(buttonPart);
         }
 
         protected long GetWorth(FlipInstance flip)
@@ -116,7 +136,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public virtual void SendLoginPrompt(string loginLink)
         {
-            socket.Dialog(db=>db.Msg($"Please {McColorCodes.WHITE}§lclick this [LINK] to login{McColorCodes.GRAY} so we can load your settings §8(do '/cofl help login' to get more info)", loginLink, "Click to login"));
+            socket.Dialog(db => db.Msg($"Please {McColorCodes.WHITE}§lclick this [LINK] to login{McColorCodes.GRAY} so we can load your settings §8(do '/cofl help login' to get more info)", loginLink, "Click to login"));
         }
 
         public virtual void OnAuthorize(AccountInfo accountInfo)
