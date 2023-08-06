@@ -109,18 +109,23 @@ namespace Coflnet.Sky.Commands.MC
             //   parts.Add(new ChatPart($"It was compared to {McColorCodes.AQUA} these auctions {DEFAULT_COLOR}, open ah", $"/viewauction {reference.Uuid}", McColorCodes.GREEN + "open it on ah"));
             if (flip.AdditionalProps.TryGetValue("closest", out var closestKey))
                 parts.Add(new ChatPart($"Used key {closestKey}"));
-            parts.AddRange(references.Select(r =>
-                new ChatPart($"\n->{socket.formatProvider.GetRarityColor(r.Tier)} {r.ItemName}{McColorCodes.GRAY} for {McColorCodes.AQUA}{socket.FormatPrice(r.HighestBidAmount)}{McColorCodes.GRAY} {r.End}",
-                                        "https://sky.coflnet.com/auction/" + r.Uuid,
-                                        "Click to open this auction")
+            parts.AddRange(references.Select(r => FormatAuction(socket, r)
             ));
             if (flip.Finder == LowPricedAuction.FinderType.SNIPER && !string.IsNullOrEmpty(referenceId))
             {
                 reference = await AuctionService.Instance.GetAuctionAsync(referenceId);
-                parts.Add(new ChatPart($"\n{McColorCodes.WHITE}AH LBIN: {reference.ItemName}", $"/viewauction {reference.Uuid}", "open ah"));
+                parts.Add(new ChatPart($"\n{McColorCodes.WHITE}Lowest bin auction for {reference.ItemName}:", $"/viewauction {reference.Uuid}", "open ah"));
+                parts.Add(FormatAuction(socket, reference));
                 parts.Add(new ChatPart($" [website]", $"https://sky.coflnet.com/auction/{reference.Uuid}", "open it on website"));
             }
             socket.ModAdapter.SendMessage(parts.ToArray());
+
+            static ChatPart FormatAuction(MinecraftSocket socket, SaveAuction r)
+            {
+                return new ChatPart($"\n->{socket.formatProvider.GetRarityColor(r.Tier)} {r.ItemName}{McColorCodes.GRAY} for {McColorCodes.AQUA}{socket.FormatPrice(r.HighestBidAmount)}{McColorCodes.GRAY} {r.End}",
+                                                        "https://sky.coflnet.com/auction/" + r.Uuid,
+                                                        "Click to open this auction");
+            }
         }
     }
 }
