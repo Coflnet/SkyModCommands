@@ -122,7 +122,8 @@ namespace Coflnet.Sky.Commands.MC
 
             static ChatPart FormatAuction(MinecraftSocket socket, SaveAuction r)
             {
-                return new ChatPart($"\n->{socket.formatProvider.GetRarityColor(r.Tier)} {r.ItemName}{McColorCodes.GRAY} for {McColorCodes.AQUA}{socket.FormatPrice(r.HighestBidAmount)}{McColorCodes.GRAY} {r.End}",
+                var formattedPrice = socket.FormatPrice(r.HighestBidAmount == 0 ? r.StartingBid : r.HighestBidAmount);
+                return new ChatPart($"\n->{socket.formatProvider.GetRarityColor(r.Tier)} {r.ItemName}{McColorCodes.GRAY} for {McColorCodes.AQUA}{formattedPrice}{McColorCodes.GRAY} {r.End}",
                                                         "https://sky.coflnet.com/auction/" + r.Uuid,
                                                         "Click to open this auction");
             }
