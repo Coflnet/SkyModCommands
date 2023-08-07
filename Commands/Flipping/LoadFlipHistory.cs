@@ -29,7 +29,7 @@ public class LoadFlipHistory : McCommand
         var redis = socket.GetService<ConnectionMultiplexer>();
         if ((await redis.GetDatabase().StringGetAsync("flipreload" + playerId)).HasValue)
         {
-            socket.Dialog(db => db.MsgLine("Flips are already being reloaded, this can take multiple hours. \nLots of number crunshing :)"));
+            socket.Dialog(db => db.MsgLine("Flips are already being reloaded, this can take multiple hours. \nLots of number crunching :)"));
             return;
         }
         await redis.GetDatabase().StringSetAsync("flipreload" + playerId, "true", TimeSpan.FromHours(12));
