@@ -353,7 +353,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 foreach (var item in AccountInfo.McIds.Where(id => !id.Equals(SessionInfo.McUuid)))
                 {
-                    var connectedCheck = await McAccountService.Instance.ConnectAccount(UserId, item);
+                    var connectedCheck = await GetService<McAccountService>().ConnectAccount(UserId, item);
                     if (connectedCheck.IsConnected)
                         continue;
                     AccountInfo.McIds.Remove(item);

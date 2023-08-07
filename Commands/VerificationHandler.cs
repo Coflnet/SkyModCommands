@@ -59,7 +59,7 @@ namespace Coflnet.Sky.Commands.MC
                 // dispatch access request to update last request time (and keep)
                 _ = socket.TryAsyncTimes(async () =>
                 {
-                    var connected = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
+                    var connected = await socket.GetService<McAccountService>().ConnectAccount(userId, mcUuid);
                     if (connected.IsConnected)
                         return;
                     accountInfo.McIds.Remove(mcUuid);
@@ -78,7 +78,7 @@ namespace Coflnet.Sky.Commands.MC
                     mcUuid = SessionInfo.McUuid;
                 try
                 {
-                    connect = await McAccountService.Instance.ConnectAccount(userId, mcUuid);
+                    connect = await socket.GetService<McAccountService>().ConnectAccount(userId, mcUuid);
                     if (connect != null)
                         break;
                 }

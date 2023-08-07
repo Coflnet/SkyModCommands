@@ -381,7 +381,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 else
                     return SessionInfo.MinecraftUuids;
-            var result = await McAccountService.Instance.GetAllAccounts(UserId.Value, DateTime.UtcNow - TimeSpan.FromDays(30));
+            var result = await socket.GetService<McAccountService>().GetAllAccounts(UserId.Value, DateTime.UtcNow - TimeSpan.FromDays(30));
             var loadSuccess = result != null;
             if (result == null || result.Count() == 0)
                 result = new HashSet<string>() { SessionInfo.McUuid };
