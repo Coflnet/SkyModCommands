@@ -164,7 +164,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             var toRemove = await Find(socket, arguments);
-            if(toRemove.Count == 0) // if no exact match is find try searching
+            if (toRemove.Count == 0) // if no exact match is find try searching
                 toRemove = await Search(socket, arguments);
             if (toRemove.Count == 0)
             {
@@ -238,7 +238,7 @@ namespace Coflnet.Sky.Commands.MC
         protected virtual async Task<ICollection<TElem>> Search(MinecraftSocket socket, string val)
         {
             var list = await GetList(socket);
-            return list.Where(l => GetId(l).ToLower().Contains(val.ToLower())).ToList();
+            return list.Where(l => (GetId(l) + LongFormat(l)).ToLower().Contains(val.ToLower())).ToList();
         }
 
         /// <summary>
