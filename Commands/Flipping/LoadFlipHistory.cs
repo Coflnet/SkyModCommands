@@ -17,8 +17,9 @@ public class LoadFlipHistory : McCommand
     {
         if (!socket.SessionInfo.VerifiedMc)
             throw new CoflnetException("not_verified", "You need to verify your minecraft account before executing this command.");
-        var playerId = JsonConvert.DeserializeObject<string>(arguments);
-        if (int.TryParse(playerId, out var days) || string.IsNullOrEmpty(playerId))
+        var args = JsonConvert.DeserializeObject<string>(arguments);
+        var playerId = args.Split(' ')[0];
+        if (int.TryParse(args.Split(' ').Last(), out var days) && !args.Contains(' ') || args.Length < 3)
         {
             playerId = socket.SessionInfo.McUuid;
         }
@@ -29,11 +30,11 @@ public class LoadFlipHistory : McCommand
         var redis = socket.GetService<ConnectionMultiplexer>();
         if ((await redis.GetDatabase().StringGetAsync("flipreload" + playerId)).HasValue)
         {
-            socket.Dialog(db => db.MsgLine("Flips are already being reloaded, this can take multiple hours. \nLots of number crunching :)"));
+            socket.Dialog(db => db.MsgLine("Flips have already being reloaded recently, this can take multiple hours. \nLots of number crunching :)"));
             return;
         }
         await redis.GetDatabase().StringSetAsync("flipreload" + playerId, "true", TimeSpan.FromHours(12));
-        socket.SendMessage(COFLNET + $"Started refreshing flips for {playerId}", null, "this might take a while");
+        socket.SendMessage(COFLNET + $"Started refreshing flips of {playerId} for {days} days", null, "this might take a while");
         if (playerId.Length < 30)
             playerId = (await socket.GetPlayerUuid(playerId)).Trim('"');
 
