@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.ModCommands.Tutorials;
 using Newtonsoft.Json;
 using OpenTracing;
 
@@ -243,6 +244,8 @@ namespace Coflnet.Sky.Commands.MC
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
             if (flip.AdditionalProps.ContainsKey("isRR") && socket.AccountInfo?.Tier >= AccountTier.SUPER_PREMIUM)
                 await socket.TriggerTutorial<ModCommands.Tutorials.RoundRobinTutorial>().ConfigureAwait(false);
+            if (flip.Finder == LowPricedAuction.FinderType.SNIPER_MEDIAN && flip.Auction.FlatenedNBT.Count >= 3)
+                await socket.TriggerTutorial<Flipping>().ConfigureAwait(false);
 
             _ = socket.TryAsyncTimes(async () =>
             {
