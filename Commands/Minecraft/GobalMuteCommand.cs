@@ -17,6 +17,7 @@ namespace Coflnet.Sky.Commands.MC
             if (!isModerator)
                 throw new CoflnetException("forbidden", "Whoops, you don't seem to be a moderator. Therefore you can't mute other users");
 
+            socket.Dialog(db => db.MsgLine("Muting ").AsGray().Msg(McColorCodes.AQUA + mcName));
             await socket.GetService<ChatService>().Mute(new()
             {
                 Message = $"Violating rule {args[0]} with \"{args.Replace(" " + uuid, "").Substring(args.IndexOf(parts.Skip(3).First()))}\"",
