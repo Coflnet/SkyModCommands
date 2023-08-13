@@ -301,6 +301,10 @@ namespace Coflnet.Sky.Commands.MC
                 Send(Response.Create("error", "the connection query string needs to include 'version' with client version"));
                 // return;
             }
+            if(args["type"] != null)
+            {
+                SessionInfo.ConnectionType = args["type"];
+            }
             Version = args["version"].Truncate(14);
 
             ModAdapter = Version switch
