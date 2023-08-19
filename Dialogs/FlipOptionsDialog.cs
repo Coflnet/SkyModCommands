@@ -29,19 +29,6 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 $" {greenHeard}  upvote flip",
                 $"{flip.Auction.Uuid} {flip.Finder} up",
                 "Vote this flip up").Break
-            .CoflCommand<TimeCommand>(
-                timingMessage,
-                $"{flip.Auction.Uuid}",
-                "Get your timings for flip").Break
-            .CoflCommand<AhOpenCommand>(
-                $"{McColorCodes.GOLD} AH {McColorCodes.GRAY}open seller's ah ",
-                $"{flip.Auction.AuctioneerId}",
-                "Open the sellers ah")
-                .CoflCommand<GetMcNameForCommand>(McColorCodes.DARK_GREEN + " Get Name", flip.Auction.AuctioneerId, "Get the name of the seller").Break
-            .CoflCommand<ReferenceCommand>(
-                $"{McColorCodes.WHITE}[?]{McColorCodes.GRAY} Get references",
-                $"{flip.Auction.Uuid}",
-                "Find out why this was deemed a flip").Break
             .CoflCommand<BlacklistCommand>(
                 $" {redX}  Blacklist this item",
                 $"add {flip.Auction.Tag} forceBlacklist=true",
@@ -59,6 +46,19 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 $"add seller={flip.Auction.AuctioneerId} forceBlacklist=true",
                 $"Don't show seller {McColorCodes.AQUA}{flip.Auction.AuctioneerId}{McColorCodes.YELLOW} AT ALL anymore")
                 .Break
+            .CoflCommand<TimeCommand>(
+                timingMessage,
+                $"{flip.Auction.Uuid}",
+                "Get your timings for flip").Break
+            .CoflCommand<AhOpenCommand>(
+                $"{McColorCodes.GOLD} AH {McColorCodes.GRAY}open seller's ah ",
+                $"{flip.Auction.AuctioneerId}",
+                "Open the sellers ah")
+                .CoflCommand<GetMcNameForCommand>(McColorCodes.DARK_GREEN + " Get Name", flip.Auction.AuctioneerId, "Get the name of the seller").Break
+            .CoflCommand<ReferenceCommand>(
+                $"{McColorCodes.WHITE}[?]{McColorCodes.GRAY} Get references",
+                $"{flip.Auction.Uuid}",
+                "Find out why this was deemed a flip").Break
             .MsgLine(
                 " ➹  Open on website",
                 $"https://sky.coflnet.com/a/{flip.Auction.Uuid}",
