@@ -6,12 +6,12 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using StackExchange.Redis;
-using Coflnet.Sky.Core;
+using Core;
 using Coflnet.Sky.Proxy.Client.Api;
 using Microsoft.Extensions.Logging;
-using Coflnet.Sky.Commands.Shared;
+using Commands.Shared;
 using System.Collections.Concurrent;
-using Coflnet.Sky.Commands;
+using Commands;
 using Coflnet.Sky.Commands.MC;
 using System.Linq;
 using System.Globalization;
@@ -43,13 +43,13 @@ public interface IIsSold
 /// </summary>
 public class PreApiService : BackgroundService, IPreApiService
 {
-    ConnectionMultiplexer redis;
-    ILogger<PreApiService> logger;
+    private ConnectionMultiplexer redis;
+    private ILogger<PreApiService> logger;
     static private ConcurrentDictionary<IFlipConnection, DateTime> localUsers = new();
-    IProductsApi productsApi;
-    IBaseApi baseApi;
-    Prometheus.Counter flipsPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased", "Flips purchased");
-    Prometheus.Counter preApiFlipPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased_preapi", "Flips bought by a preapi user");
+    private IProductsApi productsApi;
+    private IBaseApi baseApi;
+    private Prometheus.Counter flipsPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased", "Flips purchased");
+    private Prometheus.Counter preApiFlipPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased_preapi", "Flips bought by a preapi user");
     private List<string> preApiUsers = new();
     private ConcurrentDictionary<string, AccountTier> sold = new();
     private ConcurrentDictionary<string, DateTime> sent = new();
@@ -75,23 +75,23 @@ public class PreApiService : BackgroundService, IPreApiService
                 sold.TryAdd(sell.Uuid, sell.Tier);
                 sent.TryRemove(sell.Uuid, out _);
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 logger.LogError(e, "failed to deserialize sell");
             }
         });
-        redis.GetSubscriber().Subscribe("auction_sent", (channel, message) =>
+        redis.GetSubscriber().Subscribe("auction_sent", (_, message) =>
         {
             try
             {
                 var send = MessagePack.MessagePackSerializer.Deserialize<Auction>(message);
-                sent.AddOrUpdate(send.Uuid, DateTime.UtcNow, (key, old) => DateTime.UtcNow);
+                sent.AddOrUpdate(send.Uuid, DateTime.UtcNow, (_, _) => DateTime.UtcNow);
                 if (send.Uuid == Dns.GetHostName() && DateTime.UtcNow.Minute % 5 == 0)
                     logger.LogInformation("got mod sent redis heartbeat");
                 else
                     logger.LogInformation($"got mod sent confirm from {send.Uuid}");
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 logger.LogError(e, "failed to deserialize send");
             }
@@ -106,7 +106,7 @@ public class PreApiService : BackgroundService, IPreApiService
                 PublishSell(Dns.GetHostName(), AccountTier.NONE);
                 PublishReceive(Dns.GetHostName());
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 logger.LogError(e, "failed to execute pre api service refresh");
             }
@@ -132,7 +132,7 @@ public class PreApiService : BackgroundService, IPreApiService
 
     public void AddNotify(int count, IMinecraftSocket socket)
     {
-        notifyWhenUserLeave.AddOrUpdate(count, new List<IMinecraftSocket>() { socket }, (key, old) =>
+        notifyWhenUserLeave.AddOrUpdate(count, new List<IMinecraftSocket>() { socket }, (_, old) =>
         {
             old.Add(socket);
             return old;
@@ -163,7 +163,7 @@ public class PreApiService : BackgroundService, IPreApiService
                 notifyWhenUserLeave.TryRemove(preApiUsers.Count, out _);
             }
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             logger.LogError(e, "Failed to get pre api users");
         }
@@ -171,7 +171,7 @@ public class PreApiService : BackgroundService, IPreApiService
 
     public void AddUser(IFlipConnection connection, DateTime expires)
     {
-        localUsers.AddOrUpdate(connection, expires, (key, old) => expires);
+        localUsers.AddOrUpdate(connection, expires, (_, _) => expires);
         logger.LogInformation($"Added user {connection.UserId} to flip list {localUsers.Count} users {expires}");
         Task.Run(RefreshUsers);
     }
@@ -182,18 +182,17 @@ public class PreApiService : BackgroundService, IPreApiService
         {
             await DistributeFlip(e).ConfigureAwait(false);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             logger.LogError(ex, $"Error while handling pre api low price {JSON.Stringify(localUsers)}\n{JSON.Stringify(e)}");
         }
     }
 
-    private async Task<LowPricedAuction> DistributeFlip(LowPricedAuction e)
+    private async Task DistributeFlip(LowPricedAuction e)
     {
         if (e.Auction?.Context?.ContainsKey("cname") ?? false)
             e.Auction.Context["cname"] += McColorCodes.DARK_GRAY + ".";
-        if (PreApiUserCount == 0)
-            return e;
+        if (PreApiUserCount == 0) return;
 
         var tilPurchasable = e.Auction.Start + TimeSpan.FromSeconds(19.9) - DateTime.UtcNow;
         if (tilPurchasable < TimeSpan.Zero)
@@ -206,9 +205,9 @@ public class PreApiService : BackgroundService, IPreApiService
                 {
                     await SendFlipCorrectly(e, tilPurchasable, item).ConfigureAwait(false);
                 }
-                catch (System.Exception e)
+                catch (Exception ex)
                 {
-                    logger.LogError(e, "Error while sending flip to user");
+                    logger.LogError(ex, "Error while sending flip to user");
                 }
             }, new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token).ConfigureAwait(false);
         }
@@ -221,12 +220,11 @@ public class PreApiService : BackgroundService, IPreApiService
         else
             await Task.Delay(TimeSpan.FromSeconds(0.3)).ConfigureAwait(false);
         // check if flip was sent to anyone 
-        if (!sent.ContainsKey(e.Auction.Uuid))
-            return e; // if not send to all users
+        if (e.Auction != null && !sent.ContainsKey(e.Auction.Uuid)) 
+            return;
 
         // send out after delay
         await Task.Delay(4_000).ConfigureAwait(false);
-        return e;
     }
 
     /// <summary>
@@ -245,7 +243,7 @@ public class PreApiService : BackgroundService, IPreApiService
         var index = connection is MinecraftSocket socket ? preApiUsers.IndexOf(socket.UserId) : Random.Shared.Next(userCount);
         if (index == -1)
             logger.LogError($"User {connection.UserId} is not in pre api list");
-        var isMyRR = Math.Abs(flip.Auction.UId) % userCount == index;
+        var isMyRR = Math.Abs(flip?.Auction?.UId ?? Random.Shared.Next()) % userCount == index;
         if (!isMyRR)
         {
             logger.LogInformation($"Waiting {tilPurchasable} for {flip.Auction.Uuid} to send to {connection.UserId} active users {JSON.Stringify(preApiUsers)}");
@@ -317,14 +315,15 @@ public class PreApiService : BackgroundService, IPreApiService
         var match = regex.Match(message);
         var itemName = match.Groups[1].Value;
         var priceString = match.Groups[2].Value;
-        var price = double.Parse(priceString, NumberStyles.Number, CultureInfo.InvariantCulture);
+        var price = (long)double.Parse(priceString, NumberStyles.Number, CultureInfo.InvariantCulture);
         var flips = connection.LastSent.OrderByDescending(s => s.Auction.Start)
             .Where(f => f.Auction.ItemName == itemName
                     && f.Auction.StartingBid == price
-                    && f.Auction.Start > DateTime.UtcNow.AddMinutes(-2));
+                    && f.Auction.Start > DateTime.UtcNow.AddMinutes(-2))
+            .ToArray();
         if (flips.Count() == 1)
         {
-            var flip = flips.FirstOrDefault();
+            var flip = flips.First();
             var uuid = flip.Auction.Uuid;
             logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.UtcNow}");
             PublishSell(uuid, connection.UserAccountTier().Result);

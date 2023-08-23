@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
-using Coflnet.Sky.Core;
 using System.Linq;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.Extensions.Configuration;
@@ -56,7 +55,7 @@ namespace Coflnet.Sky.Commands.MC
                         await UpdateSellerAuction(socket, secondLine);
                 }
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine("chat produce failed " + e);
             }

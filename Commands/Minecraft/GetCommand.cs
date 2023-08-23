@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC

@@ -9,7 +9,6 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.ModCommands.Tutorials;
 using Newtonsoft.Json;
-using OpenTracing;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -164,7 +163,7 @@ namespace Coflnet.Sky.Commands.MC
                 return true;
         }
 
-        private async Task SendAfterDelay(IEnumerable<(Coflnet.Sky.Core.LowPricedAuction f, Coflnet.Sky.Commands.Shared.FlipInstance instance)> flips)
+        private async Task SendAfterDelay(IEnumerable<(LowPricedAuction f, FlipInstance instance)> flips)
         {
             var flipsWithTime = flips.Select(f => (f.instance, f.f.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow, lp: f.f));
             var bedsToWaitFor = flipsWithTime.Where(f => f.Item2 > TimeSpan.FromSeconds(3.1) && !(Settings?.ModSettings.NoBedDelay ?? false));
@@ -243,7 +242,7 @@ namespace Coflnet.Sky.Commands.MC
 
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
             if (flip.AdditionalProps.ContainsKey("isRR") && socket.AccountInfo?.Tier >= AccountTier.SUPER_PREMIUM)
-                await socket.TriggerTutorial<ModCommands.Tutorials.RoundRobinTutorial>().ConfigureAwait(false);
+                await socket.TriggerTutorial<RoundRobinTutorial>().ConfigureAwait(false);
             if (flip.Finder == LowPricedAuction.FinderType.SNIPER_MEDIAN && flip.Auction.FlatenedNBT.Count >= 3)
                 await socket.TriggerTutorial<Flipping>().ConfigureAwait(false);
 

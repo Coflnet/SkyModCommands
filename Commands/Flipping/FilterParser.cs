@@ -97,8 +97,8 @@ namespace Coflnet.Sky.Commands.MC
 
         private static void AssertValidNumberFilter(string filterName, string filterVal, FilterType type)
         {
-            if (type.HasFlag(Filter.FilterType.NUMERICAL) && !NumberDetailedFlipFilter.IsValidInput(filterVal))
-                throw new Coflnet.Sky.Core.CoflnetException("invalid_value", $"The provided filter value {filterVal} is not valid for {filterName}");
+            if (type.HasFlag(FilterType.NUMERICAL) && !NumberDetailedFlipFilter.IsValidInput(filterVal))
+                throw new CoflnetException("invalid_value", $"The provided filter value {filterVal} is not valid for {filterName}");
         }
     }
 }

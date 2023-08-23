@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
     public class BlacklistCommand : ListCommand<ListEntry, List<ListEntry>>
     {
         public override bool IsPublic => true;
-        FilterParser parser = new FilterParser();
+        private FilterParser parser = new FilterParser();
         protected override string Format(ListEntry elem)
         {
             return FormatEntry(elem);
@@ -51,11 +51,11 @@ namespace Coflnet.Sky.Commands.MC
         {
             var settings = socket.sessionLifesycle.FlipSettings;
             if (settings.Value == null)
-                throw new Coflnet.Sky.Core.CoflnetException("login", "Login is required to use this command");
+                throw new CoflnetException("login", "Login is required to use this command");
             if (settings.Value.BlackList == null)
-                settings.Value.BlackList = new System.Collections.Generic.List<ListEntry>();
+                settings.Value.BlackList = new List<ListEntry>();
             if (settings.Value.WhiteList == null)
-                settings.Value.WhiteList = new System.Collections.Generic.List<ListEntry>();
+                settings.Value.WhiteList = new List<ListEntry>();
             return settings;
         }
 
@@ -78,7 +78,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 val = await parser.ParseFiltersAsync(socket, val, filters, allFilters);
             }
-            List<Items.Client.Model.SearchResult> result = new List<Items.Client.Model.SearchResult>();
+            List<SearchResult> result = new List<SearchResult>();
             var removeAfter = filters.ContainsKey("removeAfter") ? filters["removeAfter"] : null;
             if (removeAfter != null)
             {
@@ -103,7 +103,7 @@ namespace Coflnet.Sky.Commands.MC
             if (val.Length < 1)
             {
                 // filter only element
-                result.Add(new Items.Client.Model.SearchResult() { Text = originalVal });
+                result.Add(new SearchResult() { Text = originalVal });
                 Console.WriteLine("filter only element");
             }
             else
@@ -135,7 +135,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 entry.GetExpression().Compile().Invoke(GetTestFlip(r.Tag));
             }
-            catch (System.Exception)
+            catch (Exception)
             {
                 Console.WriteLine(JSON.Stringify(entry));
                 socket.SendMessage("The filter could not be parsed or created, please check your syntax or report this");
@@ -147,7 +147,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             return new FlipInstance()
             {
-                Auction = new Core.SaveAuction()
+                Auction = new SaveAuction()
                 {
                     ItemName = "test",
                     Tag = tag,

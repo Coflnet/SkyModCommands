@@ -5,7 +5,6 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 using Newtonsoft.Json;
-using OpenTracing;
 using System.Diagnostics;
 using Coflnet.Sky.PlayerState.Client.Api;
 

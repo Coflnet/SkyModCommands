@@ -2,11 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Coflnet.Sky.Commands.Helper;
 using Coflnet.Sky.Commands.Shared;
-using Coflnet.Sky.Filter;
 using Coflnet.Sky.Core;
 using System.Diagnostics;
 using Newtonsoft.Json;
@@ -14,9 +11,8 @@ using WebSocketSharp;
 using WebSocketSharp.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Coflnet.Sky.ModCommands.Dialogs;
-using System.Runtime.Serialization;
-using OpenTracing;
 using System.Collections.Specialized;
+using System.Globalization;
 using System.Threading;
 #nullable enable
 namespace Coflnet.Sky.Commands.MC
@@ -26,7 +22,7 @@ namespace Coflnet.Sky.Commands.MC
     /// Main connection point for the mod.
     /// Handles establishing, authorization and handling of messages for a session
     /// </summary>
-    public partial class MinecraftSocket : WebSocketBehavior, IFlipConnection, IMinecraftSocket
+    public class MinecraftSocket : WebSocketBehavior, IFlipConnection, IMinecraftSocket
     {
         public static string COFLNET = "[§1C§6oflnet§f]§7: ";
 
@@ -48,15 +44,15 @@ namespace Coflnet.Sky.Commands.MC
         public static bool IsDevMode { get; } = System.Net.Dns.GetHostName().Contains("ekwav");
         public string ClientIp => Context.Headers["X-Real-Ip"] ?? Context.UserEndPoint.Address.ToString();
 
-        public static ClassNameDictonary<McCommand> Commands = new ClassNameDictonary<McCommand>();
+        public static readonly ClassNameDictonary<McCommand?> Commands = new ClassNameDictonary<McCommand?>();
 
-        public ConcurrentDictionary<string, FlipInstance> ReceivedConfirm = new();
+        public readonly ConcurrentDictionary<string, FlipInstance> ReceivedConfirm = new();
 
         public static event Action NextUpdateStart;
         /// <summary>
         /// The time flips are expected to come in
         /// </summary>
-        public static DateTime NextFlipTime { get; protected set; }
+        protected static DateTime NextFlipTime { get; set; }
 
         //int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId?.Value ?? "0");
         public string UserId
@@ -71,7 +67,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private static System.Threading.Timer tenSecTimer;
+        private static Timer tenSecTimer;
 
         public ConcurrentQueue<BlockedElement> TopBlocked = new ConcurrentQueue<BlockedElement>();
         public ConcurrentQueue<LowPricedAuction> LastSent { get; } = new ConcurrentQueue<LowPricedAuction>();
@@ -173,10 +169,12 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     var startTime = DateTime.UtcNow;
                     GC.Collect();
-                    Console.WriteLine("next update " + (DateTime.UtcNow - startTime));
+                    GC.WaitForPendingFinalizers();
+                    var memmoryUsed = GC.GetTotalMemory(true);
+                    Console.WriteLine("next update " + (DateTime.UtcNow - startTime) + " memmory used " + memmoryUsed);
                 };
                 NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
-                tenSecTimer = new System.Threading.Timer((e) =>
+                tenSecTimer = new Timer((_) =>
                 {
                     try
                     {
@@ -191,7 +189,7 @@ namespace Coflnet.Sky.Commands.MC
                     }
                 }, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
 
-                DateTime next = await GetNext10SecTime();
+                var next = await GetNext10SecTime();
                 Console.WriteLine($"started timer to start at {next} now its {DateTime.UtcNow}");
             }, "starting timer");
         }
@@ -200,9 +198,9 @@ namespace Coflnet.Sky.Commands.MC
         {
             Task.Run(async () =>
             {
-                using var updateSpan = DiHandler.ServiceProvider.GetRequiredService<ActivitySource>().StartActivity("refreshTimer");
+                using var updateSpan = DiHandler.ServiceProvider.GetRequiredService<ActivitySource>().StartActivity();
                 DateTime next = await GetNext10SecTime();
-                updateSpan?.SetTag("time", next.ToString());
+                updateSpan?.SetTag("time", next.ToString(CultureInfo.InvariantCulture));
                 tenSecTimer.Change(next - DateTime.UtcNow, TimeSpan.FromMinutes(1));
             }, new CancellationTokenSource(15000).Token);
         }
@@ -245,7 +243,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }, new CancellationTokenSource(TimeSpan.FromHours(1)).Token).ConfigureAwait(false);
 
-            System.Console.CancelKeyPress += OnApplicationStop;
+            Console.CancelKeyPress += OnApplicationStop;
 
             NextUpdateStart -= SendTimer;
             NextUpdateStart += SendTimer;
@@ -264,8 +262,7 @@ namespace Coflnet.Sky.Commands.MC
             TryAsyncTimes(async () => await LoadPlayerName(passedId!), "loading PlayerName");
             Activity.Current?.SetTag("player", passedId);
 
-            string stringId;
-            (this.Id, stringId) = GetService<IdConverter>().ComputeConnectionId(passedId, SessionInfo.clientSessionId);
+            (Id, var stringId) = GetService<IdConverter>().ComputeConnectionId(passedId, SessionInfo.clientSessionId);
             ConSpan.SetTag("conId", stringId);
 
             GetService<FlipperService>().AddNonConnection(this, false);
@@ -344,7 +341,7 @@ namespace Coflnet.Sky.Commands.MC
                         await action().ConfigureAwait(false);
                         return;
                     }
-                    catch (System.Exception e)
+                    catch (Exception e)
                     {
                         Error(e, errorMessage);
                     }
@@ -369,14 +366,14 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task<string> GetPlayerName(string uuid)
         {
-            return await Shared.DiHandler.GetService<PlayerName.PlayerNameService>()
+            return await DiHandler.GetService<PlayerName.PlayerNameService>()
                     .GetName(uuid) ?? "unknown";
         }
         public async Task<string> GetPlayerUuid(string name, bool blockError = false)
         {
             try
             {
-                return await Shared.DiHandler.GetService<PlayerName.PlayerNameService>()
+                return await DiHandler.GetService<PlayerName.PlayerNameService>()
                         .GetUuid(name);
             }
             catch (Exception e)
@@ -395,7 +392,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <returns></returns>
         public virtual T GetService<T>() where T : class
         {
-            return Shared.DiHandler.ServiceProvider.GetRequiredService<T>();
+            return DiHandler.ServiceProvider.GetRequiredService<T>();
         }
 
         private async Task LoadPlayerName(string passedId)
@@ -413,7 +410,7 @@ namespace Coflnet.Sky.Commands.MC
                 var profile = await PlayerSearch.Instance.GetMcProfile(passedId);
                 uuid = profile.Id;
                 SessionInfo.McName = profile.Name;
-                var update = await IndexerClient.TriggerNameUpdate(uuid);
+                await IndexerClient.TriggerNameUpdate(uuid);
             }
             SessionInfo.McUuid = uuid;
             loadSpan?.SetTag("playerId", passedId);
@@ -421,14 +418,14 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-        int waiting = 0;
+        private int waiting = 0;
 
         protected override void OnMessage(MessageEventArgs e)
         {
             var parallelAllowed = 2;
-            if ((this.AccountInfo?.Tier ?? 0) >= AccountTier.PREMIUM_PLUS)
+            if ((AccountInfo?.Tier ?? 0) >= AccountTier.PREMIUM_PLUS)
                 parallelAllowed = 6;
-            else if ((this.AccountInfo?.Tier ?? 0) >= AccountTier.STARTER_PREMIUM)
+            else if ((AccountInfo?.Tier ?? 0) >= AccountTier.STARTER_PREMIUM)
                 parallelAllowed = 4;
 
             if (waiting > parallelAllowed)
@@ -456,9 +453,9 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private void HandleCommand(MessageEventArgs e, Activity? span, Response a)
+        private void HandleCommand(MessageEventArgs e, Activity? span, Response? a)
         {
-            if (a == null || a.type == null)
+            if (a?.type == null)
             {
                 Send(new Response("error", "the payload has to have the property 'type'"));
                 return;
@@ -468,16 +465,16 @@ namespace Coflnet.Sky.Commands.MC
             if (SessionInfo.clientSessionId.StartsWith("debug"))
                 SendMessage("executed " + a.data, "");
 
-            // tokenlogin is the legacy version of clicked
-            if (a.type == "tokenLogin" || a.type == "clicked")
+            // tokenLogin is the legacy version of clicked
+            if (a.type is "tokenLogin" or "clicked")
             {
                 ClickCallback(a);
                 return;
             }
 
-            if (!Commands.TryGetValue(a.type.ToLower(), out McCommand command))
+            if (!Commands.TryGetValue(a.type.ToLower(), out var command))
             {
-                var closest = Commands.Where(c => c.Value.IsPublic).Select(c => c.Key).OrderBy(x => Fastenshtein.Levenshtein.Distance(x.ToLower(), a.type)).FirstOrDefault();
+                var closest = Commands.Where(c => c.Value is { IsPublic: true }).Select(c => c.Key).MinBy(x => Fastenshtein.Levenshtein.Distance(x.ToLower(), a.type));
                 var altCommand = $"/cofl {closest} {a.data.Trim('"')}";
                 SendMessage($"{COFLNET}The command '{McColorCodes.ITALIC + a.type + McColorCodes.RESET + McCommand.DEFAULT_COLOR}' is not known. Hover for info\n",
                             altCommand.Trim('"'),
@@ -514,7 +511,8 @@ namespace Coflnet.Sky.Commands.MC
             catch (Exception ex)
             {
                 var id = Error(ex, "mod command");
-                SendMessage(COFLNET + $"An error occured while processing your command. The error was recorded and will be investigated soon. You can refer to it by {id}", "http://" + id, "click to open the id as link (and be able to copy)");
+                SendMessage(COFLNET + $"An error occured while processing your command. The error was recorded and will be investigated soon. You can refer to it by {id}",
+                    $"http://{id}", "click to open the id as link (and be able to copy)");
             }
             finally
             {
@@ -522,10 +520,10 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private void ClickCallback(Response a)
+        private void ClickCallback(Response? a)
         {
             if (a.data.Contains("/viewauction "))
-                Task.Run(async () =>
+                TryAsyncTimes(async () =>
                 {
                     var auctionUuid = JsonConvert.DeserializeObject<string>(a.data)?.Trim('"').Replace("/viewauction ", "");
                     var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
@@ -533,7 +531,7 @@ namespace Coflnet.Sky.Commands.MC
                         flip.AdditionalProps["clickT"] = (DateTime.UtcNow - flip.Auction.FindTime).ToString();
                     await GetService<FlipTrackingService>().ClickFlip(auctionUuid, SessionInfo.McUuid);
 
-                });
+                }, "click callback", 1);
         }
 
         protected override void OnClose(CloseEventArgs? e)
@@ -564,7 +562,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             try
             {
-                this.Send(Response.Create("writeToChat", new { text, onClick = clickAction, hover = hoverText }));
+                Send(Response.Create("writeToChat", new { text, onClick = clickAction, hover = hoverText }));
             }
             catch (Exception e)
             {
@@ -585,7 +583,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <param name="command">The command to execute</param>
         public void ExecuteCommand(string command)
         {
-            this.Send(Response.Create("execute", command));
+            Send(Response.Create("execute", command));
         }
 
         public Activity? RemoveMySelf()
@@ -610,7 +608,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             try
             {
-                this.ModAdapter.SendMessage(parts);
+                ModAdapter.SendMessage(parts);
                 return true;
             }
             catch (Exception e)
@@ -632,7 +630,7 @@ namespace Coflnet.Sky.Commands.MC
             using var span = CreateActivity("error", ConSpan)?.AddTag("message", e.Message).AddTag("error", "true");
             OnClose(null);
             sessionLifesycle.Dispose();
-            System.Console.CancelKeyPress -= OnApplicationStop;
+            Console.CancelKeyPress -= OnApplicationStop;
         }
 
         private void OnApplicationStop(object? sender, ConsoleCancelEventArgs e)
@@ -685,7 +683,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             try
             {
-                if (base.ConnectionState != WebSocketState.Open)
+                if (ConnectionState != WebSocketState.Open)
                 {
                     Log("con check was false");
                     return false;
@@ -724,7 +722,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <returns></returns>
         public Task<bool> SendSold(string uuid)
         {
-            if (base.ConnectionState != WebSocketState.Open)
+            if (ConnectionState != WebSocketState.Open)
                 return Task.FromResult(false);
             // don't send extra messages
             return Task.FromResult(true);
@@ -734,7 +732,7 @@ namespace Coflnet.Sky.Commands.MC
         private void SendTimer()
         {
             using var timer = CreateActivity("timer", ConSpan);
-            if (base.ConnectionState == WebSocketState.Closed)
+            if (ConnectionState == WebSocketState.Closed)
             {
                 NextUpdateStart -= SendTimer;
                 return;
@@ -744,7 +742,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 // ping is sent to keep the connection open (after 60 seconds inactivity its disconnected by cloudflare)
                 Send(Response.Create("ping", 0));
-                _ = TryAsyncTimes(() => this.TriggerTutorial<Coflnet.Sky.ModCommands.Tutorials.FlipToggling>(), "sending flip tutorial");
+                _ = TryAsyncTimes(() => this.TriggerTutorial<ModCommands.Tutorials.FlipToggling>(), "sending flip tutorial");
                 return;
             }
 
@@ -776,7 +774,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public bool HasFlippingDisabled()
         {
-            return (this.Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && this.Settings != null || SessionInfo.IsNotFlipable;
+            return (Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && Settings != null || SessionInfo.IsNotFlipable;
         }
 
         public void ScheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
@@ -796,11 +794,11 @@ namespace Coflnet.Sky.Commands.MC
             }
             var delay = nextUpdateIn - countdownSize - SessionInfo.RelativeSpeed;
             timerSpan?.Log($"delaying timer for {delay.TotalSeconds} seconds");
-            Task.Run(async () =>
+            TryAsyncTimes(async () =>
             {
                 await Task.Delay(delay).ConfigureAwait(false);
                 sessionLifesycle.StartTimer(timerSeconds);
-            }).ConfigureAwait(false);
+            }, "scheduling timer", 1);
         }
 
         private static string GetEnableMessage(object newSettings, System.Reflection.FieldInfo prop)
@@ -810,7 +808,7 @@ namespace Coflnet.Sky.Commands.MC
             return prop.Name + " was disabled";
         }
 
-        public LowPricedAuction? GetFlip(string uuid)
+        public LowPricedAuction GetFlip(string uuid)
         {
             return LastSent.Concat(TopBlocked.Select(b => b.Flip)).Where(s => s.Auction.Uuid == uuid).FirstOrDefault();
         }
@@ -822,7 +820,7 @@ namespace Coflnet.Sky.Commands.MC
                 props = new Dictionary<string, string>();
             if (flip.Sold)
                 props["sold"] = "y";
-            var result = await this.SendFlip(new LowPricedAuction()
+            var result = await SendFlip(new LowPricedAuction()
             {
                 Auction = flip.Auction,
                 DailyVolume = flip.Volume,
@@ -833,7 +831,7 @@ namespace Coflnet.Sky.Commands.MC
             if (!result)
             {
                 Log("failed");
-                Log(base.ConnectionState.ToString());
+                Log(ConnectionState.ToString());
             }
 
 

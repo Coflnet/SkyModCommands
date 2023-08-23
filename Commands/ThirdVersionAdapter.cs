@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Services;
@@ -54,7 +53,7 @@ namespace Coflnet.Sky.Commands.MC
                 (socket as MinecraftSocket).ReceivedConfirm.TryAdd(uuid, flip);
                 _ = socket.TryAsyncTimes(async () =>
                 {
-                    if ((socket.AccountInfo?.Tier ?? 0) >= Shared.AccountTier.SUPER_PREMIUM)
+                    if ((socket.AccountInfo?.Tier ?? 0) >= AccountTier.SUPER_PREMIUM)
                     {
                         // make sure receival is published
                         socket.GetService<PreApiService>().PublishReceive(uuid);

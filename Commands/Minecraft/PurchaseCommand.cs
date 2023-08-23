@@ -81,7 +81,7 @@ namespace Coflnet.Sky.Commands.MC
 
             var targetConId = parts[2];
             if (targetConId != socket.SessionInfo.ConnectionId)
-                throw new Coflnet.Sky.Core.CoflnetException("no_conid_match", "The purchase was started on a different connection. To prevent loss of coins please start again.");
+                throw new Core.CoflnetException("no_conid_match", "The purchase was started on a different connection. To prevent loss of coins please start again.");
 
             try
             {
@@ -92,7 +92,7 @@ namespace Coflnet.Sky.Commands.MC
                 await socket.sessionLifesycle.UpdateAccountTier(socket.sessionLifesycle.AccountInfo);
                 socket.sessionLifesycle.UpdateConnectionTier(socket.AccountInfo);
             }
-            catch (Coflnet.Payments.Client.Client.ApiException e)
+            catch (Payments.Client.Client.ApiException e)
             {
                 var message = e.Message.Substring(68).Trim('}', '"');
                 socket.SendMessage(DialogBuilder.New.MsgLine(McColorCodes.RED + "An error occured").Msg(message)

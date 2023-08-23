@@ -30,7 +30,7 @@ namespace Coflnet.Sky.Commands.MC
                     new ChatPart(" * Something else \n", null, "please send /cofl report with further information"));
                 dev.Logger.Instance.Info(JSON.Stringify(bad));
                 dev.Logger.Instance.Info(JSON.Stringify(bad?.AdditionalProps));
-                await socket.GetService<Commands.FlipTrackingService>().DownVote(uuid, socket.SessionInfo.McUuid);
+                await socket.GetService<FlipTrackingService>().DownVote(uuid, socket.SessionInfo.McUuid);
             }
             else if (rating == "up")
             {
@@ -39,7 +39,7 @@ namespace Coflnet.Sky.Commands.MC
                                     new ChatPart(" * This item sells fast\n", "/cofl report fast sell"),
                                     new ChatPart(" * High profit\n", "/cofl dialog echo Okay, sounds great, have fun with your coins :)"),
                                     new ChatPart(" * Something else \n", null, "please send /cofl report with further information"));
-                await socket.GetService<Commands.FlipTrackingService>().UpVote(uuid, socket.SessionInfo.McUuid);
+                await socket.GetService<FlipTrackingService>().UpVote(uuid, socket.SessionInfo.McUuid);
             }
             else
             {
@@ -56,7 +56,7 @@ namespace Coflnet.Sky.Commands.MC
         private static void Blacklist(MinecraftSocket socket, LowPricedAuction bad)
         {
             if (socket.Settings.BlackList == null)
-                socket.Settings.BlackList = new System.Collections.Generic.List<ListEntry>();
+                socket.Settings.BlackList = new List<ListEntry>();
             socket.Settings.BlackList.Add(new ListEntry() { ItemTag = bad.Auction.Tag });
         }
     }

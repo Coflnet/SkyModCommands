@@ -30,7 +30,7 @@ namespace Coflnet.Sky.Commands.MC
             if (!socket.SessionInfo.FlipsEnabled)
                 socket.Dialog(db => db.CoflCommand<FlipCommand>("You don't have flips enabled.\nClick to toggle flips", "", "Click to toggle them"));
 
-            if (delayAmount <= System.TimeSpan.Zero)
+            if (delayAmount <= TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"You are currently not delayed at all :)", null, "Enjoy flipping at full speed☻");
             else if (delayAmount == TimeSpan.FromSeconds(12))
                 socket.Dialog(db => db.CoflCommand<CaptchaCommand>($"You flipped for too long and have to solve a captcha to remove your 12 second delay {McColorCodes.AQUA}click to get one", "", "Generates a new captcha"));

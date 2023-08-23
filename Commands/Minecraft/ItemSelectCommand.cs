@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.PlayerState.Client.Api;
-using Coflnet.Sky.PlayerState.Client.Model;
 
 namespace Coflnet.Sky.Commands.MC;
 

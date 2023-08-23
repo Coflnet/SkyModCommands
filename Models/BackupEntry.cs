@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.ModCommands.Models

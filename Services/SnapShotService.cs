@@ -15,12 +15,12 @@ namespace Coflnet.Sky.ModCommands.Services
         public static SnapShotService Instance = new SnapShotService();
 
         public IEnumerable<SnapShot> SnapShots => _snapShots;
-        public Prometheus.Gauge premUserCount = Prometheus.Metrics.CreateGauge("sky_mod_users", "How many premium users are connected");
+        public readonly Prometheus.Gauge PremUserCount = Prometheus.Metrics.CreateGauge("sky_mod_users", "How many premium users are connected");
 
-        public void Take()
+        private void Take()
         {
             var otherUsers = DiHandler.GetService<FlipperService>().Connections;
-            premUserCount.Set(DiHandler.GetService<FlipperService>().PremiumUserCount);
+            PremUserCount.Set(DiHandler.GetService<FlipperService>().PremiumUserCount);
             var result = otherUsers.Where(c => c?.Connection != null).Select(c => {
                 try
                 {
@@ -35,11 +35,11 @@ namespace Coflnet.Sky.ModCommands.Services
                         c.Connection.UserId
                     };
                 }
-                catch(Coflnet.Sky.Core.CoflnetException)
+                catch(Core.CoflnetException)
                 {
                     return null;
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     dev.Logger.Instance.Error(e, "taking snapshot");
                     return null;
@@ -66,7 +66,7 @@ namespace Coflnet.Sky.ModCommands.Services
                     }
                     Take();
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     dev.Logger.Instance.Error(e, "taking snapshot");
                 }

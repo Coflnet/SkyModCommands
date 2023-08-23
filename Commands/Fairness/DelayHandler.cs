@@ -111,7 +111,7 @@ public class DelayHandler : IDelayHandler
         if (filteredIds.Length == 0)
             return new Summary() { Penalty = TimeSpan.FromSeconds(2.5) };
         var breakdown = await flipTrackingService.GetSpeedComp(filteredIds);
-        var hourCount = breakdown?.Times?.Where(t => t.TotalSeconds > 1).GroupBy(t => System.TimeSpan.Parse(t.Age).Hours).Count() ?? 0;
+        var hourCount = breakdown?.Times?.Where(t => t.TotalSeconds > 1).GroupBy(t => TimeSpan.Parse(t.Age).Hours).Count() ?? 0;
         var recommendedPenalty = breakdown?.Penalty ?? 2;
         var lastDelay = currentDelay;
         currentDelay = TimeSpan.FromSeconds(recommendedPenalty);

@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
-using Coflnet.Sky.PlayerState.Client.Model;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -28,7 +27,7 @@ public class ItemInfoCommand : ItemSelectCommand<ItemInfoCommand>
             Count = item.Count ?? 1,
         };
         auction.SetFlattenedNbt(NBT.FlattenNbtData(item.ExtraAttributes));
-        var res = await socket.GetService<Coflnet.Sky.Commands.Shared.ISniperClient>().GetPrices(new SaveAuction[] { auction });
+        var res = await socket.GetService<Shared.ISniperClient>().GetPrices(new SaveAuction[] { auction });
         var price = res[0].Median;
         var priceString = price == 0 ? "§cnot found" : $"§a{price} coins";
         socket.Dialog(db => db.MsgLine($"§7[§6§lItem Info§7]§r\n{item.ItemName}\n{item.Description}")

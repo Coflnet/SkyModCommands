@@ -152,7 +152,7 @@ namespace Coflnet.Sky.Commands.MC
                 Bin = true,
                 StartingBid = 5000,
                 AuctioneerId = "384a029294fc445e863f2c42fe9709cb",
-                Enchantments = new System.Collections.Generic.List<Enchantment>()
+                Enchantments = new List<Enchantment>()
                 {
                     new Enchantment(Enchantment.EnchantmentType.ultimate_chimera, 10)
                 }
@@ -165,9 +165,9 @@ namespace Coflnet.Sky.Commands.MC
             SellerName = "Äkwav",
             Tag = "HYPERION",
             Volume = 420,
-            Interesting = new System.Collections.Generic.List<string>() { McColorCodes.LIGHT_PURPLE + "Chimera", "Black Sheep Skin", "Technoblade" },
+            Interesting = new List<string>() { McColorCodes.LIGHT_PURPLE + "Chimera", "Black Sheep Skin", "Technoblade" },
             Rarity = Tier.DIVINE,
-            Context = new System.Collections.Generic.Dictionary<string, string>()
+            Context = new Dictionary<string, string>()
             {
                 {"lore", "Haha lol, April fools :)"}
             }

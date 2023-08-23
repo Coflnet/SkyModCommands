@@ -1,14 +1,13 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
-using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC
 {
     public class FirstModVersionAdapter : IModVersionAdapter
     {
         private const string LinkToRelease = "https://github.com/Coflnet/skyblockmod/releases";
-        MinecraftSocket socket;
+        private MinecraftSocket socket;
 
         public FirstModVersionAdapter(MinecraftSocket socket)
         {

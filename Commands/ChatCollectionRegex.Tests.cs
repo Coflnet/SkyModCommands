@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 
@@ -11,7 +8,7 @@ namespace Coflnet.Sky.Commands.MC
     /// </summary>
     public class ChatCollectionRegexTests
     {
-        Regex regex = new Regex(InventoryModSession.DefaultChatRegex);
+        private Regex regex = new Regex(InventoryModSession.DefaultChatRegex);
 
         [Test]
         public void MatchesAuctionCreation()

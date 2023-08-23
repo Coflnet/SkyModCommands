@@ -15,8 +15,8 @@ namespace Coflnet.Sky.Commands.MC
         {
             socket.SendMessage(COFLNET + $"There are {McColorCodes.AQUA}{socket.GetService<FlipperService>().PremiumUserCount}{McColorCodes.GRAY} users connected to this server",
                     null, McColorCodes.GRAY + "there is more than one server");
-            var countTask = socket.GetService<Commands.FlipTrackingService>().ActiveFlipperCount();
-            var preApiUsers = await socket.GetService<ProductsApi>().ProductsServiceServiceSlugOwnedGetAsync(socket.GetService<IConfiguration>()["PRODUCTS:PRE_API"], start: System.DateTime.UtcNow.AddHours(-1));
+            var countTask = socket.GetService<FlipTrackingService>().ActiveFlipperCount();
+            var preApiUsers = await socket.GetService<ProductsApi>().ProductsServiceServiceSlugOwnedGetAsync(socket.GetService<IConfiguration>()["PRODUCTS:PRE_API"], start: DateTime.UtcNow.AddHours(-1));
             string extra = McColorCodes.ITALIC + " click to buy";
             if(await socket.UserAccountTier() == AccountTier.SUPER_PREMIUM)
                 extra = McColorCodes.GREEN + " (you are one of them)";

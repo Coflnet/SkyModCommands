@@ -96,7 +96,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }
             var cost = a.HighestBidAmount == 0 ? a.StartingBid : a.HighestBidAmount;
-            if (!string.IsNullOrWhiteSpace(Settings.ModSettings?.Format) && flip.Auction.Context != null)
+            if (!string.IsNullOrWhiteSpace(Settings.ModSettings?.Format) && flip.Auction?.Context != null)
             {
                 /*
                     "\n{0}: {1}{2} {3}{4} -> {5} (+{6} {7}) Med: {8} Lbin: {9} Volume: {10}"
@@ -140,11 +140,11 @@ namespace Coflnet.Sky.Commands.MC
             builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(cost)} -> {FormatPrice(targetPrice)} ");
             try
             {
-                if ((Settings.Visibility?.Profit ?? false) || (Settings.Visibility?.EstimatedProfit ?? false))
+                if ((Settings?.Visibility?.Profit ?? false) || (Settings?.Visibility?.EstimatedProfit ?? false))
                     builder.Append($"(+{FormatPrice(profit)}{textAfterProfit}) ");
-                if (Settings.Visibility?.MedianPrice ?? false)
+                if (Settings?.Visibility?.MedianPrice ?? false)
                     builder.Append(McColorCodes.GRAY + " Med: " + McColorCodes.AQUA + FormatPrice(flip.MedianPrice));
-                if (Settings.Visibility?.LowestBin ?? false)
+                if (Settings?.Visibility?.LowestBin ?? false)
                     builder.Append(McColorCodes.GRAY + " LBin: " + McColorCodes.AQUA + FormatPrice(flip.LowestBin ?? 0));
                 if (Settings.Visibility?.Volume ?? false)
                     builder.Append(McColorCodes.GRAY + " Vol: " + McColorCodes.AQUA + flip.Volume.ToString("0.#"));
@@ -156,7 +156,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (Settings == null)
                     throw new Exception("settings are null " + profit, e);
                 con.Log(e.ToString(), Microsoft.Extensions.Logging.LogLevel.Error);
-                throw new Exception(e.ToString() + Environment.NewLine + JSON.Stringify(Settings), e);
+                throw new Exception(e + Environment.NewLine + JSON.Stringify(Settings), e);
             }
             return builder.ToString();
         }
@@ -188,10 +188,10 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <param name="price"></param>
         /// <returns></returns>
-        public string FormatPrice(long price)
+        public string FormatPrice(long? price)
         {
             if (Settings?.ModSettings?.ShortNumbers ?? false)
-                return FormatProvider.FormatPriceShort(price);
+                return FormatPriceShort(price ?? 0);
             return string.Format(CultureInfo.InvariantCulture, "{0:n0}", price);
         }
 
@@ -203,8 +203,8 @@ namespace Coflnet.Sky.Commands.MC
                                     + $"{McColorCodes.GRAY} MaxCost: {McColorCodes.AQUA}{FormatPrice(Settings.MaxCost)}"
                                     + $"{McColorCodes.GRAY} Blacklist-Size: {McColorCodes.AQUA}{Settings?.BlackList?.Count ?? 0}\n "
                                     + "§8: nothing else to do have a nice day :)";
-            var hover = $"{McColorCodes.GRAY} Volume: {McColorCodes.AQUA}{Settings.MinVolume}\n"
-                        + $"{McColorCodes.GRAY} MinProfitPercent: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfitPercent)}";
+            var hover = $"{McColorCodes.GRAY} Volume: {McColorCodes.AQUA}{Settings?.MinVolume}\n"
+                        + $"{McColorCodes.GRAY} MinProfitPercent: {McColorCodes.AQUA}{FormatPrice(Settings?.MinProfitPercent)}";
             var spacer = $"{McColorCodes.DARK_RED}----------------------------";
             return new DialogBuilder().MsgLine(text, "https://sky.coflnet.com/flipper", hover)
                     .MsgLine($"{McColorCodes.AQUA}: click this if you want to change a setting", null,

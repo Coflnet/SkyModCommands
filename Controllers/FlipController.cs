@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Commands.Shared;
 using System;
-using Newtonsoft.Json;
 
 namespace Coflnet.Sky.ModCommands.Controllers
 {
@@ -11,7 +10,7 @@ namespace Coflnet.Sky.ModCommands.Controllers
     [Route("[controller]")]
     public class FlipController : ControllerBase
     {
-        FlipperService flipperService;
+        private FlipperService flipperService;
 
         public FlipController(FlipperService flipperService)
         {

@@ -9,7 +9,7 @@ namespace Coflnet.Sky.Commands.MC
         public static string DEFAULT_COLOR => McColorCodes.GRAY;
         public abstract Task Execute(MinecraftSocket socket, string arguments);
 
-        public string Slug => this.GetType().Name.Replace("Command", "").ToLower();
+        public string Slug => GetType().Name.Replace("Command", "").ToLower();
 
         protected T Convert<T>(string arguments)
         {

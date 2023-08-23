@@ -39,11 +39,6 @@ public class LoadFlipHistory : McCommand
             playerId = (await socket.GetPlayerUuid(playerId)).Trim('"');
 
         var config = socket.GetService<IConfiguration>();
-        var producerConfig = new ProducerConfig
-        {
-            BootstrapServers = config["KAFKA_HOST"],
-            LingerMs = 100
-        };
         using var producer = socket.GetService<KafkaCreator>().BuildProducer<string, SaveAuction>();
         var count = 0;
         var maxTime = DateTime.UtcNow; new DateTime(2023, 1, 10);

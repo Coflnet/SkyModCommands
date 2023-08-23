@@ -12,7 +12,8 @@ namespace Coflnet.Sky.Commands.MC;
 public class CaptchaGenerator
 {
     private static Random random = new();
-    static Figgle.FiggleFont[] readableFonts = new[] {
+
+    private static FiggleFont[] readableFonts = new[] {
             FiggleFonts.Diamond, FiggleFonts.Contrast, FiggleFonts.BarbWire, FiggleFonts.Colossal, FiggleFonts.Banner4, FiggleFonts.Banner3,
             FiggleFonts.Banner, FiggleFonts.Arrows, FiggleFonts.AmcTubes, FiggleFonts.Acrobatic, FiggleFonts.Alligator, FiggleFonts.Alligator2,
             FiggleFonts.Alligator3, FiggleFonts.Alphabet, FiggleFonts.AmcAaa01, FiggleFonts.AmcSlash, FiggleFonts.AmcSlder
@@ -186,7 +187,7 @@ public class CaptchaGenerator
         }
     }
 
-    static IEnumerable<string> SplitStringInChuncks(string str, int chunkSize)
+    private static IEnumerable<string> SplitStringInChuncks(string str, int chunkSize)
     {
         var currentIndex = 0;
         do
@@ -210,7 +211,7 @@ public class CaptchaGenerator
         var selectedRenderer = readableFonts.OrderBy(r => Random.Shared.Next()).First();
         var rendered = selectedRenderer.Render(letter.ToString());
 
-        var builder = new System.Text.StringBuilder(rendered.Length);
+        var builder = new StringBuilder(rendered.Length);
         var hasSpaceEnd = rendered.Split('\n').All(l => string.IsNullOrEmpty(l) || l.Last() == ' ');
         var last = ' ';
         foreach (var item in rendered)

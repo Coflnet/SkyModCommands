@@ -31,7 +31,7 @@ public class ModVersionAdapterTests
     public async Task MenuReplace(string formatted, string result)
     {
         var socket = new Mock<IMinecraftSocket>();
-        var settings = new Shared.FlipSettings()
+        var settings = new FlipSettings()
         {
             Visibility = new() { Lore = true, SellerOpenButton = true },
             ModSettings = new() { Format = "" }

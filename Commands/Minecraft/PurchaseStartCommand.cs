@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using static Coflnet.Sky.Commands.MC.TrackCommand;
 
 namespace Coflnet.Sky.Commands.MC
 {

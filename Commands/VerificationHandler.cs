@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
-using OpenTracing;
 using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC
@@ -82,7 +81,7 @@ namespace Coflnet.Sky.Commands.MC
                     if (connect != null)
                         break;
                 }
-                catch (System.Exception)
+                catch (Exception)
                 {
 
                 }
@@ -119,7 +118,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     targetAuction = await GetauctionToBidOn(bid, type);
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     socket.Error(e, "Could not get auction to bid on");
                 }

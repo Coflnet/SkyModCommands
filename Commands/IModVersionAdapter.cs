@@ -1,6 +1,5 @@
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
-using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC
 {

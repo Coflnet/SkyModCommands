@@ -6,12 +6,8 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
-using Coflnet.Sky.ModCommands.Controllers;
-using Coflnet.Sky.ModCommands.Models;
-using Confluent.Kafka;
 using fNbt;
 using MessagePack;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -53,7 +49,7 @@ namespace Coflnet.Sky.ModCommands.Services
                 {
                     SubscribeConnection(multiplexer, stoppingToken);
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     logger.LogError(e, "redis error");
                 }

@@ -16,8 +16,8 @@ public interface ITutorialService
 
 public class TutorialService : ITutorialService
 {
-    ConcurrentDictionary<string, TutorialBase> Tutorials = new();
-    ConcurrentDictionary<string, SelfUpdatingValue<HashSet<string>>> ReadTutorials = new();
+    private ConcurrentDictionary<string, TutorialBase> Tutorials = new();
+    private ConcurrentDictionary<string, SelfUpdatingValue<HashSet<string>>> ReadTutorials = new();
 
     public async Task Trigger<T>(IMinecraftSocket socket) where T : TutorialBase
     {

@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 namespace Coflnet.Sky.Commands.MC;
 public class UploadInventory : McCommand
 {
-    InventoryParser parser = new InventoryParser();
+    private InventoryParser parser = new InventoryParser();
     public override Task Execute(MinecraftSocket socket, string arguments)
     {
         socket.SessionInfo.Inventory = parser.Parse(arguments).ToList();

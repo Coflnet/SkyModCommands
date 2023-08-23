@@ -15,7 +15,7 @@ public class GetMcNameForCommand : McCommand
         var uuid = Newtonsoft.Json.JsonConvert.DeserializeObject<string>(arguments);
         var name = await socket.GetPlayerName(uuid);
         if (name == null)
-            throw new Coflnet.Sky.Core.CoflnetException("name_not_found", "Could not retrieve the sellers name :(");
+            throw new Core.CoflnetException("name_not_found", "Could not retrieve the sellers name :(");
         return name;
     }
 }

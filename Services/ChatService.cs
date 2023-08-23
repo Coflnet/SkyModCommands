@@ -15,20 +15,20 @@ namespace Coflnet.Sky.ModCommands.Services;
 
 public class ChatService
 {
-    Chat.Client.Api.ChatApi api;
-    string chatAuthKey;
+    private Chat.Client.Api.ChatApi api;
+    private string chatAuthKey;
 
     public ChatService(IConfiguration config)
     {
         api = new(config["CHAT_BASE_URL"]);
         chatAuthKey = config["CHAT_API_KEY"];
     }
-    public async Task<ChannelMessageQueue> Subscribe(Func<ChatMessage, bool> OnMessage)
+    public async Task<ChannelMessageQueue> Subscribe(Func<ChatMessage, bool> onMessage)
     {
-        return await SubscribeToChannel("chat", OnMessage);
+        return await SubscribeToChannel("chat", onMessage);
     }
 
-    public async Task<ChannelMessageQueue> SubscribeToChannel(string channel, Func<ChatMessage, bool> OnMessage)
+    public async Task<ChannelMessageQueue> SubscribeToChannel(string channel, Func<ChatMessage, bool> onMessage)
     {
         for (int i = 0; i < 3; i++)
         {
@@ -39,7 +39,7 @@ public class ChatService
                 sub.OnMessage((value) =>
                 {
                     var message = JsonConvert.DeserializeObject<ChatMessage>(value.Message);
-                    if (!OnMessage(message))
+                    if (!onMessage(message))
                         sub.Unsubscribe();
                 });
                 return sub;
@@ -63,7 +63,7 @@ public class ChatService
     {
         try
         {
-            var chatMsg = new Chat.Client.Model.ChatMessage(
+            var chatMsg = new ChatMessage(
                 message.SenderUuid ?? throw new CoflnetException("invalid_sender", "Sender uuid is null"), 
                 message.SenderName,
                 message.Tier switch
@@ -77,7 +77,6 @@ public class ChatService
                 message.Message);
             Activity.Current?.Log("sending to service");
             await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
-            return;
         }
         catch (ApiException e)
         {

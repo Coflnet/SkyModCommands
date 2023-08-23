@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Chat.Client.Model;
-using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 using Newtonsoft.Json;
@@ -17,7 +15,7 @@ namespace Coflnet.Sky.Commands.MC
         "Be nice and don't advertise or you may get muted")]
     public class ChatCommand : McCommand
     {
-        static ChatService chat;
+        private static ChatService chat;
         public static string CHAT_PREFIX = "[§1C§6hat§f]";
         public override bool IsPublic => true;
 
@@ -75,7 +73,7 @@ namespace Coflnet.Sky.Commands.MC
                 SenderUuid = socket.SessionInfo.McUuid
             });
             socket.SessionInfo.LastMessage = DateTime.UtcNow;
-            await socket.TriggerTutorial<Sky.ModCommands.Tutorials.ChatRulesTutorial>();
+            await socket.TriggerTutorial<ModCommands.Tutorials.ChatRulesTutorial>();
         }
 
         private static async Task Togglechat(MinecraftSocket socket)
@@ -130,7 +128,7 @@ namespace Coflnet.Sky.Commands.MC
                         return true;
                     }
                     var color = m.Prefix;
-                    socket.TryAsyncTimes(() => socket.TriggerTutorial<Sky.ModCommands.Tutorials.ChatTutorial>(), "chat tutorial");
+                    socket.TryAsyncTimes(() => socket.TriggerTutorial<ModCommands.Tutorials.ChatTutorial>(), "chat tutorial");
                     var message = m.Message;
                     var optionsCmd = $"/cofl dialog chatoptions {m.Name} {m.ClientName} {m.Message} {m.Uuid}";
                     if (message.Contains("物"))

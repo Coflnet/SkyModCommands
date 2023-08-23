@@ -11,13 +11,13 @@ namespace Coflnet.Sky.Commands.MC;
 
 public class DelayHandlerTests
 {
-    MockTimeProvider timeProvider;
-    string[] ids;
-    SessionInfo sessionInfo;
-    SelfUpdatingValue<AccountInfo> accountInfo;
-    DelayHandler delayHandler;
-    SpeedCompResult result;
-    FlipInstance flipInstance;
+    private MockTimeProvider timeProvider;
+    private string[] ids;
+    private SessionInfo sessionInfo;
+    private SelfUpdatingValue<AccountInfo> accountInfo;
+    private DelayHandler delayHandler;
+    private SpeedCompResult result;
+    private FlipInstance flipInstance;
     [SetUp]
     public void Setup()
     {
@@ -29,7 +29,7 @@ public class DelayHandlerTests
         accountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(() => new AccountInfo() { }).Result;
         result = new SpeedCompResult() { Penalty = 1, MacroedFlips = new(), BoughtWorth = 50_000_000 };
         flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));
-        delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, accountInfo, new System.Random(5));
+        delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, accountInfo, new Random(5));
         flipInstance = new FlipInstance() { Auction = new() { StartingBid = 5 } };
     }
 
@@ -65,16 +65,16 @@ public class DelayHandlerTests
         Assert.IsFalse(second.IsCompleted);
         Assert.IsFalse(third.IsCompleted);
         Assert.IsFalse(fourth.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.15));
+        timeProvider.TickForward(TimeSpan.FromSeconds(0.15));
         Assert.IsFalse(fourth.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.065));
+        timeProvider.TickForward(TimeSpan.FromSeconds(0.065));
         Assert.IsTrue(fourth.IsCompleted);
         Assert.IsTrue(third.IsCompleted);
         Assert.IsFalse(second.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.6));
+        timeProvider.TickForward(TimeSpan.FromSeconds(0.6));
         Assert.IsTrue(second.IsCompleted);
         Assert.IsFalse(first.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.25));
+        timeProvider.TickForward(TimeSpan.FromSeconds(0.25));
         Assert.IsTrue(first.IsCompleted);
     }
 
@@ -90,12 +90,12 @@ public class DelayHandlerTests
         result.MacroedFlips = new System.Collections.Generic.List<MacroedFlip>(){
             new ()
             {
-                BuyTime = timeProvider.Now - System.TimeSpan.FromSeconds(10),
+                BuyTime = timeProvider.Now - TimeSpan.FromSeconds(10),
                 TotalSeconds = 3.6
             },
             new ()
             {
-                BuyTime = timeProvider.Now - System.TimeSpan.FromSeconds(12),
+                BuyTime = timeProvider.Now - TimeSpan.FromSeconds(12),
                 TotalSeconds = 3.5
             }
         };
@@ -103,14 +103,14 @@ public class DelayHandlerTests
         sessionInfo.VerifiedMc = true;
         var summary = await delayHandler.Update(ids, timeProvider.Now);
         var delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(0.02));
+        timeProvider.TickForward(TimeSpan.FromSeconds(0.02));
         Assert.IsTrue(delayTask.IsCompleted);
         flipInstance.Auction.StartingBid = 5_000_000;
         flipInstance.MedianPrice = 10_100_100;
         flipInstance.Finder = Core.LowPricedAuction.FinderType.SNIPER_MEDIAN;
         delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
         Assert.IsFalse(delayTask.IsCompleted);
-        timeProvider.TickForward(System.TimeSpan.FromSeconds(1));
+        timeProvider.TickForward(TimeSpan.FromSeconds(1));
         Assert.IsTrue(delayTask.IsCompleted);
 
     }

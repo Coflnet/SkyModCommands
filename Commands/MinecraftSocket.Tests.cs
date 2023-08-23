@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Castle.Core.Configuration;
 using Coflnet.Sky.Commands;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
@@ -24,14 +23,14 @@ public class MinecraftSocketTests
     public async Task TestTimer(int updateIn, int countdown, int expected)
     {
         var mockSocket = new Mock<MinecraftSocket>();
-        var config = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+        var config = new Mock<IConfiguration>();
         mockSocket.Setup(s => s.GetService<FlipTrackingService>())
             .Returns(new FlipTrackingService(null, null, config.Object, null, null, null));
         var session = new Mock<ModSessionLifesycle>(mockSocket.Object);
         session.Setup(s => s.StartTimer(It.IsAny<int>(), It.IsAny<string>()));
         var socket = new TestSocket(session.Object);
         socket.SetNextFlipTime(DateTime.UtcNow + TimeSpan.FromSeconds(updateIn));
-        socket.ScheduleTimer(new Commands.Shared.ModSettings() { TimerSeconds = countdown });
+        socket.ScheduleTimer(new ModSettings() { TimerSeconds = countdown });
         await Task.Delay(10).ConfigureAwait(false);
         session.Verify(s => s.StartTimer(It.Is<double>(v => Math.Round(v, 1) == expected), It.IsAny<string>()), Times.Once);
     }
@@ -53,7 +52,7 @@ public class MinecraftSocketTests
         }
         public TestSocket(ModSessionLifesycle session)
         {
-            this.sessionLifesycle = session;
+            sessionLifesycle = session;
         }
     }
 }
@@ -66,7 +65,7 @@ public class FlipStreamTests
         IServiceCollection collection = new ServiceCollection();
         var builder = new ConfigurationBuilder();
         builder.AddInMemoryCollection(new Dictionary<string, string>() { { "API_BASE_URL", "http://no" } });
-        collection.AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>((a) => builder.Build());
+        collection.AddSingleton<IConfiguration>((a) => builder.Build());
         collection.AddLogging();
         collection.AddCoflService();
         collection.AddSingleton<GemPriceService, MockGemService>();
@@ -91,7 +90,7 @@ public class FlipStreamTests
 
     public class MockGemService : GemPriceService
     {
-        public MockGemService(Microsoft.Extensions.Configuration.IConfiguration config, IServiceScopeFactory scopeFactory, ILogger<GemPriceService> logger, Microsoft.Extensions.Configuration.IConfiguration configuration) : base(config, scopeFactory, logger, configuration)
+        public MockGemService(IConfiguration config, IServiceScopeFactory scopeFactory, ILogger<GemPriceService> logger, IConfiguration configuration) : base(config, scopeFactory, logger, configuration)
         {
         }
 

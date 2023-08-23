@@ -87,7 +87,7 @@ public class SetCommand : McCommand
     {
         var pageSize = 10;
         Console.WriteLine("page" + page);
-        Func<string, string> formatSh = v => MC.McColorCodes.GRAY + " (" + MC.McColorCodes.GREEN + v + MC.McColorCodes.GRAY + ")";
+        Func<string, string> formatSh = v => McColorCodes.GRAY + " (" + McColorCodes.GREEN + v + McColorCodes.GRAY + ")";
         var options = await Task.WhenAll(updater.ModOptions.Where(o => !o.Value.Hide).Select(async o =>
         {
             var shortHandAddition = !string.IsNullOrEmpty(o.Value.ShortHand) ? formatSh(o.Value.ShortHand) : "";
@@ -104,9 +104,9 @@ public class SetCommand : McCommand
                 var metaData = setting.o.Value;
                 var shortHandAddition = !string.IsNullOrEmpty(metaData.ShortHand) ? formatSh(metaData.ShortHand) : "";
                 var likelyTargetValue = metaData.Type == "Boolean" ? !(bool)setting.current : setting.current;
-                db.CoflCommand<SetCommand>($"{MC.McColorCodes.AQUA}{setting.o.Key}{shortHandAddition}: {McColorCodes.GREEN}{setting.current}",
+                db.CoflCommand<SetCommand>($"{McColorCodes.AQUA}{setting.o.Key}{shortHandAddition}: {McColorCodes.GREEN}{setting.current}",
                     $"{page} {setting.o.Key} {likelyTargetValue}",
-                    $"Click to set {MC.McColorCodes.AQUA}{setting.o.Key}{MC.McColorCodes.GRAY} to {MC.McColorCodes.GREEN}{likelyTargetValue}");
+                    $"Click to set {McColorCodes.AQUA}{setting.o.Key}{McColorCodes.GRAY} to {McColorCodes.GREEN}{likelyTargetValue}");
                 if (metaData.Type == "Int64")
                 {
                     var current = (long)setting.current;
@@ -129,9 +129,9 @@ public class SetCommand : McCommand
                 if (metaData.Type == "Boolean-")
                 {
                     var current = (bool)setting.current;
-                    db.CoflCommand<SetCommand>($"{MC.McColorCodes.YELLOW}{McColorCodes.ITALIC}Toggle",
+                    db.CoflCommand<SetCommand>($"{McColorCodes.YELLOW}{McColorCodes.ITALIC}Toggle",
                     $"{page} {setting.o.Key} {!current}",
-                    $"Click to set {MC.McColorCodes.AQUA}{setting.o.Key}{MC.McColorCodes.GRAY} to {MC.McColorCodes.GREEN}{!current}");
+                    $"Click to set {McColorCodes.AQUA}{setting.o.Key}{McColorCodes.GRAY} to {McColorCodes.GREEN}{!current}");
                 }
                 if (setting.o.Key == "finders")
                 {
@@ -140,16 +140,16 @@ public class SetCommand : McCommand
                     PrintFinderOption(page, db, setting, metaData, FinderType.FLIPPER_AND_SNIPERS | FinderType.STONKS, $"{McColorCodes.RED}Risky");
                 }
 
-                db.MsgLine($" {MC.McColorCodes.GRAY}{metaData.Info}");
+                db.MsgLine($" {McColorCodes.GRAY}{metaData.Info}");
             })
         );
         return page;
 
         static void PrintFinderOption(int page, DialogBuilder db, (KeyValuePair<string, SettingDoc> o, object current) setting, SettingDoc metaData, FinderType lbin, string label)
         {
-            db.CoflCommand<SetCommand>($"{MC.McColorCodes.YELLOW}{McColorCodes.ITALIC}{label}",
+            db.CoflCommand<SetCommand>($"{McColorCodes.YELLOW}{McColorCodes.ITALIC}{label}",
             $"{page} {setting.o.Key} {lbin}",
-            $"Click to set {MC.McColorCodes.AQUA}{setting.o.Key}{MC.McColorCodes.GRAY} to {MC.McColorCodes.GREEN}{lbin}");
+            $"Click to set {McColorCodes.AQUA}{setting.o.Key}{McColorCodes.GRAY} to {McColorCodes.GREEN}{lbin}");
         }
     }
 
@@ -157,9 +157,9 @@ public class SetCommand : McCommand
     {
         db.CoflCommand<SetCommand>($"{McColorCodes.RED}-{socket.formatProvider.FormatPrice(changeAmount)}",
             $"{page} {setting.o.Key} {current - changeAmount}",
-            $"Click to set {MC.McColorCodes.AQUA}{setting.o.Key}{MC.McColorCodes.GRAY} to {MC.McColorCodes.GREEN}{socket.formatProvider.FormatPrice(current - changeAmount)}");
+            $"Click to set {McColorCodes.AQUA}{setting.o.Key}{McColorCodes.GRAY} to {McColorCodes.GREEN}{socket.formatProvider.FormatPrice(current - changeAmount)}");
         db.CoflCommand<SetCommand>($"{McColorCodes.YELLOW}+{socket.formatProvider.FormatPrice(changeAmount)}",
             $"{page} {setting.o.Key} {current + changeAmount}",
-            $"Click to set {MC.McColorCodes.AQUA}{setting.o.Key}{MC.McColorCodes.GRAY} to {MC.McColorCodes.GREEN}{socket.formatProvider.FormatPrice(current + changeAmount)}");
+            $"Click to set {McColorCodes.AQUA}{setting.o.Key}{McColorCodes.GRAY} to {McColorCodes.GREEN}{socket.formatProvider.FormatPrice(current + changeAmount)}");
     }
 }

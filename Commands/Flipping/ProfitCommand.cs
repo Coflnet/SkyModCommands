@@ -102,7 +102,7 @@ namespace Coflnet.Sky.Commands.MC
             return hover;
         }
 
-        private static long GetProfitForFinder(Shared.FlipSumary response, LowPricedAuction.FinderType type)
+        private static long GetProfitForFinder(FlipSumary response, LowPricedAuction.FinderType type)
         {
             return response.Flips.Where(f => f.Finder == type).Sum(f => f.Profit);
         }

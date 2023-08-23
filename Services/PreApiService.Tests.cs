@@ -1,11 +1,11 @@
 namespace Coflnet.Sky.ModCommands.Services;
 
 using NUnit.Framework;
-using Coflnet.Sky.Commands.Shared;
+using Commands.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
-using Coflnet.Sky.Core;
+using Core;
 using Moq;
-using Coflnet.Sky.Commands;
+using Commands;
 using System.Threading.Tasks;
 using System;
 using Coflnet.Sky.Commands.MC;

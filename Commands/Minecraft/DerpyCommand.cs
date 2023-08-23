@@ -1,6 +1,4 @@
-using System;
 using System.Threading.Tasks;
-using Coflnet.Payments.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC
 {

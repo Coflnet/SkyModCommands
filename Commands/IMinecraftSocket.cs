@@ -37,7 +37,7 @@ namespace Coflnet.Sky.Commands.MC
         Task<string> GetPlayerUuid(string name, bool blockError);
         T GetService<T>() where T : class;
         void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information);
-        Activity RemoveMySelf();
+        Activity? RemoveMySelf();
         void Send(Response response);
         Task SendBatch(IEnumerable<LowPricedAuction> flips);
         Task<bool> SendFlip(LowPricedAuction flip);

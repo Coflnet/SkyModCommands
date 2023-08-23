@@ -16,7 +16,7 @@ namespace Coflnet.Sky.Commands.MC
     public class CaptchaCommand : McCommand
     {
         public override bool IsPublic => true;
-        int debugMultiplier = 1;
+        private int debugMultiplier = 1;
         private HashSet<string> formats = new() { "vertical", "big", "optifine" };
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {

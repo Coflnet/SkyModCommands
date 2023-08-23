@@ -19,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var args = val.Split(' ');
             if (args.Length < 2)
-                throw new Coflnet.Sky.Core.CoflnetException("inalid_format", "Usage: /cofl reminder add 1h30m <message>");
+                throw new Core.CoflnetException("inalid_format", "Usage: /cofl reminder add 1h30m <message>");
             TimeSpan ts = ParseTime(args[0]);
 
             var reminder = new Reminder(val.Substring(val.IndexOf(' ') + 1), DateTime.UtcNow + ts - TimeSpan.FromSeconds(20));
@@ -36,7 +36,7 @@ namespace Coflnet.Sky.Commands.MC
             TimeSpan ts;
             if (!TimeSpan.TryParseExact(args, formats, null, out ts))
             {
-                throw new Coflnet.Sky.Core.CoflnetException("invalid_format", "Time format has to be '1h2m' or '1m'");
+                throw new Core.CoflnetException("invalid_format", "Time format has to be '1h2m' or '1m'");
             }
 
             return ts;
@@ -69,7 +69,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var settings = socket.sessionLifesycle.AccountSettings;
             if (settings.Value == null)
-                throw new Coflnet.Sky.Core.CoflnetException("login", "Login is required to use this command");
+                throw new Core.CoflnetException("login", "Login is required to use this command");
             if (settings.Value.Reminders == null)
                 settings.Value.Reminders = new();
             return settings;

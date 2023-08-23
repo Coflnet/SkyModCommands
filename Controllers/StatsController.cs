@@ -1,13 +1,8 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Coflnet.Sky.ModCommands.Models;
 using System;
 using System.Linq;
-using Microsoft.EntityFrameworkCore;
-using System.Collections;
 using System.Collections.Generic;
-using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Commands.MC;
 
@@ -20,7 +15,7 @@ namespace Coflnet.Sky.ModCommands.Controllers
     [Route("[controller]")]
     public class StatsController : ControllerBase
     {
-        FlipperService flipperService;
+        private FlipperService flipperService;
         /// <summary>
         /// Creates a new instance of <see cref="StatsController"/>
         /// </summary>
