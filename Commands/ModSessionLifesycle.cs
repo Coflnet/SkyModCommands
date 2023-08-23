@@ -138,7 +138,7 @@ namespace Coflnet.Sky.Commands.MC
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
             var oldSettings = FlipSettings;
             FlipSettings = await flipSettingsTask;
-            oldSettings.Dispose();
+            oldSettings?.Dispose();
 
             // make sure there is only one connection
             AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
