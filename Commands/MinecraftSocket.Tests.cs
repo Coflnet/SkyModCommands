@@ -68,7 +68,6 @@ public class FlipStreamTests
         collection.AddSingleton<IConfiguration>((a) => builder.Build());
         collection.AddLogging();
         collection.AddCoflService();
-        collection.AddSingleton<GemPriceService, MockGemService>();
         var provider = collection.BuildServiceProvider();
         var socket = new MinecraftSocket();
         socket.SetLifecycleVersion("1.4.2-Alpha");
@@ -86,17 +85,5 @@ public class FlipStreamTests
         await Task.Delay(10);
         Assert.GreaterOrEqual(socket.TopBlocked.Count, 500);
 
-    }
-
-    public class MockGemService : GemPriceService
-    {
-        public MockGemService(IConfiguration config, IServiceScopeFactory scopeFactory, ILogger<GemPriceService> logger, IConfiguration configuration) : base(config, scopeFactory, logger, configuration)
-        {
-        }
-
-        public override Task StartAsync(CancellationToken cancellationToken)
-        {// break;
-            return Task.CompletedTask;
-        }
     }
 }
