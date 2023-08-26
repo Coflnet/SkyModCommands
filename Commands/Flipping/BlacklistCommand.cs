@@ -153,7 +153,7 @@ namespace Coflnet.Sky.Commands.MC
                     Tag = tag,
                     Bin = true,
                     StartingBid = 2,
-                    NBTLookup = new(),
+                    NBTLookup = Array.Empty<NBTLookup>(),
                     FlatenedNBT = new(),
                     Enchantments = new(),
                     Context = new()

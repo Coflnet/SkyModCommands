@@ -321,7 +321,7 @@ namespace Coflnet.Sky.Commands.MC
                     socket.Dialog(db => db.Msg("What do you want to do?").Break
                         .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)\nexecutes {McColorCodes.AQUA}/cofl flip")
                         .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
-                        .CoflCommand<FlipCommand>(McColorCodes.BLUE + " use the pricing data ", "never", "I don't want to flip")
+                        .DialogLink<FlipDisableDialog>(McColorCodes.BLUE + " use the pricing data ", "never", "I don't want to flip")
                         .Break);
                     await socket.TriggerTutorial<Welcome>();
                     span?.AddTag("autoStart", "false");
