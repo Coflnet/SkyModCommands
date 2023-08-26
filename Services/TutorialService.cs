@@ -21,6 +21,8 @@ public class TutorialService : ITutorialService
 
     public async Task Trigger<T>(IMinecraftSocket socket) where T : TutorialBase
     {
+        if(socket.SessionInfo.IsMacroBot)
+            return; // don't show tutorials to bots
         var instance = GetInstance<T>();
         var userId = socket.AccountInfo?.UserId;
         if (string.IsNullOrEmpty(userId))
