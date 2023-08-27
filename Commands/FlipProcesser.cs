@@ -107,9 +107,11 @@ namespace Coflnet.Sky.Commands.MC
 
         private bool NotBlockedForSpam(FlipInstance flipInstance, LowPricedAuction f)
         {
-            if (spamController.ShouldBeSent(flipInstance))
-                return true;
-            return BlockedFlip(f, "spam");
+            if (!spamController.ShouldBeSent(flipInstance))
+                return BlockedFlip(f, "spam");
+            if(socket.LastSent.Where(l=>l.Auction.Tag == f.Auction.Tag && f.Auction.Start - l.Auction.Start < TimeSpan.FromMinutes(3) && !flipInstance.IsWhitelisted()).Count() >= 3)
+                return BlockedFlip(f, "listing spam");
+            return true;
         }
 
         private bool IsNoDupplicate(LowPricedAuction flip)

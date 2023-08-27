@@ -32,7 +32,7 @@ public class AfVersionAdapter : ModVersionAdapter
             itemName = name,
             target = flip.Target
         }));
-        if (flip.Context.TryGetValue("match", out var type) && type.StartsWith("whitelist"))
+        if (flip.IsWhitelisted())
         {
             foreach (var item in socket.Settings.WhiteList)
             {
