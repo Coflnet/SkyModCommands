@@ -3,6 +3,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 
 namespace Coflnet.Sky.ModCommands.Dialogs
 {
@@ -20,6 +21,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                          JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid, WL = true })).Break;
 
             response = AddBlockedReason(context, flip, response);
+            var source = flip.Auction.Context.GetValueOrDefault("pre-api");
 
             response = response.CoflCommand<RateCommand>(
                 $" {redX}  downvote / report",
@@ -62,7 +64,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             .MsgLine(
                 " ➹  Open on website",
                 $"https://sky.coflnet.com/a/{flip.Auction.Uuid}",
-                "Open link").Break;
+                "Open link").Msg(McColorCodes.DARK_GRAY + " . ", null, source).Break;
             return response;
         }
 
