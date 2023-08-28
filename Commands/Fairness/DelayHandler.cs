@@ -107,13 +107,13 @@ public class DelayHandler : IDelayHandler
 
     public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime)
     {
+        var lastDelay = currentDelay;
         var filteredIds = ids.Where(i => !string.IsNullOrEmpty(i)).ToArray();
         if (filteredIds.Length == 0)
             return new Summary() { Penalty = TimeSpan.FromSeconds(2.5) };
         var breakdown = await flipTrackingService.GetSpeedComp(filteredIds);
         var hourCount = breakdown?.Times?.Where(t => t.TotalSeconds > 1).GroupBy(t => TimeSpan.Parse(t.Age).Hours).Count() ?? 0;
         var recommendedPenalty = breakdown?.Penalty ?? 2;
-        var lastDelay = currentDelay;
         currentDelay = TimeSpan.FromSeconds(recommendedPenalty);
 
         var summary = new Summary();
