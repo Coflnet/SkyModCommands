@@ -30,13 +30,13 @@ namespace Coflnet.Sky.Commands.MC
                 return true;
             }
             long worth = GetWorth(flip);
-
+            var shouldPlaySound = (socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false) && (flip.Profit > 1_000_000 || flip.Finder == Core.LowPricedAuction.FinderType.USER);
             socket.Send(Response.Create("flip", new
             {
                 messages = await GetMessageparts(flip),
                 id = uuid,
                 worth,
-                sound = new { name = (socket.Settings?.ModSettings?.PlaySoundOnFlip ?? false) && flip.Profit > 1_000_000 ? "note.pling" : null, pitch = 1 },
+                sound = new { name = shouldPlaySound ? "note.pling" : null, pitch = 1 },
                 auction = flip.Auction,
                 target = flip.Target,
                 render = Random.Shared.Next(3) switch
