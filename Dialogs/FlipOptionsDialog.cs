@@ -21,7 +21,6 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                          JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid, WL = true })).Break;
 
             response = AddBlockedReason(context, flip, response);
-            var source = flip.Auction.Context.GetValueOrDefault("pre-api");
 
             response = response.CoflCommand<RateCommand>(
                 $" {redX}  downvote / report",
@@ -61,10 +60,13 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 $"{McColorCodes.WHITE}[?]{McColorCodes.GRAY} Get references",
                 $"{flip.Auction.Uuid}",
                 "Find out why this was deemed a flip").Break
-            .MsgLine(
-                " ➹  Open on website",
-                $"https://sky.coflnet.com/a/{flip.Auction.Uuid}",
-                "Open link").Msg(McColorCodes.DARK_GRAY + " . ", null, source).Break;
+                .MsgLine(
+                    " ➹  Open on website",
+                    $"https://sky.coflnet.com/a/{flip.Auction.Uuid}",
+                    "Open link");
+
+            if (context.socket.GetService<Services.ModeratorService>().IsModerator(context.socket))
+                response.Msg(McColorCodes.DARK_GRAY + " . ", null, flip.Auction.Context.GetValueOrDefault("pre-api"));
             return response;
         }
 
