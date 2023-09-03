@@ -124,6 +124,8 @@ namespace Coflnet.Sky.Commands.MC
 
         private bool FlipMatchesSetting(LowPricedAuction flip, FlipInstance flipInstance)
         {
+            if(Settings == null)
+                return false;
             var isMatch = (false, "");
             try
             {
