@@ -486,7 +486,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 UpdateExtraDelay();
                 spamController.Reset();
-                if (blockedFlipFilterCount > 0 && SessionInfo.LastBlockedMsg.AddMinutes(FlipSettings.Value.ModSettings.MinutesBetweenBlocked) < DateTime.UtcNow)
+                if (blockedFlipFilterCount > 0 && SessionInfo.LastBlockedMsg.AddMinutes(FlipSettings.Value?.ModSettings?.MinutesBetweenBlocked ?? 0) < DateTime.UtcNow)
                 {
                     SendBlockedMessage(blockedFlipFilterCount);
                 }

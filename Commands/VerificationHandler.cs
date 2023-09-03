@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using System.Diagnostics;
+using Coflnet.Sky.Api.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -111,7 +112,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var verification = socket.CreateActivity("Verification", ConSpan);
             var bid = connect.Code;
-            ItemPrices.AuctionPreview targetAuction = null;
+            Api.Client.Model.AuctionPreview targetAuction = null;
             foreach (var type in new List<string> { "STICK", "RABBIT_HAT", "WOOD_SWORD", "VACCINE_TALISMAN" })
             {
                 try
@@ -142,18 +143,15 @@ namespace Coflnet.Sky.Commands.MC
             return LastVerificationRequest > DateTime.UtcNow - TimeSpan.FromSeconds(5);
         }
 
-        private static async Task<ItemPrices.AuctionPreview> GetauctionToBidOn(int bid, string type)
+        private async Task<Api.Client.Model.AuctionPreview> GetauctionToBidOn(int bid, string type)
         {
-            var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
+            var service = socket.GetService<IAuctionsApi>();
+            var options = await service.ApiAuctionsTagItemTagActiveOverviewGetAsync(type, new Dictionary<string, string>()
             {
-                name = type,
-                Filter = new Dictionary<string, string>()
-                {
-                    {"Bin","false"}
-                }
+                {"Bin","false" }
             });
 
-            var targetAuction = activeAuction.Where(a => a.Price < bid).OrderBy(x => Random.Shared.Next()).FirstOrDefault();
+            var targetAuction = options.Where(a => a.Price < bid).OrderBy(x => Random.Shared.Next()).FirstOrDefault();
             return targetAuction;
         }
     }
