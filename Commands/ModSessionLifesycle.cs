@@ -137,8 +137,11 @@ namespace Coflnet.Sky.Commands.MC
             var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings");
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
             var oldSettings = FlipSettings;
-            FlipSettings = await flipSettingsTask;
+            FlipSettings = await flipSettingsTask ?? throw new Exception("flipSettings is null");
             oldSettings?.Dispose();
+            if(FlipSettings?.Value == null)
+                throw new Exception("flipSettings.Value is null");
+                
 
             // make sure there is only one connection
             AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
@@ -164,7 +167,6 @@ namespace Coflnet.Sky.Commands.MC
             SessionInfo.EventBrokerSub?.Unsubscribe();
             SessionInfo.EventBrokerSub = socket.GetService<EventBrokerClient>().SubEvents(val, onchange =>
             {
-                Console.WriteLine("received update from event");
                 SendMessage(COFLNET + onchange.Message);
             });
         }
