@@ -19,6 +19,11 @@ namespace Coflnet.Sky.Commands.MC
             var isSoldService = socket.GetService<IIsSold>();
             if (isSoldService.IsSold(uuid) && !(socket.Settings?.ModSettings?.NormalSoldFlips ?? false))
             {
+                if (await socket.UserAccountTier() >= AccountTier.SUPER_PREMIUM)
+                {
+                    socket.Error(new Exception("This auction has likely been sold to a super premium user"));
+                    return true; // don't show sold flips to super premium users
+                }
                 var preService = socket.GetService<PreApiService>();
                 var parts = await GetMessageparts(flip);
                 parts.Insert(0, new ChatPart(McColorCodes.RED + "[SOLD]",
