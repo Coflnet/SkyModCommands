@@ -506,7 +506,7 @@ namespace Coflnet.Sky.Commands.MC
                 }, "adjust temp filters", 1);
 
                 UpdateConnectionIfNoFlipSent(span);
-                if (AccountInfo.Value?.ExpiresAt < DateTime.UtcNow && AccountInfo.Value?.ExpiresAt > DateTime.UtcNow - TimeSpan.FromMinutes(2))
+                if (AccountInfo?.Value?.ExpiresAt < DateTime.UtcNow && AccountInfo?.Value?.ExpiresAt > DateTime.UtcNow - TimeSpan.FromMinutes(2))
                     UpdateConnectionTier(AccountInfo, span);
             }
             catch (InvalidOperationException)

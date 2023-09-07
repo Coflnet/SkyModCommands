@@ -650,7 +650,7 @@ namespace Coflnet.Sky.Commands.MC
                 { "additionalLog", additionalLog },
                 { "session", JsonConvert.SerializeObject(SessionInfo) },
                 { "account", sessionLifesycle.AccountInfo?.Value },
-                { "settings", Settings }})));
+                { "settings", JsonConvert.SerializeObject(Settings).Truncate(10_000) }})));
             return error?.Context.TraceId.ToString()!;
         }
 
