@@ -34,16 +34,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         {
             if (listSpace <= 2)
             {
-                // get member count
-                var res = await socket.GetService<Proxy.Client.Api.IProxyApi>().ProxyHypixelGetAsync($"/skyblock/profiles?uuid={socket.SessionInfo.McUuid}");
-                if(res == null)
-                    throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
-                var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(JsonConvert.DeserializeObject<string>(res));
-                var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
-                var membersOnIsland = profile.Members.Count;
-                listSpace = 14 + 3 * (membersOnIsland - 1);
-                using var listLog = socket.CreateActivity("listLog", span);
-                listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
+                Activity listLog = await UpdateListSpace(span);
             }
             if (activeAuctionCount >= listSpace)
             {
@@ -79,6 +70,28 @@ public class FullAfVersionAdapter : AfVersionAdapter
             return; // created listing
         }
         span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
+        await ListItems(span, apiService, inventory, toList);
+    }
+
+    private async Task<Activity> UpdateListSpace(Activity span)
+    {
+        // get member count
+        var res = await socket.GetService<Proxy.Client.Api.IProxyApi>().ProxyHypixelGetAsync($"/skyblock/profiles?uuid={socket.SessionInfo.McUuid}");
+        if (res == null)
+            throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
+        var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(JsonConvert.DeserializeObject<string>(res));
+        if(profiles?.Profiles == null)
+            throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
+        var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
+        var membersOnIsland = profile.Members.Count;
+        listSpace = 14 + 3 * (membersOnIsland - 1);
+        var listLog = socket.CreateActivity("listLog", span);
+        listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
+        return listLog;
+    }
+
+    private async Task ListItems(Activity span, IPlayerApi apiService, List<SaveAuction> inventory, IEnumerable<(SaveAuction First, Sniper.Client.Model.PriceEstimate Second)> toList)
+    {
         foreach (var item in toList)
         {
             var index = inventory.IndexOf(item.First);
@@ -89,7 +102,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 Activity.Current?.SetTag("error", "no uuid").Log(JsonConvert.SerializeObject(item.First));
                 await SendListing(span, item.First, (long)item.Second.Median, index, uuid);
-                return; // only list one without uuid
+                break; // only list one without uuid
             }
             if (socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid))
                 continue; // ignore recently sent they are handled by the loop above
