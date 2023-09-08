@@ -173,11 +173,14 @@ public class FullAfVersionAdapter : AfVersionAdapter
             sellPrice = price;
         var id = uuid ?? auction.Tag;
         span.Log($"Listing {auction.ItemName} for {sellPrice} (median: {price}) slot {index} id: {id}");
+        var listTime = socket.Settings?.ModSettings?.AhListTimeTarget;
+        if(listTime == 0)
+            listTime = null;
         socket.Send(Response.Create("createAuction", new
         {
             Slot = index,
             Price = sellPrice,
-            Duration = 96,
+            Duration = listTime ?? 96,
             ItemName = auction.ItemName,
             Id = id
         }));
