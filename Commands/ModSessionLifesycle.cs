@@ -135,9 +135,12 @@ namespace Coflnet.Sky.Commands.MC
             ConSpan.Log("subbing to settings of " + userId);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DEFAULT_SETTINGS);
             var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings");
+            Activity.Current.Log("got settings");
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
+            Activity.Current.Log("got accountInfo");
             var oldSettings = FlipSettings;
             FlipSettings = await flipSettingsTask ?? throw new Exception("flipSettings is null");
+            Activity.Current.Log("got flipSettings");
             oldSettings?.Dispose();
             if(FlipSettings?.Value == null)
                 throw new Exception("flipSettings.Value is null");
@@ -146,7 +149,7 @@ namespace Coflnet.Sky.Commands.MC
             // make sure there is only one connection
             AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
             _ = socket.TryAsyncTimes(() => AccountInfo.Update(AccountInfo.Value), "accountInfo update");
-
+            Activity.Current.Log("single connection check");
             FlipSettings.OnChange += UpdateSettings;
             FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
             AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
@@ -154,12 +157,14 @@ namespace Coflnet.Sky.Commands.MC
                 await UpdateAccountInfo(AccountInfo);
             else
                 Console.WriteLine("accountinfo is default");
-
+            Activity.Current.Log("updated accountInfo");
             SetupFlipProcessor(AccountInfo);
             AccountSettings = await accountSettingsTask;
             if (userId != null)
                 SubSessionToEventsFor(userId);
+            Activity.Current.Log("subbed to events");
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
+            Activity.Current.Log("applied flip settings");
         }
 
         private void SubSessionToEventsFor(string val)
