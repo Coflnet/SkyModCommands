@@ -142,13 +142,15 @@ namespace Coflnet.Sky.Commands.MC
             FlipSettings = await flipSettingsTask ?? throw new Exception("flipSettings is null");
             Activity.Current.Log("got flipSettings");
             oldSettings?.Dispose();
-            if(FlipSettings?.Value == null)
+            if (FlipSettings?.Value == null)
                 throw new Exception("flipSettings.Value is null");
-                
 
             // make sure there is only one connection
-            AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
-            _ = socket.TryAsyncTimes(() => AccountInfo.Update(AccountInfo.Value), "accountInfo update");
+            _ = socket.TryAsyncTimes(async () =>
+            {
+                AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
+                await AccountInfo.Update(AccountInfo.Value);
+            }, "accountInfo update");
             Activity.Current.Log("single connection check");
             FlipSettings.OnChange += UpdateSettings;
             FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
@@ -661,7 +663,7 @@ namespace Coflnet.Sky.Commands.MC
                     widthPercent = (mod?.TimerX ?? 0) == 0 ? 10 : mod.TimerX,
                     heightPercent = (mod?.TimerY ?? 0) == 0 ? 10 : mod.TimerY,
                     scale = (mod?.TimerScale ?? 0) == 0 ? 2 : mod.TimerScale,
-                    prefix = ((mod?.TimerPrefix.IsNullOrEmpty() ?? true)|| prefix != "§c") ? prefix : mod.TimerPrefix,
+                    prefix = ((mod?.TimerPrefix.IsNullOrEmpty() ?? true) || prefix != "§c") ? prefix : mod.TimerPrefix,
                     maxPrecision = (mod?.TimerPrecision ?? 0) == 0 ? 3 : mod.TimerPrecision
                 }));
         }
@@ -691,7 +693,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendAfkWarningMessages(DelayHandler.Summary sumary)
         {
-            if (sumary.AntiAfk && !socket.HasFlippingDisabled() )
+            if (sumary.AntiAfk && !socket.HasFlippingDisabled())
             {
                 if (SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
                 {
