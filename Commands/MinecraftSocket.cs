@@ -774,7 +774,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public bool HasFlippingDisabled()
         {
-            return (Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && Settings != null || SessionInfo.IsNotFlipable;
+            return (Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && Settings != null || SessionInfo.IsNotFlipable || (Settings?.ModSettings?.AhDataOnlyMode ?? false);
         }
 
         public void ScheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
