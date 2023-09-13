@@ -18,7 +18,9 @@ public class FlipCommand : McCommand
             case "never":
                 flipSettings.Value.DisableFlips = true;
                 flipSettings.Value.ModSettings.AhDataOnlyMode = true;
+                flipSettings.Value.ModSettings.AutoStartFlipper = false;
                 await flipSettings.Update();
+                socket.SessionInfo.FlipsEnabled = false;
                 break;
             case "always":
                 flipSettings.Value.ModSettings.AutoStartFlipper = true;
@@ -33,6 +35,7 @@ public class FlipCommand : McCommand
                 break;
             default:
                 socket.SessionInfo.FlipsEnabled = !socket.SessionInfo.FlipsEnabled;
+                flipSettings.Value.ModSettings.AhDataOnlyMode = false;
                 WriteCurrentState(socket);
                 socket.sessionLifesycle.UpdateConnectionTier(socket.AccountInfo);
                 break;
