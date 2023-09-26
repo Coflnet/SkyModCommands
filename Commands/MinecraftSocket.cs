@@ -437,7 +437,7 @@ namespace Coflnet.Sky.Commands.MC
             {
 
                 var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
-                if (e.Data.Contains("\"nobestflip\""))
+                if (e.Data.Contains("dialog") && e.Data.Contains("nobestflip"))
                 {
                     HandleCommand(e, null, a);
                     return;
@@ -487,7 +487,7 @@ namespace Coflnet.Sky.Commands.MC
                 waiting++;
                 if (string.IsNullOrEmpty(SessionInfo?.McUuid))
                     await Task.Delay(1200).ConfigureAwait(false);
-                if (e.Data == "\"nobestflip\"")
+                if (e.Data == "nobestflip")
                     await InvokeCommand(a, command);
                 else
                 {
