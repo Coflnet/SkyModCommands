@@ -146,7 +146,7 @@ namespace Coflnet.Sky.Commands.MC
                     builder.Append(McColorCodes.GRAY + " Med: " + McColorCodes.AQUA + FormatPrice(flip.MedianPrice));
                 if (Settings?.Visibility?.LowestBin ?? false)
                     builder.Append(McColorCodes.GRAY + " LBin: " + McColorCodes.AQUA + FormatPrice(flip.LowestBin ?? 0));
-                if (Settings.Visibility?.Volume ?? false)
+                if (Settings?.Visibility?.Volume ?? false)
                     builder.Append(McColorCodes.GRAY + " Vol: " + McColorCodes.AQUA + flip.Volume.ToString("0.#"));
             }
             catch (Exception e)
@@ -192,7 +192,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (Settings?.ModSettings?.ShortNumbers ?? false)
                 return FormatPriceShort(price ?? 0);
-            return string.Format(CultureInfo.InvariantCulture, "{0:n0}", price);
+            return string.Format(CultureInfo.InvariantCulture, "{0:n0}", price ?? 0);
         }
 
 
