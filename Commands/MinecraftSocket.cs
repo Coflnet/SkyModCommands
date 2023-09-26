@@ -42,7 +42,7 @@ namespace Coflnet.Sky.Commands.MC
         public ModSessionLifesycle sessionLifesycle { get; protected set; }
 
         public static bool IsDevMode { get; } = System.Net.Dns.GetHostName().Contains("ekwav");
-        public string ClientIp => Context.Headers["X-Real-Ip"] ?? Context.UserEndPoint.Address.ToString();
+        public string ClientIp => Headers["X-Real-Ip"] ?? UserEndPoint.Address.ToString();
 
         public static readonly ClassNameDictonary<McCommand?> Commands = new ClassNameDictonary<McCommand?>();
 
@@ -283,8 +283,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected NameValueCollection SetupModAdapter()
         {
-            var args = System.Web.HttpUtility.ParseQueryString(Context.RequestUri.Query);
-            Console.WriteLine(Context.RequestUri.Query);
+            var args = QueryString;
             if (args["uuid"] == null && args["player"] == null)
                 Send(Response.Create("error", "the connection query string needs to include 'player'"));
             if (args["SId"] == null)
@@ -555,7 +554,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public void SendMessage(string text, string? clickAction = null, string? hoverText = null)
         {
-            if (ConnectionState != WebSocketState.Open)
+            if (this.ReadyState != WebSocketState.Open)
             {
                 RemoveMySelf();
                 return;
@@ -601,7 +600,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public bool SendMessage(params ChatPart[] parts)
         {
-            if (ConnectionState != WebSocketState.Open && ConnectionState != WebSocketState.Connecting)
+            if (this.ReadyState != WebSocketState.Open && this.ReadyState != WebSocketState.Connecting)
             {
                 RemoveMySelf();
                 return false;
@@ -670,7 +669,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public void Send(Response response)
         {
-            if (ConnectionState == WebSocketState.Closed)
+            if (this.ReadyState == WebSocketState.Closed)
             {
                 RemoveMySelf();
                 return;
@@ -683,7 +682,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             try
             {
-                if (ConnectionState != WebSocketState.Open)
+                if (this.ReadyState != WebSocketState.Open)
                 {
                     Log("con check was false");
                     return false;
@@ -722,7 +721,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <returns></returns>
         public Task<bool> SendSold(string uuid)
         {
-            if (ConnectionState != WebSocketState.Open)
+            if (this.ReadyState != WebSocketState.Open)
                 return Task.FromResult(false);
             // don't send extra messages
             return Task.FromResult(true);
@@ -732,7 +731,7 @@ namespace Coflnet.Sky.Commands.MC
         private void SendTimer()
         {
             using var timer = CreateActivity("timer", ConSpan);
-            if (ConnectionState == WebSocketState.Closed)
+            if (this.ReadyState == WebSocketState.Closed)
             {
                 NextUpdateStart -= SendTimer;
                 return;
@@ -831,7 +830,7 @@ namespace Coflnet.Sky.Commands.MC
             if (!result)
             {
                 Log("failed");
-                Log(ConnectionState.ToString());
+                Log(this.ReadyState.ToString());
             }
 
 
@@ -860,8 +859,6 @@ namespace Coflnet.Sky.Commands.MC
         public override bool Equals(object? obj)
         {
             return obj is MinecraftSocket socket &&
-                   EqualityComparer<NameValueCollection>.Default.Equals(Headers, socket.Headers) &&
-                   EqualityComparer<NameValueCollection>.Default.Equals(QueryString, socket.QueryString) &&
                    ID == socket.ID &&
                    StartTime == socket.StartTime &&
                    Id == socket.Id;
@@ -870,8 +867,6 @@ namespace Coflnet.Sky.Commands.MC
         public override int GetHashCode()
         {
             HashCode hash = new HashCode();
-            hash.Add(Headers);
-            hash.Add(QueryString);
             hash.Add(ID);
             hash.Add(StartTime);
             return hash.ToHashCode();
