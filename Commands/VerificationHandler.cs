@@ -89,7 +89,7 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(800).ConfigureAwait(false);
                 verificationSpan.Log($"failed {userId} {mcUuid} {mcUuid is null}");
             }
-            if (connect == null)
+            if (connect == null || connect.Code == 0)
             {
                 socket.Log("could not get connect result");
                 SendMessage(McColorCodes.RED + "We could not verify your account. Please click this to create a report and seek support on the discord server with the id", "/cofl report mcaccount link", "Click to create report\nThis helps us to fix the issue");
@@ -99,7 +99,10 @@ namespace Coflnet.Sky.Commands.MC
             {
                 SessionInfo.VerifiedMc = true;
                 if (!accountInfo.McIds.Contains(mcUuid))
+                {
                     accountInfo.McIds.Add(mcUuid);
+                    await socket.sessionLifesycle.AccountInfo.Update(accountInfo);
+                }
                 return SessionInfo.VerifiedMc;
             }
             verificationSpan.Log(JSON.Stringify(connect));
