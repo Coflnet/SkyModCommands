@@ -67,6 +67,8 @@ public class SetCommand : McCommand
             socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{doc.RealName}{DEFAULT_COLOR} to {McColorCodes.WHITE}{finalValue}", null, doc.Info));
             if (page > 0)
                 await PrintSettingsPage(socket, page);
+            if(arguments.ToLower().Contains("modtimer"))
+                socket.sessionLifesycle.StartTimer(12);
 
             socket.GetService<FlipperService>().UpdateFilterSumaries();
         }
