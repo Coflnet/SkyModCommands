@@ -200,7 +200,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var text = $"§fFound and loaded settings for your connection\n"
                                     + $"{McColorCodes.GRAY} MinProfit: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfit)}  "
-                                    + $"{McColorCodes.GRAY} Whitelist: {McColorCodes.AQUA}{Settings?.BlackList?.Count ?? 0}"
+                                    + $"{McColorCodes.GRAY} Whitelist: {McColorCodes.AQUA}{Settings?.WhiteList?.Count ?? 0}"
                                     + $"{McColorCodes.GRAY} Blacklist: {McColorCodes.AQUA}{Settings?.BlackList?.Count ?? 0}\n "
                                     + "§8: nothing else to do have a nice day :)";
             var hover = $"{McColorCodes.GRAY} MinVolume: {McColorCodes.AQUA}{Settings?.MinVolume}\n"
