@@ -72,7 +72,12 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current?.Log("claiming " + name.Value);
             var uuid = await socket.GetPlayerUuid(name.Value);
             var baseApi = socket.GetService<IBaseApi>();
-            await baseApi.BaseAhPlayerIdPostAsync(uuid);
+            var info = await baseApi.BaseAhPlayerIdPostWithHttpInfoAsync(uuid);
+            if(info.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                Activity.Current?.Log($"failed to get auction info for {name.Value} {info.StatusCode}");
+                return;
+            }
         }
     }
 }
