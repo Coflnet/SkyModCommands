@@ -34,7 +34,9 @@ public class PreApiCommand : McCommand
         }
         if (await socket.UserAccountTier() >= Shared.AccountTier.SUPER_PREMIUM)
         {
-            socket.Dialog(db => db.MsgLine($"Your pre-api expires in {McColorCodes.AQUA}{socket.AccountInfo.ExpiresAt.Subtract(DateTime.UtcNow).ToString(@"mm\:ss")}", null, "Thats minutes:seconds"));
+            var time = socket.AccountInfo.ExpiresAt.Subtract(DateTime.UtcNow).ToString(@"mm\:ss");
+            socket.Dialog(db => db.MsgLine($"Your pre-api expires in {McColorCodes.AQUA}{time}", null, "Thats minutes:seconds")
+                .CoflCommand<PurchaseCommand>($"{McColorCodes.GREEN}[{McColorCodes.GRAY}Extend pre-api{McColorCodes.GREEN}]", "pre_api", "Click to extend pre-api"));
             return;
         }
         socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
