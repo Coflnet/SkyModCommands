@@ -55,26 +55,27 @@ namespace Coflnet.Sky.Commands.MC
             if (parts.Length < 3 || parts[2] != socket.SessionInfo.ConnectionId)
             {
                 var timeString = GetLenghtInWords(product, count);
+                var costSum = socket.FormatPrice((long)product.Cost * count);
                 if(socket.SessionInfo.IsMacroBot)
                 {
                     socket.SendMessage(new DialogBuilder()
                         .Msg($"To confirm buying the {McColorCodes.AQUA}{product.Title}{McColorCodes.WHITE} service {McColorCodes.AQUA}{count}x ", null, product.Description)
-                        .Msg($"for a total of {McColorCodes.AQUA}{socket.FormatPrice((long)product.Cost)}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
+                        .Msg($"for a total of {McColorCodes.AQUA}{costSum}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
                         .CoflCommand<PurchaseCommand>(
                                 $"execute {McColorCodes.AQUA}/cofl buy {productSlug} {count} {socket.SessionInfo.ConnectionId}",
                                 $"{productSlug} {count} {socket.SessionInfo.ConnectionId}",
-                                $"Confirm purchase via click (paying {socket.FormatPrice((long)product.Cost)} cofl coins)"));
+                                $"Confirm purchase via click (paying {costSum} cofl coins)"));
                     return;
                 }
 
                 socket.SendMessage(new DialogBuilder()
                         .Msg($"Do you want to buy the {McColorCodes.AQUA}{product.Title}{McColorCodes.WHITE} service {McColorCodes.AQUA}{count}x ", null, product.Description)
-                        .Msg($"for a total of {McColorCodes.AQUA}{socket.FormatPrice((long)product.Cost)}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
+                        .Msg($"for a total of {McColorCodes.AQUA}{costSum}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
                         .MsgLine($"lasting {timeString}")
                         .CoflCommand<PurchaseCommand>(
                                 $"  {McColorCodes.GREEN}Yes  ",
                                 $"{productSlug} {count} {socket.SessionInfo.ConnectionId}",
-                                $"Confirm purchase (paying {socket.FormatPrice((long)product.Cost)} cofl coins)")
+                                $"Confirm purchase (paying {costSum} cofl coins)")
                         .DialogLink<EchoDialog>($"  {McColorCodes.RED}No  ", $"Purchase Canceled", $"{McColorCodes.RED}Cancel purchase"));
                 return;
             }
