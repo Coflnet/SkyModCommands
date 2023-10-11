@@ -323,7 +323,7 @@ namespace Coflnet.Sky.Commands.MC
                     SessionInfo.FlipsEnabled = true;
                     UpdateConnectionTier(info, span);
                     span?.AddTag("autoStart", "true");
-                    if (info.Tier >= AccountTier.PREMIUM_PLUS && SessionInfo.ConnectionType == null && Random.Shared.NextDouble() < 0.5)
+                    if (info.Tier >= AccountTier.PREMIUM_PLUS && SessionInfo.ConnectionType == null && !SessionInfo.IsMacroBot && Random.Shared.NextDouble() < 0.5)
                     {
                         socket.Dialog(db => db.MsgLine(McColorCodes.GRAY + "Do you want to try out our new US flipping instance? Click this message",
                             "/cofl connect ws://sky-us.coflnet.com/modsocket",
