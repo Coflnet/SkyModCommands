@@ -295,13 +295,15 @@ namespace Coflnet.Sky.Commands.MC
                     // set again
                     SetActiveConIdToCurrent();
                     // wait for settings sync
-                    await Task.Delay(5000).ConfigureAwait(false);
+                    await Task.Delay(4500).ConfigureAwait(false);
                     var currentId = AccountInfo.Value.ActiveConnectionId;
                     if (currentId != SessionInfo.ConnectionId)
                     {
                         // another connection of this account was opened, close this one
                         SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "Closing this connection because your account opened another one. There can only be one per account. Use /cofl logout to close all.", "/cofl logout",
                             "To protect against your mod opening\nmultiple connections which you can't stop,\nwe closed this one.\nThe latest one you opened should still be active");
+                        // wait another sync cycle
+                        await Task.Delay(5000).ConfigureAwait(false);
                         socket.ExecuteCommand("/cofl stop");
                         span.Log($"connected from somewhere else {info.ActiveConnectionId} != {SessionInfo.ConnectionId} {currentId}");
                         socket.Close();
