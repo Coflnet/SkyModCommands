@@ -145,12 +145,7 @@ namespace Coflnet.Sky.Commands.MC
             if (FlipSettings?.Value == null)
                 throw new Exception("flipSettings.Value is null");
 
-            // make sure there is only one connection
-            _ = socket.TryAsyncTimes(async () =>
-            {
-                AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
-                await AccountInfo.Update(AccountInfo.Value);
-            }, "accountInfo update");
+            SetActiveConIdToCurrent();
             Activity.Current.Log("single connection check");
             FlipSettings.OnChange += UpdateSettings;
             FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
@@ -167,6 +162,19 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current.Log("subbed to events");
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
             Activity.Current.Log("applied flip settings");
+        }
+
+        /// <summary>
+        ///  make sure there is only one connection
+        /// </summary>
+        private void SetActiveConIdToCurrent()
+        {
+            _ = socket.TryAsyncTimes(async () =>
+            {
+                using var span = socket.CreateActivity("updateAccountInfo", ConSpan);
+                AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
+                await AccountInfo.Update(AccountInfo.Value);
+            }, "accountInfo update");
         }
 
         private void SubSessionToEventsFor(string val)
@@ -193,7 +201,8 @@ namespace Coflnet.Sky.Commands.MC
                 if (settings.BasedOnLBin && settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
                 {
                     socket.Dialog(db => db.CoflCommand<SetCommand>(McColorCodes.RED + "Your profit is based on lbin, therefore you should only use the `sniper` flip finder to maximise speed", "finders sniper", "Click to only use the sniper"));
-                    _ = socket.TryAsyncTimes(async () => {
+                    _ = socket.TryAsyncTimes(async () =>
+                    {
                         await Task.Delay(TimeSpan.FromSeconds(5));
                         socket.Dialog(db => db.LineBreak().MsgLine(McColorCodes.RED + "Having profit set to lbin with other finders may lead to negative price estimations being displayed if you whitelisted an item"));
                     }, "sniper warning");
@@ -283,6 +292,8 @@ namespace Coflnet.Sky.Commands.MC
                 var userIsTest = info.UserIdOld > 0 && info.UserIdOld < 10;
                 if (info.ActiveConnectionId != SessionInfo.ConnectionId && !string.IsNullOrEmpty(info.ActiveConnectionId) && !userIsTest)
                 {
+                    // set again
+                    SetActiveConIdToCurrent();
                     // wait for settings sync
                     await Task.Delay(5000).ConfigureAwait(false);
                     var currentId = AccountInfo.Value.ActiveConnectionId;
