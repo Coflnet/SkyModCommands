@@ -292,8 +292,6 @@ namespace Coflnet.Sky.Commands.MC
                 var userIsTest = info.UserIdOld > 0 && info.UserIdOld < 10;
                 if (info.ActiveConnectionId != SessionInfo.ConnectionId && !string.IsNullOrEmpty(info.ActiveConnectionId) && !userIsTest)
                 {
-                    // set again
-                    SetActiveConIdToCurrent();
                     // wait for settings sync
                     await Task.Delay(4500).ConfigureAwait(false);
                     var currentId = AccountInfo.Value.ActiveConnectionId;
