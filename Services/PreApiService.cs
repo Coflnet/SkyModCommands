@@ -331,6 +331,9 @@ public class PreApiService : BackgroundService, IPreApiService
             flipsPurchased.Inc();
             if (connection.AccountInfo.Tier >= AccountTier.SUPER_PREMIUM)
                 preApiFlipPurchased.Inc();
+            var source = flip.Auction.Context?.GetValueOrDefault("pre-api");
+            if(source != null && source.StartsWith("sender"))
+                logger.LogInformation($"{source} purchased {flip.Auction.Uuid} for {price}");
         }
         else
             logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");
