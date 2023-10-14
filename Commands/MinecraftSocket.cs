@@ -842,7 +842,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var tier = sessionLifesycle.AccountInfo?.Value?.Tier;
             var expiresAt = sessionLifesycle.AccountInfo?.Value?.ExpiresAt;
-            if (tier >= AccountTier.NONE && expiresAt < DateTime.UtcNow && expiresAt > DateTime.UtcNow - TimeSpan.FromHours(1))
+            if (tier >= AccountTier.NONE && expiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(30) && expiresAt > DateTime.UtcNow - TimeSpan.FromHours(1))
             {
                 // refresh tier
                 tier = await sessionLifesycle.UpdateAccountTier(sessionLifesycle.AccountInfo?.Value);
