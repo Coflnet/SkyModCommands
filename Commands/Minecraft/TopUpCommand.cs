@@ -26,6 +26,8 @@ namespace Coflnet.Sky.Commands.MC
                 AddOptionsFor(socket, "p", db, topups);
                 db.Break.MsgLine(Indantation + McColorCodes.DARK_GREEN + "Topup using stripe");
                 AddOptionsFor(socket, "s", db, topups);
+                db.Break.MsgLine(Indantation + McColorCodes.GOLD + "Topup using lemonsqueezy (all around the globe)");
+                AddOptionsFor(socket, "l", db, topups);
                 socket.SendMessage(db);
                 return;
             }
@@ -36,6 +38,8 @@ namespace Coflnet.Sky.Commands.MC
                 info = await topUpApi.TopUpStripePostAsync(socket.UserId, toBuy, new());
             else if(toBuy.StartsWith('p'))
                 info = await topUpApi.TopUpPaypalPostAsync(socket.UserId, toBuy, new());
+            else if(toBuy.StartsWith('l'))
+                info = await topUpApi.TopUpLemonsqueezyPostAsync(socket.UserId, toBuy, new());
             else
                 throw new CoflnetException("invalid_product", $"The product {toBuy} isn't know, please execute the command without arguments to get options");
             var separationLines = "--------------------\n";
