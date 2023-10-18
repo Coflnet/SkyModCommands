@@ -18,6 +18,9 @@ using System.Globalization;
 using System.Net;
 using Payments.Client.Api;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Specialized;
+using System.Net.Http;
 
 public interface IPreApiService : IIsSold
 {
@@ -54,8 +57,9 @@ public class PreApiService : BackgroundService, IPreApiService
     private ConcurrentDictionary<string, AccountTier> sold = new();
     private ConcurrentDictionary<string, DateTime> sent = new();
     private ConcurrentDictionary<int, List<IMinecraftSocket>> notifyWhenUserLeave = new();
+    private IConfiguration config;
     public int PreApiUserCount => preApiUsers.Count;
-    public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi, IBaseApi baseApi)
+    public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi, IBaseApi baseApi, IConfiguration config)
     {
         this.redis = redis;
         this.logger = logger;
@@ -63,6 +67,7 @@ public class PreApiService : BackgroundService, IPreApiService
         flipperService.PreApiLowPriceHandler += PreApiLowPriceHandler;
         this.productsApi = productsApi;
         this.baseApi = baseApi;
+        this.config = config;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -220,7 +225,7 @@ public class PreApiService : BackgroundService, IPreApiService
         else
             await Task.Delay(TimeSpan.FromSeconds(0.3)).ConfigureAwait(false);
         // check if flip was sent to anyone 
-        if (e.Auction != null && !sent.ContainsKey(e.Auction.Uuid)) 
+        if (e.Auction != null && !sent.ContainsKey(e.Auction.Uuid))
             return;
 
         // send out after delay
@@ -321,22 +326,38 @@ public class PreApiService : BackgroundService, IPreApiService
                     && f.Auction.StartingBid == price
                     && f.Auction.Start > DateTime.UtcNow.AddMinutes(-2))
             .ToArray();
-        if (flips.Count() == 1)
+        if (flips.Count() != 1)
         {
-            var flip = flips.First();
-            var uuid = flip.Auction.Uuid;
-            logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.UtcNow}");
-            PublishSell(uuid, connection.UserAccountTier().Result);
-            CheckHighProfitpurchaser(connection, flip);
-            flipsPurchased.Inc();
-            if (connection.AccountInfo.Tier >= AccountTier.SUPER_PREMIUM)
-                preApiFlipPurchased.Inc();
-            var source = flip.Auction.Context?.GetValueOrDefault("pre-api");
-            if(source != null && source.StartsWith("sender"))
-                logger.LogInformation($"{source} purchased {flip.Auction.Uuid} for {price}");
-        }
-        else
             logger.LogInformation($"Could not find flip that was bought by {connection.SessionInfo.McUuid} {itemName} {price}");
+            return;
+        }
+        var flip = flips.First();
+        var uuid = flip.Auction.Uuid;
+        logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.UtcNow}");
+        PublishSell(uuid, connection.UserAccountTier().Result);
+        CheckHighProfitpurchaser(connection, flip);
+        flipsPurchased.Inc();
+        if (connection.AccountInfo.Tier >= AccountTier.SUPER_PREMIUM)
+            preApiFlipPurchased.Inc();
+        var source = flip.Auction.Context?.GetValueOrDefault("pre-api");
+        LogSender(price, flip, source);
+
+    }
+
+    private void LogSender(long price, LowPricedAuction flip, string source)
+    {
+        if (source == null || !source.StartsWith("sender"))
+            return;
+        logger.LogInformation($"{source} purchased {flip.Auction.Uuid} for {price}");
+        var webhookUrl = config[$"SENDER:{source.Replace("sender: ","").ToUpper()}:WEBHOOK_URL"];
+        if (webhookUrl == null)
+            return;
+        // send webhook to discord
+        var collection = new List<KeyValuePair<string,string>>();
+        collection.Add(new("content", $"Sender {source} purchased {flip.Auction.Uuid} for {price} est profit {flip.TargetPrice - price}"));
+
+        var client = new System.Net.Http.HttpClient();
+        client.PostAsync(webhookUrl, new FormUrlEncodedContent(collection));
     }
 
     public void CheckHighProfitpurchaser(IMinecraftSocket connection, LowPricedAuction flip)
