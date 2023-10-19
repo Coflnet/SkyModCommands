@@ -349,15 +349,20 @@ public class PreApiService : BackgroundService, IPreApiService
         if (source == null || !source.StartsWith("sender"))
             return;
         logger.LogInformation($"{source} purchased {flip.Auction.Uuid} for {price}");
-        var webhookUrl = config[$"SENDER:{source.Replace("sender: ","").ToUpper()}:WEBHOOK_URL"];
+        var webhookUrl = config[$"SENDER:{source.Replace("sender: ", "").ToUpper()}:WEBHOOK_URL"];
         if (webhookUrl == null)
+        {
+            logger.LogInformation($"No webhook url for {source}");
             return;
+        }
         // send webhook to discord
-        var collection = new List<KeyValuePair<string,string>>();
+        var collection = new List<KeyValuePair<string, string>>();
         collection.Add(new("content", $"Sender {source} purchased {flip.Auction.Uuid} for {price} est profit {flip.TargetPrice - price}"));
 
         var client = new System.Net.Http.HttpClient();
-        client.PostAsync(webhookUrl, new FormUrlEncodedContent(collection));
+        var msg = client.PostAsync(webhookUrl, new FormUrlEncodedContent(collection)).Result;
+        if (!msg.IsSuccessStatusCode)
+            logger.LogInformation($"Failed to send webhook for {source} {msg.StatusCode}");
     }
 
     public void CheckHighProfitpurchaser(IMinecraftSocket connection, LowPricedAuction flip)

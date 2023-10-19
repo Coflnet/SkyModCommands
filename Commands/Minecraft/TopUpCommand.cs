@@ -22,9 +22,9 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var db = DialogBuilder.New;
                 var topups = await productApi.ProductsTopupGetAsync(0, 100);
-                db.MsgLine(McColorCodes.BLUE + "Topup using paypal");
+                db.MsgLine(McColorCodes.BLUE + "Topup using paypal directly - only for some of US and EU");
                 AddOptionsFor(socket, "p", db, topups);
-                db.Break.MsgLine(Indantation + McColorCodes.DARK_GREEN + "Topup using stripe");
+                db.Break.MsgLine(Indantation + McColorCodes.DARK_GREEN + "Topup using stripe - only for some of US and EU");
                 AddOptionsFor(socket, "s", db, topups);
                 db.Break.MsgLine(Indantation + McColorCodes.GOLD + "Topup using lemonsqueezy (all around the globe)");
                 AddOptionsFor(socket, "l", db, topups);
