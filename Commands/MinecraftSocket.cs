@@ -742,6 +742,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 // ping is sent to keep the connection open (after 60 seconds inactivity its disconnected by cloudflare)
                 Send(Response.Create("ping", 0));
+                timer.Log("flips disabled");
                 _ = TryAsyncTimes(() => this.TriggerTutorial<ModCommands.Tutorials.FlipToggling>(), "sending flip tutorial");
                 return;
             }
@@ -774,7 +775,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public bool HasFlippingDisabled()
         {
-            return (Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && Settings != null || SessionInfo.IsNotFlipable || (Settings?.ModSettings?.AhDataOnlyMode ?? false);
+            return !SessionInfo.IsMacroBot && (Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && Settings != null || SessionInfo.IsNotFlipable || (Settings?.ModSettings?.AhDataOnlyMode ?? false);
         }
 
         public void ScheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
