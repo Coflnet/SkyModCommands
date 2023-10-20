@@ -7,6 +7,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Filter;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 public class LbinCommand : McCommand
@@ -15,7 +16,7 @@ public class LbinCommand : McCommand
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var filters = new Dictionary<string, string>();
-        var itemName = await parser.ParseFiltersAsync(socket, arguments.Trim('"'), filters, FlipFilter.AllFilters);
+        var itemName = await parser.ParseFiltersAsync(socket, JsonConvert.DeserializeObject<string>(arguments), filters, FlipFilter.AllFilters);
         var itemId = await socket.GetService<Items.Client.Api.IItemsApi>().ItemsSearchTermIdGetAsync(itemName);
         Activity.Current.Log($"Item id: {itemId} for {itemName}");
         var fe = socket.GetService<FilterEngine>();
