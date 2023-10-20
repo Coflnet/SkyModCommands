@@ -8,7 +8,7 @@ using Coflnet.Sky.Items.Client.Model;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    [CommandDescription("Manage your blacklist", 
+    [CommandDescription("Manage your blacklist",
         "to add use /cl bl add <item> [filterName=Value]",
         "Example /cl bl add Hyperion sharpness=1-5")]
     public class BlacklistCommand : ListCommand<ListEntry, List<ListEntry>>

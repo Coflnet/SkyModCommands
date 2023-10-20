@@ -163,6 +163,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<CompensateCommand>();
             Commands.Add<ProxyReqSyncCommand>();
             Commands.Add<TransferCoinsCommand>();
+            Commands.Add<LbinCommand>("l");
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
