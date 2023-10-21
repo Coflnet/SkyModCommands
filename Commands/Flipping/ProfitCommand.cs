@@ -61,7 +61,7 @@ namespace Coflnet.Sky.Commands.MC
             var worst = sorted.LastOrDefault();
             if (best == null)
                 return;
-            socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier))}{best.ItemName}" +
+            socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier.Replace("VERYSPECIAL","VERY_SPECIAL")))}{best.ItemName}" +
                             FormatFlip(socket, best),
                 "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction\n"+FormatFlip(socket, worst));
 
