@@ -29,8 +29,14 @@ public class LbinCommand : McCommand
         var filters = new Dictionary<string, string>();
         var itemName = await parser.ParseFiltersAsync(socket, args, filters, FlipFilter.AllFilters);
         var items = await socket.GetService<Items.Client.Api.IItemsApi>().ItemsSearchTermGetAsync(itemName);
-        var itemId = ItemDetails.Instance.GetItemIdForTag(items.First().Tag);
-        socket.SendMessage($"Querying AH for {itemName} ...");
+        var targetItem = items.FirstOrDefault();
+        if (targetItem == null)
+        {
+            socket.SendMessage($"Sorry, I couldn't find an item with the name {itemName}");
+            return;
+        }
+        var itemId = ItemDetails.Instance.GetItemIdForTag(targetItem.Tag);
+        socket.SendMessage($"Querying AH for {McColorCodes.AQUA}{targetItem.Text}");
         Activity.Current.Log($"Item id: {itemId} for {itemName}");
         var fe = socket.GetService<FilterEngine>();
         using var context = new HypixelContext();
