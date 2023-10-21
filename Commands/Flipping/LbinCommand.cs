@@ -17,7 +17,9 @@ public class LbinCommand : McCommand
     {
         var filters = new Dictionary<string, string>();
         var itemName = await parser.ParseFiltersAsync(socket, JsonConvert.DeserializeObject<string>(arguments), filters, FlipFilter.AllFilters);
-        var itemId = await socket.GetService<Items.Client.Api.IItemsApi>().ItemsSearchTermIdGetAsync(itemName);
+        var items = await socket.GetService<Items.Client.Api.IItemsApi>().ItemsSearchTermGetAsync(itemName);
+        var itemId = ItemDetails.Instance.GetItemIdForTag(items.First().Tag);
+        socket.SendMessage($"Querying AH for {itemName} ...");
         Activity.Current.Log($"Item id: {itemId} for {itemName}");
         var fe = socket.GetService<FilterEngine>();
         using var context = new HypixelContext();
@@ -25,7 +27,7 @@ public class LbinCommand : McCommand
                     .Where(a => a.ItemId == itemId && a.End > DateTime.Now && a.HighestBidAmount == 0 && a.Bin), filters)
                     .OrderBy(a => a.StartingBid).Take(5).ToListAsync();
         socket.Dialog(db =>
-            db.ForEach(auctions.OrderByDescending(a => a.StartingBid), (d, a) => d.MsgLine($"§e{a.StartingBid}§7: {a.End}", $"/viewauction {a.Uuid}", a.ItemName))
+            db.Break.ForEach(auctions.OrderByDescending(a => a.StartingBid), (d, a) => d.MsgLine($" §e{a.StartingBid}§7: {a.End}", $"/viewauction {a.Uuid}", a.ItemName))
             .MsgLine($"{McColorCodes.GREEN}Trying to open the lowest bin ..."));
         var lowest = auctions.OrderBy(a => a.StartingBid).FirstOrDefault();
         if (lowest == null)
