@@ -1,0 +1,29 @@
+using System;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+
+namespace Coflnet.Sky.Commands.MC;
+
+public class PingCommand : McCommand
+{
+    public override async Task Execute(MinecraftSocket socket, string arguments)
+    {
+        var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
+        var sessionId = socket.SessionInfo.SessionId;
+        if (args.Length <= 1)
+        {
+            socket.ExecuteCommand($"/cofl ping {sessionId} {DateTime.UtcNow.Ticks}");
+            socket.Dialog(db => db.MsgLine($"Testing ping"));
+            return;
+        }
+        var returnedSessionId = args[0];
+        var time = new DateTime(long.Parse(args[1]));
+        if (returnedSessionId != sessionId)
+        {
+            socket.Dialog(db => db.MsgLine($"This command should be called without any arguments {returnedSessionId} {sessionId}"));
+            return;
+        }
+        var ping = (DateTime.UtcNow - time).TotalMilliseconds;
+        socket.Dialog(db => db.MsgLine($"Your Ping to Coflnet is: {McColorCodes.AQUA}{ping}ms"));
+    }
+}
