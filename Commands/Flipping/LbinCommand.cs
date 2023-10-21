@@ -15,8 +15,19 @@ public class LbinCommand : McCommand
     FilterParser parser = new FilterParser();
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
+        var args = JsonConvert.DeserializeObject<string>(arguments);
+        if (args.Length == 0)
+        {
+            socket.Dialog(db =>
+                db.MsgLine($"{McColorCodes.GREEN}Usage: /cofl lbin <item name> [filter=value] [filter=value-numeric]",
+                null,
+                "§7Example: /cofl lbin diamond sword rarity=epic\n"
+                + "The itemsearch is the same as on the website\n"
+                + "List of filters is available with /cl filters [search]\n"));
+            return;
+        }
         var filters = new Dictionary<string, string>();
-        var itemName = await parser.ParseFiltersAsync(socket, JsonConvert.DeserializeObject<string>(arguments), filters, FlipFilter.AllFilters);
+        var itemName = await parser.ParseFiltersAsync(socket, args, filters, FlipFilter.AllFilters);
         var items = await socket.GetService<Items.Client.Api.IItemsApi>().ItemsSearchTermGetAsync(itemName);
         var itemId = ItemDetails.Instance.GetItemIdForTag(items.First().Tag);
         socket.SendMessage($"Querying AH for {itemName} ...");
