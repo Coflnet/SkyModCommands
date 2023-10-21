@@ -53,6 +53,7 @@ public class PreApiService : BackgroundService, IPreApiService
     private IBaseApi baseApi;
     private Prometheus.Counter flipsPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased", "Flips purchased");
     private Prometheus.Counter preApiFlipPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased_preapi", "Flips bought by a preapi user");
+    private ConcurrentDictionary<string, Prometheus.Counter> flipsPurchasedFromSender = new();
     private List<string> preApiUsers = new();
     private ConcurrentDictionary<string, AccountTier> sold = new();
     private ConcurrentDictionary<string, DateTime> sent = new();
@@ -349,7 +350,16 @@ public class PreApiService : BackgroundService, IPreApiService
         if (source == null || !source.StartsWith("sender"))
             return;
         logger.LogInformation($"{source} purchased {flip.Auction.Uuid} for {price}");
-        var webhookUrl = config[$"SENDER:{source.Replace("sender: ", "").ToUpper()}:WEBHOOK_URL"];
+        var sender = source.Replace("sender: ", "").ToLower();
+        var webhookUrl = config[$"SENDER:{sender.ToUpper()}:WEBHOOK_URL"];
+        var incAmount = 0;
+        if (flip.TargetPrice - price > 1_000_000)
+            incAmount = 1;
+        if (flip.TargetPrice - price > 10_000_000)
+            incAmount = 3;
+        if (flip.TargetPrice - price > 20_000_000)
+            incAmount = 6;
+        flipsPurchasedFromSender.GetOrAdd(sender, (a) => Prometheus.Metrics.CreateCounter("sky_mod_sender_purchased_" + sender, $"Flips purchased based on hint from {sender}")).Inc(incAmount);
         if (webhookUrl == null)
         {
             logger.LogInformation($"No webhook url for {source}");
