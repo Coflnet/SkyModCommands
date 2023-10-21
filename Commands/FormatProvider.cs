@@ -87,11 +87,11 @@ namespace Coflnet.Sky.Commands.MC
             };
             var a = flip.Auction;
             string itemName = flip.Auction?.Context?.ContainsKey("cname") ?? false ? flip.Auction.Context["cname"] : $"{GetRarityColor(a.Tier)}{a.ItemName}";
-            if(Settings.ModSettings.ShortNames)
+            if (Settings.ModSettings.ShortNames)
             {
                 foreach (var item in ItemReferences.reforges)
                 {
-                    if(itemName.ToLower().Contains(item))
+                    if (itemName.ToLower().Contains(item))
                         itemName = itemName.Replace(item, "", true, CultureInfo.InvariantCulture);
                 }
             }
@@ -195,6 +195,23 @@ namespace Coflnet.Sky.Commands.MC
             return string.Format(CultureInfo.InvariantCulture, "{0:n0}", price ?? 0);
         }
 
+        /// <summary>
+        /// Formats a timespan in accordance with shortest unit
+        /// </summary>
+        /// <param name="timeSpan"></param>
+        /// <returns></returns>
+        public string FormatTime(TimeSpan timeSpan)
+        {
+            var prefix = timeSpan.TotalSeconds < 0 ? "-" : "";
+            timeSpan = timeSpan.Duration();
+            if (timeSpan.TotalDays > 1.05)
+                return $"{timeSpan.TotalDays.ToString("0.#")}d";
+            if (timeSpan.TotalHours > 1)
+                return $"{timeSpan.TotalHours.ToString("0.#")}h";
+            if (timeSpan.TotalMinutes > 1)
+                return $"{timeSpan.TotalMinutes.ToString("0.#")}m";
+            return $"{prefix}{timeSpan.TotalSeconds.ToString("0.#")}s";
+        }
 
         public ChatPart[] WelcomeMessage()
         {
