@@ -85,6 +85,8 @@ namespace Coflnet.Sky.Commands.MC
             settings.Value.ModSettings.Chat = !settings.Value.ModSettings.Chat;
             await settings.Update(settings.Value);
             socket.SendMessage(CHAT_PREFIX + $"Toggled the chat {(settings.Value.ModSettings.Chat ? "on" : "off")}");
+            if(!settings.Value.ModSettings.Chat)
+                await socket.TriggerTutorial<ModCommands.Tutorials.ChatToggleTutorial>();
         }
 
         public static async Task MakeSureChatIsConnected(MinecraftSocket socket)
