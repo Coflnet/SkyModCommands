@@ -19,7 +19,7 @@ public class LeaderboardCommand : McCommand
         if (await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
             throw new CoflnetException("forbidden", "You need to have at least premium plus to use this command");
         var api = socket.GetService<IScoresApi>();
-        var nameApi = socket.GetService<PlayerNameApi>();
+        var nameApi = socket.GetService<IPlayerNameApi>();
         string boardSlug = GetBoardName();
         int.TryParse(arguments.Trim('"'), out var page);
         var ownTask = api.ScoresLeaderboardSlugUserUserIdRankGetAsync(boardSlug, socket.SessionInfo.McUuid);
