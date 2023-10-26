@@ -15,7 +15,8 @@ public class ModeratorService
         "cc4fe6e3a3b24e998d36680f85f681b0", // Dylan
         "839271a6a485403492fb96f98ff620c1", // SkilledBear
         "7d4a1e2200e245f8b7b490a6b0dd984b", // sparkleZ
-        };
+        "6da36b38ef0149f1bfd00873d7ce5210", // Aistoze        
+    };
     public bool IsModerator(MinecraftSocket socket)
     {
         return MinecraftUuids.Contains(socket.SessionInfo.McUuid) && socket.SessionInfo.VerifiedMc;
