@@ -166,6 +166,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<LbinCommand>("l");
             Commands.Add<RecentCommand>("r");
             Commands.Add<PingCommand>();
+            Commands.Add<SetGuiCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
