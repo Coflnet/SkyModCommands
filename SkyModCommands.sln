@@ -3,6 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "hypixel", "..\dev\hypixel.csproj", "{B51AD750-E5CA-4D97-B267-51CEE6924BD6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkyFilter", "..\SkyFilter\SkyFilter.csproj", "{E9363880-CACE-4478-9C08-B8B6F75EDC7E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkyBackendForFrontend", "..\SkyBackendForFrontend\SkyBackendForFrontend.csproj", "{A8238ED0-5991-4DE9-8F58-284AF03EA271}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SkyModCommands", "SkyModCommands.csproj", "{2242CD57-3733-4A9F-98B9-BBA86AFBD5BE}"
 EndProject
 Global
@@ -15,6 +21,18 @@ Global
 		{2242CD57-3733-4A9F-98B9-BBA86AFBD5BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2242CD57-3733-4A9F-98B9-BBA86AFBD5BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2242CD57-3733-4A9F-98B9-BBA86AFBD5BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B51AD750-E5CA-4D97-B267-51CEE6924BD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B51AD750-E5CA-4D97-B267-51CEE6924BD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B51AD750-E5CA-4D97-B267-51CEE6924BD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B51AD750-E5CA-4D97-B267-51CEE6924BD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9363880-CACE-4478-9C08-B8B6F75EDC7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9363880-CACE-4478-9C08-B8B6F75EDC7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9363880-CACE-4478-9C08-B8B6F75EDC7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9363880-CACE-4478-9C08-B8B6F75EDC7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8238ED0-5991-4DE9-8F58-284AF03EA271}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8238ED0-5991-4DE9-8F58-284AF03EA271}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8238ED0-5991-4DE9-8F58-284AF03EA271}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8238ED0-5991-4DE9-8F58-284AF03EA271}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
