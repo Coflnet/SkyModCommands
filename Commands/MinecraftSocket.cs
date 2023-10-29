@@ -167,6 +167,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<RecentCommand>("r");
             Commands.Add<PingCommand>();
             Commands.Add<SetGuiCommand>();
+            Commands.Add<FlipperEstimateCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

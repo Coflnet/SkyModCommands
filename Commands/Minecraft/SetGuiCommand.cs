@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Coflnet.Sky.PlayerState.Client.Model;
 
 namespace Coflnet.Sky.Commands.MC;
 
