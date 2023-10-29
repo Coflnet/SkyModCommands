@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
@@ -30,14 +31,20 @@ public class FlipperEstimateCommand : ItemSelectCommand<FlipperEstimateCommand>
         var auctionUuid = db.Auctions
                     .Where(a => a.NBTLookup.Where(l => l.KeyId == key && l.Value == itemId).Any())
                     .OrderByDescending(a => a.End).Select(a => a.Uuid).FirstOrDefault();
-
-        var references = await socket.GetService<Shared.FlipperService>().GetReferences(auctionUuid);
-        if (references == null)
+        Activity.Current.Log($"Found auction {auctionUuid} for item {itemId}");
+        if(auctionUuid == null)
         {
             socket.Dialog(db => db.MsgLine("No previous sell was found for this item"));
             return;
         }
+        var references = await socket.GetService<Shared.FlipperService>().GetReferences(auctionUuid);
+        if (references == null)
+        {
+            socket.Dialog(db => db.MsgLine("References could not be loaded"));
+            return;
+        }
         var median = references.OrderByDescending(r => r.HighestBidAmount).ElementAt(references.Count() / 2);
+        Activity.Current.Log($"Found {references.Count()} references with a median of {median.HighestBidAmount} ({median.Uuid})");
         socket.Dialog(db => db.MsgLine($"The estimated value for this item is {median.HighestBidAmount} coins", null, $"https://sky.coflnet.com/auction/{median.Uuid}"));
     }
 
