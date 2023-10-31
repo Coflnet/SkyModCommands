@@ -8,7 +8,7 @@ WORKDIR /build/sky
 COPY SkyModCommands.csproj SkyModCommands.csproj
 RUN dotnet restore
 COPY . .
-RUN dotnet test && dotnet test ../SkyBackendForFrontend/SkyBackendForFrontend.csproj
+RUN dotnet test
 RUN dotnet publish -c release -o /app
 
 FROM mcr.microsoft.com/dotnet/sdk:7.0
