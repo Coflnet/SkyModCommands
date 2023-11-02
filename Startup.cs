@@ -137,13 +137,21 @@ public class Startup
                 builder.WithSSL(sslOptions);
             }
             var cluster = builder.Build();
-            var session = cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(new Dictionary<string, string>()
+            try
             {
-                            {"class", Configuration["CASSANDRA:REPLICATION_CLASS"]},
-                            {"replication_factor", Configuration["CASSANDRA:REPLICATION_FACTOR"]}
-            });
-            Console.WriteLine("Connected to Cassandra");
-            return session;
+                var session = cluster.ConnectAndCreateDefaultKeyspaceIfNotExists(new Dictionary<string, string>()
+                {
+                    {"class", Configuration["CASSANDRA:REPLICATION_CLASS"]},
+                    {"replication_factor", Configuration["CASSANDRA:REPLICATION_FACTOR"]}
+                });
+                Console.WriteLine("Connected to Cassandra");
+                return session;
+            }
+            catch (UnauthorizedException)
+            {
+                Console.WriteLine("User unauthorized to create keyspace, trying to connect directly");
+                return cluster.Connect();
+            }
         });
     }
 }
