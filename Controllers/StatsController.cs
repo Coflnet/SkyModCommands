@@ -5,6 +5,7 @@ using System.Linq;
 using System.Collections.Generic;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Commands.MC;
+using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.ModCommands.Controllers
 {
@@ -16,12 +17,14 @@ namespace Coflnet.Sky.ModCommands.Controllers
     public class StatsController : ControllerBase
     {
         private FlipperService flipperService;
+        private CounterService counterService;
         /// <summary>
         /// Creates a new instance of <see cref="StatsController"/>
         /// </summary>
-        public StatsController(FlipperService flipperService)
+        public StatsController(FlipperService flipperService, CounterService counterService)
         {
             this.flipperService = flipperService;
+            this.counterService = counterService;
         }
 
         /// <summary>
@@ -49,6 +52,13 @@ namespace Coflnet.Sky.ModCommands.Controllers
                 }
             });
         }
+        [HttpGet]
+        [Route("/counter/{id}/{name}")]
+        public async Task<long> GetCounter(string id, string name)
+        {
+            return await counterService.GetCount(id, name);
+        }
+
         [HttpDelete]
         [Route("/users/{userId}")]
         public void KickUser(string userId)

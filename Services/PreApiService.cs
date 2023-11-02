@@ -341,11 +341,11 @@ public class PreApiService : BackgroundService, IPreApiService
         if (connection.AccountInfo.Tier >= AccountTier.SUPER_PREMIUM)
             preApiFlipPurchased.Inc();
         var source = flip.Auction.Context?.GetValueOrDefault("pre-api");
-        LogSender(price, flip, source);
+        LogSender(price, flip, source, connection);
 
     }
 
-    private void LogSender(long price, LowPricedAuction flip, string source)
+    private void LogSender(long price, LowPricedAuction flip, string source, IMinecraftSocket connection)
     {
         if (source == null || !source.StartsWith("sender"))
             return;
@@ -360,6 +360,19 @@ public class PreApiService : BackgroundService, IPreApiService
         if (flip.TargetPrice - price > 20_000_000)
             incAmount = 6;
         flipsPurchasedFromSender.GetOrAdd(sender, (a) => Prometheus.Metrics.CreateCounter("sky_mod_sender_purchased_" + sender, $"Flips purchased based on hint from {sender}")).Inc(incAmount);
+        Task.Run(async () =>
+        {
+            try
+            {
+                var currentMonth = DateTime.UtcNow.ToString("yyyy-MM");
+                await connection.GetService<CounterService>().Increment("sender_purchased_" + sender, currentMonth, incAmount);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, $"Failed to increment sender purchased {sender}");
+            }
+        });
+
         if (webhookUrl == null)
         {
             logger.LogInformation($"No webhook url for {source}");

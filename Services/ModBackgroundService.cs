@@ -23,16 +23,18 @@ namespace Coflnet.Sky.ModCommands.Services
         private IConfiguration config;
         private ILogger<ModBackgroundService> logger;
         private FlipperService flipperService;
+        private CounterService counterService;
 
         private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
 
         public ModBackgroundService(
-            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger, FlipperService flipperService)
+            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger, FlipperService flipperService, CounterService counterService)
         {
             this.scopeFactory = scopeFactory;
             this.config = config;
             this.logger = logger;
             this.flipperService = flipperService;
+            this.counterService = counterService;
         }
         /// <summary>
         /// Called by asp.net on startup
@@ -55,6 +57,7 @@ namespace Coflnet.Sky.ModCommands.Services
                 }
             }
             logger.LogInformation("set up fast track flipper");
+            await counterService.GetTable().CreateIfNotExistsAsync();
             await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
             logger.LogError("Fast track was stopped");
         }
@@ -160,11 +163,6 @@ namespace Coflnet.Sky.ModCommands.Services
             NBT.FillFromTag(flip.Auction, compound, true);
             var lore = string.Join("\n", NBT.GetLore(compound));
             flip.Auction.Context["lore"] = lore;
-        }
-
-        private ModService GetService()
-        {
-            return scopeFactory.CreateScope().ServiceProvider.GetRequiredService<ModService>();
         }
     }
 }

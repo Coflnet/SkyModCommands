@@ -9,19 +9,11 @@
         }
     },
     "profiles": {
-        "IIS Express": {
-            "commandName": "IISExpress",
-            "launchBrowser": true,
-            "launchUrl": "swagger",
-            "environmentVariables": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
-            }
-        },
         "SkyAuctionBase": {
             "commandName": "Project",
             "dotnetRunMessages": "true",
             "launchBrowser": true,
-            "launchUrl": "swagger",
+            "launchUrl": "api",
             "applicationUrl": "http://localhost:5003",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development"
