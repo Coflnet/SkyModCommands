@@ -359,6 +359,8 @@ public class PreApiService : BackgroundService, IPreApiService
             incAmount = 3;
         if (flip.TargetPrice - price > 20_000_000)
             incAmount = 6;
+        if (flip.TargetPrice - price > 50_000_000)
+            incAmount = 15;
         flipsPurchasedFromSender.GetOrAdd(sender, (a) => Prometheus.Metrics.CreateCounter("sky_mod_sender_purchased_" + sender, $"Flips purchased based on hint from {sender}")).Inc(incAmount);
         Task.Run(async () =>
         {

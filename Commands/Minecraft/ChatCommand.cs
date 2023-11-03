@@ -54,7 +54,7 @@ namespace Coflnet.Sky.Commands.MC
             await MakeSureChatIsConnected(socket);
             if (DateTime.UtcNow - TimeSpan.FromSeconds(1) < socket.SessionInfo.LastMessage)
             {
-                socket.SendMessage(COFLNET + "You are writing to fast please slow down");
+                socket.SendMessage(COFLNET + "You are writing too fast please slow down");
                 return;
             }
             if (message.Length > maxMsgLength)
