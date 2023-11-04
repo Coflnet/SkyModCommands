@@ -180,7 +180,8 @@ namespace Coflnet.Sky.Commands.MC
                     Console.WriteLine("next update " + (DateTime.UtcNow - startTime) + " memmory used " + memmoryUsed);
                 };
                 NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
-                tenSecTimer = new Timer((_) =>
+                Timer selfTimer = null!;
+                selfTimer = new Timer((t) =>
                 {
                     try
                     {
@@ -188,13 +189,15 @@ namespace Coflnet.Sky.Commands.MC
                         NextUpdateStart?.Invoke();
                         if (DateTime.UtcNow.Minute % 2 == 0)
                             UpdateTimer();
+                        if(selfTimer != tenSecTimer)
+                            selfTimer?.Dispose();
                     }
                     catch (Exception ex)
                     {
                         dev.Logger.Instance.Error(ex, "sending next update");
                     }
-                }, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
-
+                }, null, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1));
+                tenSecTimer = selfTimer;
                 var next = await GetNext10SecTime();
                 Console.WriteLine($"started timer to start at {next} now its {DateTime.UtcNow}");
             }, "starting timer");
