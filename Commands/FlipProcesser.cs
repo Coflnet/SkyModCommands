@@ -46,7 +46,7 @@ namespace Coflnet.Sky.Commands.MC
                 .Select(f => (f, instance: FlipperService.LowPriceToFlip(f)))
                 .ToList();
 
-            if (Settings != null && !Settings.FastMode && (Settings.BasedOnLBin || ((Settings.Visibility?.LowestBin ?? false) || (Settings.Visibility?.Seller ?? false))))
+            if (Settings != null && !Settings.FastMode && (Settings.BasedOnLBin || (Settings.Visibility?.LowestBin ?? false) || (Settings.Visibility?.Seller ?? false)))
             {
                 await LoadAdditionalInfo(prefiltered).ConfigureAwait(false);
             }
@@ -188,6 +188,7 @@ namespace Coflnet.Sky.Commands.MC
             // beds
             foreach (var item in bedsToWaitFor.OrderBy(b => b.Item2))
             {
+                item.lp.AdditionalProps["bed"] = item.Item2.ToString();
                 if (socket.sessionLifesycle.CurrentDelay > DelayHandler.MaxSuperPremiumDelay)
                 {
                     await Task.Delay(item.Item2).ConfigureAwait(false);
@@ -203,11 +204,12 @@ namespace Coflnet.Sky.Commands.MC
             var bestFlip = noBed.Select(f => f.instance).MaxBy(f => f.Profit);
             if (bestFlip == null)
                 return;
-
+            var beforeWait = DateTime.UtcNow;
             var sendTime = await delayHandler.AwaitDelayForFlip(bestFlip);
             foreach (var item in toSendDelayed)
             {
                 await SendAndTrackFlip(item.instance, item.lp, sendTime, true).ConfigureAwait(false);
+                item.lp.AdditionalProps["it"] = beforeWait.ToString();
             }
         }
 
