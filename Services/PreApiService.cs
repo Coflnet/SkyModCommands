@@ -354,18 +354,14 @@ public class PreApiService : BackgroundService, IPreApiService
     {
         if (source == null || !source.StartsWith("sender"))
             return;
-        logger.LogInformation($"{source} purchased {flip.Auction.Uuid} for {price}");
         var sender = source.Replace("sender: ", "").ToLower();
         var webhookUrl = config[$"SENDER:{sender.ToUpper()}:WEBHOOK_URL"];
         var incAmount = 0;
         if (flip.TargetPrice - price > 1_000_000)
             incAmount = 1;
         if (flip.TargetPrice - price > 10_000_000)
-            incAmount = 3;
-        if (flip.TargetPrice - price > 20_000_000)
-            incAmount = 6;
-        if (flip.TargetPrice - price > 50_000_000)
-            incAmount = 15;
+            incAmount = (int)(flip.TargetPrice - price) / 10_000_000 * 3;
+        logger.LogInformation($"{source} purchased {flip.Auction.Uuid} for {price} thats {incAmount}");
         flipsPurchasedFromSender.GetOrAdd(sender, (a) => Prometheus.Metrics.CreateCounter("sky_mod_sender_purchased_" + sender, $"Flips purchased based on hint from {sender}")).Inc(incAmount);
         Task.Run(async () =>
         {
