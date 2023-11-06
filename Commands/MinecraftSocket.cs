@@ -17,7 +17,6 @@ using System.Threading;
 #nullable enable
 namespace Coflnet.Sky.Commands.MC
 {
-
     /// <summary>
     /// Main connection point for the mod.
     /// Handles establishing, authorization and handling of messages for a session
@@ -62,7 +61,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (IsDevMode)
                     return "1";
                 if (sessionLifesycle?.UserId?.Value == null)
-                    throw new CoflnetException("no_login", "We could not determine your user account. Please make sure to login and try again.");
+                    throw new NoLoginException();
                 return sessionLifesycle.UserId.Value;
             }
         }
@@ -189,7 +188,7 @@ namespace Coflnet.Sky.Commands.MC
                         NextUpdateStart?.Invoke();
                         if (DateTime.UtcNow.Minute % 2 == 0)
                             UpdateTimer();
-                        if(selfTimer != tenSecTimer)
+                        if (selfTimer != tenSecTimer)
                             selfTimer?.Dispose();
                     }
                     catch (Exception ex)
@@ -306,7 +305,7 @@ namespace Coflnet.Sky.Commands.MC
                 Send(Response.Create("error", "the connection query string needs to include 'version' with client version"));
                 // return;
             }
-            if(args["type"] != null)
+            if (args["type"] != null)
             {
                 SessionInfo.ConnectionType = args["type"];
             }

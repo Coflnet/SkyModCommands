@@ -211,6 +211,11 @@ public class PreApiService : BackgroundService, IPreApiService
                 {
                     await SendFlipCorrectly(e, tilPurchasable, item).ConfigureAwait(false);
                 }
+                catch(NoLoginException)
+                {
+                    // can't have preapi
+                    localUsers.TryRemove(item, out _);
+                }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Error while sending flip to user");
