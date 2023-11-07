@@ -10,6 +10,8 @@ using Microsoft.Extensions.Configuration;
 using Coflnet.Sky.Chat.Client.Model;
 using Coflnet.Sky.Commands.Shared;
 using System.Diagnostics;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
@@ -17,11 +19,14 @@ public class ChatService
 {
     private Chat.Client.Api.ChatApi api;
     private string chatAuthKey;
+    private List<string> mutedUuids;
+    public List<string> MutedUuids => mutedUuids;
 
     public ChatService(IConfiguration config)
     {
         api = new(config["CHAT_BASE_URL"]);
         chatAuthKey = config["CHAT_API_KEY"];
+        RefreshMutedUsers();
     }
     public async Task<ChannelMessageQueue> Subscribe(Func<ChatMessage, bool> onMessage)
     {
@@ -59,12 +64,33 @@ public class ChatService
         await GetCon().PublishAsync(channel, JsonConvert.SerializeObject(message));
     }
 
+    public async Task<List<string>> GetMuteUuids()
+    {
+        return (await api.ApiChatMutesGetAsync(chatAuthKey)).Select(m => m.Uuid).ToList();
+    }
+
+    private void RefreshMutedUsers()
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                mutedUuids = await GetMuteUuids();
+                Console.WriteLine($" {mutedUuids.Count} muted users refreshed");
+            }
+            catch (Exception e)
+            {
+                Activity.Current?.Log(e.Message);
+            }
+        });
+    }
+
     public async Task Send(ModChatMessage message)
     {
         try
         {
             var chatMsg = new ChatMessage(
-                message.SenderUuid ?? throw new CoflnetException("invalid_sender", "Sender uuid is null"), 
+                message.SenderUuid ?? throw new CoflnetException("invalid_sender", "Sender uuid is null"),
                 message.SenderName,
                 message.Tier switch
                 {
@@ -80,6 +106,7 @@ public class ChatService
         }
         catch (ApiException e)
         {
+            RefreshMutedUsers();
             throw JsonConvert.DeserializeObject<CoflnetException>(e.Message?.Replace("Error calling ApiChatSendPost: ", ""));
         }
     }
@@ -87,6 +114,7 @@ public class ChatService
     public async Task Mute(Mute mute)
     {
         await api.ApiChatMutePostAsync(chatAuthKey, mute);
+        RefreshMutedUsers();
     }
 
     [MessagePackObject]

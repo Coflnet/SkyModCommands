@@ -85,28 +85,31 @@ namespace Coflnet.Sky.Commands.MC
             settings.Value.ModSettings.Chat = !settings.Value.ModSettings.Chat;
             await settings.Update(settings.Value);
             socket.SendMessage(CHAT_PREFIX + $"Toggled the chat {(settings.Value.ModSettings.Chat ? "on" : "off")}");
-            if(!settings.Value.ModSettings.Chat)
+            if (!settings.Value.ModSettings.Chat)
                 await socket.TriggerTutorial<ModCommands.Tutorials.ChatToggleTutorial>();
         }
 
         public static async Task MakeSureChatIsConnected(MinecraftSocket socket)
         {
-            if (!socket.SessionInfo.ListeningToChat)
+            if (socket.SessionInfo.ListeningToChat)
             {
-                if (chat == null)
-                {
-                    chat = socket.GetService<ChatService>();
-                }
-                var sub = await chat.Subscribe(OnMessage(socket));
-                var dm = await chat.SubscribeToChannel("dm-" + socket.SessionInfo.McName.ToLower(), OnMessage(socket));
-                socket.SessionInfo.ListeningToChat = true;
-
-                socket.OnConClose += () =>
-                {
-                    sub.Unsubscribe();
-                    dm.Unsubscribe();
-                };
+                return;
             }
+            if (chat == null)
+            {
+                chat = socket.GetService<ChatService>();
+            }
+            if (chat.MutedUuids?.Contains(socket.SessionInfo.McUuid) ?? false)
+                return; // muted user
+            var sub = await chat.Subscribe(OnMessage(socket));
+            var dm = await chat.SubscribeToChannel("dm-" + socket.SessionInfo.McName.ToLower(), OnMessage(socket));
+            socket.SessionInfo.ListeningToChat = true;
+
+            socket.OnConClose += () =>
+            {
+                sub.Unsubscribe();
+                dm.Unsubscribe();
+            };
         }
 
         private static Func<ChatMessage, bool> OnMessage(MinecraftSocket socket)
@@ -127,6 +130,11 @@ namespace Coflnet.Sky.Commands.MC
                         socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player you muted", null,
                             $"You muted {m.Name}. (undo with /cofl unmute {m.Name}) \nThis message is displayed once per session and player\nto avoid confusion why messages are not shown to you"));
                         socket.SessionInfo.SentMutedNoteFor.Add(m.Uuid);
+                        return true;
+                    }
+                    if (chat.MutedUuids?.Contains(socket.SessionInfo.McUuid) ?? false)
+                    {
+                        socket.SendMessage(new ChatPart($"Blocked message because you are muted, follow the rules in the future!"));
                         return true;
                     }
                     var color = m.Prefix;
