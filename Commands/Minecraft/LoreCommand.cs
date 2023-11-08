@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Models.Mod;
 using Coflnet.Sky.Commands.Shared;
@@ -7,7 +8,7 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    [CommandDescription("Change whats appended to item lore", 
+    [CommandDescription("Change whats appended to item lore",
         "Displays a chat menu to modify whats put in what line",
         "Some options may take longer to load than others")]
     public class LoreCommand : McCommand
@@ -43,7 +44,8 @@ namespace Coflnet.Sky.Commands.MC
                     settings.Fields[line].Add(field);
                     break;
                 case "rm":
-                    if(line >= settings.Fields.Count){
+                    if (line >= settings.Fields.Count)
+                    {
                         socket.SendMessage(McColorCodes.RED + "Not possible to remove field from line " + line + " as it doesn't exist");
                         return;
                     }
@@ -82,7 +84,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var lineNum = 0;
             var colorIndex = 0;
-            var optionsToAdd = Enum.GetValues<DescriptionField>().Where(e=>(int)e < 9000).GroupBy(e => (int)e).Select(g=>g.First()).ToList();
+            var optionsToAdd = Enum.GetValues<DescriptionField>().Where(e => (int)e < 9000).GroupBy(e => (int)e).Select(g => g.First()).ToList();
             var d = DialogBuilder.New.Break.ForEach(settings.Fields, (d, line) =>
             {
                 var elementInLine = 0;
@@ -93,7 +95,7 @@ namespace Coflnet.Sky.Commands.MC
 
                     if (lineNum > 0)
                         d.CoflCommand<LoreCommand>(McColorCodes.GREEN + "⬆ ", $"up {lineNum} {f}", $"Move {f} up to line {lineNum}");
-                    if(lineNum < settings.Fields.Count)
+                    if (lineNum < settings.Fields.Count)
                         d.CoflCommand<LoreCommand>(McColorCodes.GREEN + "⬇", $"down {lineNum} {f}", $"Move {f} down to line {lineNum + 2}");
                     if (elementInLine > 0)
                         d.CoflCommand<LoreCommand>(McColorCodes.YELLOW + "<-", $"left {lineNum} {f}", $"Move {f} to the left");
@@ -108,9 +110,19 @@ namespace Coflnet.Sky.Commands.MC
                     1 => McColorCodes.AQUA,
                     _ => McColorCodes.YELLOW
                 };
-                d.CoflCommand<LoreCommand>(color + f.ToString(), $"add {lineNum} {f}", $"Add {f} to the next line").Msg(" ");
+                var explanation = GetDescriptionFromEnumValue(f);
+                d.CoflCommand<LoreCommand>(color + f.ToString(), $"add {lineNum} {f}", $"Add {f} to the next line\n" + explanation).Msg(" ");
             });
             socket.SendMessage(d.Build());
+        }
+
+        public static string GetDescriptionFromEnumValue(Enum value)
+        {
+            FieldDescription attribute = value.GetType()
+                .GetField(value.ToString())
+                .GetCustomAttributes(typeof(FieldDescription), false)
+                .SingleOrDefault() as FieldDescription;
+            return attribute == null ? value.ToString() : string.Join("\n", attribute.Text);
         }
     }
 }
