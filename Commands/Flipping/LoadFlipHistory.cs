@@ -33,7 +33,7 @@ public class LoadFlipHistory : McCommand
             socket.Dialog(db => db.MsgLine("Flips have already being reloaded recently, this can take multiple hours. \nLots of number crunching :)"));
             return;
         }
-        await redis.GetDatabase().StringSetAsync("flipreload" + playerId, "true", TimeSpan.FromHours(12));
+        await redis.GetDatabase().StringSetAsync("flipreload" + playerId, "true", TimeSpan.FromMinutes(10));
         socket.SendMessage(COFLNET + $"Started refreshing flips of {playerId} for {days} days", null, "this might take a while");
         if (playerId.Length < 30)
             playerId = (await socket.GetPlayerUuid(playerId)).Trim('"');
