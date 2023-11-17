@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -20,12 +22,13 @@ namespace Coflnet.Sky.Commands.MC
         {
             int maxDays = await GetMaxDaysPossible(socket);
             double days = 7;
-            if (arguments.Length > 2 && !double.TryParse(arguments.Trim('"'), out days))
+            var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
+            if (!double.TryParse(args.Last(), out days))
             {
-                socket.SendMessage(COFLNET + $"usage /cofl profit {{0.5-{maxDays}}}");
+                socket.SendMessage(COFLNET + $"usage /cofl profit [ign] {{0.5-{maxDays}}}");
                 return;
             }
-            else
+            else if (arguments.Length <= 2)
                 socket.Dialog(db => db.MsgLine($"Using the default of {days} days because you didn't specify a number"));
             var time = TimeSpan.FromDays(days);
             if (time > TimeSpan.FromDays(maxDays))
@@ -42,11 +45,18 @@ namespace Coflnet.Sky.Commands.MC
             }
             // replace this call with stored socket.sessionLifesycle.AccountInfo.Value.McIds
 
-            var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+            IEnumerable<string> accounts = null;
+            if (args.Length > 1)
+                accounts = new string[] { await socket.GetPlayerUuid(args.First()) };
+            else
+                await socket.sessionLifesycle.GetMinecraftAccountUuids();
             var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, time);
             if (response.Flips.Count() == 0)
             {
-                socket.Dialog(db => db.MsgLine("Sorry we don't have any tracked flips for you yet"));
+                var who = "you";
+                if (args.Length > 1) // except last arg
+                    who = string.Join(" ", args.Take(args.Length - 1));
+                socket.Dialog(db => db.MsgLine($"Sorry we don't have any tracked flips for {who} yet"));
                 return;
             }
             string hover = GetHoverText(socket, response);
@@ -61,9 +71,9 @@ namespace Coflnet.Sky.Commands.MC
             var worst = sorted.LastOrDefault();
             if (best == null)
                 return;
-            socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier.Replace("VERYSPECIAL","VERY_SPECIAL")))}{best.ItemName}" +
+            socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier.Replace("VERYSPECIAL", "VERY_SPECIAL")))}{best.ItemName}" +
                             FormatFlip(socket, best),
-                "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction\n"+FormatFlip(socket, worst));
+                "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction\n" + FormatFlip(socket, worst));
 
             string FormatFlip(MinecraftSocket socket, FlipDetails best)
             {
