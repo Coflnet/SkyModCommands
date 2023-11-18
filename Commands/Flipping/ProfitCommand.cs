@@ -45,11 +45,11 @@ namespace Coflnet.Sky.Commands.MC
             }
             // replace this call with stored socket.sessionLifesycle.AccountInfo.Value.McIds
 
-            IEnumerable<string> accounts = null;
+            IEnumerable<string> accounts;
             if (args.Length > 1)
                 accounts = new string[] { await socket.GetPlayerUuid(args.First()) };
             else
-                await socket.sessionLifesycle.GetMinecraftAccountUuids();
+                accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
             var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, time);
             if (response.Flips.Count() == 0)
             {
