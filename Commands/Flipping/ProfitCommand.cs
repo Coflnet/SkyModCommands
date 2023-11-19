@@ -73,7 +73,8 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier.Replace("VERYSPECIAL", "VERY_SPECIAL")))}{best.ItemName}" +
                             FormatFlip(socket, best),
-                "https://sky.coflnet.com/auction/" + best.OriginAuction, "open origin auction\n" + FormatFlip(socket, worst));
+                "https://sky.coflnet.com/auction/" + best.OriginAuction, 
+                $"Click to open best flip purchase\n{McColorCodes.GRAY}The worst flip was \n" + FormatFlip(socket, worst));
 
             string FormatFlip(MinecraftSocket socket, FlipDetails best)
             {
