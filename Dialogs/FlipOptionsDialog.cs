@@ -17,7 +17,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             var timingMessage = $"{McColorCodes.WHITE} ⌛{McColorCodes.GRAY}   Get own timings";
             var response = New().MsgLine("What do you want to do?");
             if (flip.AdditionalProps.TryGetValue("match", out string details) && details.Contains("whitelist"))
-                response = response.CoflCommand<WhichBLEntryCommand>(McColorCodes.OBFUSCATED + McColorCodes.GREEN + " - " + McColorCodes.RESET + McColorCodes.GREEN + "matched your whitelist, click to see which",
+                response = response.CoflCommand<WhichBLEntryCommand>(McColorCodes.GREEN + McColorCodes.OBFUSCATED +  " - " + McColorCodes.RESET + McColorCodes.GREEN + "matched your whitelist, click to see which",
                          JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid, WL = true })).Break;
 
             response = AddBlockedReason(context, flip, response);
