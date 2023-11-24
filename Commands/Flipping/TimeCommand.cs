@@ -15,7 +15,10 @@ namespace Coflnet.Sky.Commands.MC
             if (flip == null)
             {
                 if (string.IsNullOrEmpty(socket.SessionInfo.ConnectionType))
-                    socket.SendMessage(new DialogBuilder().MsgLine("Can't get timings", null, "sorry :("));
+                {
+                    socket.SendMessage(new DialogBuilder().MsgLine("Can't get timings, flip not found on connection", null, "sorry :("));
+                    return Task.CompletedTask;
+                }
                 throw new System.Exception("Flip not found on connection");
             }
             Dictionary<string, string> context = flip?.Auction.Context;
