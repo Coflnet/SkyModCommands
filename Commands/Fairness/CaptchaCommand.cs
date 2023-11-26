@@ -34,13 +34,23 @@ namespace Coflnet.Sky.Commands.MC
                 await socket.sessionLifesycle.AccountInfo.Update();
                 return;
             }
+            if (attempt == "debug")
+            {
+
+                socket.Dialog(db => db
+                    .ForEach("ayz🤨🤔🇧🇾:|,:-.#ä+!^°~´` ", (db, c) => db.ForEach("01234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|"))
+                    .LineBreak().ForEach(":;", (db, c) => db.ForEach("012345678901234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|"))
+                    .LineBreak().ForEach("´", (db, c) => db.ForEach("012345678901234567890123", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|"))
+                    .MsgLine("Please screenshot the above and post it to our bug-report channel on discord"));
+                return;
+            }
             if (attempt == "another")
             {
                 await RequireAnotherSolve(socket, info);
                 return;
             }
             if (string.IsNullOrEmpty(attempt))
-                socket.Dialog(db=> db
+                socket.Dialog(db => db
                     .MsgLine($"{McColorCodes.BLUE}You requested to get a new captcha.")
                     .MsgLine($"{McColorCodes.OBFUSCATED}OOO{McColorCodes.RESET + McColorCodes.BLUE} This counts as a failed attempt. Have fun."));
             else

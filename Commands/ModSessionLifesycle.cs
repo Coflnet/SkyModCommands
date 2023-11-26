@@ -80,9 +80,6 @@ namespace Coflnet.Sky.Commands.MC
     @"      |   ,               ("")",
     @"      |__,'`-..--|__|--''"));
 
-                socket.Dialog(db => db.ForEach("ayz🤨🤔🇧🇾:|,:-.#ä+!^°~´` ", (db, c) => db.ForEach("01234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
-                socket.Dialog(db => db.LineBreak().ForEach(":;", (db, c) => db.ForEach("012345678901234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
-                socket.Dialog(db => db.LineBreak().ForEach("´", (db, c) => db.ForEach("012345678901234567890123", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|")));
     */
             using var loadSpan = socket.CreateActivity("loadSession", ConSpan);
             SessionInfo.SessionId = stringId;
