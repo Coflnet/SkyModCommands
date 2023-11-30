@@ -64,7 +64,7 @@ namespace Coflnet.Sky.Commands.MC
             return McColorCodes.DARK_GRAY;
         }
 
-        public string FormatFlip(FlipInstance flip)
+        public string FormatFlip(FlipInstance flip, string blockedReason = null)
         {
             if (Settings.Visibility == null)
                 Settings.Visibility = new VisibilitySettings();
@@ -75,28 +75,12 @@ namespace Coflnet.Sky.Commands.MC
             var profit = flip.Profit;
             var targetPrice = flip.Target;
             var priceColor = GetProfitColor((int)profit);
-            var finderType = flip.Finder switch
-            {
-                LowPricedAuction.FinderType.SNIPER => "SNIPE",
-                LowPricedAuction.FinderType.SNIPER_MEDIAN => "MS",
-                LowPricedAuction.FinderType.USER => "USER",
-                LowPricedAuction.FinderType.STONKS => "RISKY",
-                LowPricedAuction.FinderType.TFM => "TFM",
-                LowPricedAuction.FinderType.AI => "AI",
-                _ => "FLIP"
-            };
+            string finderType = FinderText(flip);
             var a = flip.Auction;
-            string itemName = flip.Auction?.Context?.ContainsKey("cname") ?? false ? flip.Auction.Context["cname"] : $"{GetRarityColor(a.Tier)}{a.ItemName}";
-            if (Settings.ModSettings.ShortNames)
-            {
-                foreach (var item in ItemReferences.reforges)
-                {
-                    if (itemName.ToLower().Contains(item))
-                        itemName = itemName.Replace(item, "", true, CultureInfo.InvariantCulture);
-                }
-            }
+            string itemName = GetItemName(flip);
             var cost = a.HighestBidAmount == 0 ? a.StartingBid : a.HighestBidAmount;
-            if (!string.IsNullOrWhiteSpace(Settings.ModSettings?.Format) && flip.Auction?.Context != null)
+            var formatString = blockedReason == null ? Settings.ModSettings?.Format : Settings.ModSettings?.BlockedFormat;
+            if (!string.IsNullOrWhiteSpace(formatString) && flip.Auction?.Context != null)
             {
                 /*
                     "\n{0}: {1}{2} {3}{4} -> {5} (+{6} {7}) Med: {8} Lbin: {9} Volume: {10}"
@@ -112,13 +96,11 @@ namespace Coflnet.Sky.Commands.MC
                     {9} Lowest Bin
                     {10}Volume
                     {11} Flip source
+                    {12} Blocked reason
                     
                 */
-                var source = flip.Auction.Context.ContainsKey("pre-api") ?
-                        (flip.Context.ContainsKey("isRR") ? McColorCodes.RED + "PRE-RR" : "PRE")
-                        : (IsPremiumPlus(flip)
-                            ? "PREM+" : "");
-                return String.Format(Settings.ModSettings.Format.Replace("\\n", "\n"),
+                string source = GetSource(flip);
+                return String.Format(formatString.Replace("\\n", "\n"),
                     finderType,
                     GetRarityColor(a.Tier),
                     itemName,
@@ -130,7 +112,8 @@ namespace Coflnet.Sky.Commands.MC
                     FormatPrice(flip.MedianPrice),
                     FormatPrice(flip.LowestBin ?? 0),
                     flip.Volume.ToString("0.#"),  // this is {10}
-                    source
+                    source,
+                    blockedReason
                 );
             }
             var textAfterProfit = (Settings?.Visibility?.ProfitPercentage ?? false) ? $" {McColorCodes.DARK_RED}{FormatPrice(flip.ProfitPercentage)}%{priceColor}" : "";
@@ -159,6 +142,42 @@ namespace Coflnet.Sky.Commands.MC
                 throw new Exception(e + Environment.NewLine + JSON.Stringify(Settings), e);
             }
             return builder.ToString();
+        }
+
+        private static string GetSource(FlipInstance flip)
+        {
+            return flip.Auction.Context.ContainsKey("pre-api") ?
+                                    (flip.Context.ContainsKey("isRR") ? McColorCodes.RED + "PRE-RR" : "PRE")
+                                    : (IsPremiumPlus(flip)
+                                        ? "PREM+" : "");
+        }
+
+        private string GetItemName(FlipInstance flip)
+        {
+            string itemName = flip.Auction?.Context?.ContainsKey("cname") ?? false ? flip.Auction.Context["cname"] : $"{GetRarityColor(flip.Auction.Tier)}{flip.Auction.ItemName}";
+            if (Settings.ModSettings.ShortNames)
+            {
+                foreach (var item in ItemReferences.reforges)
+                {
+                    if (itemName.ToLower().Contains(item))
+                        itemName = itemName.Replace(item, "", true, CultureInfo.InvariantCulture);
+                }
+            }
+            return itemName;
+        }
+
+        private static string FinderText(FlipInstance flip)
+        {
+            return flip.Finder switch
+            {
+                LowPricedAuction.FinderType.SNIPER => "SNIPE",
+                LowPricedAuction.FinderType.SNIPER_MEDIAN => "MS",
+                LowPricedAuction.FinderType.USER => "USER",
+                LowPricedAuction.FinderType.STONKS => "RISKY",
+                LowPricedAuction.FinderType.TFM => "TFM",
+                LowPricedAuction.FinderType.AI => "AI",
+                _ => "FLIP"
+            };
         }
 
         private static bool IsPremiumPlus(FlipInstance flip)

@@ -65,10 +65,13 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(flipsToSend.SelectMany(b =>
             {
                 socket.Settings.GetPrice(FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
+                var text = $"{McColorCodes.DARK_GRAY}> {socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier)}{b.Flip.Auction.ItemName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}";
+                if(!string.IsNullOrEmpty(socket.Settings.ModSettings.BlockedFormat))
+                    text = socket.formatProvider.FormatFlip(FlipperService.LowPriceToFlip(b.Flip), b.Reason);
                 return new ChatPart[]
                 {
                         new ChatPart(
-                        $"{McColorCodes.DARK_GRAY}> {socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier)}{b.Flip.Auction.ItemName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}",
+                        text,
                         "https://sky.coflnet.com/auction/" + b.Flip.Auction.Uuid,
                         "Open on website"),
                         new ChatPart(
