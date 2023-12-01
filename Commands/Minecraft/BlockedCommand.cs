@@ -73,7 +73,8 @@ namespace Coflnet.Sky.Commands.MC
                         new ChatPart(
                         text,
                         "https://sky.coflnet.com/auction/" + b.Flip.Auction.Uuid,
-                        "Open on website"),
+                        b.Flip.Auction?.Context?.GetValueOrDefault("lore")
+                        + "\nCick to open on website"),
                         new ChatPart(
                         $" §l[ah]§r",
                         "/viewauction " + b.Flip.Auction.Uuid,
