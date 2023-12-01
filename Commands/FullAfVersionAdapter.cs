@@ -29,16 +29,21 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var apiService = socket.GetService<IPlayerApi>();
         var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
         RequestInventory();
-        activeAuctionCount = (await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters)).Count() + 10;
+        var activeAuctions = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters);
+        activeAuctionCount = activeAuctions.Count() + 10;
         if (activeAuctionCount >= 14)
         {
             if (listSpace <= 2)
             {
-                Activity listLog = await UpdateListSpace(span);
+                using Activity listLog = await UpdateListSpace(span);
             }
             if (activeAuctionCount >= listSpace)
             {
                 span.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName}");
+                if (activeAuctions.Any(a => a.End < DateTime.Now))
+                {
+                    socket.Send(Response.Create("collectAuctions", new { }));
+                }
                 return; // ah full
             }
         }
@@ -80,7 +85,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         if (res == null)
             throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
         var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(JsonConvert.DeserializeObject<string>(res));
-        if(profiles?.Profiles == null)
+        if (profiles?.Profiles == null)
             throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
         var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
         var membersOnIsland = profile.Members.Count;
@@ -174,7 +179,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var id = uuid ?? auction.Tag;
         span.Log($"Listing {auction.ItemName} for {sellPrice} (median: {price}) slot {index} id: {id}");
         var listTime = socket.Settings?.ModSettings?.AhListTimeTarget;
-        if(listTime == 0)
+        if (listTime == 0)
             listTime = null;
         socket.Send(Response.Create("createAuction", new
         {
