@@ -93,10 +93,18 @@ namespace Coflnet.Sky.ModCommands.Services
             return instances;
         }
 
-        private static void AddOption(List<ConnectionMultiplexer> instances, string item)
+        private void AddOption(List<ConnectionMultiplexer> instances, string item)
         {
-            var option = ConfigurationOptions.Parse(item);
-            instances.Add(ConnectionMultiplexer.Connect(option));
+                var option = ConfigurationOptions.Parse(item);
+            try
+            {
+                instances.Add(ConnectionMultiplexer.Connect(option));
+            }
+            catch (System.Exception e)
+            {
+                var replacedPassword = item.Replace(option.Password, "********");
+                logger.LogError(e, "Could not connect to redis: " + replacedPassword);
+            }
         }
 
         private void SubscribeConnection(ConnectionMultiplexer multiplexer, CancellationToken stoppingToken)
