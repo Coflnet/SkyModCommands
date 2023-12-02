@@ -385,7 +385,10 @@ namespace Coflnet.Sky.Commands.MC
             if (info.ExpiresAt != expires.Item2)
             {
                 info.ExpiresAt = expires.Item2;
-                await AccountInfo.Update(info);
+                _ = socket.TryAsyncTimes(async () =>
+                {
+                    await AccountInfo.Update(info);
+                }, "update account info", 1);
             }
             if (info.Tier != previousTier)
             {
