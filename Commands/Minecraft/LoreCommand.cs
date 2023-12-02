@@ -85,7 +85,8 @@ namespace Coflnet.Sky.Commands.MC
             var lineNum = 0;
             var colorIndex = 0;
             var optionsToAdd = Enum.GetValues<DescriptionField>().Where(e => (int)e < 9000).GroupBy(e => (int)e).Select(g => g.First()).ToList();
-            var d = DialogBuilder.New.Break.ForEach(settings.Fields, (d, line) =>
+            var d = DialogBuilder.New.CoflCommand<SetCommand>($"Toggle ah filter highlighting", "loreHighlightFilterMatch", $"Toggle {(settings.HighlightFilterMatch ? "off" : "on")}")
+            .Break.ForEach(settings.Fields, (d, line) =>
             {
                 var elementInLine = 0;
                 d.ForEach(line, (d, f) =>

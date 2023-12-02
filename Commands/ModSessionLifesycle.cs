@@ -382,7 +382,11 @@ namespace Coflnet.Sky.Commands.MC
             var expiresTask = userApi.GetCurrentTier(info.UserId);
             var expires = await expiresTask;
             info.Tier = expires.Item1;
-            info.ExpiresAt = expires.Item2;
+            if (info.ExpiresAt != expires.Item2)
+            {
+                info.ExpiresAt = expires.Item2;
+                await AccountInfo.Update(info);
+            }
             if (info.Tier != previousTier)
             {
                 socket.GetService<FlipperService>().RemoveConnection(socket);
