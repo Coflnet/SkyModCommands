@@ -76,6 +76,7 @@ namespace Coflnet.Sky.Commands.MC
             socket.SessionInfo.LastMessage = DateTime.UtcNow;
             await socket.TriggerTutorial<ModCommands.Tutorials.ChatRulesTutorial>();
             if(Regex.IsMatch(message, "(people|how|ppl).*(claiming|buy|snipe).*(fast|quick)"))
+                await socket.TriggerTutorial<ModCommands.Tutorials.QuickBuyTutorial>();
 
         }
 
