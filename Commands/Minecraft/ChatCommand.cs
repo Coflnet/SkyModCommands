@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Coflnet.Sky.Chat.Client.Model;
 using Coflnet.Sky.Core;
@@ -74,6 +75,8 @@ namespace Coflnet.Sky.Commands.MC
             });
             socket.SessionInfo.LastMessage = DateTime.UtcNow;
             await socket.TriggerTutorial<ModCommands.Tutorials.ChatRulesTutorial>();
+            if(Regex.IsMatch(message, "(people|how|ppl).*(claiming|buy|snipe).*(fast|quick)"))
+
         }
 
         private static async Task Togglechat(MinecraftSocket socket)
