@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Coflnet.Sky.Commands.Shared;
-using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.ModCommands.Tutorials;
 using Newtonsoft.Json;
 using WebSocketSharp;
-using Coflnet.Sky.ModCommands.Services;
-using System.Threading;
-using System.Diagnostics;
-using Coflnet.Sky.ModCommands.Tutorials;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -99,7 +99,7 @@ namespace Coflnet.Sky.Commands.MC
             if (UserId.Value == default)
             {
                 using var waitLogin = socket.CreateActivity("waitLogin", ConSpan);
-                UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
+                UserId.OnChange += (newset) => Task.Run(async() => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DEFAULT_SETTINGS);
                 SubSessionToEventsFor(SessionInfo.McUuid);
             }
@@ -136,7 +136,8 @@ namespace Coflnet.Sky.Commands.MC
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
             Activity.Current.Log("got accountInfo");
             var oldSettings = FlipSettings;
-            FlipSettings = await flipSettingsTask ?? throw new Exception("flipSettings is null");
+            FlipSettings = await flipSettingsTask ??
+                throw new Exception("flipSettings is null");
             Activity.Current.Log("got flipSettings");
             oldSettings?.Dispose();
             if (FlipSettings?.Value == null)
@@ -146,7 +147,7 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current.Log("single connection check");
             FlipSettings.OnChange += UpdateSettings;
             FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
-            AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
+            AccountInfo.OnChange += (ai) => Task.Run(async() => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
             if (AccountInfo.Value != default)
                 await UpdateAccountInfo(AccountInfo);
             else
@@ -166,7 +167,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         private void SetActiveConIdToCurrent()
         {
-            _ = socket.TryAsyncTimes(async () =>
+            _ = socket.TryAsyncTimes(async() =>
             {
                 using var span = socket.CreateActivity("updateAccountInfo", ConSpan);
                 AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
@@ -198,7 +199,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (settings.BasedOnLBin && settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
                 {
                     socket.Dialog(db => db.CoflCommand<SetCommand>(McColorCodes.RED + "Your profit is based on lbin, therefore you should only use the `sniper` flip finder to maximise speed", "finders sniper", "Click to only use the sniper"));
-                    _ = socket.TryAsyncTimes(async () =>
+                    _ = socket.TryAsyncTimes(async() =>
                     {
                         await Task.Delay(TimeSpan.FromSeconds(5));
                         socket.Dialog(db => db.LineBreak().MsgLine(McColorCodes.RED + "Having profit set to lbin with other finders may lead to negative price estimations being displayed if you whitelisted an item"));
@@ -207,9 +208,9 @@ namespace Coflnet.Sky.Commands.MC
                 if (settings.Visibility.LowestBin && settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER && !SessionInfo.LbinWarningSent)
                 {
                     SessionInfo.LbinWarningSent = true;
-                    socket.SendMessage(new DialogBuilder().CoflCommand<SetCommand>(McColorCodes.RED + "You enabled display of lbin on a flip finder that is not based on lbin (but median). "
-                        + "That slows down flips because the lbin has to be searched for before the flip is sent to you."
-                        + "If you are okay with that, ignore this warning. If you want flips faster click this to disable displaying the lbin",
+                    socket.SendMessage(new DialogBuilder().CoflCommand<SetCommand>(McColorCodes.RED + "You enabled display of lbin on a flip finder that is not based on lbin (but median). " +
+                        "That slows down flips because the lbin has to be searched for before the flip is sent to you." +
+                        "If you are okay with that, ignore this warning. If you want flips faster click this to disable displaying the lbin",
                         "showlbin false",
                         $"You can also enable only lbin based flips \nby executing {McColorCodes.AQUA}/cofl set finders sniper.\nClicking this will hide lbin in flip messages. \nYou can still see lbin in item descriptions."));
                 }
@@ -236,7 +237,7 @@ namespace Coflnet.Sky.Commands.MC
                 try
                 {
                     var expression = item.GetExpression();
-                    expression.Compile()(testFlip);
+                    expression.Compile() (testFlip);
                 }
                 catch (Exception e)
                 {
@@ -244,7 +245,7 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         blacklist.Remove(item);
                         socket.Dialog(db => db.Lines($"{McColorCodes.RED}You had a seller filter in your {(whiteList ? "whitelist" : "blacklist")} for a playername that does no longer exist.",
-                                $"The following element was automatically removed: {BlacklistCommand.FormatEntry(item)}"));
+                            $"The following element was automatically removed: {BlacklistCommand.FormatEntry(item)}"));
                         continue;
                     }
                     var formatted = BlacklistCommand.FormatEntry(item);
@@ -274,9 +275,9 @@ namespace Coflnet.Sky.Commands.MC
 
         protected virtual async Task UpdateAccountInfo(AccountInfo info)
         {
-            using var span = socket.CreateActivity("AuthUpdate", ConSpan)
-                    ?.AddTag("premium", info.Tier.ToString())
-                    .AddTag("userId", info.UserId);
+            using var span = socket.CreateActivity("AuthUpdate", ConSpan) ?
+                .AddTag("premium", info.Tier.ToString())
+                .AddTag("userId", info.UserId);
 
             try
             {
@@ -385,10 +386,11 @@ namespace Coflnet.Sky.Commands.MC
             if (info.ExpiresAt != expires.Item2)
             {
                 info.ExpiresAt = expires.Item2;
-                _ = socket.TryAsyncTimes(async () =>
-                {
-                    await AccountInfo.Update(info);
-                }, "update account info", 1);
+                if (info.Tier > AccountTier.NONE)
+                    _ = socket.TryAsyncTimes(async() =>
+                    {
+                        await AccountInfo.Update(info);
+                    }, "update account info", 1);
             }
             if (info.Tier != previousTier)
             {
@@ -405,8 +407,8 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     return SessionInfo.MinecraftUuids.Concat(AccountInfo.Value.McIds).ToHashSet();
                 }
-                else
-                    return SessionInfo.MinecraftUuids;
+            else
+                return SessionInfo.MinecraftUuids;
             var result = (await socket.GetService<McAccountService>()
                 .GetAllAccounts(UserId.Value, DateTime.UtcNow - TimeSpan.FromDays(30))).ToHashSet();
             var loadSuccess = result.Any();
@@ -432,7 +434,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 sum += decoded[i];
             }
-            var newid = Convert.ToBase64String(decoded.Append((byte)(sum % 256)).ToArray());
+            var newid = Convert.ToBase64String(decoded.Append((byte) (sum % 256)).ToArray());
 
             return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(newid)}";
         }
@@ -473,7 +475,6 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(McColorCodes.GRAY + "speedup enabled, remaining " + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("g"));
             }
         }
-
 
         protected virtual async Task SendAuthorizedHello(AccountInfo accountInfo)
         {
@@ -526,7 +527,7 @@ namespace Coflnet.Sky.Commands.MC
                     UpdateConnectionTier(AccountInfo, span);
                 }
                 SendReminders();
-                socket.TryAsyncTimes(async () =>
+                socket.TryAsyncTimes(async() =>
                 {
                     await RemoveTempFilters();
                     await AddBlacklistOfSpam();
@@ -553,11 +554,11 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             var preApiService = socket.GetService<PreApiService>();
             var toBlock = socket.LastSent.Where(s =>
-                            s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(3)
-                            && s.TargetPrice > s.Auction.StartingBid * 2
-                            && preApiService.IsSold(s.Auction.Uuid)
-                        )
-                        .GroupBy(s => s.Auction.Tag).Where(g => g.Count() >= 5).ToList();
+                    s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(3) &&
+                    s.TargetPrice > s.Auction.StartingBid * 2 &&
+                    preApiService.IsSold(s.Auction.Uuid)
+                )
+                .GroupBy(s => s.Auction.Tag).Where(g => g.Count() >= 5).ToList();
             var playersToBlock = BlockPlayerBaiting(preApiService);
             foreach (var item in toBlock)
             {
@@ -571,22 +572,20 @@ namespace Coflnet.Sky.Commands.MC
         private List<IGrouping<string, LowPricedAuction>> BlockPlayerBaiting(PreApiService preApiService)
         {
             var playersToBlock = socket.LastSent.Where(s =>
-                                        s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(3)
-                                        && s.TargetPrice > s.Auction.StartingBid * 2
-                                        && !preApiService.IsSold(s.Auction.Uuid)
-                                    )
-                                    .GroupBy(s => s.Auction.AuctioneerId).Where(g => g.Count() >= 5).ToList();
+                    s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(3) &&
+                    s.TargetPrice > s.Auction.StartingBid * 2 &&
+                    !preApiService.IsSold(s.Auction.Uuid)
+                )
+                .GroupBy(s => s.Auction.AuctioneerId).Where(g => g.Count() >= 5).ToList();
             foreach (var item in playersToBlock)
             {
                 var player = item.Key;
                 FlipSettings.Value.BlackList.Add(new()
                 {
                     DisplayName = "Automatic blacklist",
-                    filter = new(){
-                    {"removeAfter", DateTime.UtcNow.AddHours(8).ToString("s")},
-                    {"ForceBlacklist", "true"},
-                    {"Seller", player}
-                },
+                        filter = new()
+                        { { "removeAfter", DateTime.UtcNow.AddHours(8).ToString("s") }, { "ForceBlacklist", "true" }, { "Seller", player }
+                        },
                 });
                 socket.SendMessage(COFLNET + $"Temporarily blacklisted {player} for baiting");
             }
@@ -599,22 +598,21 @@ namespace Coflnet.Sky.Commands.MC
             FlipSettings.Value.BlackList.Add(new()
             {
                 DisplayName = "automatic blacklist",
-                ItemTag = key,
-                filter = new(){
-                    {"removeAfter", DateTime.UtcNow.AddHours(8).ToString("s")},
-                    {"ForceBlacklist", "true"}
-                },
+                    ItemTag = key,
+                    filter = new()
+                    { { "removeAfter", DateTime.UtcNow.AddHours(8).ToString("s") }, { "ForceBlacklist", "true" }
+                    },
             });
         }
 
         private void SendBlockedMessage(int blockedFlipFilterCount)
         {
             socket.SendMessage(new ChatPart(COFLNET + $"Your filter blocked {blockedFlipFilterCount} in the last minute",
-                                    "/cofl blocked",
-                                    $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips\n"
-                                    + $"{McColorCodes.GRAY}This message is meant to show you that there were flips\n"
-                                    + $"{McColorCodes.GRAY}You can make it show less within /cofl set"),
-                                    new ChatPart(" ", "/cofl void"));
+                    "/cofl blocked",
+                    $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips\n" +
+                    $"{McColorCodes.GRAY}This message is meant to show you that there were flips\n" +
+                    $"{McColorCodes.GRAY}You can make it show less within /cofl set"),
+                new ChatPart(" ", "/cofl void"));
             if (SessionInfo.LastBlockedMsg == default)
                 socket.TryAsyncTimes(() => socket.TriggerTutorial<Blocked>(), "blocked tutorial");
             SessionInfo.LastBlockedMsg = DateTime.UtcNow;
@@ -661,10 +659,10 @@ namespace Coflnet.Sky.Commands.MC
                 if (list == null)
                     return;
                 foreach (var filter in list
-                                .Where(f => f.Tags != null
-                                    && f.Tags.Any(s => s.StartsWith("removeAfter=")
-                                    && DateTime.TryParse(s.Split('=').Last(), out var dt)
-                                    && dt < DateTime.UtcNow)).ToList())
+                        .Where(f => f.Tags != null &&
+                            f.Tags.Any(s => s.StartsWith("removeAfter=") &&
+                                DateTime.TryParse(s.Split('=').Last(), out var dt) &&
+                                dt < DateTime.UtcNow)).ToList())
                 {
                     socket.SendMessage(COFLNET + $"Removed filter {filter.ItemTag} because it was set to expire");
                     list.Remove(filter);
@@ -692,7 +690,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void UpdateExtraDelay()
         {
-            socket.TryAsyncTimes(async () =>
+            socket.TryAsyncTimes(async() =>
             {
                 await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
                 var ids = await GetMinecraftAccountUuids();
@@ -737,7 +735,7 @@ namespace Coflnet.Sky.Commands.MC
         }
 
         private DateTime LastCaptchaSolveTime => socket.ModAdapter is AfVersionAdapter ? DateTime.Now :
-                    (AccountInfo?.Value?.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
+            (AccountInfo?.Value?.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
 
         internal async Task SendFlipBatch(IEnumerable<LowPricedAuction> flips)
         {
