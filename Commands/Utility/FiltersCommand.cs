@@ -29,7 +29,7 @@ namespace Coflnet.Sky.Commands.MC
         protected override async Task<IEnumerable<FilterOptions>> GetElements(MinecraftSocket socket, string val)
         {
             var itemsApi = socket.GetService<IItemsApi>();
-            var fe = new FilterEngine();
+            var fe = socket.GetService<FilterEngine>();
             var optionsTask = itemsApi.ItemItemTagModifiersAllGetAsync("*");
             socket.SendMessage("Loading all filters with all options, this may take a while");
             var all = await optionsTask;
