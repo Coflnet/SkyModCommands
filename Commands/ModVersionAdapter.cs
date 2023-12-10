@@ -4,6 +4,7 @@ using System.Linq;
 using Coflnet.Sky.Core;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.ModCommands.Tutorials;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -53,6 +54,7 @@ namespace Coflnet.Sky.Commands.MC
                     "This flip matched one of your whitelist entries\nClick to calculate which one"));
                 if (socket.Settings?.ModSettings?.Format?.Contains("ZYZZ CFG") ?? false)
                     parts.Add(new ChatPart($"{McColorCodes.BOLD}{McColorCodes.OBFUSCATED}!!{McColorCodes.RESET}{McColorCodes.BOLD}THIS IS WHITELISTED", null, null));
+                await socket.TriggerTutorial<WhitelistTutorial>();
             }
             if (toTake > 0)
             {

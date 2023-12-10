@@ -13,3 +13,18 @@ public class ChatTutorial : TutorialBase
             .MsgLine($"{McColorCodes.YELLOW}Use {McColorCodes.AQUA}/fc{McColorCodes.YELLOW} (without message) to toggle seeing it.", VideoLink, "Click to watch tutorial video");
     }
 }
+
+public class WhitelistTutorial : TutorialBase
+{
+    public const string VideoLink = "https://youtu.be/k4eZ3_hroT4?si=A8YCdUyIzj5HnkgX&t=232";
+
+    public override void Trigger(DialogBuilder builder, IMinecraftSocket socket)
+    {
+        builder.MsgLine("Whitelisted items skip your other settings.",
+            VideoLink,
+            $"{McColorCodes.YELLOW}Click the Text {McColorCodes.WHITE}Whitelisted \n"
+            + $"{McColorCodes.YELLOW}to see the filter that caused the flip to show up.\n"
+            + $"{McColorCodes.YELLOW}You can whitelist items with \n{McColorCodes.AQUA}/cofl whitelist add {{Item Name}}.\n"
+            + "Click to watch tutorial video");
+    }
+}
