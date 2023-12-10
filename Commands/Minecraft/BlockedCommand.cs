@@ -34,9 +34,9 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "No blocked flips found, it can take a while after you connected");
                 return;
             }
-            if(socket.Settings.ModSettings.AhDataOnlyMode)
+            if (socket.Settings.ModSettings.AhDataOnlyMode)
             {
-                socket.Dialog(db =>db.CoflCommand<FlipCommand>("You are in ah data only mode. Use /cofl flip to enable flips or /cofl flip always to always autostart the flipper", "", "Click to enable flips"));
+                socket.Dialog(db => db.CoflCommand<FlipCommand>("You are in ah data only mode. Use /cofl flip to enable flips or /cofl flip always to always autostart the flipper", "", "Click to enable flips"));
                 return;
             }
             List<MinecraftSocket.BlockedElement> flipsToSend;
@@ -66,7 +66,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.Settings.GetPrice(FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
                 var text = $"{McColorCodes.DARK_GRAY}> {socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier)}{b.Flip.Auction.ItemName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}";
-                if(!string.IsNullOrEmpty(socket.Settings.ModSettings.BlockedFormat))
+                if (!string.IsNullOrEmpty(socket.Settings.ModSettings.BlockedFormat))
                     text = socket.formatProvider.FormatFlip(FlipperService.LowPriceToFlip(b.Flip), b.Reason);
                 return new ChatPart[]
                 {
@@ -88,7 +88,7 @@ namespace Coflnet.Sky.Commands.MC
                             .MsgLine("Make sure none of your other mods are blocking the chat messages."));
             if (await socket.UserAccountTier() == AccountTier.NONE)
             {
-                socket.Dialog(db => db.CoflCommand<PurchaseCommand>("Note that you don't have premium, flips will show up very late if at all", "", "Click to select a premium plan"));
+                socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"Note that you don't have premium, flips will show up very late if at all. Eg. the user finder doesn't work. \n{McColorCodes.GREEN}[Click to change that]", "", "Click to select a premium plan"));
             }
         }
 
