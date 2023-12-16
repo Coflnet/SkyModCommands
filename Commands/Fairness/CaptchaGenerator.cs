@@ -167,8 +167,13 @@ public class CaptchaGenerator
         var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length - (l.Text.Count(c => c == '´' || c == '!' || c == '|' || c == '.') / 2 + l.Text.Count(c => c == ';') / 3));
         var padding = "".PadLeft(length);
         if (Random.Shared.Next(6) == 0)
-            padding = padding.Remove(1, 1).Insert(Random.Shared.Next(0, length - 1), "🇧🇾".First().ToString());
+            padding = padding.Remove(1, 1).Insert(Random.Shared.Next(0, length - 1), GetMainfillChar());
         return AddParts(padding);
+    }
+
+    private static string GetMainfillChar()
+    {
+        return "🇧🇾".First().ToString();
     }
 
     private static IEnumerable<Option> AddParts(string padding)
@@ -234,6 +239,9 @@ public class CaptchaGenerator
         }
         if (info.CaptchaType == "optifine")
             builder.Replace("´", ".");
+        var fillChar = "🇧🇾"[1].ToString();
+        if (info.CaptchaType == "short")
+            builder.Replace(" ", " ").Replace("´", "'").Replace(fillChar+ fillChar, "#").Replace("🇧🇾"[0].ToString(),";").Replace(fillChar, ";");
 
         var lines = builder.ToString().Split('\n');
         return lines.Select(l => new Option()

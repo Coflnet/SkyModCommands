@@ -17,7 +17,12 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override bool IsPublic => true;
         private int debugMultiplier = 1;
-        private HashSet<string> formats = new() { "vertical", "big", "optifine" };
+        private HashSet<string> formats = new() {
+            "vertical", // fallback one letter per line
+            "big", // normal
+            "optifine", // different characters for optifine
+            "short" // different characters for when spaces are shorter
+            };
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var info = socket.SessionInfo.captchaInfo;
@@ -27,11 +32,13 @@ namespace Coflnet.Sky.Commands.MC
             var receivedAt = DateTime.UtcNow;
             var attempt = arguments.Trim('"');
             info.CaptchaRequests++;
+            Console.WriteLine($"Recieved {attempt}");
             if (formats.Contains(attempt))
             {
                 accountInfo.CaptchaType = attempt;
                 await RequireAnotherSolve(socket, info);
                 await socket.sessionLifesycle.AccountInfo.Update();
+                Console.WriteLine("Updated captcha type " + attempt);
                 return;
             }
             if (attempt == "debug")

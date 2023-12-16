@@ -65,7 +65,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SetupFlipProcessor(SelfUpdatingValue<AccountInfo> info)
         {
-            DelayHandler = new DelayHandler(TimeProvider.Instance, socket.GetService<FlipTrackingService>(), SessionInfo, info);
+            DelayHandler = new DelayHandler(Shared.TimeProvider.Instance, socket.GetService<FlipTrackingService>(), SessionInfo, info);
 
             FlipProcessor = new FlipProcesser(socket, spamController, DelayHandler);
         }
