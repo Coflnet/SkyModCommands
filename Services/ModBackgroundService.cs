@@ -95,7 +95,7 @@ namespace Coflnet.Sky.ModCommands.Services
 
         private void AddOption(List<ConnectionMultiplexer> instances, string item)
         {
-                var option = ConfigurationOptions.Parse(item);
+            var option = ConfigurationOptions.Parse(item);
             try
             {
                 instances.Add(ConnectionMultiplexer.Connect(option));
@@ -171,6 +171,10 @@ namespace Coflnet.Sky.ModCommands.Services
             NBT.FillFromTag(flip.Auction, compound, true);
             var lore = string.Join("\n", NBT.GetLore(compound));
             flip.Auction.Context["lore"] = lore;
+            if (flip.AdditionalProps.TryGetValue("lbin", out var lbin))
+            {
+                flip.TargetPrice = (long)Math.Min(long.Parse(lbin) * 1.1, flip.TargetPrice);
+            }
         }
     }
 }
