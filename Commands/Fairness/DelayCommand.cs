@@ -7,7 +7,7 @@ using Coflnet.Sky.ModCommands.Tutorials;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    [CommandDescription("Shows your current delay", 
+    [CommandDescription("Shows your current delay",
         "To allow everyone to get some flips, each",
         "user gets delayed when he is found to buy too fast",
         "The delay decreases over time",
@@ -41,7 +41,13 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + $"While using {McColorCodes.RED}pre api{DEFAULT_COLOR} your delay increases {McColorCodes.GREEN}{DelayHandler.DelayReduction * 100}% slower{DEFAULT_COLOR} "
                     + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
                     null, "Enjoy flipping at high speed☻");
-            
+            if ((socket.Settings?.Visibility?.LowestBin ?? false) && socket.Settings.AllowedFinders != Core.LowPricedAuction.FinderType.SNIPER)
+                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show lowest bin enabled, this can drastically slow down flips.\nClick to disable it", "showlbin false", "Disables lowest bin visibility"));
+            if (socket.Settings?.Visibility?.SecondLowestBin ?? false)
+                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show second lowest bin enabled, this can drastically slow down flips.\nClick to disable it", "showslbin false", "Disables second lbin visibility"));
+            if (socket.Settings?.Visibility?.Seller ?? false)
+                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show sell enabled, this can drastically slow down flips.\nClick to disable it", "showseller false", "Disables seller visibility"));
+
             await socket.TriggerTutorial<DelayTutorial>();
             if (delayAmount >= TimeSpan.FromSeconds(1))
             {
