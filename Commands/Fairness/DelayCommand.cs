@@ -42,11 +42,13 @@ namespace Coflnet.Sky.Commands.MC
                     + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
                     null, "Enjoy flipping at high speed☻");
             if ((socket.Settings?.Visibility?.LowestBin ?? false) && socket.Settings.AllowedFinders != Core.LowPricedAuction.FinderType.SNIPER)
-                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show lowest bin enabled, this can drastically slow down flips.\nClick to disable it", "showlbin false", "Disables lowest bin visibility"));
+                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show lowest bin enabled, this can drastically slow down flips.\n{McColorCodes.GREEN}Click to disable it", "showlbin false", "Disables lowest bin visibility"));
+            if ((socket.Settings?.BasedOnLBin ?? false) && socket.Settings.AllowedFinders != Core.LowPricedAuction.FinderType.SNIPER)
+                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have profit by lowest bin and non lbin finders enabled, this can drastically slow down flips.\n{McColorCodes.GREEN}Click to disable it", "lbin false", "Disables forcing lbin profit"));
             if (socket.Settings?.Visibility?.SecondLowestBin ?? false)
-                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show second lowest bin enabled, this can drastically slow down flips.\nClick to disable it", "showslbin false", "Disables second lbin visibility"));
+                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show second lowest bin enabled, this can drastically slow down flips.\n{McColorCodes.GREEN}Click to disable it", "showslbin false", "Disables second lbin visibility"));
             if (socket.Settings?.Visibility?.Seller ?? false)
-                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show sell enabled, this can drastically slow down flips.\nClick to disable it", "showseller false", "Disables seller visibility"));
+                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show sell enabled, this can drastically slow down flips.\n{McColorCodes.GREEN}Click to disable it", "showseller false", "Disables seller visibility"));
 
             await socket.TriggerTutorial<DelayTutorial>();
             if (delayAmount >= TimeSpan.FromSeconds(1))
