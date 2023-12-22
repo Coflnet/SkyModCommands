@@ -67,6 +67,7 @@ namespace Coflnet.Sky.Commands.MC
         }
 
         private static Timer tenSecTimer;
+        private static AhActiveService ahActive = new AhActiveService();
 
         public ConcurrentQueue<BlockedElement> TopBlocked = new ConcurrentQueue<BlockedElement>();
         public ConcurrentQueue<LowPricedAuction> LastSent { get; } = new ConcurrentQueue<LowPricedAuction>();
@@ -753,6 +754,13 @@ namespace Coflnet.Sky.Commands.MC
                 Send(Response.Create("ping", 0));
                 timer.Log("flips disabled");
                 _ = TryAsyncTimes(() => this.TriggerTutorial<ModCommands.Tutorials.FlipToggling>(), "sending flip tutorial");
+                return;
+            }
+
+            if(ahActive.IsAhDisabledDerpy)
+            {
+                Send(Response.Create("ping", 0));
+                timer.Log("ah disabled");
                 return;
             }
 
