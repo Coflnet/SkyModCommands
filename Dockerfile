@@ -8,7 +8,6 @@ WORKDIR /build/sky
 COPY SkyModCommands.csproj SkyModCommands.csproj
 RUN dotnet restore
 COPY . .
-COPY global.json /build/sky/global.json
 RUN rm SkyModCommands.sln && dotnet test
 RUN dotnet publish -c release -o /app
 
