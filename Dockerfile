@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 as build
+FROM mcr.microsoft.com/dotnet/sdk:7.0 as build
 WORKDIR /build
 RUN git clone --depth=1 https://github.com/Ekwav/websocket-sharp \
     && git clone --depth=1 https://github.com/Coflnet/HypixelSkyblock.git dev \
@@ -12,7 +12,7 @@ COPY global.json /build/sky/global.json
 RUN rm SkyModCommands.sln && dotnet test
 RUN dotnet publish -c release -o /app
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0
+FROM mcr.microsoft.com/dotnet/sdk:7.0
 WORKDIR /app
 
 COPY --from=build /app .
