@@ -14,7 +14,7 @@ public class BazaarCommand : McCommand
         var names = (await items.ItemNamesGetAsync()).ToDictionary(i=>i.Tag, i=>i.Name);
         socket.Dialog(db => db.Break.ForEach(topFlips, (db, f) =>
             db.MsgLine($"{McColorCodes.GRAY}>{McColorCodes.YELLOW}{names[f.ItemTag]}{McColorCodes.GRAY}: est {McColorCodes.GREEN}{socket.FormatPrice((long)f.ProfitPerHour)} per hour", 
-                $"/bz {f.ItemTag}", $"{McColorCodes.YELLOW}{socket.FormatPrice((long)f.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)f.BuyPrice)}\n Click to view in bazaar\nRequires booster cookie")
+                $"/bz {names[f.ItemTag]}", $"{McColorCodes.YELLOW}{socket.FormatPrice((long)f.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)f.BuyPrice)}\n Click to view in bazaar\nRequires booster cookie")
         ));
     }
 }
