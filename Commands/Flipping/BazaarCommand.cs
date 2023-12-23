@@ -43,9 +43,13 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element elem)
     {
-        db.MsgLine($"{McColorCodes.GRAY}>{McColorCodes.YELLOW}{elem.ItemName}{McColorCodes.GRAY}: est {McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.ProfitPerHour)} per hour",
+        var userFees = 0.0125; // maybe load this in the future to be exact
+        var volume = elem.Flip.ProfitPerHour / (elem.Flip.BuyPrice - elem.Flip.SellPrice);
+        var fees = elem.Flip.BuyPrice * userFees * volume;
+        var profit = elem.Flip.ProfitPerHour - fees;
+        db.MsgLine($"{McColorCodes.GRAY}>{McColorCodes.YELLOW}{elem.ItemName}{McColorCodes.GRAY}: est {McColorCodes.GREEN}{socket.FormatPrice((long)profit)} per hour",
                 $"/bz {GetSearchValue(elem.Flip, elem.ItemName)}",
-                $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)}\n Click to view in bazaar\nRequires booster cookie");
+                $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)}{McColorCodes.GRAY}{socket.FormatPrice((long)fees)} fees\n Click to view in bazaar\nRequires booster cookie");
     }
 
     protected override string GetId(Element elem)
