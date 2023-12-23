@@ -25,7 +25,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <param name="num"></param>
         /// <returns></returns>
-        public static string FormatPriceShort(long num)
+        public static string FormatPriceShort(double num)
         {
             if (num == 0) // there was an issue with flips attempting to be devided by 0
                 return "0";
@@ -42,11 +42,11 @@ namespace Coflnet.Sky.Commands.MC
             if (num >= 1000)
                 return Format(1000D, "K");
 
-            return Format(1D, "");
+            return Format(1D, "", "0.#");
 
-            string Format(double devider, string suffix)
+            string Format(double devider, string suffix, string format = "0.##")
             {
-                return minusPrefix + (num / devider).ToString("0.##", CultureInfo.InvariantCulture) + suffix;
+                return minusPrefix + (num / devider).ToString(format, CultureInfo.InvariantCulture) + suffix;
             }
         }
 

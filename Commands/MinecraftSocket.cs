@@ -719,7 +719,7 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-        public string FormatPrice(long price)
+        public string FormatPrice(double price)
         {
             if (Settings?.ModSettings?.ShortNumbers ?? false)
                 return FormatProvider.FormatPriceShort(price);

@@ -52,7 +52,8 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element elem)
     {
         var userFees = 0.0125; // maybe load this in the future to be exact
-        var fees = elem.Flip.BuyPrice * userFees * elem.Flip.Volume / 168;
+        var hourlyVolume = (double)elem.Flip.Volume / 168;
+        var fees = elem.Flip.BuyPrice * userFees * hourlyVolume;
         var profit = elem.Flip.ProfitPerHour - fees;
         var isManipulated = elem.IsManipulated;
         var color = isManipulated ? McColorCodes.GRAY : McColorCodes.GREEN;
@@ -60,6 +61,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
                 $"/bz {GetSearchValue(elem.Flip, elem.ItemName)}",
                 $"{(isManipulated ? McColorCodes.RED + $"Probably manipulated preceed with caution\nYou can hide manipulated items with \n{McColorCodes.AQUA}/cl s hideManipulated true\n\n" : "")}"
                 + $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)} {McColorCodes.GRAY}{socket.FormatPrice((long)fees)} fees"
+                + $"\n{McColorCodes.GRAY}avg {socket.FormatPrice(hourlyVolume)} sales per hour"
                 + $"\n Click to view in bazaar\n{McColorCodes.DARK_GRAY}Requires booster cookie");
     }
 

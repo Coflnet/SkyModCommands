@@ -30,7 +30,7 @@ namespace Coflnet.Sky.Commands.MC
         void Dialog(Func<DialogBuilder, DialogBuilder> creation);
         string Error(Exception exception, string? message = null, string? additionalLog = null);
         void ExecuteCommand(string command);
-        string FormatPrice(long price);
+        string FormatPrice(double price);
         LowPricedAuction GetFlip(string uuid);
         string GetFlipMsg(FlipInstance flip);
         Task<string> GetPlayerName(string uuid);
