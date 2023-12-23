@@ -58,7 +58,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var color = isManipulated ? McColorCodes.GRAY : McColorCodes.GREEN;
         db.MsgLine($"{McColorCodes.GRAY}>{(isManipulated ? "[!]" + McColorCodes.STRIKE : McColorCodes.YELLOW)}{elem.ItemName}{McColorCodes.GRAY}: est {color}{socket.FormatPrice((long)profit)} per hour",
                 $"/bz {GetSearchValue(elem.Flip, elem.ItemName)}",
-                $"{(isManipulated ? McColorCodes.RED + $"Probably manipulated preceed with caution\nYou can hide manipulated items with {McColorCodes.AQUA}/cl s hideManipulated true" : "")}"
+                $"{(isManipulated ? McColorCodes.RED + $"Probably manipulated preceed with caution\nYou can hide manipulated items with \n{McColorCodes.AQUA}/cl s hideManipulated true\n\n" : "")}"
                 + $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)} {McColorCodes.GRAY}{socket.FormatPrice((long)fees)} fees"
                 + $"\n Click to view in bazaar\n{McColorCodes.DARK_GRAY}Requires booster cookie");
     }
