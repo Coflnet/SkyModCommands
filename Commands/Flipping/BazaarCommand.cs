@@ -38,18 +38,22 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         {
             Flip = f,
             ItemName = names[f.ItemTag]
-        });
+        }).OrderByDescending(e => (int)e.Flip.ProfitPerHour - e.Flip.BuyPrice * 0.0125 * (int)e.Flip.Volume / 168);
     }
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element elem)
     {
         var userFees = 0.0125; // maybe load this in the future to be exact
-        var volume = elem.Flip.ProfitPerHour / (elem.Flip.BuyPrice - elem.Flip.SellPrice);
-        var fees = elem.Flip.BuyPrice * userFees * volume;
+        var fees = elem.Flip.BuyPrice * userFees * elem.Flip.Volume / 168;
         var profit = elem.Flip.ProfitPerHour - fees;
-        db.MsgLine($"{McColorCodes.GRAY}>{McColorCodes.YELLOW}{elem.ItemName}{McColorCodes.GRAY}: est {McColorCodes.GREEN}{socket.FormatPrice((long)profit)} per hour",
+        var profitmargin = elem.Flip.BuyPrice / elem.Flip.MedianBuyPrice;
+        var isManipulated = profitmargin > 2 || profitmargin > 1.5 && elem.Flip.BuyPrice > 7_500_000;
+        var color = isManipulated ? McColorCodes.GRAY : McColorCodes.GREEN;
+        db.MsgLine($"{McColorCodes.GRAY}>{(isManipulated ? "[!]" + McColorCodes.STRIKE : McColorCodes.YELLOW)}{elem.ItemName}{McColorCodes.GRAY}: est {color}{socket.FormatPrice((long)profit)} per hour",
                 $"/bz {GetSearchValue(elem.Flip, elem.ItemName)}",
-                $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)}{McColorCodes.GRAY}{socket.FormatPrice((long)fees)} fees\n Click to view in bazaar\nRequires booster cookie");
+                $"{(isManipulated ? McColorCodes.RED + "Probably manipulated preceed with caution\n" : "")}"
+                + $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)} {McColorCodes.GRAY}{socket.FormatPrice((long)fees)} fees"
+                + $"\n Click to view in bazaar\n{McColorCodes.DARK_GRAY}Requires booster cookie");
     }
 
     protected override string GetId(Element elem)
