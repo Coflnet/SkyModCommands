@@ -33,11 +33,13 @@ public abstract class ReadOnlyListCommand<T> : McCommand
         var totalPages = elements.Count / PageSize + 1;
         var dialog = DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})")
             .ForEach(toDisplay, (db, elem) => Format(socket, db, elem));
-        if(toDisplay.Count() == 0)
-            dialog.MsgLine("No elements found");
+        if (toDisplay.Count() == 0)
+            dialog.MsgLine(NoMatchText);
         PrintSumary(socket, dialog, elements);
         socket.SendMessage(dialog.Build());
     }
+
+    protected virtual string NoMatchText => "No elements found";
 
     protected virtual string RemoveSortArgument(string arguments)
     {

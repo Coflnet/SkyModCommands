@@ -14,6 +14,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
 {
     public override bool IsPublic => true;
     protected override string Title => "Top Bazaar Flips";
+    protected override string NoMatchText => $"No match found, maybe a typo or manipulated items are hidden";
 
     private static string GetSearchValue(BazaarFlip f, string name)
     {
@@ -34,11 +35,18 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var items = socket.GetService<Items.Client.Api.IItemsApi>();
         var topFlips = await api.FlipsGetAsync();
         var names = (await items.ItemNamesGetAsync()).ToDictionary(i => i.Tag, i => i.Name);
-        return topFlips.Select(f => new Element
+        return topFlips.Select(f =>
         {
-            Flip = f,
-            ItemName = names[f.ItemTag]
-        }).OrderByDescending(e => (int)e.Flip.ProfitPerHour - e.Flip.BuyPrice * 0.0125 * (int)e.Flip.Volume / 168);
+            var profitmargin = f.BuyPrice / f.MedianBuyPrice;
+            var isManipulated = profitmargin > 2 || profitmargin > 1.5 && f.BuyPrice > 7_500_000;
+            return new Element
+            {
+                Flip = f,
+                ItemName = names[f.ItemTag],
+                IsManipulated = isManipulated
+            };
+        }).Where(f => !f.IsManipulated || !socket.Settings.Visibility.HideManipulated)
+        .OrderByDescending(e => (int)e.Flip.ProfitPerHour - e.Flip.BuyPrice * 0.0125 * (int)e.Flip.Volume / 168);
     }
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element elem)
@@ -46,12 +54,11 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var userFees = 0.0125; // maybe load this in the future to be exact
         var fees = elem.Flip.BuyPrice * userFees * elem.Flip.Volume / 168;
         var profit = elem.Flip.ProfitPerHour - fees;
-        var profitmargin = elem.Flip.BuyPrice / elem.Flip.MedianBuyPrice;
-        var isManipulated = profitmargin > 2 || profitmargin > 1.5 && elem.Flip.BuyPrice > 7_500_000;
+        var isManipulated = elem.IsManipulated;
         var color = isManipulated ? McColorCodes.GRAY : McColorCodes.GREEN;
         db.MsgLine($"{McColorCodes.GRAY}>{(isManipulated ? "[!]" + McColorCodes.STRIKE : McColorCodes.YELLOW)}{elem.ItemName}{McColorCodes.GRAY}: est {color}{socket.FormatPrice((long)profit)} per hour",
                 $"/bz {GetSearchValue(elem.Flip, elem.ItemName)}",
-                $"{(isManipulated ? McColorCodes.RED + "Probably manipulated preceed with caution\n" : "")}"
+                $"{(isManipulated ? McColorCodes.RED + $"Probably manipulated preceed with caution\nYou can hide manipulated items with {McColorCodes.AQUA}/cl s hideManipulated true" : "")}"
                 + $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)} {McColorCodes.GRAY}{socket.FormatPrice((long)fees)} fees"
                 + $"\n Click to view in bazaar\n{McColorCodes.DARK_GRAY}Requires booster cookie");
     }
@@ -65,5 +72,6 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
     {
         public BazaarFlip Flip { get; set; }
         public string ItemName { get; set; }
+        public bool IsManipulated { get; internal set; }
     }
 }
