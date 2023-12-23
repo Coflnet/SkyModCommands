@@ -39,6 +39,11 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.CoflCommand<FlipCommand>("You are in ah data only mode. Use /cofl flip to enable flips or /cofl flip always to always autostart the flipper", "", "Click to enable flips"));
                 return;
             }
+            if (socket.AhActive.IsAhDisabledDerpy)
+            {
+                socket.Dialog(db => db.MsgLine("Derpy is mayor, the ah is closed"));
+                return;
+            }
             List<MinecraftSocket.BlockedElement> flipsToSend;
 
             if (arguments.Length > 2)
