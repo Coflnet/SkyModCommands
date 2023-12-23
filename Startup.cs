@@ -21,6 +21,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Security.Authentication;
 using System.Linq;
 using System.Collections.Generic;
+using Coflnet.Sky.Bazaar.Flipper.Client.Api;
 
 namespace Coflnet.Sky.ModCommands;
 public class Startup
@@ -68,6 +69,7 @@ public class Startup
         services.AddSingleton<ConnectionMultiplexer>(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));
         services.AddSingleton<IBaseApi, BaseApi>(s => new BaseApi(Configuration["PROXY_BASE_URL"]));
         services.AddSingleton<IProxyApi, ProxyApi>(s => new ProxyApi(Configuration["PROXY_BASE_URL"]));
+        services.AddSingleton<IBazaarFlipperApi, BazaarFlipperApi>(s => new BazaarFlipperApi(Configuration["BAZAARFLIPPER_BASE_URL"]));
         services.AddCoflService();
         RegisterScyllaSession(services);
         services.AddHostedService<PreApiService>(s => s.GetRequiredService<PreApiService>());

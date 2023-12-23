@@ -168,6 +168,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<PingCommand>();
             Commands.Add<SetGuiCommand>();
             Commands.Add<FlipperEstimateCommand>();
+            Commands.Add<BazaarCommand>("bz");
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
