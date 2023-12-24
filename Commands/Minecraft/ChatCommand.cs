@@ -145,6 +145,14 @@ namespace Coflnet.Sky.Commands.MC
                     var color = m.Prefix;
                     socket.TryAsyncTimes(() => socket.TriggerTutorial<ModCommands.Tutorials.ChatTutorial>(), "chat tutorial");
                     var message = m.Message;
+
+                    var mentionsSelf = message.Contains(socket.SessionInfo.McName);
+                    if (mentionsSelf)
+                    {
+                        socket.SendSound("random.orb");
+                        // highlight name in yellow 
+                        message = message.Replace(socket.SessionInfo.McName, $"{McColorCodes.YELLOW}{socket.SessionInfo.McName}{McColorCodes.WHITE}");
+                    }
                     var optionsCmd = $"/cofl dialog chatoptions {m.Name} {m.ClientName} {m.Message} {m.Uuid}";
                     if (message.Contains("物"))
                     {
