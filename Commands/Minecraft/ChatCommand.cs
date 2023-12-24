@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -157,9 +158,18 @@ namespace Coflnet.Sky.Commands.MC
                         new ChatPart(item.ItemName, "", displayDescription),
                             new ChatPart("", "/cofl void"));
                     }
-                    return socket.SendMessage(
-                        new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {m.Message}", optionsCmd, $"click for more options"),
-                        new ChatPart("", "/cofl void"));
+                    var chatparts = new List<ChatPart>
+                    {
+                        new ($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: ", optionsCmd, $"click for more options"),
+                        new ($"{McColorCodes.WHITE}{message}", optionsCmd, $"click for more options"),
+                        new ("", "/cofl void")
+                    };
+                    var isLinkInMessage = message.Contains("http");
+                    if (isLinkInMessage)
+                    {
+                        message = InsertChatLink(message, chatparts);
+                    }
+                    return socket.SendMessage(chatparts.ToArray());
                 }
                 catch (Exception e)
                 {
@@ -167,6 +177,20 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 return false;
             };
+        }
+
+        private static string InsertChatLink(string message, List<ChatPart> chatparts)
+        {
+            var parts = message.Split(' ');
+            var link = parts.Where(p => p.Contains("http")).FirstOrDefault();
+            var linkIndex = Array.IndexOf(parts, link);
+            var linkText = link;
+            if (link.Length > 30)
+                linkText = link.Substring(0, 30) + "...";
+            parts[linkIndex] = linkText;
+            message = string.Join(" ", parts);
+            chatparts[1] = new ChatPart(message, link, $"click to open {link}");
+            return message;
         }
     }
 }
