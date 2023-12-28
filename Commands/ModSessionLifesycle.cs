@@ -99,7 +99,7 @@ namespace Coflnet.Sky.Commands.MC
             if (UserId.Value == default)
             {
                 using var waitLogin = socket.CreateActivity("waitLogin", ConSpan);
-                UserId.OnChange += (newset) => Task.Run(async() => await SubToSettings(newset));
+                UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DEFAULT_SETTINGS);
                 SubSessionToEventsFor(SessionInfo.McUuid);
             }
@@ -147,7 +147,7 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current.Log("single connection check");
             FlipSettings.OnChange += UpdateSettings;
             FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
-            AccountInfo.OnChange += (ai) => Task.Run(async() => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
+            AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
             if (AccountInfo.Value != default)
                 await UpdateAccountInfo(AccountInfo);
             else
@@ -167,7 +167,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         private void SetActiveConIdToCurrent()
         {
-            _ = socket.TryAsyncTimes(async() =>
+            _ = socket.TryAsyncTimes(async () =>
             {
                 using var span = socket.CreateActivity("updateAccountInfo", ConSpan);
                 AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
@@ -199,7 +199,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (settings.BasedOnLBin && settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
                 {
                     socket.Dialog(db => db.CoflCommand<SetCommand>(McColorCodes.RED + "Your profit is based on lbin, therefore you should only use the `sniper` flip finder to maximise speed", "finders sniper", "Click to only use the sniper"));
-                    _ = socket.TryAsyncTimes(async() =>
+                    _ = socket.TryAsyncTimes(async () =>
                     {
                         await Task.Delay(TimeSpan.FromSeconds(5));
                         socket.Dialog(db => db.LineBreak().MsgLine(McColorCodes.RED + "Having profit set to lbin with other finders may lead to negative price estimations being displayed if you whitelisted an item"));
@@ -237,7 +237,7 @@ namespace Coflnet.Sky.Commands.MC
                 try
                 {
                     var expression = item.GetExpression();
-                    expression.Compile() (testFlip);
+                    expression.Compile()(testFlip);
                 }
                 catch (Exception e)
                 {
@@ -275,7 +275,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected virtual async Task UpdateAccountInfo(AccountInfo info)
         {
-            using var span = socket.CreateActivity("AuthUpdate", ConSpan) ?
+            using var span = socket.CreateActivity("AuthUpdate", ConSpan)?
                 .AddTag("premium", info.Tier.ToString())
                 .AddTag("userId", info.UserId);
 
@@ -332,12 +332,7 @@ namespace Coflnet.Sky.Commands.MC
                     SessionInfo.FlipsEnabled = true;
                     UpdateConnectionTier(info, span);
                     span?.AddTag("autoStart", "true");
-                    if (info.Tier >= AccountTier.PREMIUM_PLUS && SessionInfo.ConnectionType == null && !SessionInfo.IsMacroBot && Random.Shared.NextDouble() < 0.5)
-                    {
-                        socket.Dialog(db => db.MsgLine(McColorCodes.GRAY + "Do you want to try out our new US flipping instance? Click this message",
-                            "/cofl connect ws://sky-us.coflnet.com/modsocket",
-                            "click to connect to united states instance\nhas lower ping after ah update for us users"));
-                    }
+                    PrintRegionInfo(info);
                 }
                 else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
                 {
@@ -357,6 +352,29 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Error(e, "loading modsocket");
                 span.AddTag("error", true);
                 SendMessage(COFLNET + $"Your settings could not be loaded, please relink again :)");
+            }
+        }
+
+        private void PrintRegionInfo(AccountInfo info)
+        {
+            if (info.Tier >= AccountTier.PREMIUM_PLUS && SessionInfo.ConnectionType == null)
+            {
+                if ((socket.CurrentRegion == info.Region || info.Region == null) && info.Locale == "en")
+                    socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>(McColorCodes.GRAY + "Switching region is now done with /cofl switchregion <region>", "", "Click to see region options"));
+                else if (SessionInfo.IsMacroBot)
+                {
+                    socket.Dialog(db => db.MsgLine("Your client doesn't seem to support switching regions"));
+                }
+                else if (info.Region == "us")
+                {
+                    socket.Dialog(db => db.MsgLine("Switching to us server"));
+                    socket.ExecuteCommand("/cofl connect ws://sky-us.coflnet.com/modsocket");
+                }
+            }
+            else if (info.Region == "eu" && SessionInfo.ConnectionType != null)
+            {
+                socket.Dialog(db => db.MsgLine("Switching to eu server"));
+                socket.ExecuteCommand("/cofl connect wss://sky.coflnet.com/modsocket");
             }
         }
 
@@ -387,7 +405,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 info.ExpiresAt = expires.Item2;
                 if (info.Tier > AccountTier.NONE)
-                    _ = socket.TryAsyncTimes(async() =>
+                    _ = socket.TryAsyncTimes(async () =>
                     {
                         await AccountInfo.Update(info);
                     }, "update account info", 1);
@@ -407,8 +425,8 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     return SessionInfo.MinecraftUuids.Concat(AccountInfo.Value.McIds).ToHashSet();
                 }
-            else
-                return SessionInfo.MinecraftUuids;
+                else
+                    return SessionInfo.MinecraftUuids;
             var result = (await socket.GetService<McAccountService>()
                 .GetAllAccounts(UserId.Value, DateTime.UtcNow - TimeSpan.FromDays(30))).ToHashSet();
             var loadSuccess = result.Any();
@@ -434,7 +452,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 sum += decoded[i];
             }
-            var newid = Convert.ToBase64String(decoded.Append((byte) (sum % 256)).ToArray());
+            var newid = Convert.ToBase64String(decoded.Append((byte)(sum % 256)).ToArray());
 
             return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(newid)}";
         }
@@ -527,7 +545,7 @@ namespace Coflnet.Sky.Commands.MC
                     UpdateConnectionTier(AccountInfo, span);
                 }
                 SendReminders();
-                socket.TryAsyncTimes(async() =>
+                socket.TryAsyncTimes(async () =>
                 {
                     await RemoveTempFilters();
                     await AddBlacklistOfSpam();
@@ -583,7 +601,7 @@ namespace Coflnet.Sky.Commands.MC
                 FlipSettings.Value.BlackList.Add(new()
                 {
                     DisplayName = "Automatic blacklist",
-                        filter = new()
+                    filter = new()
                         { { "removeAfter", DateTime.UtcNow.AddHours(8).ToString("s") }, { "ForceBlacklist", "true" }, { "Seller", player }
                         },
                 });
@@ -598,8 +616,8 @@ namespace Coflnet.Sky.Commands.MC
             FlipSettings.Value.BlackList.Add(new()
             {
                 DisplayName = "automatic blacklist",
-                    ItemTag = key,
-                    filter = new()
+                ItemTag = key,
+                filter = new()
                     { { "removeAfter", DateTime.UtcNow.AddHours(8).ToString("s") }, { "ForceBlacklist", "true" }
                     },
             });
@@ -690,7 +708,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void UpdateExtraDelay()
         {
-            socket.TryAsyncTimes(async() =>
+            socket.TryAsyncTimes(async () =>
             {
                 await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
                 var ids = await GetMinecraftAccountUuids();

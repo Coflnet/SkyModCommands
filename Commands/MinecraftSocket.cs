@@ -24,6 +24,7 @@ namespace Coflnet.Sky.Commands.MC
     public class MinecraftSocket : WebSocketBehavior, IFlipConnection, IMinecraftSocket
     {
         public static string COFLNET = "[§1C§6oflnet§f]§7: ";
+        public virtual string CurrentRegion => "eu";
 
         public long Id { get; private set; }
 
@@ -170,6 +171,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SetGuiCommand>();
             Commands.Add<FlipperEstimateCommand>();
             Commands.Add<BazaarCommand>("bz");
+            Commands.Add<SwitchRegionCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

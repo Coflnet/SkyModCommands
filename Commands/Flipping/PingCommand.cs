@@ -4,8 +4,10 @@ using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription("Checks your ping to the Coflnet server")]
 public class PingCommand : McCommand
 {
+    public override bool IsPublic => true;
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');

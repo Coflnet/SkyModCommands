@@ -19,7 +19,7 @@ public class PreApiTests
     public void Setup()
     {
 
-        flipperService = new FlipperService(null);
+        flipperService = new FlipperService(null, null);
         service = new PreApiService(null, flipperService, NullLogger<PreApiService>.Instance, null, null, null);
     }
 
