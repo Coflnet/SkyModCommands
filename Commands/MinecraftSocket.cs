@@ -562,7 +562,6 @@ namespace Coflnet.Sky.Commands.MC
         {
             base.Close();
             ConSpan.SetTag("force close", true);
-
         }
 
         public void SendMessage(string text, string? clickAction = null, string? hoverText = null)

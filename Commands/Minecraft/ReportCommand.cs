@@ -34,6 +34,7 @@ namespace Coflnet.Sky.Commands.MC
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.Settings));
 
             socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + singleReportSpan.Context.TraceId, "click to get full link");
+            socket.Dialog(db=>db.MsgLine("If not done already consider creating a new thread by writing into our bug-report channel on discord. [click to open]", "https://discord.com/channels/267680588666896385/884002032392998942", "redirects to discord"));
             await Task.Delay(2000).ConfigureAwait(false);
             // repost 
             CreateReport(socket, arguments, singleReportSpan, out string generalspanId);

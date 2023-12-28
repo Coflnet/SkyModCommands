@@ -39,7 +39,7 @@ namespace Coflnet.Sky.Commands.MC
                     ReceivedAt = DateTime.UtcNow,
                     PlayerId = playerId,
                     Kind = UpdateMessage.UpdateKind.CHAT,
-                    SessionId = socket.SessionInfo.SessionId
+                    UserId = socket.UserId
                 });
 
                 foreach (var item in batch)
