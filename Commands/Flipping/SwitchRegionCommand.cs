@@ -18,6 +18,11 @@ public class SwitchRegionCommand : McCommand
                 .CoflCommand<SwitchRegionCommand>("Click to switch", socket.AccountInfo.Region == "us" ? "eu" : "us", "Click to switch your region"));
             return;
         }
+        if(socket.SessionInfo.IsMacroBot)
+        {
+            socket.Dialog(db => db.MsgLine($"Your client does not appear to support reconnecting to another server"));
+            return;
+        }
         if (selected == "eu")
         {
             socket.Dialog(db => db.MsgLine($"Switching to {McColorCodes.AQUA}EU"));
