@@ -53,6 +53,7 @@ public class AfVersionAdapter : ModVersionAdapter
     public virtual Task TryToListAuction()
     {
         Activity.Current?.Log("listing on client");
+        socket.Dialog(db => db.MsgLine("Your client doesn't support this command"));
         return Task.CompletedTask;
     }
 

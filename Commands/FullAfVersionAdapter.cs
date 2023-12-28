@@ -40,11 +40,17 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (activeAuctionCount >= listSpace)
             {
                 span.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName}");
+
                 if (activeAuctions.Any(a => a.End < DateTime.Now))
                 {
                     socket.Send(Response.Create("collectAuctions", new { }));
+                    await Task.Delay(1000);
                 }
-                return; // ah full
+                else
+                {
+                    socket.Dialog(db => db.Msg("Auction house full, waiting for something to sell or expire"));
+                    return; // ah full
+                }
             }
         }
         await Task.Delay(TimeSpan.FromSeconds(2));
