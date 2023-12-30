@@ -37,7 +37,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (num >= 1000000000)
                 return Format(1000000000D, "B");
-            if (num >= 1000000)
+            if (num > 1000000 -1)
                 return Format(1000000D, "M");
             if (num >= 1000)
                 return Format(1000D, "K");
