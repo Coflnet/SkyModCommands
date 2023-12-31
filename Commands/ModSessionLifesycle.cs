@@ -8,6 +8,7 @@ using System.Web;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.ModCommands.Tutorials;
 using Newtonsoft.Json;
@@ -269,8 +270,39 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (changed != "preventUpdateMsg")
                 SendMessage($"{COFLNET}{changed}");
+            CreateBackupIfVeryDifferent(settings);
             span?.AddTag("changed", changed);
             ApplyFlipSettings(settings, span).Wait();
+        }
+
+        /// <summary>
+        /// Creates a backup if the settings are very different from the current ones
+        /// </summary>
+        /// <param name="settings"></param>
+        private void CreateBackupIfVeryDifferent(FlipSettings settings)
+        {
+            var current = FlipSettings.Value;
+            var newSettings = settings;
+            var diffCount = 0;
+            if (current?.Visibility?.Volume != newSettings?.Visibility?.Volume)
+                diffCount++;
+            if (current?.WhiteList?.Count != newSettings?.WhiteList?.Count)
+                diffCount++;
+            if (current?.BlackList?.Count != newSettings?.BlackList?.Count)
+                diffCount++;
+            if (diffCount >= 2)
+            {
+                socket.TryAsyncTimes(async () =>
+                {
+                    socket.Dialog(db => db.MsgLine("Seems like you imported a different config, creating a backup of your current one")
+                        .CoflCommand<BackupCommand>("Click to see your backups", "ls", "Click to see your backups\nRuns /cofl backup list"));
+                    var backups = await BackupCommand.GetBackupList(socket);
+                    var name = "Before last import";
+                    backups.RemoveAll(b => b.Name == name);
+                    backups.Add(new BackupEntry() { Name = name, settings = current });
+                    await BackupCommand.SaveBackupList(socket, backups);
+                }, "multiple settings warning");
+            }
         }
 
         protected virtual async Task UpdateAccountInfo(AccountInfo info)

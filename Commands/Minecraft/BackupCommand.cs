@@ -11,7 +11,7 @@ namespace Coflnet.Sky.Commands.MC
     [CommandDescription("Create a backup of your settings", 
         "to create use /cofl backup add <name>",
         "to restore use /cofl restore <name>", 
-        "You can create up to 3 backups")]
+        "You can create 3 to 10 backups")]
     public class BackupCommand : ListCommand<BackupEntry, List<BackupEntry>>
     {
         public override bool IsPublic => true;
@@ -39,18 +39,29 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override async Task<List<BackupEntry>> GetList(MinecraftSocket socket)
         {
+            return await GetBackupList(socket);
+        }
+
+        public static async Task<List<BackupEntry>> GetBackupList(MinecraftSocket socket)
+        {
             var settings = socket.GetService<SettingsService>();
             return await settings.GetCurrentValue(socket.UserId, "flipBackup", () => new List<BackupEntry>());
         }
 
         protected override async Task Update(MinecraftSocket socket, List<BackupEntry> newCol)
         {
-            if(newCol.Count > 3)
-                throw new CoflnetException("to_many", "you can currently only create 3 different backups, please remove one before creating another");
+            if (newCol.Count > 3 && await socket.UserAccountTier() < AccountTier.STARTER_PREMIUM)
+                throw new CoflnetException("to_many", "you can currently only create 3 different backups, please remove one before creating another. \nYou can get up to 10 with a paid plan");
+            if (newCol.Count > 10)
+                throw new CoflnetException("to_many", "you can currently only create 10 different backups, please remove one before creating another");
+            await SaveBackupList(socket, newCol);
+        }
+
+        public static async Task SaveBackupList(MinecraftSocket socket, List<BackupEntry> newCol)
+        {
             var settings = socket.GetService<SettingsService>();
             await settings.UpdateSetting(socket.UserId, "flipBackup", newCol);
         }
-
     }
 
 
