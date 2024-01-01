@@ -27,7 +27,7 @@ namespace Coflnet.Sky.Commands.MC
         event Action OnConClose;
 
         void Close();
-        void Dialog(Func<DialogBuilder, DialogBuilder> creation);
+        void Dialog(Func<SocketDialogBuilder, DialogBuilder> creation);
         string Error(Exception exception, string? message = null, string? additionalLog = null);
         void ExecuteCommand(string command);
         string FormatPrice(double price);

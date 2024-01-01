@@ -8,9 +8,9 @@ using Coflnet.Sky.ModCommands.Models;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    [CommandDescription("Create a backup of your settings", 
+    [CommandDescription("Create a backup of your settings",
         "to create use /cofl backup add <name>",
-        "to restore use /cofl restore <name>", 
+        "to restore use /cofl restore <name>",
         "You can create 3 to 10 backups")]
     public class BackupCommand : ListCommand<BackupEntry, List<BackupEntry>>
     {
@@ -30,7 +30,9 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override DialogBuilder FormatForList(DialogBuilder d, BackupEntry e)
         {
-            return d.Msg($"{Format(e)} {McColorCodes.GREEN}[RESTORE]", $"/cofl restore {GetId(e)}", "click to restore these settings");
+            var hover = (d as SocketDialogBuilder)?.Socket.formatProvider.FormatSettingsSummary(e.settings) + "\nclick to restore these settings";
+            return d.Msg($"{Format(e)} {McColorCodes.GREEN}[RESTORE]", $"/cofl restore {GetId(e)}", hover)
+                .Msg($"{McColorCodes.LIGHT_PURPLE}[UPDATE]", $"/cofl backup add {GetId(e)}", $"click to update this backup\nwith your current config\n{McColorCodes.RED}Warning: this will overwrite it");
         }
         protected override string GetId(BackupEntry elem)
         {
@@ -40,6 +42,23 @@ namespace Coflnet.Sky.Commands.MC
         protected override async Task<List<BackupEntry>> GetList(MinecraftSocket socket)
         {
             return await GetBackupList(socket);
+        }
+
+        protected override async Task AddEntry(MinecraftSocket socket, BackupEntry newEntry)
+        {
+            var list = await GetList(socket);
+            var existing = list.Where(l => GetId(l) == GetId(newEntry)).FirstOrDefault();
+            if (existing != null)
+            {
+                socket.SendMessage(new DialogBuilder()
+                    .MsgLine($"Overwriting config {Format(newEntry)}"));
+                list.Remove(existing);
+            }
+            list.Add(newEntry);
+            await Update(socket, list);
+            var word = existing == null ? "Added" : "Updated";
+            socket.SendMessage(new DialogBuilder()
+                .MsgLine($"{word} {Format(newEntry)}"));
         }
 
         public static async Task<List<BackupEntry>> GetBackupList(MinecraftSocket socket)

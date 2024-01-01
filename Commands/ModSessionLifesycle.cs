@@ -397,7 +397,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     socket.Dialog(db => db.MsgLine("Your client doesn't seem to support switching regions"));
                 }
-                else if (info.Region == "us")
+                else if (info.Region == "us" && !MinecraftSocket.IsDevMode)
                 {
                     socket.Dialog(db => db.MsgLine("Switching to us server"));
                     socket.ExecuteCommand("/cofl connect ws://sky-us.coflnet.com/modsocket");

@@ -209,7 +209,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
 
-            socket.SendMessage(new DialogBuilder()
+            socket.Dialog(db => db
                 .MsgLine($"Content (page {page}):", $"/cofl {Slug} ls {page + 1}", $"This is page {page} \nthere are {totalPages} pages\nclick this to show the next page")
                 .ForEach(list.Skip(page * pageSize).Take(pageSize), (d, e) =>
                 {

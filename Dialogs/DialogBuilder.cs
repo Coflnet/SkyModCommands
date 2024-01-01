@@ -6,6 +6,15 @@ using System;
 
 namespace Coflnet.Sky.ModCommands.Dialogs
 {
+    public class SocketDialogBuilder : DialogBuilder
+    {
+        public MinecraftSocket Socket { get; set; }
+        
+        public SocketDialogBuilder(MinecraftSocket socket)
+        {
+            Socket = socket;
+        }
+    }
     public class DialogBuilder
     {
         private List<ChatPart> Parts = new List<ChatPart>() { new ChatPart(MinecraftSocket.COFLNET) };

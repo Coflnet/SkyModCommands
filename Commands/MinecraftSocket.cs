@@ -583,9 +583,9 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        public void Dialog(Func<DialogBuilder, DialogBuilder> creation)
+        public void Dialog(Func<SocketDialogBuilder, DialogBuilder> creation)
         {
-            SendMessage(creation.Invoke(DialogBuilder.New));
+            SendMessage(creation.Invoke(new SocketDialogBuilder(this)));
         }
 
 

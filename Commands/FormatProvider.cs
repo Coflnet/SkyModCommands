@@ -235,10 +235,8 @@ namespace Coflnet.Sky.Commands.MC
         public ChatPart[] WelcomeMessage()
         {
             var text = $"§fFound and loaded settings for your connection\n"
-                                    + $"{McColorCodes.GRAY} MinProfit: {McColorCodes.AQUA}{FormatPrice(Settings.MinProfit)}  "
-                                    + $"{McColorCodes.GRAY} Whitelist: {McColorCodes.AQUA}{Settings?.WhiteList?.Count ?? 0}"
-                                    + $"{McColorCodes.GRAY} Blacklist: {McColorCodes.AQUA}{Settings?.BlackList?.Count ?? 0}\n "
-                                    + "§8: nothing else to do have a nice day :)";
+                                                + FormatSettingsSummary(Settings)
+                                    + "\n§8: nothing else to do have a nice day :)";
             var hover = $"{McColorCodes.GRAY} MinVolume: {McColorCodes.AQUA}{Settings?.MinVolume}\n"
                         + $"{McColorCodes.GRAY} MinProfitPercent: {McColorCodes.AQUA}{FormatPrice(Settings?.MinProfitPercent)}"
                         + $"{McColorCodes.GRAY} The Black and Whitelist is the count of entries";
@@ -250,6 +248,12 @@ namespace Coflnet.Sky.Commands.MC
                         .CoflCommand<TopUpCommand>($"{spacer}\n CoflCoin packages 5400 or more are {McColorCodes.DARK_GREEN}{McColorCodes.BOLD}20% OFF{McColorCodes.RESET} today\n Click to purchase {McColorCodes.ITALIC}in game\n{spacer}", "", "Show options"));
         }
 
+        public string FormatSettingsSummary(FlipSettings s)
+        {
+            return  $"{McColorCodes.GRAY} MinProfit: {McColorCodes.AQUA}{FormatPrice(s.MinProfit)}  "
+                                                + $"{McColorCodes.GRAY} Whitelist: {McColorCodes.AQUA}{s?.WhiteList?.Count ?? 0}"
+                                                + $"{McColorCodes.GRAY} Blacklist: {McColorCodes.AQUA}{s?.BlackList?.Count ?? 0} ";
+        }
 
         public string GetHoverText(FlipInstance flip)
         {
