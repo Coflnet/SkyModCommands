@@ -5,7 +5,7 @@ using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    public class GobalMuteCommand : McCommand
+    public class GlobalMuteCommand : McCommand
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {

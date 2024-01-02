@@ -15,8 +15,8 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 .CoflCommand<MuteCommand>("  Mute " + userName, userName, McColorCodes.GRAY + "I don't want to get anymore messages from this user").LineBreak()
                 .If(() => !isModerator, db => db.DialogLink<ChatReportDialog>("  Report this message ", context.Context, McColorCodes.GRAY + "report message to moderator"))
                 .CoflCommand<ChatCommand>(" -> disable chat", "", McColorCodes.GRAY + "turn off showing this chat").LineBreak()
-                .If(() => isModerator, db => db.CoflCommand<GobalMuteCommand>("Global chat mute the user for rule 1", "1 " + context.Context, $"x10 mute time for rule 1")).LineBreak()
-                .If(() => isModerator, db => db.CoflCommand<GobalMuteCommand>("Global chat mute the user for rule 2", "2 " + context.Context, $"x3 mute time"))
+                .If(() => isModerator, db => db.CoflCommand<GlobalMuteCommand>("Global chat mute the user for rule 1", "1 " + context.Context, $"x10 mute time for rule 1")).LineBreak()
+                .If(() => isModerator, db => db.CoflCommand<GlobalMuteCommand>("Global chat mute the user for rule 2", "2 " + context.Context, $"x3 mute time"))
             ;
         }
     }

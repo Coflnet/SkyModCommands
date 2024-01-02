@@ -152,7 +152,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<EmojiCommand>();
             Commands.Add<AddReminderTimeCommand>();
             Commands.Add<LoreCommand>();
-            Commands.Add<GobalMuteCommand>();
+            Commands.Add<GlobalMuteCommand>();
             Commands.Add<FactCommand>();
             Commands.Add<TutorialCommand>();
             Commands.Add<FlipCommand>();
