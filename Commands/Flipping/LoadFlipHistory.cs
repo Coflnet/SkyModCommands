@@ -54,9 +54,6 @@ public class LoadFlipHistory : McCommand
                     .Include(a => a.Enchantments);
                 foreach (var auction in auctions)
                 {
-                    if (!auction.FlatenedNBT.ContainsKey("uid"))
-                        continue;
-
                     producer.Produce(config["TOPICS:LOAD_FLIPS"], new Message<string, SaveAuction> { Key = auction.Uuid, Value = auction });
                     count++;
                 }
