@@ -6,7 +6,7 @@ namespace Coflnet.Sky.ModCommands.Services;
 public class ModeratorService
 {
     private List<string> MinecraftUuids = new() {
-        "f861d737775f4dda9db485a97a89c309", // mrfuzz
+        "1adeea4aaf0f43179b22fc6fb63ad2c6", // mrfuzz
         "99ab148c61b146ed9b5d07df7b46984c", // coyu
         "cdb572dfafed43c789ae5c4c009b7019", // matis
         "384a029294fc445e863f2c42fe9709cb", // ekwav
