@@ -19,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
                 throw new CoflnetException("forbidden", "Whoops, you don't seem to be a moderator. Therefore you can't mute other users");
 
             // verify format
-            if(!int.TryParse(args[0].ToString(), out var rule) || Guid.TryParse(uuid, out _))
+            if(!int.TryParse(args[0].ToString(), out var rule) || !Guid.TryParse(uuid, out _))
                 throw new CoflnetException("invalid_format", "The format is <rule id> <username> <reason> <uuid>");
 
             socket.Dialog(db => db.MsgLine("Muting ").AsGray().Msg(McColorCodes.AQUA + mcName));
