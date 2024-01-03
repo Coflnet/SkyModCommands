@@ -20,7 +20,7 @@ namespace Coflnet.Sky.Commands.MC
 
             // verify format
             if(!int.TryParse(args[0].ToString(), out var rule) || !Guid.TryParse(uuid, out _))
-                throw new CoflnetException("invalid_format", "The format is <rule id> <username> <reason> <uuid>");
+                throw new CoflnetException("invalid_format", "The format is <rule id> <username> <any word> <reason> <uuid>");
 
             socket.Dialog(db => db.MsgLine("Muting ").AsGray().Msg(McColorCodes.AQUA + mcName));
             await socket.GetService<ChatService>().Mute(new()
