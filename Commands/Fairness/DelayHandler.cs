@@ -84,8 +84,8 @@ public class DelayHandler : IDelayHandler
         if (currentDelay == AntiAfkDelay)
             return false; // afk users don't get instant flips
 
-        // 30% chance of no delay so lowest ping macro doesn't get a huge advantage
-        if (random.NextDouble() > 0.7)
+        // 50% chance of no delay so lowest ping macro doesn't get a huge advantage
+        if (random.NextDouble() > 0.5)
             return false;
 
         var tag = flipInstance.Auction?.Tag;
