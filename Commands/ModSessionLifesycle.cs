@@ -173,6 +173,7 @@ namespace Coflnet.Sky.Commands.MC
                 using var span = socket.CreateActivity("updateAccountInfo", ConSpan);
                 AccountInfo.Value.ActiveConnectionId = SessionInfo.ConnectionId;
                 await AccountInfo.Update(AccountInfo.Value);
+                span.AddTag("activeConId", SessionInfo.ConnectionId);
             }, "accountInfo update");
         }
 
@@ -314,6 +315,7 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
+                span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (info.UserId.IsNullOrEmpty())
                 {
                     info.UserId = socket.UserId;
@@ -351,7 +353,6 @@ namespace Coflnet.Sky.Commands.MC
 
                 await UpdateAccountTier(info);
 
-                span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (SessionInfo.SentWelcome)
                     return; // don't send hello again
                 SessionInfo.SentWelcome = true;
