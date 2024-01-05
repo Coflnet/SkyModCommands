@@ -142,6 +142,16 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 // very different from median, might include more, diverge from median
                 target = flips.Select(f => f.TargetPrice).Average() * 0.95;
             }
+
+            if (socket.Settings.ModSettings.QuickSell)
+            {
+                target = Math.Min(item.Second.Lbin.Price, item.Second.Median) * (item.Second.Volume > 20 ? 0.95 : 0.9);
+                socket.Dialog(db => db.MsgLine($"{McColorCodes.DARK_RED} [QuickSelling] {McColorCodes.GRAY} {item.First.ItemName} {McColorCodes.GRAY} for {McColorCodes.GOLD} {target}.")
+                    .MsgLine($"{McColorCodes.GRAY}Might be undervalued use {McColorCodes.AQUA}/cofl set quicksell false{McColorCodes.GRAY} to disable"));
+                await Task.Delay(2000);
+                if (!socket.Settings.ModSettings.QuickSell)
+                    continue;
+            }
             await SendListing(span, item.First, (long)target, index, uuid);
         }
     }
