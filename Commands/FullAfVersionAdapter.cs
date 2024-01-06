@@ -29,8 +29,9 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var apiService = socket.GetService<IPlayerApi>();
         var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
         RequestInventory();
-        var activeAuctions = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 1, filters);
-        activeAuctionCount = activeAuctions.Count() + 10;
+        var offset = listSpace > 20 ? 2 : 1;
+        var activeAuctions = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, offset, filters);
+        activeAuctionCount = activeAuctions.Count() + 10 * offset;
         if (activeAuctionCount >= 14)
         {
             if (listSpace <= 2)
