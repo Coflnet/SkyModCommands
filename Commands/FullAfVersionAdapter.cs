@@ -166,6 +166,15 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     protected override bool ShouldStopBuying()
     {
+        var maxItemsAllowedInInventory = socket.Settings?.ModSettings?.MaxFlipItemsInInventory ?? 0;
+        if (maxItemsAllowedInInventory != 0
+        // < because menu is always there
+            && maxItemsAllowedInInventory < socket.SessionInfo.Inventory?.Skip(10).Where(x => x != null).Count())
+        {
+            socket.Dialog(db => db.Msg($"Reached max flip items in inventory, paused buying until items are sold and listed. ")
+                .Msg($"Can be disabled with {McColorCodes.AQUA}/cofl set maxFlipInInventory 0"));
+            return true;
+        }
         var stop = socket.SessionInfo.Inventory?.Skip(10).All(x => x != null) ?? false;
         if (stop)
         {
