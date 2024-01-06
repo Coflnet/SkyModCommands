@@ -259,13 +259,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
     }
     private async Task<List<Api.Client.Model.BidResult>> GetPurchases(IPlayerApi apiService, string uid)
     {
-        if (CheckedPurchase.GetValueOrDefault(uid) > 3)
-            return new List<Api.Client.Model.BidResult>();
+        //if (CheckedPurchase.GetValueOrDefault(uid) > 3)
+        //    return new List<Api.Client.Model.BidResult>();
         var checkFilters = new Dictionary<string, string>() {
                 { "UId", uid },
                 { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(48)).ToUnix().ToString() } };
         var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
-        CheckedPurchase[uid] = CheckedPurchase.GetValueOrDefault(uid) + 1;
+        //CheckedPurchase[uid] = CheckedPurchase.GetValueOrDefault(uid) + 1;
         return purchases;
     }
 }
