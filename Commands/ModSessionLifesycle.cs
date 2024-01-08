@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using Cassandra;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
@@ -394,7 +395,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if ((socket.CurrentRegion == info.Region || info.Region == null) && info.Locale == "en")
                     socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>(McColorCodes.GRAY + "Switching region is now done with /cofl switchregion <region>", "", "Click to see region options"));
-                else if (SessionInfo.IsMacroBot)
+                else if (SessionInfo.IsMacroBot && socket.Version.StartsWith("1.5.0"))
                 {
                     socket.Dialog(db => db.MsgLine("Your client doesn't seem to support switching regions"));
                 }

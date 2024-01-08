@@ -330,6 +330,7 @@ namespace Coflnet.Sky.Commands.MC
                 "1.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.2-Alpha" => new SecondVersionAdapter(this),
                 "1.5.0-af" => new FullAfVersionAdapter(this),
+                "1.5.1-af" => new FullAfVersionAdapter(this),
                 "1.5.0-afclient" => new AfVersionAdapter(this),
                 _ => new FirstModVersionAdapter(this)
             };
@@ -536,16 +537,17 @@ namespace Coflnet.Sky.Commands.MC
 
         private void ClickCallback(Response? a)
         {
-            if (a.data.Contains("/viewauction "))
-                TryAsyncTimes(async () =>
-                {
-                    var auctionUuid = JsonConvert.DeserializeObject<string>(a.data)?.Trim('"').Replace("/viewauction ", "");
-                    var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
-                    if (flip != null && flip.Auction.Context != null && !flip.AdditionalProps.ContainsKey("clickT"))
-                        flip.AdditionalProps["clickT"] = (DateTime.UtcNow - flip.Auction.FindTime).ToString();
-                    await GetService<FlipTrackingService>().ClickFlip(auctionUuid, SessionInfo.McUuid);
+            if (!a?.data?.Contains("/viewauction ") ?? true)
+                return;
+            TryAsyncTimes(async () =>
+            {
+                var auctionUuid = JsonConvert.DeserializeObject<string>(a.data)?.Trim('"').Replace("/viewauction ", "");
+                var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
+                if (flip != null && flip.Auction.Context != null && !flip.AdditionalProps.ContainsKey("clickT"))
+                    flip.AdditionalProps["clickT"] = (DateTime.UtcNow - flip.Auction.FindTime).ToString();
+                await GetService<FlipTrackingService>().ClickFlip(auctionUuid, SessionInfo.McUuid);
 
-                }, "click callback", 1);
+            }, "click callback", 1);
         }
 
         protected override void OnClose(CloseEventArgs? e)
