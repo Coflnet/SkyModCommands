@@ -146,7 +146,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
             if (socket.Settings.ModSettings.QuickSell)
             {
-                target = Math.Min(item.Second.Lbin.Price, item.Second.Median) * (item.Second.Volume > 20 ? 0.95 : 0.9);
+                target = SniperClient.InstaSellPrice(item.Second) * (item.Second.Volume > 5 ? 1 : 0.98);
                 socket.Dialog(db => db.MsgLine($"{McColorCodes.DARK_RED} [QuickSelling] {McColorCodes.GRAY} {item.First.ItemName} {McColorCodes.GRAY} for {McColorCodes.GOLD} {target}.")
                     .MsgLine($"{McColorCodes.GRAY}Might be undervalued use {McColorCodes.AQUA}/cofl set quicksell false{McColorCodes.GRAY} to disable"));
                 await Task.Delay(2000);
