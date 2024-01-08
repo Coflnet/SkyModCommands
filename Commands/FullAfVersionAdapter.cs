@@ -176,7 +176,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 .Msg($"Can be disabled with {McColorCodes.AQUA}/cofl set maxFlipInInventory 0"));
             return true;
         }
-        var stop = socket.SessionInfo.Inventory?.Skip(10).All(x => x != null) ?? false;
+        var stop = socket.SessionInfo.Inventory?.Skip(10).Count(x => x == null) < 3;
         if (stop)
         {
             if (Random.Shared.NextDouble() < 0.1)
