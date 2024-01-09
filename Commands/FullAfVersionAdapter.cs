@@ -136,7 +136,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 // all are more recent than a day, still usable
                 target = flips.Select(f => f.TargetPrice).Average();
-                span.Log($"Found {flips.Count} flips for target {target}");
+                span.Log($"Found {flips.Count} flips for average price {target}");
             }
             else if (flips.All(f => f.FinderType == FlipTracker.Client.Model.FinderType.FLIPPER))
             {
@@ -202,7 +202,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             sellPrice -= 1000;
         if (sellPrice < 100_000)
             sellPrice = price;
-        var id = uuid ?? auction.Tag;
+        var id = uuid ?? MapToGameTag(auction);
         span.Log($"Listing {auction.ItemName} for {sellPrice} (median: {price}) slot {index} id: {id}");
         var listTime = socket.Settings?.ModSettings?.AhListTimeTarget;
         if (listTime == 0)
@@ -218,6 +218,18 @@ public class FullAfVersionAdapter : AfVersionAdapter
         await Task.Delay(3000);
     }
 
+    private static string MapToGameTag(SaveAuction auction)
+    {
+        if(auction.Tag.StartsWith("PET_") && !auction.Tag.Contains("PET_ITEM") && !auction.Tag.Contains("PET_SKIN"))
+            return "PET";
+        if (auction.Tag.StartsWith("ABIPHONE"))
+            return "ABIPHONE";
+        if (auction.Tag.StartsWith("RUNE_"))
+            return "RUNE";
+        if (auction.Tag.StartsWith("POTION"))
+            return "POTION";
+        return auction.Tag;
+    }
 
     public override void OnAuthorize(AccountInfo accountInfo)
     {
