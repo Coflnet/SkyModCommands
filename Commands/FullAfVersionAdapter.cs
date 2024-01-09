@@ -30,7 +30,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var apiService = socket.GetService<IPlayerApi>();
         var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
         RequestInventory();
-        using(var context = new HypixelContext())
+        using (var context = new HypixelContext())
         {
             var profile = await context.Players.FindAsync(socket.SessionInfo.McUuid);
             activeAuctionCount = await context.Auctions.Where(a => a.SellerId == profile.Id && a.End > DateTime.UtcNow).CountAsync();
@@ -45,16 +45,12 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 span.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName}");
 
-                if (activeAuctions.Any(a => a.End < DateTime.Now))
-                {
-                    socket.Send(Response.Create("collectAuctions", new { }));
-                    await Task.Delay(1000);
-                }
-                else
+                if (Random.Shared.NextDouble() < 0.3)
                 {
                     socket.Dialog(db => db.Msg("Auction house full, waiting for something to sell or expire"));
-                    return; // ah full
+                    socket.Send(Response.Create("collectAuctions", new { }));
                 }
+                return; // ah full
             }
         }
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -99,7 +95,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
         var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
         var membersOnIsland = profile.Members.Count;
-        listSpace = 14 + 3 * (membersOnIsland - 1) -1; // keep one slot free for update time
+        listSpace = 14 + 3 * (membersOnIsland - 1) - 1; // keep one slot free for update time
         var listLog = socket.CreateActivity("listLog", span);
         listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
         return listLog;
@@ -223,7 +219,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     private static string MapToGameTag(SaveAuction auction)
     {
-        if(auction.Tag.StartsWith("PET_") && !auction.Tag.Contains("PET_ITEM") && !auction.Tag.Contains("PET_SKIN"))
+        if (auction.Tag.StartsWith("PET_") && !auction.Tag.Contains("PET_ITEM") && !auction.Tag.Contains("PET_SKIN"))
             return "PET";
         if (auction.Tag.StartsWith("ABIPHONE"))
             return "ABIPHONE";
