@@ -7,6 +7,7 @@ using Coflnet.Sky.Api.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.FlipTracker.Client.Api;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -29,9 +30,11 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var apiService = socket.GetService<IPlayerApi>();
         var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
         RequestInventory();
-        var offset = listSpace > 20 ? 2 : 1;
-        var activeAuctions = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, offset, filters);
-        activeAuctionCount = activeAuctions.Count() + 10 * offset;
+        using(var context = new HypixelContext())
+        {
+            var profile = await context.Players.FindAsync(socket.SessionInfo.McUuid);
+            activeAuctionCount = await context.Auctions.Where(a => a.SellerId == profile.Id && a.End > DateTime.UtcNow).CountAsync();
+        }
         if (activeAuctionCount >= 14)
         {
             if (listSpace <= 2)
@@ -96,7 +99,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
         var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
         var membersOnIsland = profile.Members.Count;
-        listSpace = 14 + 3 * (membersOnIsland - 1);
+        listSpace = 14 + 3 * (membersOnIsland - 1) -1; // keep one slot free for update time
         var listLog = socket.CreateActivity("listLog", span);
         listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
         return listLog;
