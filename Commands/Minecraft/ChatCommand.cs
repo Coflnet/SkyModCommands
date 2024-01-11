@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -76,7 +77,7 @@ namespace Coflnet.Sky.Commands.MC
             });
             socket.SessionInfo.LastMessage = DateTime.UtcNow;
             await socket.TriggerTutorial<ModCommands.Tutorials.ChatRulesTutorial>();
-            if(Regex.IsMatch(message, "(people|how|ppl).*(claiming|buy|snipe).*(fast|quick)"))
+            if (Regex.IsMatch(message, "(people|how|ppl).*(claiming|buy|snipe).*(fast|quick)"))
                 await socket.TriggerTutorial<ModCommands.Tutorials.QuickBuyTutorial>();
 
         }
@@ -105,7 +106,10 @@ namespace Coflnet.Sky.Commands.MC
                 chat = socket.GetService<ChatService>();
             }
             if (chat.MutedUuids?.Contains(socket.SessionInfo.McUuid) ?? false)
+            {
+                Activity.Current.Log("muted user");
                 return; // muted user
+            }
             var sub = await chat.Subscribe(OnMessage(socket));
             var dm = await chat.SubscribeToChannel("dm-" + socket.SessionInfo.McName.ToLower(), OnMessage(socket));
             socket.SessionInfo.ListeningToChat = true;
