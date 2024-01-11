@@ -21,15 +21,17 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             int maxDays = await GetMaxDaysPossible(socket);
-            double days = 7;
             var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
-            if (!double.TryParse(args.Last(), out days))
+            if (!double.TryParse(args.Last(), out var days) && args.First() != "")
             {
                 socket.SendMessage(COFLNET + $"usage /cofl profit [ign] {{0.5-{maxDays}}}");
                 return;
             }
             else if (arguments.Length <= 2)
+            {
+                days = 7;
                 socket.Dialog(db => db.MsgLine($"Using the default of {days} days because you didn't specify a number"));
+            }
             var time = TimeSpan.FromDays(days);
             if (time > TimeSpan.FromDays(maxDays))
             {
@@ -73,7 +75,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier.Replace("VERYSPECIAL", "VERY_SPECIAL")))}{best.ItemName}" +
                             FormatFlip(socket, best),
-                "https://sky.coflnet.com/auction/" + best.OriginAuction, 
+                "https://sky.coflnet.com/auction/" + best.OriginAuction,
                 $"Click to open best flip purchase\n{McColorCodes.GRAY}The worst flip was \n" + FormatFlip(socket, worst));
 
             string FormatFlip(MinecraftSocket socket, FlipDetails best)
