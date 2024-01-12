@@ -112,7 +112,12 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (uuid == null)
             {
                 Activity.Current?.SetTag("error", "no uuid").Log(JsonConvert.SerializeObject(item.First));
-                await SendListing(span, item.First, (long)item.Second.Median, index, uuid);
+                // try to find in sent by name
+                var fromSent = socket.LastSent.Where(x => GetItemName(x.Auction).Replace("§8!","")  == item.First.ItemName && x.Auction.Tag == item.First.Tag).FirstOrDefault();
+                var price = fromSent?.TargetPrice ?? item.Second.Median;
+                if(fromSent != null)
+                    span.Log($"Found {fromSent.Auction.ItemName} in sent using price {price}");
+                await SendListing(span, item.First, price, index, uuid);
                 break; // only list one without uuid
             }
             if (socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid))

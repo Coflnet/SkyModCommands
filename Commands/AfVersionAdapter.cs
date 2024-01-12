@@ -21,7 +21,7 @@ public class AfVersionAdapter : ModVersionAdapter
         _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
         if (ShouldSkipFlip(flip) || ShouldStopBuying())
             return Task.FromResult(true);
-        var name = flip.Auction?.Context?.GetValueOrDefault("cname") ?? flip.Auction.ItemName;
+        var name = GetItemName(flip.Auction);
         if (flip.Auction.Count > 1)
             name = $"{McColorCodes.GRAY}{flip.Auction.Count}x {name}";
         socket.Send(Response.Create("flip", new
@@ -48,6 +48,11 @@ public class AfVersionAdapter : ModVersionAdapter
         Activity.Current?.SetTag("itemName", name);
 
         return Task.FromResult(true);
+    }
+
+    protected static string GetItemName(SaveAuction auction)
+    {
+        return auction?.Context?.GetValueOrDefault("cname") ?? auction.ItemName;
     }
 
     public virtual Task TryToListAuction()
