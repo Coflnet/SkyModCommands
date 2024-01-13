@@ -1,5 +1,9 @@
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Commands.Shared.Test;
+using Coflnet.Sky.Items.Client.Model;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -8,7 +12,7 @@ namespace Coflnet.Sky.Commands.MC;
 /// </summary>
 public class ProxyReqSyncCommand : McCommand
 {
-    public override Task Execute(MinecraftSocket socket, string arguments)
+    public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         SendState(socket);
         socket.sessionLifesycle.AccountInfo.OnChange += (a) => SendState(socket);
@@ -24,7 +28,9 @@ public class ProxyReqSyncCommand : McCommand
             socket.sessionLifesycle.FlipSettings.OnChange -= (a) => SendState(socket);
             socket.sessionLifesycle.OnDelayChange -= (a) => SendState(socket);
         };
-        return Task.CompletedTask;
+        var filterState = socket.GetService<FilterStateService>().State;
+        if (await socket.UserAccountTier() >= AccountTier.PREMIUM_PLUS)
+            socket.Send(Response.Create("filterData", filterState));
     }
 
     private static void SendState(MinecraftSocket socket)

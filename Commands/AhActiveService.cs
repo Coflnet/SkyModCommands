@@ -14,7 +14,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 try
                 {
-                    IsAhDisabledDerpy = instance.CurrentMayor() == "Derpy";
+                    var service = DiHandler.GetService<FilterStateService>();
+                    IsAhDisabledDerpy = service.State.CurrentMayor == "Derpy";
                 }
                 catch (Exception e)
                 {
