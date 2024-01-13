@@ -15,6 +15,6 @@ public class ClientErrorCommand : McCommand
         Activity.Current?.AddTag("mcname", socket.SessionInfo.McName);
         Activity.Current?.AddTag("mcuuid", socket.SessionInfo.McUuid);
         Activity.Current?.AddTag("userid", socket.UserId);
-        return Task.Delay(arguments.Length);
+        return Task.Delay(arguments.Length / 20  + 10);
     }
 }
