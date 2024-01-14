@@ -84,7 +84,7 @@ public class AfVersionAdapter : ModVersionAdapter
             Activity.Current?.SetTag("blocked", "profitpercent too low < " + minProfitPercent);
             return true;
         }
-        var preService = socket.GetService<PreApiService>();
+        var preService = socket.GetService<IIsSold>();
         if (preService.IsSold(flip.Uuid))
         {
             Activity.Current?.SetTag("blocked", "sold");

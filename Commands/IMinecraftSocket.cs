@@ -13,6 +13,7 @@ namespace Coflnet.Sky.Commands.MC
     public interface IMinecraftSocket
     {
         long Id { get; }
+        string CurrentRegion { get; }
         SessionInfo SessionInfo { get; }
         FlipSettings Settings { get; }
         AccountInfo AccountInfo { get; }

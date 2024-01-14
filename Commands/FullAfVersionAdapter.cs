@@ -23,7 +23,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     public override async Task TryToListAuction()
     {
-        if (DateTime.UtcNow - lastListing < TimeSpan.FromSeconds(15))
+        if (DateTime.UtcNow - lastListing < TimeSpan.FromSeconds(15) || socket.CurrentRegion != Region.EU)
             return;
         using var span = socket.CreateActivity("listAuction", socket.ConSpan);
         lastListing = DateTime.UtcNow;
