@@ -53,13 +53,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 return; // ah full
             }
         }
-        await Task.Delay(TimeSpan.FromSeconds(2));
-        var inventory = socket.SessionInfo.Inventory;
-        if (inventory == null)
-        {
-            socket.Dialog(db => db.Msg(McColorCodes.RED + "No inventory uploaded, can't list auctions, no clue what client you use but its either outdated or broken. Please contact Äkwav#0421 on discord and include " + socket.ConSpan.TraceId));
-            throw new Exception("no inventory");
-        }
+        List<SaveAuction> inventory = await WaitForInventory();
         // retrieve price
         var sniperService = socket.GetService<ISniperClient>();
         var values = await sniperService.GetPrices(inventory);
@@ -82,6 +76,25 @@ public class FullAfVersionAdapter : AfVersionAdapter
         }
         span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
         await ListItems(span, apiService, inventory, toList);
+    }
+
+    private async Task<List<SaveAuction>> WaitForInventory()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(2));
+        for (int i = 0; i < 8; i++)
+        {
+            if (socket.SessionInfo.Inventory != null)
+                break;
+            await Task.Delay(1000);
+        }
+        var inventory = socket.SessionInfo.Inventory;
+        if (inventory == null)
+        {
+            socket.Dialog(db => db.Msg(McColorCodes.RED + "No inventory uploaded, can't list auctions, no clue what client you use but its either outdated or broken. Please contact Äkwav#0421 on discord and include " + socket.ConSpan.TraceId));
+            throw new Exception("no inventory");
+        }
+
+        return inventory;
     }
 
     private async Task<Activity> UpdateListSpace(Activity span)
