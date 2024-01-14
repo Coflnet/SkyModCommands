@@ -503,11 +503,11 @@ namespace Coflnet.Sky.Commands.MC
                 if (string.IsNullOrEmpty(SessionInfo?.McUuid))
                     await Task.Delay(1200).ConfigureAwait(false);
                 if (e.Data == "nobestflip")
-                    await InvokeCommand(a, command);
+                    await InvokeCommand(a, command!);
                 else
                 {
                     using var commandSpan = CreateActivity(a.type, span);
-                    await InvokeCommand(a, command);
+                    await InvokeCommand(a, command!);
                 }
             }, new CancellationTokenSource(TimeSpan.FromMinutes(2)).Token).ConfigureAwait(false);
         }
