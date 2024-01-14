@@ -71,7 +71,10 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (await ShouldSkip(span, apiService, item.Auction))
                 continue;
             var uuid = GetUuid(inventoryRepresent);
-            await SendListing(span, item.Auction, item.TargetPrice, index, uuid);
+            span.Log(JsonConvert.SerializeObject(item));
+            var marketBased = toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid).Select(x => Math.Min(x.Second.Median, x.Second.Lbin.Price)).FirstOrDefault();
+            var targetPrice = Math.Max(item.TargetPrice, marketBased * 0.95);
+            await SendListing(span, item.Auction, (long)targetPrice, index, uuid);
             return; // created listing
         }
         span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
@@ -126,9 +129,9 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 Activity.Current?.SetTag("error", "no uuid").Log(JsonConvert.SerializeObject(item.First));
                 // try to find in sent by name
-                var fromSent = socket.LastSent.Where(x => GetItemName(x.Auction).Replace("§8!","").Replace("§8.","")  == item.First.ItemName && x.Auction.Tag == item.First.Tag).FirstOrDefault();
+                var fromSent = socket.LastSent.Where(x => GetItemName(x.Auction).Replace("§8!", "").Replace("§8.", "") == item.First.ItemName && x.Auction.Tag == item.First.Tag).FirstOrDefault();
                 var price = fromSent?.TargetPrice ?? item.Second.Median;
-                if(fromSent != null)
+                if (fromSent != null)
                     span.Log($"Found {fromSent.Auction.ItemName} in sent using price {price}");
                 await SendListing(span, item.First, price, index, uuid);
                 break; // only list one without uuid
