@@ -192,7 +192,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <param name="settings"></param>
         /// <param name="span"></param>
-        private async Task ApplyFlipSettings(FlipSettings settings, Activity span)
+        public async Task ApplyFlipSettings(FlipSettings settings, Activity span)
         {
             if (settings == null)
                 return;
@@ -233,7 +233,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private void CheckListValidity(FlipInstance testFlip, List<ListEntry> blacklist, bool whiteList = false)
+        public void CheckListValidity(FlipInstance testFlip, List<ListEntry> blacklist, bool whiteList = false)
         {
             foreach (var item in blacklist.ToList())
             {

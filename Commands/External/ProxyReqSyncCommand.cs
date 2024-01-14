@@ -14,6 +14,16 @@ public class ProxyReqSyncCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
+        socket.Dialog(db => db.MsgLine($"Syncing settings..."));
+        for (int i = 0; i < 10; i++)
+        {
+            if(socket.Settings.IsCompiled)
+                break;
+            await Task.Delay(100);
+        }
+        var filterState = socket.GetService<FilterStateService>().State;
+        if (await socket.UserAccountTier() >= AccountTier.PREMIUM_PLUS)
+            socket.Send(Response.Create("filterData", filterState));
         SendState(socket);
         socket.sessionLifesycle.AccountInfo.OnChange += (a) => SendState(socket);
         socket.sessionLifesycle.FlipSettings.ShouldPreventUpdate += (a) =>
@@ -28,9 +38,6 @@ public class ProxyReqSyncCommand : McCommand
             socket.sessionLifesycle.FlipSettings.OnChange -= (a) => SendState(socket);
             socket.sessionLifesycle.OnDelayChange -= (a) => SendState(socket);
         };
-        var filterState = socket.GetService<FilterStateService>().State;
-        if (await socket.UserAccountTier() >= AccountTier.PREMIUM_PLUS)
-            socket.Send(Response.Create("filterData", filterState));
     }
 
     private static void SendState(MinecraftSocket socket)
