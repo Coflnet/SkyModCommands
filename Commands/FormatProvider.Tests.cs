@@ -46,7 +46,9 @@ public class FormatProviderTests
     [TestCase(-1_200_000,"-1.2M")]
     [TestCase(12_200_000_000,"12.2B")]
     [TestCase(1_000_000,"1M")]
-    public void FormatNumberSort(long input, string expected)
+    [TestCase(999_999.1,"1M")]
+    [TestCase(105031d,"105K")]
+    public void FormatNumberSort(double input, string expected)
     {
         Assert.AreEqual(expected, FormatProvider.FormatPriceShort(input));
     }

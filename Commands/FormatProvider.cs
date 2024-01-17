@@ -33,20 +33,20 @@ namespace Coflnet.Sky.Commands.MC
             num = Math.Abs(num);
             // Ensure number has max 3 significant digits (no rounding up can happen)
             long i = (long)Math.Pow(10, (long)Math.Max(0, Math.Log10(num) - 2));
-            num = num / i * i;
+            var roundNum = (long)num / i * i;
 
             if (num >= 1000000000)
-                return Format(1000000000D, "B");
+                return Format(1000000000, "B");
             if (num > 1000000 -1)
-                return Format(1000000D, "M");
+                return Format(1000000, "M");
             if (num >= 1000)
-                return Format(1000D, "K");
+                return Format(1000, "K");
 
-            return Format(1D, "", "0.#");
+            return minusPrefix + num.ToString("0.#", CultureInfo.InvariantCulture);
 
             string Format(double devider, string suffix, string format = "0.##")
             {
-                return minusPrefix + (num / devider).ToString(format, CultureInfo.InvariantCulture) + suffix;
+                return minusPrefix + (roundNum / devider).ToString(format, CultureInfo.InvariantCulture) + suffix;
             }
         }
 
