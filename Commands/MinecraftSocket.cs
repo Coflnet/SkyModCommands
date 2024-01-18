@@ -564,8 +564,8 @@ namespace Coflnet.Sky.Commands.MC
 
         public new void Close()
         {
-            base.Close();
             ConSpan.SetTag("force close", true);
+            base.Close();
         }
 
         public void SendMessage(string text, string? clickAction = null, string? hoverText = null)
@@ -643,7 +643,8 @@ namespace Coflnet.Sky.Commands.MC
             dev.Logger.Instance.Log("removing connection because ");
             dev.Logger.Instance.Error(e);
             using var span = CreateActivity("error", ConSpan)?.AddTag("message", e.Message).AddTag("error", "true");
-            OnClose(null);
+            span?.Dispose();
+            Close();
             sessionLifesycle.Dispose();
             Console.CancelKeyPress -= OnApplicationStop;
         }
