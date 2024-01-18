@@ -70,9 +70,9 @@ public class Startup
         services.AddSingleton<IBaseApi, BaseApi>(s => new BaseApi(Configuration["PROXY_BASE_URL"]));
         services.AddSingleton<IProxyApi, ProxyApi>(s => new ProxyApi(Configuration["PROXY_BASE_URL"]));
         services.AddSingleton<IBazaarFlipperApi, BazaarFlipperApi>(s => new BazaarFlipperApi(Configuration["BAZAARFLIPPER_BASE_URL"]));
-        services.AddCoflService();
         RegisterScyllaSession(services);
         services.AddHostedService<PreApiService>(s => s.GetRequiredService<PreApiService>());
+        services.AddCoflService();
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -88,8 +88,6 @@ public class Startup
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "SkyModCommands v1");
             c.RoutePrefix = "api";
         });
-
-        app.UseHttpsRedirection();
 
         app.UseRouting();
 
