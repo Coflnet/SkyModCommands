@@ -53,12 +53,23 @@ namespace Coflnet.Sky.Commands.MC
                     var secondLine = batch.Last();
                     if (secondLine.StartsWith("You claimed"))
                         await UpdateSellerAuction(socket, secondLine);
+                    if(item.StartsWith("Bid of"))
+                        await CheckBid(socket, item);
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine("chat produce failed " + e);
             }
+        }
+
+        private async Task CheckBid(MinecraftSocket socket, string item)
+        {
+            var uuid = socket.SessionInfo.VerificationBidAuctioneer;
+            if (uuid == null)
+                return;
+            var baseApi = socket.GetService<IBaseApi>();
+            await baseApi.BaseAhPlayerIdPostWithHttpInfoAsync(uuid);
         }
 
         private static async Task UpdateSellerAuction(MinecraftSocket socket, string secondLine)

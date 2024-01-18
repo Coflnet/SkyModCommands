@@ -59,6 +59,7 @@ namespace Coflnet.Sky.Commands.MC
         public bool IsDungeon { get; internal set; }
         public bool IsRift { get; internal set; }
         public bool IsMacroBot { get; set; }
+        public string VerificationBidAuctioneer { get; set; }
         [JsonIgnore]
         public CaptchaInfo captchaInfo = new();
 

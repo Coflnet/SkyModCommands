@@ -33,5 +33,10 @@ namespace Coflnet.Sky.Commands.MC
         {
             Assert.IsTrue(regex.IsMatch("[Bazaar] Cancelled! Refunded 52x Green Candy from cancelling Sell Offer!"));
         }
+        [Test]
+        public void PlaceVerificationBid()
+        {
+            Assert.IsTrue(regex.IsMatch("Bid of 197 coins placed for Stick!"));
+        }
     }
 }

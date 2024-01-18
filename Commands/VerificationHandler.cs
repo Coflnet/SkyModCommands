@@ -37,7 +37,7 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage("You have premium but you haven't verified your account yet.");
                 await Task.Delay(500).ConfigureAwait(false);
                 SendMessage(
-                    McColorCodes.YELLOW + "You have to verify your account before you receive flips at max speed. See above for how to do that.", null, 
+                    McColorCodes.YELLOW + "You have to verify your account before you receive flips at max speed. See above for how to do that.", null,
                     "This is part of our anti macro system and required to make sure you are not connecting from a cracked account");
             }
         }
@@ -137,8 +137,11 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(new ChatPart(
                 $"{socket.sessionLifesycle.COFLNET}You connected from an unknown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. ", "/ah"));
             if (targetAuction != null)
+            {
                 socket.SendMessage(new ChatPart($"{McColorCodes.YELLOW}[CLICK TO {McColorCodes.BOLD}VERIFY{McColorCodes.RESET + McColorCodes.YELLOW} by BIDDING {bid}]", $"/viewauction {targetAuction?.Uuid}",
                 $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
+                SessionInfo.VerificationBidAuctioneer = targetAuction.Seller;
+            }
             else
                 socket.SendMessage($"Please create an auction yourself for any item you want. The starting bid has to end with {McColorCodes.AQUA}{bid.ToString().PadLeft(3, '0')}{McCommand.DEFAULT_COLOR}\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}");
         }
