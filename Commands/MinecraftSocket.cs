@@ -172,6 +172,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<FlipperEstimateCommand>();
             Commands.Add<BazaarCommand>("bz");
             Commands.Add<SwitchRegionCommand>();
+            Commands.Add<CopySettingsCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
