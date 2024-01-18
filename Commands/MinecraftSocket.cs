@@ -68,8 +68,8 @@ namespace Coflnet.Sky.Commands.MC
         }
 
         private static Timer tenSecTimer;
-        private static AhActiveService ahActive = new AhActiveService();
-        public AhActiveService AhActive => ahActive;
+        private static IAhActive ahActive => DiHandler.GetService<IAhActive>();
+        public IAhActive AhActive => ahActive;
 
         public ConcurrentQueue<BlockedElement> TopBlocked = new ConcurrentQueue<BlockedElement>();
         public ConcurrentQueue<LowPricedAuction> LastSent { get; } = new ConcurrentQueue<LowPricedAuction>();

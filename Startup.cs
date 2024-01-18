@@ -22,6 +22,7 @@ using System.Security.Authentication;
 using System.Linq;
 using System.Collections.Generic;
 using Coflnet.Sky.Bazaar.Flipper.Client.Api;
+using Coflnet.Sky.Commands.MC;
 
 namespace Coflnet.Sky.ModCommands;
 public class Startup
@@ -72,6 +73,7 @@ public class Startup
         services.AddSingleton<IBazaarFlipperApi, BazaarFlipperApi>(s => new BazaarFlipperApi(Configuration["BAZAARFLIPPER_BASE_URL"]));
         RegisterScyllaSession(services);
         services.AddHostedService<PreApiService>(s => s.GetRequiredService<PreApiService>());
+        services.AddSingleton<IAhActive, AhActiveService>();
         services.AddCoflService();
     }
 

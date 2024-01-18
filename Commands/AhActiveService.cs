@@ -1,28 +1,35 @@
 using System;
 using Coflnet.Sky.Commands.Shared;
 #nullable enable
-namespace Coflnet.Sky.Commands.MC
+namespace Coflnet.Sky.Commands.MC;
+public interface IAhActive
 {
-    public class AhActiveService
-    {
-        public bool IsAhDisabledDerpy;
-        CurrentMayorDetailedFlipFilter instance = new CurrentMayorDetailedFlipFilter();
+    bool IsAhDisabledDerpy { get; }
+}
+public class AhActiveService : IAhActive
+{
+    public bool IsAhDisabledDerpy {get; private set;}
+    CurrentMayorDetailedFlipFilter instance = new CurrentMayorDetailedFlipFilter();
 
-        public AhActiveService()
+    private FilterStateService filterStateService;
+
+    public AhActiveService(FilterStateService filterStateService)
+    {
+        this.filterStateService = filterStateService;
+    }
+    public AhActiveService()
+    {
+        MinecraftSocket.NextUpdateStart += () =>
         {
-            MinecraftSocket.NextUpdateStart += () =>
+            try
             {
-                try
-                {
-                    var service = DiHandler.GetService<FilterStateService>();
-                    IsAhDisabledDerpy = service.State.CurrentMayor == "Derpy";
-                }
-                catch (Exception e)
-                {
-                    dev.Logger.Instance.Error(e, "checking if ah is disabled");
-                }
-            };
-        }
+                IsAhDisabledDerpy = filterStateService!.State.CurrentMayor == "Derpy";
+            }
+            catch (Exception e)
+            {
+                dev.Logger.Instance.Error(e, "checking if ah is disabled");
+            }
+        };
     }
 #nullable restore
 }

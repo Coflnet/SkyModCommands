@@ -22,7 +22,8 @@ public class MinecraftSocketTests
     [TestCase(51, 60, 51)]
     public async Task TestTimer(int updateIn, int countdown, int expected)
     {
-        DiHandler.OverrideService<FilterStateService,FilterStateService>(new FilterStateService());
+        DiHandler.ResetProvider();
+        DiHandler.OverrideService<IAhActive,IAhActive>(new Mock<IAhActive>().Object);
         var mockSocket = new Mock<MinecraftSocket>();
         var config = new Mock<IConfiguration>();
         mockSocket.Setup(s => s.GetService<FlipTrackingService>())
