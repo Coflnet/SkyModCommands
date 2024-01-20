@@ -283,7 +283,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 var flipData = await GetFlipData(purchases);
                 var target = flipData.OrderBy(f => f.Timestamp).Select(f => f.TargetPrice).FirstOrDefault();
-                Activity.Current?.Log($"Found {flipData.Count} flips for target {target}");
+                Activity.Current?.Log($"Found {flipData.Count} from {string.Join(",", flipData.Select(f => f.FinderType))} flips for target {target}");
+                Activity.Current?.Log(JsonConvert.SerializeObject(flipData.OrderBy(f => f.Timestamp).FirstOrDefault()));
                 return !flipData.Any();
             }
         }
