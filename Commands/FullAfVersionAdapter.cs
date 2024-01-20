@@ -61,10 +61,10 @@ public class FullAfVersionAdapter : AfVersionAdapter
         span.Log(JsonConvert.SerializeObject(toList));
         foreach (var item in socket.LastSent.Where(x => x.Finder != LowPricedAuction.FinderType.USER))
         {
-            var uid = item.Auction.FlatenedNBT?.FirstOrDefault(y => y.Key == "uid").Value;
-            if (uid == null)
+            var itemUuid = item.Auction.FlatenedNBT?.FirstOrDefault(y => y.Key == "uuid").Value;
+            if (itemUuid == null)
                 continue;
-            var inventoryRepresent = inventory.Where(x => x != null && x.FlatenedNBT != null && x.FlatenedNBT.TryGetValue("uuid", out var uuid) && uuid.Split('-').Last() == uid).FirstOrDefault();
+            var inventoryRepresent = inventory.Where(x => x != null && x.FlatenedNBT != null && x.FlatenedNBT.TryGetValue("uuid", out var uuid) && uuid == itemUuid).FirstOrDefault();
             if (inventoryRepresent == null)
                 continue;
             var index = inventory.IndexOf(inventoryRepresent);
