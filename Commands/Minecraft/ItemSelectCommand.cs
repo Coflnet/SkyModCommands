@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -10,12 +11,17 @@ public abstract class ItemSelectCommand<T> : McCommand where T : ItemSelectComma
 {
     protected async Task HandleSelectionOrDisplaySelect(MinecraftSocket socket, string[] args, string context, string hoverPrefix)
     {
-        if(socket.SessionInfo.McName == null)
+        if (socket.SessionInfo.McName == null)
             throw new CoflnetException("not logged in", "Your minecraft account cou");
         var inventory = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
         if (args.Length > 1)
         {
             var index = int.Parse(args.Last());
+            if (index < 0 || index >= inventory.Count)
+            {
+                Activity.Current.Log($"Invalid index {index} for {socket.SessionInfo.McName} in {context}");
+                throw new CoflnetException("invalid index", $"The selected item at {index} was not found in inventory");
+            }
             var item = inventory[index];
             if (item == null)
             {
