@@ -19,12 +19,14 @@ public class FlipCommand : McCommand
                 flipSettings.Value.DisableFlips = true;
                 flipSettings.Value.ModSettings.AhDataOnlyMode = true;
                 flipSettings.Value.ModSettings.AutoStartFlipper = false;
+                flipSettings.Value.LastChanged = "flip disabled";
                 await flipSettings.Update();
                 socket.SessionInfo.FlipsEnabled = false;
                 break;
             case "always":
                 flipSettings.Value.ModSettings.AutoStartFlipper = true;
                 flipSettings.Value.DisableFlips = false;
+                flipSettings.Value.LastChanged = "flips enabled";
                 await flipSettings.Update();
                 socket.SessionInfo.FlipsEnabled = true;
                 WriteCurrentState(socket);
