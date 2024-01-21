@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.PlayerState.Client.Api;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -20,6 +21,7 @@ public abstract class ItemSelectCommand<T> : McCommand where T : ItemSelectComma
             if (index < 0 || index >= inventory.Count)
             {
                 Activity.Current.Log($"Invalid index {index} for {socket.SessionInfo.McName} in {context}");
+                Activity.Current.Log(JsonConvert.SerializeObject(inventory));
                 throw new CoflnetException("invalid index", $"The selected item at {index} was not found in inventory");
             }
             var item = inventory[index];
