@@ -173,6 +173,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<BazaarCommand>("bz");
             Commands.Add<SwitchRegionCommand>();
             Commands.Add<CopySettingsCommand>();
+            Commands.Add<CraftBreakDownCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

@@ -32,7 +32,7 @@ public class FlipperEstimateCommand : ItemSelectCommand<FlipperEstimateCommand>
                     .Where(a => a.NBTLookup.Where(l => l.KeyId == key && l.Value == itemId).Any())
                     .OrderByDescending(a => a.End).Select(a => a.Uuid).FirstOrDefault();
         Activity.Current.Log($"Found auction {auctionUuid} for item {itemId}");
-        if(auctionUuid == null)
+        if (auctionUuid == null)
         {
             socket.Dialog(db => db.MsgLine("No previous sell was found for this item"));
             return;
