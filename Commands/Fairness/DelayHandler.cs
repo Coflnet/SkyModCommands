@@ -32,6 +32,7 @@ public class DelayHandler : IDelayHandler
     public TimeSpan CurrentDelay => currentDelay;
     private TimeSpan currentDelay = DefaultDelay;
     private TimeSpan macroPenalty = TimeSpan.Zero;
+    private double dropoutChance = 0.0;
     private SessionInfo sessionInfo;
     private Random random;
     private SelfUpdatingValue<AccountInfo> accountInfo;
@@ -53,6 +54,8 @@ public class DelayHandler : IDelayHandler
     {
         if (currentDelay <= TimeSpan.Zero)
             return timeProvider.Now;
+        if (dropoutChance > random.NextDouble())
+            await timeProvider.Delay(TimeSpan.FromSeconds(6)).ConfigureAwait(false);
         if (IsLikelyBot(flipInstance))
             return timeProvider.Now;
         if (flipInstance.Profit < 200_000 && flipInstance.Finder == Core.LowPricedAuction.FinderType.FLIPPER)
@@ -91,7 +94,7 @@ public class DelayHandler : IDelayHandler
         var tag = flipInstance.Auction?.Tag;
         var profitPercent = flipInstance.ProfitPercentage;
         var profitSum = flipInstance.Profit;
-        if(profitSum > 50_000_000)
+        if (profitSum > 50_000_000)
             return true;
         return tag != null && (
                     (tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE" || tag.StartsWith("SORROW_")
@@ -150,6 +153,15 @@ public class DelayHandler : IDelayHandler
             if (breakdown?.MacroedFlips != null && breakdown.MacroedFlips.Max(f => f.BuyTime) > DateTime.UtcNow - TimeSpan.FromSeconds(180))
                 summary.MacroWarning = true;
         }
+
+        // "skip" section
+        var nonpurchaseRate = breakdown?.ReceivedCount / 100 - (breakdown.Times?.Count ?? 0);
+        if (nonpurchaseRate > 0)
+        {
+            dropoutChance = nonpurchaseRate * 0.04;
+            currentDelay = TimeSpan.FromSeconds(0.001);
+        }
+
         if (accountInfo?.Value?.Tier >= AccountTier.SUPER_PREMIUM)
         {
             currentDelay *= (1 - DelayReduction);

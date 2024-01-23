@@ -67,6 +67,8 @@ namespace Coflnet.Sky.Commands.MC
         public string ConnectionType { get; set; }
 
         public List<SaveAuction> Inventory { get; set; }
+        public int SkipLikeliness { get; internal set; }
+
         public bool SellAll;
 
         public void Dispose()

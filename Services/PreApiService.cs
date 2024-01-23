@@ -211,7 +211,7 @@ public class PreApiService : BackgroundService, IPreApiService
                 {
                     await SendFlipCorrectly(e, tilPurchasable, item).ConfigureAwait(false);
                 }
-                catch(NoLoginException)
+                catch (NoLoginException)
                 {
                     // can't have preapi
                     localUsers.TryRemove(item, out _);
@@ -427,6 +427,11 @@ public class PreApiService : BackgroundService, IPreApiService
                 var isSimilarConnected = simPlayerId == connectedUid;
                 if (isSimilarConnected)
                     logger.LogInformation($"skipcheck !! {connection.SessionInfo.McName} {connection.SessionInfo.McUuid} is similar connected to {buyer} {buyerUid}");
+                if (isSimilarConnected && didMostSimilarBuyLittleToNoAuctions)
+                {
+                    connection.SessionInfo.SkipLikeliness++;
+                    connection.AccountInfo.BadActionCount++;
+                }
                 if (sim.BoughtCount > 25 && Math.Abs(sim.BoughtCount - sim.TargetReceived) <= 1 && isSimilarConnected && didMostSimilarBuyLittleToNoAuctions)
                 {
                     logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} buyer name {buyer} for {flip.Auction.Uuid} userId {connection.UserId}");
