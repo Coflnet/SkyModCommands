@@ -21,6 +21,8 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
         var converted = JsonConvert.DeserializeObject<Api.Client.Model.ItemRepresent>(JsonConvert.SerializeObject(item));
         Activity.Current.Log(JsonConvert.SerializeObject(converted));
         var result = await socket.GetService<IModApi>().ApiModPricingBreakdownPostAsync(new() { converted });
-        socket.Dialog(db => db.MsgLine("Breakdown:").ForEach(result.First().CraftPrice, (db, r) => db.MsgLine($"{r.Attribute}: {r.FormattedReson} {r.Count}x {r.Price} coins")));
+        socket.Dialog(db => db.MsgLine("Breakdown:").ForEach(result.First().CraftPrice.GroupBy(c => c.Attribute), (db, r) =>
+            db.MsgLine($" {McColorCodes.YELLOW}{r.Key} {McColorCodes.GRAY}costs {McColorCodes.GOLD}{socket.formatProvider.FormatPrice(r.Sum(c => c.Price))} coins", null,
+            string.Join("\n", r.Select(c => $"{McColorCodes.YELLOW}{c.FormattedReson}{McColorCodes.GRAY} for {McColorCodes.GOLD}{socket.formatProvider.FormatPrice(c.Price)} coins").Prepend("Required items summed:")))));
     }
 }
