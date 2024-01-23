@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using System.Threading;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -158,7 +159,8 @@ public class DelayHandler : IDelayHandler
         var nonpurchaseRate = breakdown?.ReceivedCount / 100 - (breakdown.Times?.Count ?? 0);
         if (nonpurchaseRate > 0)
         {
-            dropoutChance = nonpurchaseRate * 0.04;
+            Activity.Current?.AddTag("purchaseRate", "1");
+            dropoutChance = (nonpurchaseRate ?? 0) * 0.04;
             currentDelay = TimeSpan.FromSeconds(0.001);
         }
 
