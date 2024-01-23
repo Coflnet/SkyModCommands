@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Client.Api;
@@ -18,6 +19,7 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
     {
         // hack convert
         var converted = JsonConvert.DeserializeObject<Api.Client.Model.ItemRepresent>(JsonConvert.SerializeObject(item));
+        Activity.Current.Log(JsonConvert.SerializeObject(converted));
         var result = await socket.GetService<IModApi>().ApiModPricingBreakdownPostAsync(new() { converted });
         socket.Dialog(db => db.MsgLine("Breakdown:").ForEach(result.First().CraftPrice, (db, r) => db.MsgLine($"{r.Attribute}: {r.FormattedReson} {r.Count}x {r.Price} coins")));
     }
