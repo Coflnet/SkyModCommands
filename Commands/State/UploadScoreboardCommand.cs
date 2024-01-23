@@ -30,7 +30,7 @@ public class UploadScoreboardCommand : McCommand
                 System.Console.WriteLine("Rift detected");
                 isRift = true;
             }
-            if (item.StartsWith("Purse:"))
+            if (item.StartsWith("Purse:") || item.StartsWith("Piggy: "))
                 await new UpdatePurseCommand().Execute(socket, item.Substring(7).Replace(",", "").Split(" ")[0]);
         }
         var wasNotFlippable = socket.SessionInfo.IsNotFlipable;
