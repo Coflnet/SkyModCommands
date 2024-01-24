@@ -71,7 +71,7 @@ namespace Coflnet.Sky.Commands.MC
         private static IAhActive ahActive => DiHandler.GetService<IAhActive>();
         public IAhActive AhActive => ahActive;
 
-        public ConcurrentQueue<BlockedElement> TopBlocked = new ConcurrentQueue<BlockedElement>();
+        public ConcurrentQueue<BlockedElement> TopBlocked { get; } = new ConcurrentQueue<BlockedElement>();
         public ConcurrentQueue<LowPricedAuction> LastSent { get; } = new ConcurrentQueue<LowPricedAuction>();
         /// <summary>
         /// Triggered when the connection closes
@@ -260,8 +260,8 @@ namespace Coflnet.Sky.Commands.MC
 
             Console.CancelKeyPress += OnApplicationStop;
 
-            NextUpdateStart -= SendTimer;
-            NextUpdateStart += SendTimer;
+            NextUpdateStart -= TenSecBeforeUpdate;
+            NextUpdateStart += TenSecBeforeUpdate;
         }
 
         protected override void OnError(ErrorEventArgs e)
@@ -424,7 +424,7 @@ namespace Coflnet.Sky.Commands.MC
             if (SessionInfo.McName == null || uuid == null)
             {
                 loadSpan?.SetTag("loading", "externally");
-                var profile = await PlayerSearch.Instance.GetMcProfile(passedId) 
+                var profile = await PlayerSearch.Instance.GetMcProfile(passedId)
                     ?? throw new CoflnetException("player_not_found", $"Mojang doesn't seem to know a player with the name `{passedId}`. Please check for typos and reconnect.");
                 uuid = profile.Id;
                 SessionInfo.McName = profile.Name;
@@ -748,12 +748,12 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-        private void SendTimer()
+        private void TenSecBeforeUpdate()
         {
             using var timer = CreateActivity("timer", ConSpan);
             if (this.ReadyState == WebSocketState.Closed)
             {
-                NextUpdateStart -= SendTimer;
+                NextUpdateStart -= TenSecBeforeUpdate;
                 return;
             }
             sessionLifesycle.HouseKeeping();
@@ -766,7 +766,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
 
-            if(ahActive.IsAhDisabledDerpy)
+            if (ahActive.IsAhDisabledDerpy)
             {
                 Send(Response.Create("ping", 0));
                 timer.Log("ah disabled");
@@ -796,6 +796,13 @@ namespace Coflnet.Sky.Commands.MC
 
                 if (Settings?.ModSettings?.PlaySoundOnFlip ?? false)
                     SendSound("note.hat", 1);
+            }
+            if (AccountInfo.BadActionCount > 0)
+            {
+                using var track = this.CreateActivity("skipCheck", timer)?.AddTag("count", AccountInfo.BadActionCount);
+                var tracker = DiHandler.GetService<CircumventTracker>();
+                tracker.Callenge(this);
+                tracker.Shedule(this);
             }
         }
 

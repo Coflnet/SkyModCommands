@@ -7,6 +7,7 @@ using Coflnet.Sky.Core;
 using System.Diagnostics;
 using Coflnet.Sky.ModCommands.Dialogs;
 using System.Runtime.CompilerServices;
+using static Coflnet.Sky.Commands.MC.MinecraftSocket;
 #nullable enable
 namespace Coflnet.Sky.Commands.MC
 {
@@ -24,6 +25,7 @@ namespace Coflnet.Sky.Commands.MC
         ModSessionLifesycle sessionLifesycle { get; }
         ConcurrentQueue<LowPricedAuction> LastSent { get; }
         string UserId { get; }
+        ConcurrentQueue<BlockedElement> TopBlocked { get; }
 
         event Action OnConClose;
 

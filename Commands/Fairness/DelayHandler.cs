@@ -156,12 +156,12 @@ public class DelayHandler : IDelayHandler
         }
 
         // "skip" section
-        var nonpurchaseRate = breakdown?.ReceivedCount / 100 - (breakdown.Times?.Count ?? 0);
+        var nonpurchaseRate = (breakdown?.ReceivedCount ?? 1)/ 100 - (breakdown.Times?.Count ?? 0);
         if (nonpurchaseRate > 0)
         {
             Activity.Current?.AddTag("purchaseRate", "1");
-            dropoutChance = (nonpurchaseRate ?? 0) * 0.04;
-            currentDelay = TimeSpan.FromSeconds(0.001);
+            dropoutChance = nonpurchaseRate * 0.04;
+            currentDelay += TimeSpan.FromSeconds(0.001);
         }
 
         if (accountInfo?.Value?.Tier >= AccountTier.SUPER_PREMIUM)

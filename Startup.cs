@@ -74,6 +74,7 @@ public class Startup
         RegisterScyllaSession(services);
         services.AddHostedService<PreApiService>(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IAhActive, AhActiveService>();
+        services.AddSingleton<CircumventTracker>();
         services.AddCoflService();
     }
 
