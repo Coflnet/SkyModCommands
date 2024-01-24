@@ -31,6 +31,9 @@ public class CircumventTracker
     {
         socket.TryAsyncTimes(async () =>
         {
+            if(socket.SessionInfo.PurchaseRate == 0)
+                return;
+            using var challenge = socket.CreateActivity("challengeCreate", socket.ConSpan);
             var auction = await FindAuction(socket) ?? throw new CoflnetException("no_auction", "No auction found");
             var lowPriced = new LowPricedAuction()
             {
@@ -57,7 +60,7 @@ public class CircumventTracker
             return;
         socket.TryAsyncTimes(async () =>
         {
-            using var challenge = socket.CreateActivity("challenge");
+            using var challenge = socket.CreateActivity("challenge", socket.ConSpan);
             challenge.Log($"Choosen auction id {flip.Auction.Uuid}");
             await Task.Delay(TimeSpan.FromSeconds(2 + Random.Shared.NextDouble() * 3));
             await connectApi.ConnectChallengePostAsync(new()

@@ -68,6 +68,10 @@ namespace Coflnet.Sky.Commands.MC
 
         public List<SaveAuction> Inventory { get; set; }
         public int SkipLikeliness { get; internal set; }
+        /// <summary>
+        /// counts up for 100 not purchased flips
+        /// </summary>
+        public int PurchaseRate { get; internal set; }
 
         public bool SellAll;
 

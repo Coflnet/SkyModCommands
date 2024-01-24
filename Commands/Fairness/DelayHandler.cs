@@ -162,6 +162,7 @@ public class DelayHandler : IDelayHandler
             Activity.Current?.AddTag("purchaseRate", "1");
             dropoutChance = nonpurchaseRate * 0.04;
             currentDelay += TimeSpan.FromSeconds(0.001);
+            summary.nonpurchaseRate = nonpurchaseRate;
         }
 
         if (accountInfo?.Value?.Tier >= AccountTier.SUPER_PREMIUM)
@@ -193,6 +194,7 @@ public class DelayHandler : IDelayHandler
         public bool AntiAfk;
         public bool MacroWarning;
         public bool VerifiedMc;
+        public int nonpurchaseRate;
     }
 
     private TimeSpan GetCorrectDelay(int myIndex)

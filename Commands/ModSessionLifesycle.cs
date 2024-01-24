@@ -755,6 +755,7 @@ namespace Coflnet.Sky.Commands.MC
                 var isBot = socket.ModAdapter is AfVersionAdapter;
 
                 var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime);
+                SessionInfo.PurchaseRate = summary.nonpurchaseRate;
 
                 if (summary.Penalty > TimeSpan.Zero)
                 {
