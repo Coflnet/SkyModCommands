@@ -337,7 +337,13 @@ namespace Coflnet.Sky.Commands.MC
                         await Task.Delay(5000).ConfigureAwait(false);
                         socket.ExecuteCommand("/cofl stop");
                         span.Log($"connected from somewhere else {info.ActiveConnectionId} != '{SessionInfo.ConnectionId}' {currentId}");
-                        socket.Close();
+
+                        await Task.Delay(1000);
+                        socket.Dialog(db=>db.MsgLine("This connection was suspended, to avoid a reconnect loop of your faulty client its downgraded to free tier"));
+                        AccountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(AccountInfo.Value);
+                        AccountInfo.Value.Tier = AccountTier.NONE;
+                        AccountInfo.Value.ExpiresAt = DateTime.UtcNow;
+                        UserId = SelfUpdatingValue<string>.CreateNoUpdate((string)null);
                         return;
                     }
                 }
