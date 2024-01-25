@@ -77,7 +77,7 @@ namespace Coflnet.Sky.Commands.MC
             var priceColor = GetProfitColor((int)profit);
             string finderType = FinderText(flip);
             var a = flip.Auction;
-            string itemName = GetItemName(flip);
+            string itemName = GetItemName(flip.Auction);
             var cost = a.HighestBidAmount == 0 ? a.StartingBid : a.HighestBidAmount;
             var formatString = blockedReason == null ? Settings.ModSettings?.Format : Settings.ModSettings?.BlockedFormat;
             if (!string.IsNullOrWhiteSpace(formatString) && flip.Auction?.Context != null)
@@ -152,9 +152,9 @@ namespace Coflnet.Sky.Commands.MC
                                         ? "PREM+" : "");
         }
 
-        private string GetItemName(FlipInstance flip)
+        public string GetItemName(SaveAuction auction)
         {
-            string itemName = flip.Auction?.Context?.ContainsKey("cname") ?? false ? flip.Auction.Context["cname"] : $"{GetRarityColor(flip.Auction.Tier)}{flip.Auction.ItemName}";
+            string itemName = auction?.Context?.ContainsKey("cname") ?? false ? auction.Context["cname"] : $"{GetRarityColor(auction.Tier)}{auction.ItemName}";
             if (Settings.ModSettings.ShortNames)
             {
                 foreach (var item in ItemReferences.reforges)
