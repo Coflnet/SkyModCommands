@@ -801,7 +801,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 using var track = this.CreateActivity("skipCheck", timer)?.AddTag("count", AccountInfo.BadActionCount);
                 var tracker = DiHandler.GetService<CircumventTracker>();
-                if (Math.Min(AccountInfo.BadActionCount + 1, 40d) / 100 > new Random().NextDouble())
+                if (Math.Min(AccountInfo.BadActionCount + 2, 40d) / 100 > Random.Shared.NextDouble())
                     tracker.Callenge(this);
                 tracker.Shedule(this);
             }

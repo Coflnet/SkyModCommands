@@ -71,7 +71,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <summary>
         /// counts up for 100 not purchased flips
         /// </summary>
-        public int PurchaseRate { get; internal set; }
+        public int NotPurchaseRate { get; internal set; }
 
         public bool SellAll;
 
