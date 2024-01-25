@@ -59,7 +59,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var values = await sniperService.GetPrices(inventory);
         var toList = inventory.Zip(values).Skip(9).Where(x => x.First != null && x.Second.Median > 1000);
         span.Log(JsonConvert.SerializeObject(toList));
-        foreach (var item in socket.LastSent.Where(x => x.Finder != LowPricedAuction.FinderType.USER))
+        foreach (var item in LastSentFlips())
         {
             var itemUuid = item.Auction.FlatenedNBT?.FirstOrDefault(y => y.Key == "uuid").Value;
             if (itemUuid == null)
@@ -79,6 +79,15 @@ public class FullAfVersionAdapter : AfVersionAdapter
         }
         span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
         await ListItems(span, apiService, inventory, toList);
+    }
+
+    private IEnumerable<LowPricedAuction> LastSentFlips()
+    {
+        return socket.LastSent
+                // Flips can be relisted for a different price, 
+                // by ordering by start the last listing is chosen
+                .OrderByDescending(ls => ls.Auction.Start)
+                .Where(x => x.Finder != LowPricedAuction.FinderType.USER);
     }
 
     private async Task<List<SaveAuction>> WaitForInventory()
