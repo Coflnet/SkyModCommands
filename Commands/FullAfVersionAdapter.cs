@@ -142,7 +142,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 var price = fromSent?.TargetPrice ?? item.Second.Median;
                 if (fromSent != null)
                     span.Log($"Found {fromSent.Auction.ItemName} in sent using price {price}");
-                else if(item.First.Count > 1)
+                else if (item.First.Count > 1)
                 {
                     long estimate = await GetEstimateViaLastPurchasedNoUid(span, apiService, item);
                     price = estimate;
@@ -195,7 +195,15 @@ public class FullAfVersionAdapter : AfVersionAdapter
     {
         // find via history 
         var history = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, new Dictionary<string, string>() { { "tag", item.First.Tag } });
-        var historyItem = history.OrderByDescending(x => (x.ItemName == item.First.ItemName) ? 1 : 0).ThenByDescending(x => x.End).FirstOrDefault();
+        var matching = history.OrderByDescending(x => (x.ItemName == item.First.ItemName) ? 1 : 0).ThenByDescending(x => x.End).Where(x => x.End > DateTime.UtcNow.AddDays(-2));
+        var count = matching.Count();
+        var historyItem = matching.FirstOrDefault();
+        if (count > 1)
+        {
+            var auction = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(historyItem.AuctionId);
+            if (auction.Count != item.First.Count)
+                throw new CoflnetException("multiple_history_items", $"Your last purchase of {item.First.Count} {item.First.ItemName} not matching the {item.First.Count} in your inventory. To prevent underlisting please list manually");
+        }
         var auctionId = socket.GetService<AuctionService>().GetId(historyItem.AuctionId);
         // get price from fliptracker
         var flipData = await socket.GetService<ITrackerApi>().TrackerFlipsAuctionIdGetAsync(auctionId);
