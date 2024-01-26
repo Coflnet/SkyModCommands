@@ -142,6 +142,11 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 var price = fromSent?.TargetPrice ?? item.Second.Median;
                 if (fromSent != null)
                     span.Log($"Found {fromSent.Auction.ItemName} in sent using price {price}");
+                else if(item.First.Count > 1)
+                {
+                    long estimate = await GetEstimateViaLastPurchasedNoUid(span, apiService, item);
+                    price = estimate;
+                }
                 await SendListing(span, item.First, price, index, uuid);
                 break; // only list one without uuid
             }
@@ -184,6 +189,19 @@ public class FullAfVersionAdapter : AfVersionAdapter
             }
             await SendListing(span, item.First, (long)target, index, uuid);
         }
+    }
+
+    private async Task<long> GetEstimateViaLastPurchasedNoUid(Activity span, IPlayerApi apiService, (SaveAuction First, Sniper.Client.Model.PriceEstimate Second) item)
+    {
+        // find via history 
+        var history = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, new Dictionary<string, string>() { { "tag", item.First.Tag } });
+        var historyItem = history.OrderByDescending(x => (x.ItemName == item.First.ItemName) ? 1 : 0).ThenByDescending(x => x.End).FirstOrDefault();
+        var auctionId = socket.GetService<AuctionService>().GetId(historyItem.AuctionId);
+        // get price from fliptracker
+        var flipData = await socket.GetService<ITrackerApi>().TrackerFlipsAuctionIdGetAsync(auctionId);
+        var estimate = (long)flipData.Select(f => f.TargetPrice).Average();
+        span.Log($"Found {item.First.ItemName} in inventory with count {item.First.Count} using price {estimate}");
+        return estimate;
     }
 
     private void RequestInventory()
