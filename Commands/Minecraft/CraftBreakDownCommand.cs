@@ -23,6 +23,7 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
         var result = await socket.GetService<IModApi>().ApiModPricingBreakdownPostAsync(new() { converted });
         socket.Dialog(db => db.MsgLine("Breakdown:").ForEach(result.First().CraftPrice.GroupBy(c => c.Attribute), (db, r) =>
             db.MsgLine($" {McColorCodes.YELLOW}{r.Key} {McColorCodes.GRAY}costs {McColorCodes.GOLD}{socket.formatProvider.FormatPrice(r.Sum(c => c.Price))} coins", null,
-            string.Join("\n", r.Select(c => $"{McColorCodes.YELLOW}{c.FormattedReson}{McColorCodes.GRAY} for {McColorCodes.GOLD}{socket.formatProvider.FormatPrice(c.Price)} coins").Prepend("Required items summed:")))));
+            string.Join("\n", r.Select(c => $"{McColorCodes.YELLOW}{c.FormattedReson}{McColorCodes.GRAY} for {McColorCodes.GOLD}{socket.formatProvider.FormatPrice(c.Price)} coins").Prepend("Required items summed:"))))
+            .MsgLine($"Total cost: {McColorCodes.GOLD}{socket.formatProvider.FormatPrice(result.First().CraftPrice.Sum(c => c.Price))} coins"));
     }
 }
