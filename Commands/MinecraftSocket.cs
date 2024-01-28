@@ -800,6 +800,11 @@ namespace Coflnet.Sky.Commands.MC
             if (AccountInfo.BadActionCount > 0)
             {
                 using var track = this.CreateActivity("skipCheck", timer)?.AddTag("count", AccountInfo.BadActionCount);
+                if (sessionLifesycle.UserId.Value == default)
+                {
+                    Log("bad action count but no user id");
+                    return;
+                }
                 var tracker = DiHandler.GetService<CircumventTracker>();
                 if (Math.Min(AccountInfo.BadActionCount + 2, 40d) / 100 > Random.Shared.NextDouble())
                     tracker.Callenge(this);
