@@ -16,14 +16,21 @@ public class AfVersionAdapter : ModVersionAdapter
     public AfVersionAdapter(MinecraftSocket socket) : base(socket)
     {
     }
-    public override Task<bool> SendFlip(FlipInstance flip)
+    public override async Task<bool> SendFlip(FlipInstance flip)
     {
         _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
-        if (ShouldSkipFlip(flip) || ShouldStopBuying())
-            return Task.FromResult(true);
+        (bool stopBuy, bool wait) = ShouldStopBuying();
+        if (ShouldSkipFlip(flip) || stopBuy)
+            return true;
         var name = GetItemName(flip.Auction);
         if (flip.Auction.Count > 1)
             name = $"{McColorCodes.GRAY}{flip.Auction.Count}x {name}";
+        if (wait)
+        {
+            var extraWait = Random.Shared.Next(0, 500);
+            await Task.Delay(extraWait);
+            Activity.Current.Log($"Waited {extraWait}ms");
+        }
         socket.Send(Response.Create("flip", new
         {
             id = flip.Auction.Uuid,
@@ -47,7 +54,7 @@ public class AfVersionAdapter : ModVersionAdapter
         Activity.Current?.SetTag("target", flip.MedianPrice);
         Activity.Current?.SetTag("itemName", name);
 
-        return Task.FromResult(true);
+        return true;
     }
 
     protected static string GetItemName(SaveAuction auction)
@@ -95,9 +102,9 @@ public class AfVersionAdapter : ModVersionAdapter
         return false;
     }
 
-    protected virtual bool ShouldStopBuying()
+    protected virtual (bool skip, bool wait) ShouldStopBuying()
     {
-        return false;
+        return (false, true);
     }
 
 

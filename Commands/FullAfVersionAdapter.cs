@@ -220,7 +220,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         }));
     }
 
-    protected override bool ShouldStopBuying()
+    protected override (bool skip, bool wait) ShouldStopBuying()
     {
         var maxItemsAllowedInInventory = socket.Settings?.ModSettings?.MaxFlipItemsInInventory ?? 0;
         if (maxItemsAllowedInInventory != 0
@@ -229,17 +229,24 @@ public class FullAfVersionAdapter : AfVersionAdapter
         {
             socket.Dialog(db => db.Msg($"Reached max flip items in inventory, paused buying until items are sold and listed. ")
                 .Msg($"Can be disabled with {McColorCodes.AQUA}/cofl set maxFlipInInventory 0"));
-            return true;
+            return (true, false);
         }
-        var stop = socket.SessionInfo.Inventory?.Skip(10).Count(x => x == null) < 3;
-        if (stop)
+        var isFull = socket.SessionInfo.Inventory?.Skip(10).Count(x => x == null) < 3;
+        if (maxItemsAllowedInInventory > 100)
+        {
+            // special case user wants to not stop buying
+            if (Random.Shared.NextDouble() < 0.3)
+                RequestInventory();
+            return (false, isFull);
+        }
+        if (isFull)
         {
             if (Random.Shared.NextDouble() < 0.1)
                 socket.SendMessage("§cAuction house and inventory full, paused buying");
             if (Random.Shared.NextDouble() < 0.3)
                 RequestInventory();
         }
-        return stop;
+        return (isFull, false);
     }
 
     private static string GetUuid(SaveAuction inventoryRepresent)
