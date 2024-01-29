@@ -21,7 +21,13 @@ public class AfVersionAdapter : ModVersionAdapter
         _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
         (bool stopBuy, bool wait) = ShouldStopBuying();
         if (ShouldSkipFlip(flip) || stopBuy)
+        {
+            if (stopBuy)
+                Activity.Current?.Log("blocked by stopBuy");
+            else 
+                Activity.Current?.Log("blocked by ShouldSkipFlip");
             return true;
+        }
         var name = GetItemName(flip.Auction);
         if (flip.Auction.Count > 1)
             name = $"{McColorCodes.GRAY}{flip.Auction.Count}x {name}";
