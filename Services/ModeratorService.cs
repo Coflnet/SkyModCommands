@@ -16,7 +16,8 @@ public class ModeratorService
         "839271a6a485403492fb96f98ff620c1", // SkilledBear
         "7d4a1e2200e245f8b7b490a6b0dd984b", // sparkleZ
         "6da36b38ef0149f1bfd00873d7ce5210", // Aistoze     
-        "e7246661de77474f94627fabf9880f60", // IcyHenryT   
+        "e7246661de77474f94627fabf9880f60", // IcyHenryT  
+        "cfc37fbedfab4498893ea7799deedde5", // Flooored
     };
     public bool IsModerator(MinecraftSocket socket)
     {
