@@ -38,11 +38,11 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (socket.HasFlippingDisabled())
                 return;
-
+            var maxCostFromPurse = socket.SessionInfo.Purse * (Settings.ModSettings.MaxPercentOfPurse == 0 ? 100 : Settings.ModSettings.MaxPercentOfPurse) / 100;
             var prefiltered = flips.Where(f => !SentFlips.ContainsKey(f.UId)
                 && FinderEnabled(f)
                 && NotSold(f)
-                && (f.Auction.StartingBid < socket.SessionInfo.Purse || socket.SessionInfo.Purse == 0 || f.Finder == LowPricedAuction.FinderType.USER))
+                && (f.Auction.StartingBid < maxCostFromPurse || socket.SessionInfo.Purse == 0 || f.Finder == LowPricedAuction.FinderType.USER))
                 .Select(f => (f, instance: FlipperService.LowPriceToFlip(f)))
                 .ToList();
 
@@ -51,8 +51,9 @@ namespace Coflnet.Sky.Commands.MC
                 await LoadAdditionalInfo(prefiltered).ConfigureAwait(false);
             }
 
-            var matches = prefiltered.Where(f => FlipMatchesSetting(f.f, f.instance)
-                && IsNoDupplicate(f.f)).ToList();
+            var matches = prefiltered.Where(f =>
+                    FlipMatchesSetting(f.f, f.instance)
+                    && IsNoDupplicate(f.f)).ToList();
             if (matches.Count == 0)
                 return;
 
@@ -109,7 +110,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (!spamController.ShouldBeSent(flipInstance))
                 return BlockedFlip(f, "spam");
-            if(socket.LastSent.Where(l=>l.Auction.Tag == f.Auction.Tag && f.Auction.Start - l.Auction.Start < TimeSpan.FromMinutes(3) && !flipInstance.IsWhitelisted()).Count() >= 3)
+            if (socket.LastSent.Where(l => l.Auction.Tag == f.Auction.Tag && f.Auction.Start - l.Auction.Start < TimeSpan.FromMinutes(3) && !flipInstance.IsWhitelisted()).Count() >= 3)
                 return BlockedFlip(f, "listing spam");
             return true;
         }
@@ -124,7 +125,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private bool FlipMatchesSetting(LowPricedAuction flip, FlipInstance flipInstance)
         {
-            if(Settings == null)
+            if (Settings == null)
                 return false;
             var isMatch = (false, "");
             try
