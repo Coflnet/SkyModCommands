@@ -169,7 +169,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-2)))
             {
                 // all are more recent than a day, still usable
-                target = flips.Select(f => f.TargetPrice).Average();
+                target = flips.Where(f => (int)f.FinderType < 100 && socket.Settings.AllowedFinders.HasFlag(f.FinderType)).Select(f => f.TargetPrice).Average();
                 span.Log($"Found {flips.Count} flips for average price {target}");
             }
             else if (flips.All(f => f.FinderType == FlipTracker.Client.Model.FinderType.FLIPPER))
