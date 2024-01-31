@@ -7,6 +7,7 @@ using Coflnet.Sky.Api.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.FlipTracker.Client.Api;
+using Coflnet.Sky.FlipTracker.Client.Model;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
@@ -169,7 +170,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-2)))
             {
                 // all are more recent than a day, still usable
-                target = flips.Where(f => (int)f.FinderType < 100 && socket.Settings.AllowedFinders.HasFlag(Enum.Parse<LowPricedAuction.FinderType>(f.FinderType.ToString())))
+                target = flips.Where(f => (int)f.FinderType < 100 && IsFinderEnabled(f))
                         .Select(f => f.TargetPrice).Average();
                 span.Log($"Found {flips.Count} flips for average price {target}");
             }
@@ -190,6 +191,16 @@ public class FullAfVersionAdapter : AfVersionAdapter
             }
             await SendListing(span, item.First, (long)target, index, uuid);
         }
+    }
+
+    private bool IsFinderEnabled(Flip f)
+    {
+        var finderString = f.FinderType.ToString();
+        return socket.Settings.AllowedFinders.HasFlag(Enum.Parse<LowPricedAuction.FinderType>(finderString switch
+        {
+            "SNIPERMEDIAN" => "SNIPER_MEDIAN",
+            _ => finderString
+        }));
     }
 
     private async Task<long> GetEstimateViaLastPurchasedNoUid(Activity span, IPlayerApi apiService, (SaveAuction First, Sniper.Client.Model.PriceEstimate Second) item)
