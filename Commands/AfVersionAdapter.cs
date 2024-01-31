@@ -24,7 +24,7 @@ public class AfVersionAdapter : ModVersionAdapter
         {
             if (stopBuy)
                 Activity.Current?.Log("blocked by stopBuy");
-            else 
+            else
                 Activity.Current?.Log("blocked by ShouldSkipFlip");
             return true;
         }
@@ -47,12 +47,14 @@ public class AfVersionAdapter : ModVersionAdapter
         }));
         if (flip.IsWhitelisted())
         {
+            await Task.Delay(300);
             foreach (var item in socket.Settings.WhiteList)
             {
                 if (!item.MatchesSettings(flip))
                     continue;
 
-                socket.Dialog(db => db.Msg($"{name} for {flip.Auction.StartingBid} matched your Whitelist entry: {BlacklistCommand.FormatEntry(item)}"));
+                socket.Dialog(db => db.Msg($"{name} for {flip.Auction.StartingBid} matched your Whitelist entry: {BlacklistCommand.FormatEntry(item)}\n" +
+                    $"Found by {flip.Finder} finder"));
                 break;
             }
         }
@@ -83,7 +85,8 @@ public class AfVersionAdapter : ModVersionAdapter
     private bool ShouldSkipFlip(FlipInstance flip)
     {
         var purse = socket.SessionInfo.Purse;
-        if (purse != 0 && flip.Auction.StartingBid > purse / 3 * 2)
+        var maxPercent = socket.Settings.ModSettings.MaxPercentOfPurse;
+        if (purse != 0 && flip.Auction.StartingBid > purse / 3 * 2 && maxPercent == 0)
         {
             Activity.Current?.SetTag("blocked", "not enough purse");
             socket.Dialog(db => db.Msg($"Skipped buying {flip.Auction.ItemName} for {flip.Auction.StartingBid} because you only have {purse} purse left (max 2/3 used for one flip)"));
