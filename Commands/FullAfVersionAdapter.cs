@@ -171,7 +171,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 // all are more recent than a day, still usable
                 target = flips.Where(f => (int)f.FinderType < 100 && IsFinderEnabled(f))
-                        .Select(f => f.TargetPrice).Average();
+                        .Select(f => f.TargetPrice).DefaultIfEmpty((int)flips.Select(f => f.TargetPrice).Average()).Average();
                 span.Log($"Found {flips.Count} flips for average price {target}");
             }
             else if (flips.All(f => f.FinderType == FlipTracker.Client.Model.FinderType.FLIPPER))
