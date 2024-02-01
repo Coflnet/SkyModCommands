@@ -145,8 +145,17 @@ public class FullAfVersionAdapter : AfVersionAdapter
                     span.Log($"Found {fromSent.Auction.ItemName} in sent using price {price}");
                 else if (item.First.Count > 1)
                 {
-                    long estimate = await GetEstimateViaLastPurchasedNoUid(span, apiService, item);
-                    price = estimate;
+                    try
+                    {
+
+                        long estimate = await GetEstimateViaLastPurchasedNoUid(span, apiService, item);
+                        price = estimate;
+                    }
+                    catch (System.Exception e)
+                    {
+                        socket.Error(e, "checking no uid");
+                        continue;
+                    }
                 }
                 await SendListing(span, item.First, price, index, uuid);
                 break; // only list one without uuid
