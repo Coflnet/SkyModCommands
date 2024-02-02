@@ -358,6 +358,12 @@ namespace Coflnet.Sky.Commands.MC
                         await action().ConfigureAwait(false);
                         return;
                     }
+                    catch (CoflnetException e)
+                    {
+                        Error(e, errorMessage);
+                        if (i >= times - 1) // last fail
+                            Dialog(db => db.MsgLine(e.Message));
+                    }
                     catch (Exception e)
                     {
                         Error(e, errorMessage);
