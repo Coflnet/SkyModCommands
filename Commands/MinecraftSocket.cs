@@ -174,6 +174,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SwitchRegionCommand>();
             Commands.Add<CopySettingsCommand>();
             Commands.Add<CraftBreakDownCommand>();
+            Commands.Add<CookieCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
