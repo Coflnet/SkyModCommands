@@ -23,7 +23,7 @@ public class PriceStorageService
         table = new Table<PriceEstimateValue>(session, new MappingConfiguration().Define(
             new Map<PriceEstimateValue>()
                 .PartitionKey(x => x.Uuid)
-                .Column(x => x.PlayerUuid, cm => cm.WithName("player_uuid"))
+                .ClusteringKey(x => x.PlayerUuid)
                 .Column(x => x.Value, cm => cm.WithName("value"))
                 .Column(x => x.Uuid, cm => cm.WithName("uuid"))
         ), "mod_price_estimate");
@@ -32,9 +32,10 @@ public class PriceStorageService
 
     public async Task<long> GetPrice(Guid uuid, Guid playerUuid)
     {
-        return await table.Where(x => x.Uuid == uuid && x.PlayerUuid == playerUuid)
-            .Select(x => x.Value)
-            .FirstOrDefault().ExecuteAsync();
+        var all = await table.Where(x => x.Uuid == uuid)
+            .ExecuteAsync();
+        var value = all.FirstOrDefault(x => x.PlayerUuid == playerUuid);
+        return value?.Value ?? 0;
     }
 
     public async Task SetPrice(Guid playerUuid, Guid uuid, long value)
