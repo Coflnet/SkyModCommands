@@ -25,7 +25,10 @@ public class SellInventoryCommand : McCommand
         foreach (var item in socket.SessionInfo.Inventory.Skip(9).Where(i => i != null && !i.ItemName.Contains("Menu")))
         {
             Activity.Current.Log("selling " + item.ItemName);
-            socket.Dialog(db => db.MsgLine($"§7[§6§lSelling§7]§r{item.ItemName}"));
+            var suffix = "";
+            if(item.Count > 1)
+                suffix = $" x{item.Count}";
+            socket.Dialog(db => db.MsgLine($"§7[§6§lSelling§7]§r{item.ItemName}{suffix}"));
         }
         socket.Dialog(db => db.Msg("Starting to sell all items in your inventory (except armor). \nPlease make sure there is nothing in your inventory you don't want to sell (see above for list)."));
         await adapter.TryToListAuction();
