@@ -28,8 +28,16 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             if (!socket.SessionInfo.FlipsEnabled)
+            {
                 socket.Dialog(db => db.CoflCommand<FlipCommand>("You don't have flips enabled.\nClick to toggle flips", "", "Click to toggle them"));
+                return;
+            }
 
+            if (socket.SessionInfo.clientSessionId.Length == 7 && socket.SessionInfo.clientSessionId.EndsWith("idd"))
+            {
+                socket.Dialog(db => db.MsgLine("You are using a random middleman account, this account is delayed by 1 minute please contact me (Äkwav)", null, "This account is used for testing purposes"));
+                return;
+            }
             if (delayAmount <= TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"You are currently not delayed at all :)", null, "Enjoy flipping at full speed☻");
             else if (delayAmount == TimeSpan.FromSeconds(12))

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
@@ -40,7 +41,7 @@ public class CircumventTracker
                 Auction = auction,
                 TargetPrice = auction.StartingBid + (long)(socket.Settings.MinProfit * (1 + Random.Shared.NextDouble())),
                 AdditionalProps = new(),
-                DailyVolume = (int)socket.Settings.MinVolume + 1,
+                DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() * 0.1f),
                 Finder = socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.SNIPER) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
             };
             var flip = FlipperService.LowPriceToFlip(lowPriced);
@@ -51,6 +52,7 @@ public class CircumventTracker
                 return;
             }
             logger.LogError("Testflip doesn't match {UserId} ({socket.SessionInfo.McUuid}) {flip}", socket.UserId, socket.SessionInfo.McUuid, JsonConvert.SerializeObject(lowPriced));
+            throw new CoflnetException("no_match", "No matching flip found " + JsonConvert.SerializeObject(lowPriced));
         }, "creating challenge");
     }
 
@@ -82,7 +84,8 @@ public class CircumventTracker
             return blocked.Flip.Auction;
         }
         using var context = new HypixelContext();
-        return await context.Auctions.OrderByDescending(a => a.Id)
+        Activity.Current?.Log("From db");
+        return await context.Auctions.OrderByDescending(a => a.Id).Include(a=>a.Enchantments).Include(a=>a.NbtData)
             .Take(250)
             .Where(a => a.HighestBidAmount == 0).FirstOrDefaultAsync();
     }
