@@ -25,6 +25,7 @@ public class PriceStorageService
                 .Column(x => x.Value, cm => cm.WithName("value"))
                 .Column(x => x.Uuid, cm => cm.WithName("uuid"))
         ), "mod_price_estimate");
+        table.CreateIfNotExists();
     }
 
     public async Task<long> GetPrice(Guid uuid)
