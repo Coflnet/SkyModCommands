@@ -8,6 +8,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.FlipTracker.Client.Api;
 using Coflnet.Sky.FlipTracker.Client.Model;
+using Coflnet.Sky.ModCommands.Services;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
@@ -20,6 +21,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
     public FullAfVersionAdapter(MinecraftSocket socket) : base(socket)
     {
         socket.SessionInfo.IsMacroBot = true;
+    }
+
+    public override async Task<bool> SendFlip(FlipInstance flip)
+    {
+        var result = await base.SendFlip(flip);
+        await socket.GetService<PriceStorageService>().SetPrice(Guid.Parse(flip.Auction.Uuid), flip.Target);
+        return result;
     }
 
     public override async Task TryToListAuction()
@@ -163,6 +171,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid))
                 continue; // ignore recently sent they are handled by the loop above
             // get target 
+            var storedEstimate = socket.GetService<PriceStorageService>().GetPrice(Guid.Parse(uuid));
             var flips = await GetFlipData(await GetPurchases(apiService, uuid));
             var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
             if (flips.Count == 0)
@@ -187,6 +196,12 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 // very different from median, might include more, diverge from median
                 target = flips.Select(f => f.TargetPrice).Average() * 0.95;
+            }
+            var stored = await storedEstimate;
+            if (stored > 0)
+            {
+                span.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored}");
+                target = stored;
             }
 
             if (socket.Settings.ModSettings.QuickSell)
