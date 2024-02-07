@@ -4,12 +4,15 @@ using System.Threading.Tasks;
 using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Castle.Core.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
 public class PriceStorageService
 {
     private Table<PriceEstimateValue> table;
+    private ILogger<PriceStorageService> logger;
     public class PriceEstimateValue
     {
         public Guid PlayerUuid { get; set; }
@@ -18,7 +21,7 @@ public class PriceStorageService
 
     }
 
-    public PriceStorageService(ISession session)
+    public PriceStorageService(ISession session, ILogger<PriceStorageService> logger)
     {
         table = new Table<PriceEstimateValue>(session, new MappingConfiguration().Define(
             new Map<PriceEstimateValue>()
@@ -28,13 +31,23 @@ public class PriceStorageService
                 .Column(x => x.Uuid, cm => cm.WithName("uuid"))
         ), "mod_price_estimate");
         table.CreateIfNotExists();
+        this.logger = logger;
     }
 
     public async Task<long> GetPrice(Guid uuid, Guid playerUuid)
     {
-        return await table.Where(x => x.Uuid == uuid && x.PlayerUuid == playerUuid)
-            .Select(x => x.Value)
-            .FirstOrDefault().ExecuteAsync();
+        try
+        {
+
+            return await table.Where(x => x.Uuid == uuid && x.PlayerUuid == playerUuid)
+                .Select(x => x.Value)
+                .FirstOrDefault().ExecuteAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e, "Error getting price");
+            return 0;
+        }
     }
 
     public async Task SetPrice(Guid playerUuid, Guid uuid, long value)
