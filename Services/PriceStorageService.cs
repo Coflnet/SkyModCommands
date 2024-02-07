@@ -32,10 +32,9 @@ public class PriceStorageService
 
     public async Task<long> GetPrice(Guid uuid, Guid playerUuid)
     {
-        var all = await table.Where(x => x.Uuid == uuid)
-            .ExecuteAsync();
-        var value = all.FirstOrDefault(x => x.PlayerUuid == playerUuid);
-        return value?.Value ?? 0;
+        return await table.Where(x => x.Uuid == uuid && x.PlayerUuid == playerUuid)
+            .Select(x => x.Value)
+            .FirstOrDefault().ExecuteAsync();
     }
 
     public async Task SetPrice(Guid playerUuid, Guid uuid, long value)
