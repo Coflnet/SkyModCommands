@@ -21,11 +21,10 @@ public class PriceStorageService
     {
         table = new Table<PriceEstimateValue>(session, new MappingConfiguration().Define(
             new Map<PriceEstimateValue>()
-                .TableName("mod_price_estimate")
                 .PartitionKey(x => x.Uuid)
                 .Column(x => x.Value, cm => cm.WithName("value"))
                 .Column(x => x.Uuid, cm => cm.WithName("uuid"))
-        ));
+        ), "mod_price_estimate");
     }
 
     public async Task<long> GetPrice(Guid uuid)
