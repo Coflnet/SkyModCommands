@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
-using Castle.Core.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.ModCommands.Services;
