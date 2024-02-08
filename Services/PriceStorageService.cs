@@ -52,13 +52,13 @@ public class PriceStorageService
         try
         {
 
-            return await table.Where(x => x.Uuid == uuid && x.PlayerUuid == playerUuid)
-                .Select(x => x.Value)
+            var value = await table.Where(x => x.Uuid == uuid && x.PlayerUuid == playerUuid)
                 .FirstOrDefault().ExecuteAsync();
+            return value?.Value ?? 0;
         }
         catch (System.Exception e)
         {
-            logger.LogError(e, "Error getting price");
+            logger.LogError(e, "Error getting price for {uuid} {playerUuid}", uuid, playerUuid);
             return 0;
         }
     }
