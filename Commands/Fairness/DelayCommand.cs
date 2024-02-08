@@ -50,19 +50,24 @@ namespace Coflnet.Sky.Commands.MC
                     + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
                     null, "Enjoy flipping at high speed☻");
             if ((socket.Settings?.Visibility?.LowestBin ?? false) && socket.Settings.AllowedFinders != Core.LowPricedAuction.FinderType.SNIPER)
-                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show lowest bin enabled, this can drastically slow down flips.\n{McColorCodes.GREEN}Click to disable it", "showlbin false", "Disables lowest bin visibility"));
+                ShowWarning(socket, "show lowest bin", "showlbin");
             if ((socket.Settings?.BasedOnLBin ?? false) && socket.Settings.AllowedFinders != Core.LowPricedAuction.FinderType.SNIPER)
-                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have profit by lowest bin and non lbin finders enabled, this can drastically slow down flips.\n{McColorCodes.GREEN}Click to disable it", "lbin false", "Disables forcing lbin profit"));
+                ShowWarning(socket, "profit based on lowest bin", "lbin");
             if (socket.Settings?.Visibility?.SecondLowestBin ?? false)
-                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show second lowest bin enabled, this can drastically slow down flips.\n{McColorCodes.GREEN}Click to disable it", "showslbin false", "Disables second lbin visibility"));
+                ShowWarning(socket, "show second lowest bin", "showslbin");
             if (socket.Settings?.Visibility?.Seller ?? false)
-                socket.Dialog(db => db.CoflCommand<SetCommand>($"You have show sell enabled, this can drastically slow down flips.\n{McColorCodes.GREEN}Click to disable it", "showseller false", "Disables seller visibility"));
+                ShowWarning(socket, "show seller name", "showseller");
 
             await socket.TriggerTutorial<DelayTutorial>();
             if (delayAmount >= TimeSpan.FromSeconds(1))
             {
                 socket.SendMessage(GetSupportText(socket, delayAmount));
             }
+        }
+
+        private static void ShowWarning(MinecraftSocket socket, string settingName, string key)
+        {
+            socket.Dialog(db => db.CoflCommand<SetCommand>($"You have the setting {McColorCodes.ITALIC}{settingName}{McColorCodes.RESET} enabled, this can drastically slow down flips.\n{McColorCodes.GREEN}Click to disable it", $"{key} false", $"Disables {McColorCodes.AQUA}{settingName}"));
         }
 
         private static DialogBuilder GetSupportText(MinecraftSocket socket, TimeSpan delayAmount)
