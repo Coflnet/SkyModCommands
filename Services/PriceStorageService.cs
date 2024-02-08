@@ -32,9 +32,23 @@ public class PriceStorageService
         ), "mod_price_estimate");
         table.CreateIfNotExists();
         this.logger = logger;
+        try
+        {
+            var res = table.Where(x => x.Uuid == Guid.Empty && x.PlayerUuid == Guid.Empty).Select(x => x.Value).FirstOrDefault().Execute();
+            if(res == 0)
+                throw new Exception("Empty");
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e, "Error creating table, recreating");
+            session.Execute("DROP TABLE mod_price_estimate");
+            table.CreateIfNotExists();
+            // insert new 
+            table.Insert(new PriceEstimateValue() { Uuid = Guid.Empty, PlayerUuid = Guid.Empty, Value = 1 }).ExecuteAsync();
+        }
     }
 
-    public async Task<long> GetPrice(Guid uuid, Guid playerUuid)
+    public async Task<long> GetPrice(Guid playerUuid, Guid uuid)
     {
         try
         {
