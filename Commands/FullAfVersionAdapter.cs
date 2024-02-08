@@ -27,7 +27,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
     {
         var result = await base.SendFlip(flip);
         var uuid = GetUuid(flip.Auction);
-        if(uuid == null)
+        if (uuid == null)
             return result;
         await socket.GetService<PriceStorageService>().SetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid), flip.Target);
         return result;
@@ -152,7 +152,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 // try to find in sent by name
                 var fromSent = socket.LastSent.Where(x => GetItemName(x.Auction).Replace("§8!", "").Replace("§8.", "") == item.First.ItemName && x.Auction.Tag == item.First.Tag).FirstOrDefault();
                 var price = fromSent?.TargetPrice ?? item.Second.Median;
-                if (fromSent != null)
+                if (fromSent != null && item.First.Count == fromSent.Auction.Count)
                     span.Log($"Found {fromSent.Auction.ItemName} in sent using price {price}");
                 else if (item.First.Count > 1)
                 {
