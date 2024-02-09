@@ -178,7 +178,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 continue; // ignore recently sent they are handled by the loop above
             // get target 
             var storedEstimate = socket.GetService<PriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
-            var flips = await GetFlipData(await GetPurchases(apiService, uuid));
+            var flips = await GetFlipData(await GetItemPurchases(apiService, uuid));
             var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
             using var listingSpan = socket.CreateActivity("listAuction", span);
             if (flips.Count == 0)
@@ -360,7 +360,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             return false;
         if (!string.IsNullOrEmpty(uid))
         {
-            List<Api.Client.Model.BidResult> purchases = await GetPurchases(apiService, uid, 24 * 14);
+            List<Api.Client.Model.BidResult> purchases = await GetItemPurchases(apiService, uid);
             span.Log($"Found {purchases.Count} purchases of {item.Tag} {item.Uuid}");
             if (purchases.Count == 0)
                 return true; // not bought, keep existing items
@@ -385,13 +385,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var longId = socket.GetService<AuctionService>().GetId(purchase.AuctionId);
         return await socket.GetService<ITrackerApi>().TrackerFlipsAuctionIdGetAsync(longId);
     }
-    private async Task<List<Api.Client.Model.BidResult>> GetPurchases(IPlayerApi apiService, string uid, int hours = 96)
+    private async Task<List<Api.Client.Model.BidResult>> GetItemPurchases(IPlayerApi apiService, string uid)
     {
         //if (CheckedPurchase.GetValueOrDefault(uid) > 3)
         //    return new List<Api.Client.Model.BidResult>();
         var checkFilters = new Dictionary<string, string>() {
                 { "UId", uid },
-                { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(hours)).ToUnix().ToString() } };
+                { "EndAfter", (DateTime.UtcNow - TimeSpan.FromDays(14)).ToUnix().ToString() } };
         var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
         //CheckedPurchase[uid] = CheckedPurchase.GetValueOrDefault(uid) + 1;
         return purchases;
