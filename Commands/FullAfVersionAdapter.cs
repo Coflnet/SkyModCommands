@@ -37,7 +37,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
     {
         if (DateTime.UtcNow - lastListing < TimeSpan.FromSeconds(15) || socket.CurrentRegion != Region.EU)
             return;
-        using var span = socket.CreateActivity("listAuction", socket.ConSpan);
+        using var span = socket.CreateActivity("listAuctionTry", socket.ConSpan);
         lastListing = DateTime.UtcNow;
         var apiService = socket.GetService<IPlayerApi>();
         var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
@@ -83,7 +83,9 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (await ShouldSkip(span, apiService, item.Auction))
                 continue;
             var uuid = GetUuid(inventoryRepresent);
-            span.Log(JsonConvert.SerializeObject(item));
+
+            using var listingSpan = socket.CreateActivity("listAuction", span);
+            listingSpan.Log(JsonConvert.SerializeObject(item));
             var marketBased = toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid).Select(x => Math.Min(x.Second.Median, x.Second.Lbin.Price)).FirstOrDefault();
             var targetPrice = Math.Max(item.TargetPrice, marketBased * 0.95);
             await SendListing(span, item.Auction, (long)targetPrice, index, uuid);
@@ -152,14 +154,15 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 // try to find in sent by name
                 var fromSent = socket.LastSent.Where(x => GetItemName(x.Auction).Replace("§8!", "").Replace("§8.", "") == item.First.ItemName && x.Auction.Tag == item.First.Tag).FirstOrDefault();
                 var price = fromSent?.TargetPrice ?? item.Second.Median;
+                using var stackableSpan = socket.CreateActivity("listAuction", span);
                 if (fromSent != null && item.First.Count == fromSent.Auction.Count)
-                    span.Log($"Found {fromSent.Auction.ItemName} in sent using price {price}");
+                    stackableSpan.Log($"Found {fromSent.Auction.ItemName} in sent using price {price}");
                 else if (item.First.Count > 1)
                 {
                     try
                     {
 
-                        long estimate = await GetEstimateViaLastPurchasedNoUid(span, apiService, item);
+                        long estimate = await GetEstimateViaLastPurchasedNoUid(stackableSpan, apiService, item);
                         price = estimate;
                     }
                     catch (System.Exception e)
@@ -168,7 +171,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                         continue;
                     }
                 }
-                await SendListing(span, item.First, price, index, uuid);
+                await SendListing(stackableSpan, item.First, price, index, uuid);
                 break; // only list one without uuid
             }
             if (socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid))
@@ -177,6 +180,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var storedEstimate = socket.GetService<PriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
             var flips = await GetFlipData(await GetPurchases(apiService, uuid));
             var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
+            using var listingSpan = socket.CreateActivity("listAuction", span);
             if (flips.Count == 0)
             {
                 if (!socket.SessionInfo.SellAll)
@@ -185,7 +189,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                     socket.Dialog(db => db.Msg($"Found unknown item in inventory: {item.First.ItemName} {item.First.Tag} {item.First.Uuid} could have been whitelisted, please manually remove it from inventory or execute {McColorCodes.AQUA}/cofl sellinventory"));
                     continue;
                 }
-                span.Log($"keys:{item.Second.MedianKey}\n{item.Second.ItemKey}");
+                listingSpan.Log($"keys:{item.Second.MedianKey}\n{item.Second.ItemKey}");
                 target = item.Second.Median;
             }
             else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-2)))
@@ -193,7 +197,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 // all are more recent than a day, still usable
                 target = flips.Where(f => (int)f.FinderType < 100 && IsFinderEnabled(f))
                         .Select(f => f.TargetPrice).DefaultIfEmpty((int)flips.Select(f => f.TargetPrice).Average()).Average();
-                span.Log($"Found {flips.Count} flips for average price {target}");
+                listingSpan.Log($"Found {flips.Count} flips for average price {target}");
             }
             else if (flips.All(f => f.FinderType == FlipTracker.Client.Model.FinderType.FLIPPER))
             {
@@ -203,7 +207,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var stored = await storedEstimate;
             if (stored > 0)
             {
-                span.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored}");
+                listingSpan.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored}");
                 target = stored;
             }
 
@@ -216,7 +220,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 if (!socket.Settings.ModSettings.QuickSell)
                     continue;
             }
-            await SendListing(span, item.First, (long)target, index, uuid);
+            await SendListing(listingSpan, item.First, (long)target, index, uuid);
         }
     }
 
