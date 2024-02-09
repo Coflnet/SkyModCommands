@@ -360,7 +360,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             return false;
         if (!string.IsNullOrEmpty(uid))
         {
-            List<Api.Client.Model.BidResult> purchases = await GetPurchases(apiService, uid);
+            List<Api.Client.Model.BidResult> purchases = await GetPurchases(apiService, uid, 24 * 14);
             span.Log($"Found {purchases.Count} purchases of {item.Tag} {item.Uuid}");
             if (purchases.Count == 0)
                 return true; // not bought, keep existing items
@@ -385,13 +385,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var longId = socket.GetService<AuctionService>().GetId(purchase.AuctionId);
         return await socket.GetService<ITrackerApi>().TrackerFlipsAuctionIdGetAsync(longId);
     }
-    private async Task<List<Api.Client.Model.BidResult>> GetPurchases(IPlayerApi apiService, string uid)
+    private async Task<List<Api.Client.Model.BidResult>> GetPurchases(IPlayerApi apiService, string uid, int hours = 96)
     {
         //if (CheckedPurchase.GetValueOrDefault(uid) > 3)
         //    return new List<Api.Client.Model.BidResult>();
         var checkFilters = new Dictionary<string, string>() {
                 { "UId", uid },
-                { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(48)).ToUnix().ToString() } };
+                { "EndAfter", (DateTime.UtcNow - TimeSpan.FromHours(hours)).ToUnix().ToString() } };
         var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
         //CheckedPurchase[uid] = CheckedPurchase.GetValueOrDefault(uid) + 1;
         return purchases;
