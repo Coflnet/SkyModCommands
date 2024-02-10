@@ -75,7 +75,7 @@ public class Startup
         services.AddHostedService<PreApiService>(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IAhActive, AhActiveService>();
         services.AddSingleton<CircumventTracker>();
-        services.AddSingleton<PriceStorageService>();
+        services.AddSingleton<IPriceStorageService,PriceStorageService>();
         services.AddCoflService();
     }
 

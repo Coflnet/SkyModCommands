@@ -29,7 +29,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var uuid = GetUuid(flip.Auction);
         if (uuid == null)
             return result;
-        await socket.GetService<PriceStorageService>().SetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid), flip.Target);
+        await socket.GetService<IPriceStorageService>().SetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid), flip.Target);
         return result;
     }
 
@@ -177,7 +177,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid))
                 continue; // ignore recently sent they are handled by the loop above
             // get target 
-            var storedEstimate = socket.GetService<PriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
+            var storedEstimate = socket.GetService<IPriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
             var flips = await GetFlipData(await GetItemPurchases(apiService, uuid));
             var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
             using var listingSpan = socket.CreateActivity("listAuction", span);

@@ -8,7 +8,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
-public class PriceStorageService
+public interface IPriceStorageService
+{
+    Task<long> GetPrice(Guid playerUuid, Guid uuid);
+    Task SetPrice(Guid playerUuid, Guid uuid, long value);
+}
+
+public class PriceStorageService : IPriceStorageService
 {
     private Table<PriceEstimateValue> table;
     private ILogger<PriceStorageService> logger;
