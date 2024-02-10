@@ -10,7 +10,7 @@ using Coflnet.Sky.PlayerState.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    [CommandDescription("Reports an issue to the developer", 
+    [CommandDescription("Reports an issue to the developer",
         "/cofl report <message>",
         "When executed returns you a case id.",
         "Please use that id to post into the bug report channel on discord.",
@@ -34,7 +34,7 @@ namespace Coflnet.Sky.Commands.MC
             dev.Logger.Instance.Info(JsonConvert.SerializeObject(socket.Settings));
 
             socket.SendMessage(COFLNET + "Thanks for your report :)\n If you need further help, please refer to this report with " + McColorCodes.AQUA + spanId, "http://" + singleReportSpan.Context.TraceId, "click to get full link");
-            socket.Dialog(db=>db.MsgLine("If not done already consider creating a new thread by writing into our bug-report channel on discord. [click to open]", "https://discord.com/channels/267680588666896385/884002032392998942", "redirects to discord"));
+            socket.Dialog(db => db.MsgLine("If not done already consider creating a new thread by writing into our bug-report channel on discord. [click to open]", "https://discord.com/channels/267680588666896385/884002032392998942", "redirects to discord"));
             await Task.Delay(2000).ConfigureAwait(false);
             // repost 
             CreateReport(socket, arguments, singleReportSpan, out string generalspanId);
@@ -75,9 +75,18 @@ namespace Coflnet.Sky.Commands.MC
                 for (int i = 0; i < 5; i++)
                     blockedSpan.Log(JsonConvert.SerializeObject(socket.TopBlocked?.OrderByDescending(b => b.Now).Select(b => $"{b.Flip.Auction.Uuid} {b.Now} {b.Reason}\n").Skip(i * 25).Take(25), Formatting.Indented));
             using (var lastSentSpan = socket.CreateActivity("lastSent", reportSpan))
-                lastSentSpan.Log(JsonConvert.SerializeObject(socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20), Formatting.Indented));
-            reportSpan.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo, Formatting.Indented));
-            
+            {
+                var toBeLogged = socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20).Select(f => {
+                    f.Auction.CoopMembers.Clear();
+                    f.Auction.NbtData = null;
+                    f.Auction.Enchantments = null;
+
+                    return f;
+                });
+                lastSentSpan.Log(JsonConvert.SerializeObject(toBeLogged, Formatting.Indented));
+            }
+            reportSpan.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo, Formatting.Indented), 30_000);
+
             using var snapshotSpan = socket.CreateActivity("snapshot", reportSpan);
             foreach (var item in SnapShotService.Instance.SnapShots)
             {
