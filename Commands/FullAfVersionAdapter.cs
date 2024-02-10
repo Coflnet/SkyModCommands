@@ -271,7 +271,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             && maxItemsAllowedInInventory < socket.SessionInfo.Inventory?.Skip(10).Where(x => x != null).Count())
         {
             socket.Dialog(db => db.Msg($"Reached max flip items in inventory, paused buying until items are sold and listed. ")
-                .Msg($"Can be disabled with {McColorCodes.AQUA}/cofl set maxFlipInInventory 0"));
+                .Msg($"Can be disabled with {McColorCodes.AQUA}/cofl set maxItemsInInventory 0"));
             return (true, false);
         }
         var isFull = socket.SessionInfo.Inventory?.Skip(10).Count(x => x == null) < 3;
