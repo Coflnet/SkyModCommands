@@ -51,7 +51,7 @@ public class CircumventTracker
                 lastSeen.TryAdd(socket.UserId, flip);
                 return;
             }
-            logger.LogError("Testflip doesn't match {UserId} ({socket.SessionInfo.McUuid}) {flip}", socket.UserId, socket.SessionInfo.McUuid, JsonConvert.SerializeObject(lowPriced));
+            logger.LogError("Testflip doesn't match {UserId} ({socket.SessionInfo.McUuid}) because {reson} {flip}", socket.UserId, socket.SessionInfo.McUuid, isMatch.Item2, JsonConvert.SerializeObject(lowPriced));
             throw new Exception("No matching flip found " + JsonConvert.SerializeObject(lowPriced));
         }, "creating challenge");
     }
