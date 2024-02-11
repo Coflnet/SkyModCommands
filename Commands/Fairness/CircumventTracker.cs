@@ -52,7 +52,7 @@ public class CircumventTracker
                 return;
             }
             logger.LogError("Testflip doesn't match {UserId} ({socket.SessionInfo.McUuid}) {flip}", socket.UserId, socket.SessionInfo.McUuid, JsonConvert.SerializeObject(lowPriced));
-            throw new CoflnetException("no_match", "No matching flip found " + JsonConvert.SerializeObject(lowPriced));
+            throw new Exception("No matching flip found " + JsonConvert.SerializeObject(lowPriced));
         }, "creating challenge");
     }
 
