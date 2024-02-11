@@ -206,9 +206,9 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 target = flips.Select(f => f.TargetPrice).Average() * 0.95;
             }
             var stored = await storedEstimate;
-            if (stored > 0)
+            if (stored > 1_000_000)
             {
-                listingSpan.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored}");
+                listingSpan.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored} instead of {target}");
                 target = stored;
             }
 
