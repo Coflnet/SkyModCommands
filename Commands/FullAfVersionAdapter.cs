@@ -29,7 +29,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var uuid = GetUuid(flip.Auction);
         if (uuid == null)
             return result;
-        await socket.GetService<IPriceStorageService>().SetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid), flip.Target);
+        if (flip.Finder != LowPricedAuction.FinderType.USER)
+            await socket.GetService<IPriceStorageService>().SetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid), flip.Target);
         return result;
     }
 
