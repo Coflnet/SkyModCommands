@@ -72,7 +72,11 @@ public class DelayHandler : IDelayHandler
         var apiBed = flipInstance.Auction.Start > timeProvider.Now - TimeSpan.FromSeconds(20) && !(flipInstance.Auction.Context?.ContainsKey("pre-api") ?? true);
         var isHighProfit = flipInstance.Profit > 5_000_000 || flipInstance.Finder == Core.LowPricedAuction.FinderType.SNIPER && flipInstance.Profit > 2_500_000;
         if (sessionInfo.IsMacroBot && flipInstance.Profit > 1_000_000)
+        {
             await timeProvider.Delay(TimeSpan.FromMicroseconds(flipInstance.Profit / 20000)).ConfigureAwait(false);
+            if (flipInstance.Auction.Context.TryGetValue("pre-api", out var preApi) && preApi != "recheck")
+                await timeProvider.Delay(TimeSpan.FromSeconds(4)).ConfigureAwait(false); // reserve preapi for nonbots
+        }
         if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
             await timeProvider.Delay(macroPenalty).ConfigureAwait(false);
         return time;
@@ -156,7 +160,7 @@ public class DelayHandler : IDelayHandler
         }
 
         // "skip" section
-        var nonpurchaseRate = (breakdown?.ReceivedCount ?? 1)/ 100 - (breakdown.Times?.Count ?? 0);
+        var nonpurchaseRate = (breakdown?.ReceivedCount ?? 1) / 100 - (breakdown.Times?.Count ?? 0);
         if (nonpurchaseRate > 0)
         {
             Activity.Current?.AddTag("purchaseRate", "1");
