@@ -372,7 +372,7 @@ namespace Coflnet.Sky.Commands.MC
                     SessionInfo.FlipsEnabled = true;
                     UpdateConnectionTier(info, span);
                     span?.AddTag("autoStart", "true");
-                    PrintRegionInfo(info);
+                    await PrintRegionInfo(info);
                 }
                 else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
                 {
@@ -395,7 +395,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private void PrintRegionInfo(AccountInfo info)
+        private async Task PrintRegionInfo(AccountInfo info)
         {
             if (info.Tier >= AccountTier.PREMIUM_PLUS && SessionInfo.ConnectionType == null)
             {
@@ -407,8 +407,15 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 else if (info.Region == "us" && !MinecraftSocket.IsDevMode)
                 {
-                    socket.Dialog(db => db.MsgLine("Switching to us server"));
-                    socket.ExecuteCommand("/cofl connect ws://sky-us.coflnet.com/modsocket");
+                    // check if reachable
+                    var client = new WebSocket("ws://sky-us.coflnet.com/modsocket");
+                    client.Connect();
+                    client.OnOpen += (s, e) =>
+                    {
+                        client.Close();
+                        socket.Dialog(db => db.MsgLine("Switching to us server"));
+                        socket.ExecuteCommand("/cofl connect ws://sky-us.coflnet.com/modsocket");
+                    };
                 }
             }
             else if (info.Region == "eu" && SessionInfo.ConnectionType != null)
