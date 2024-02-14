@@ -408,14 +408,8 @@ namespace Coflnet.Sky.Commands.MC
                 else if (info.Region == "us" && !MinecraftSocket.IsDevMode)
                 {
                     // check if reachable
-                    var client = new WebSocket("ws://sky-us.coflnet.com/modsocket");
-                    client.Connect();
-                    client.OnOpen += (s, e) =>
-                    {
-                        client.Close();
-                        socket.Dialog(db => db.MsgLine("Switching to us server"));
-                        socket.ExecuteCommand("/cofl connect ws://sky-us.coflnet.com/modsocket");
-                    };
+                    SwitchRegionCommand.TryToConnect(socket);
+
                 }
             }
             else if (info.Region == "eu" && SessionInfo.ConnectionType != null)
