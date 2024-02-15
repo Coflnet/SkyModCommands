@@ -408,7 +408,7 @@ namespace Coflnet.Sky.Commands.MC
                 else if (info.Region == "us" && !MinecraftSocket.IsDevMode)
                 {
                     // check if reachable
-                    SwitchRegionCommand.TryToConnect(socket);
+                    await SwitchRegionCommand.TryToConnect(socket);
 
                 }
             }

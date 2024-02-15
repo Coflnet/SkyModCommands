@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WebSocketSharp;
@@ -55,13 +56,13 @@ public class SwitchRegionCommand : McCommand
     public static async Task TryToConnect(MinecraftSocket socket)
     {
         // timeout after 5 seconds
-        var restClient = new RestSharp.RestClient("https://sky-us.coflnet.com");
+        var restClient = new RestSharp.RestClient("http://sky-us.coflnet.com");
         var request = new RestSharp.RestRequest("/status")
         {
             Timeout = 5000
         };
         var response = await restClient.ExecuteAsync(request);
-        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+        if (response.StatusCode != 0)
         {
             socket.Dialog(db => db.MsgLine("Switching to us server"));
             socket.ExecuteCommand("/cofl connect ws://sky-us.coflnet.com/modsocket");
