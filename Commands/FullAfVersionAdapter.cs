@@ -112,6 +112,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         {
             if (socket.SessionInfo.Inventory != null)
                 break;
+            RequestInventory();
             await Task.Delay(1000);
         }
         var inventory = socket.SessionInfo.Inventory;
