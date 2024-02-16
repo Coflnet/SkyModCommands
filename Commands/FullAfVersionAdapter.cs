@@ -165,6 +165,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                     {
 
                         long estimate = await GetEstimateViaLastPurchasedNoUid(stackableSpan, apiService, item);
+                        span.Log($"Nouid {item.First.ItemName} x{item.First.Count} using price {estimate}");
                         price = estimate;
                     }
                     catch (System.Exception e)
@@ -172,6 +173,10 @@ public class FullAfVersionAdapter : AfVersionAdapter
                         socket.Error(e, "checking no uid");
                         continue;
                     }
+                }
+                else
+                {
+                    stackableSpan.Log($"No uuid found for {item.First.ItemName} using price {price}");
                 }
                 await SendListing(stackableSpan, item.First, price, index, uuid);
                 break; // only list one without uuid
