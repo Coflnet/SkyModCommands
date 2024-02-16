@@ -487,7 +487,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             span?.SetTag("type", a.type);
-            span?.SetTag("content", a.data);
+            span.Log(a.data);
             if (SessionInfo.clientSessionId.StartsWith("debug"))
                 SendMessage("executed " + a.data, "");
 
