@@ -575,7 +575,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public new void Close()
         {
-            ConSpan.SetTag("force close", true);
+            ConSpan?.SetTag("force close", true);
             base.Close();
         }
 

@@ -55,20 +55,27 @@ public class SwitchRegionCommand : McCommand
 
     public static async Task TryToConnect(MinecraftSocket socket)
     {
-        // timeout after 5 seconds
-        var restClient = new RestSharp.RestClient("http://sky-us.coflnet.com");
-        var request = new RestSharp.RestRequest("/status")
-        {
-            Timeout = 5000
-        };
-        var response = await restClient.ExecuteAsync(request);
-        if (response.StatusCode != 0)
+        // check twice if the server is reachable
+        if (await CheckReachable() || await CheckReachable())
         {
             socket.Dialog(db => db.MsgLine("Switching to us server"));
             socket.ExecuteCommand("/cofl connect ws://sky-us.coflnet.com/modsocket");
             return;
         }
         socket.Dialog(db => db.MsgLine("US server seems to be currently not reachable :(").MsgLine("We are probably trying to get them online again, you stay connected to eu in the meantime, sorry"));
-       
+
+    }
+
+    private static async Task<bool> CheckReachable()
+    {
+        // timeout after 5 seconds
+        var restClient = new RestSharp.RestClient("http://sky-us.coflnet.com");
+        var request = new RestSharp.RestRequest("/modsocket")
+        {
+            Timeout = 5000
+        };
+        var response = await restClient.ExecuteAsync(request);
+        var reachable = response.StatusCode != 0;
+        return reachable;
     }
 }
