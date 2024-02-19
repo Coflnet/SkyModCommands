@@ -4,7 +4,12 @@ using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    public class SpamController
+    public interface ISpamController
+    {
+        void Reset();
+        bool ShouldBeSent(FlipInstance auction);
+    }
+    public class SpamController : ISpamController
     {
         private int SentSinceReset = 0;
         private long HighestValue = 0;
@@ -15,7 +20,7 @@ namespace Coflnet.Sky.Commands.MC
             HighestValue = 0;
         }
 
-        public bool ShouldBeSent(FlipInstance auction)
+        public virtual bool ShouldBeSent(FlipInstance auction)
         {
             if (SentSinceReset > 3)
             {

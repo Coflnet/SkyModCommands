@@ -21,13 +21,13 @@ namespace Coflnet.Sky.Commands.MC
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
         protected MinecraftSocket socket;
         private FlipSettings Settings => socket.Settings;
-        private SpamController spamController;
+        private ISpamController spamController;
         private IDelayHandler delayHandler;
         private int waitingBedFlips = 0;
         private int _blockedFlipCounter = 0;
         public int BlockedFlipCount => _blockedFlipCounter;
 
-        public FlipProcesser(MinecraftSocket socket, SpamController spamController, IDelayHandler delayHandler)
+        public FlipProcesser(MinecraftSocket socket, ISpamController spamController, IDelayHandler delayHandler)
         {
             this.socket = socket;
             this.spamController = spamController;
