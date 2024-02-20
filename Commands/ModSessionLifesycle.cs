@@ -781,6 +781,7 @@ namespace Coflnet.Sky.Commands.MC
                     await Task.Delay(1000).ConfigureAwait(false);
                     SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                     SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
+                    await socket.TriggerTutorial<CaptchaTutorial>();
                 }
                 else if (SessionInfo.captchaInfo.LastGenerated.Minute % 4 == 1)
                 {
