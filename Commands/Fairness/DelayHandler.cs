@@ -74,7 +74,10 @@ public class DelayHandler : IDelayHandler
         if (sessionInfo.IsMacroBot && flipInstance.Profit > 1_000_000)
         {
             await timeProvider.Delay(TimeSpan.FromMicroseconds(flipInstance.Profit / 20000)).ConfigureAwait(false);
-            if (flipInstance.Auction.Context.TryGetValue("pre-api", out var preApi) && preApi != "recheck" && Random.Shared.NextDouble() < 0.96)
+            var sendableIn = DateTime.UtcNow - flipInstance.Auction.Start + TimeSpan.FromSeconds(18);
+            if (sendableIn > TimeSpan.Zero && !apiBed)
+                await timeProvider.Delay(sendableIn).ConfigureAwait(false);
+            if (flipInstance.Auction.Context.TryGetValue("pre-api", out var preApi) && preApi != "recheck" && Random.Shared.NextDouble() < 0.98)
                 await timeProvider.Delay(TimeSpan.FromSeconds(4)).ConfigureAwait(false); // reserve preapi for nonbots
         }
         if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
