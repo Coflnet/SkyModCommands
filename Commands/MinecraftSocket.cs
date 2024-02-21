@@ -35,7 +35,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public string Version { get; private set; }
         public ActivitySource tracer => DiHandler.ServiceProvider.GetRequiredService<ActivitySource>();
-        public Activity ConSpan { get; private set; }
+        public Activity ConSpan { get; protected set; }
         public IModVersionAdapter ModAdapter;
 
         public FormatProvider formatProvider { get; private set; }
