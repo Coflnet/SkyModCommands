@@ -41,7 +41,7 @@ public class CircumventTracker
                 Auction = auction,
                 TargetPrice = auction.StartingBid + (long)(socket.Settings.MinProfit * (1 + Random.Shared.NextDouble())),
                 AdditionalProps = new(),
-                DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() * 0.1f),
+                DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() + 0.1f),
                 Finder = socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.SNIPER) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
             };
             var flip = FlipperService.LowPriceToFlip(lowPriced);
