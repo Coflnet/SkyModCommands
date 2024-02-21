@@ -77,7 +77,7 @@ namespace Coflnet.Sky.Commands.MC
             using (var lastSentSpan = socket.CreateActivity("lastSent", reportSpan))
             {
                 var toBeLogged = socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20).Select(f => {
-                    f.Auction.CoopMembers.Clear();
+                    f.Auction.CoopMembers?.Clear();
                     f.Auction.NbtData = null;
                     f.Auction.Enchantments = null;
 
