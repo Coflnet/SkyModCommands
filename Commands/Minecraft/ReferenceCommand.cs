@@ -55,6 +55,10 @@ namespace Coflnet.Sky.Commands.MC
             var based = await CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
             if (based == null)
                 socket.ModAdapter.SendMessage(new ChatPart("Woops, sorry but there could be no references found or another error occured :("));
+            else if(based.Count() == 0)
+            {
+                socket.SendMessage("No references found for that flip on your connection anymore, sorry :/");
+            }
             else
             {
                 socket.ModAdapter.SendMessage(
