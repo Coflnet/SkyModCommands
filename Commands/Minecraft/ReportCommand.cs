@@ -83,7 +83,7 @@ namespace Coflnet.Sky.Commands.MC
 
                     return f;
                 });
-                lastSentSpan.Log(JsonConvert.SerializeObject(toBeLogged, Formatting.Indented));
+                lastSentSpan.Log(JsonConvert.SerializeObject(toBeLogged, Formatting.Indented), 30_000);
             }
             reportSpan.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo, Formatting.Indented), 30_000);
 
