@@ -615,7 +615,7 @@ namespace Coflnet.Sky.Commands.MC
             var toBlock = socket.LastSent.Where(s =>
                     s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(3) &&
                     s.TargetPrice > s.Auction.StartingBid * 2 &&
-                    preApiService.IsSold(s.Auction.Uuid)
+                    !preApiService.IsSold(s.Auction.Uuid)
                 )
                 .GroupBy(s => s.Auction.Tag).Where(g => g.Count() >= 5).ToList();
             var playersToBlock = BlockPlayerBaiting(preApiService);
