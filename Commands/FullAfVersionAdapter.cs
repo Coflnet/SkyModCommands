@@ -352,6 +352,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             return;
         socket.sessionLifesycle.FlipSettings.Value.ModSettings.AutoStartFlipper = true;
         socket.sessionLifesycle.FlipSettings.Value.Visibility.Seller = false;
+        RequestInventory();
     }
 
     private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)
