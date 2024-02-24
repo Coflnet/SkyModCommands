@@ -47,7 +47,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 $"add seller={flip.Auction.AuctioneerId} forceBlacklist=true",
                 $"Don't show seller {McColorCodes.AQUA}{flip.Auction.AuctioneerId}{McColorCodes.YELLOW} AT ALL anymore")
             .CoflCommand<BlacklistCommand>(
-                $" {McColorCodes.YELLOW}1 day",
+                $" {McColorCodes.YELLOW}{McColorCodes.ITALIC}1 day",
                 $"add seller={flip.Auction.AuctioneerId} forceBlacklist=true removeAfter={DateTime.UtcNow.AddDays(1):s}",
                 $"Don't show seller {McColorCodes.AQUA}{flip.Auction.AuctioneerId}{McColorCodes.YELLOW} for a day")
                 .Break
