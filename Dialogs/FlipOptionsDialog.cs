@@ -40,7 +40,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 $"Don't show {McColorCodes.AQUA}{ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GREEN} for a week")
             .CoflCommand<BlacklistCommand>(
                 $" {McColorCodes.GREEN}{McColorCodes.ITALIC}1 day",
-                $"add {flip.Auction.Tag} forceBlacklist=true duration=24h",
+                $"add {flip.Auction.Tag} forceBlacklist=true duration=1d",
                 $"Don't show {McColorCodes.AQUA}{ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GREEN} for 24 hours")
             .CoflCommand<BlacklistCommand>(
                 $" {McColorCodes.YELLOW}seller",
@@ -48,7 +48,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                 $"Don't show seller {McColorCodes.AQUA}{flip.Auction.AuctioneerId}{McColorCodes.YELLOW} AT ALL anymore")
             .CoflCommand<BlacklistCommand>(
                 $" {McColorCodes.YELLOW}{McColorCodes.ITALIC}1 day",
-                $"add seller={flip.Auction.AuctioneerId} forceBlacklist=true duration=24h",
+                $"add seller={flip.Auction.AuctioneerId} forceBlacklist=true duration=1d",
                 $"Don't show seller {McColorCodes.AQUA}{flip.Auction.AuctioneerId}{McColorCodes.YELLOW} for a day")
                 .Break
             .CoflCommand<TimeCommand>(

@@ -96,7 +96,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 string[] formats = { @"d\d", @"h\h" };
                 if (!TimeSpan.TryParseExact(filters["duration"], formats, null, out var span))
-                    throw new CoflnetException("invalid_duration", "The duration is not valid, only 12h and 5d are supported");
+                    throw new CoflnetException("invalid_duration", $"The duration `{filters["duration"]}` is not valid, only 12h and 5d are supported");
                 removeAfter = DateTime.Now.Add(span).ToString("s");
                 filters.Remove("duration");
             }
