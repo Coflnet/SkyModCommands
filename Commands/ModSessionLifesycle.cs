@@ -339,7 +339,7 @@ namespace Coflnet.Sky.Commands.MC
                         span.Log($"connected from somewhere else {info.ActiveConnectionId} != '{SessionInfo.ConnectionId}' {currentId}");
 
                         await Task.Delay(1000);
-                        socket.Dialog(db=>db.MsgLine("This connection was suspended, to avoid a reconnect loop of your faulty client its downgraded to free tier"));
+                        socket.Dialog(db => db.MsgLine("This connection was suspended, to avoid a reconnect loop of your faulty client its downgraded to free tier"));
                         AccountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(AccountInfo.Value);
                         AccountInfo.Value.Tier = AccountTier.NONE;
                         AccountInfo.Value.ExpiresAt = DateTime.UtcNow;
@@ -643,8 +643,9 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     DisplayName = "Automatic blacklist",
                     filter = new()
-                        { { "removeAfter", DateTime.UtcNow.AddHours(8).ToString("s") }, { "ForceBlacklist", "true" }, { "Seller", player }
+                        { { "ForceBlacklist", "true" }, { "Seller", player }
                         },
+                    Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(8).ToString("s") }
                 });
                 socket.SendMessage(COFLNET + $"Temporarily blacklisted {player} for baiting");
             }
@@ -659,8 +660,9 @@ namespace Coflnet.Sky.Commands.MC
                 DisplayName = "automatic blacklist",
                 ItemTag = key,
                 filter = new()
-                    { { "removeAfter", DateTime.UtcNow.AddHours(8).ToString("s") }, { "ForceBlacklist", "true" }
+                    {  { "ForceBlacklist", "true" }
                     },
+                Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(8).ToString("s") }
             });
         }
 
@@ -721,7 +723,9 @@ namespace Coflnet.Sky.Commands.MC
                         .Where(f => f.Tags != null &&
                             f.Tags.Any(s => s.StartsWith("removeAfter=") &&
                                 DateTime.TryParse(s.Split('=').Last(), out var dt) &&
-                                dt < DateTime.UtcNow)).ToList())
+                                dt < DateTime.UtcNow)
+                                || f.filter.ContainsKey("removeAfter")
+                                ).ToList())
                 {
                     socket.SendMessage(COFLNET + $"Removed filter {filter.ItemTag} because it was set to expire");
                     list.Remove(filter);
