@@ -625,7 +625,10 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + $"Temporarily blacklisted {item.First().Auction.ItemName} for spamming");
             }
             if (toBlock.Count > 0 || playersToBlock.Count > 0)
+            {
                 await FlipSettings.Update();
+                FlipSettings.Value.RecompileMatchers();
+            }
         }
 
         private List<IGrouping<string, LowPricedAuction>> BlockPlayerBaiting(PreApiService preApiService)
@@ -713,8 +716,10 @@ namespace Coflnet.Sky.Commands.MC
             RemoveFilterFromList(FlipSettings.Value.WhiteList);
             RemoveFilterFromList(FlipSettings.Value.BlackList);
             if (update)
+            {
                 await FlipSettings.Update();
-
+                FlipSettings.Value.RecompileMatchers();
+            }
             void RemoveFilterFromList(List<ListEntry> list)
             {
                 if (list == null)

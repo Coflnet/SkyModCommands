@@ -287,7 +287,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             // special case user wants to not stop buying
             if (Random.Shared.NextDouble() < 0.3)
                 RequestInventory();
-            return (false, isFull);
+            return (false, isFull || socket.SessionInfo.Inventory == null);
         }
         if (isFull)
         {
