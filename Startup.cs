@@ -57,7 +57,7 @@ public class Startup
                 .EnableDetailedErrors()       // <-- with debugging (remove for production).
         );
         services.AddHostedService<ModBackgroundService>();
-        services.AddHostedService<FlipperService>(s => s.GetRequiredService<FlipperService>());
+        services.AddHostedService(s => s.GetRequiredService<FlipperService>());
         services.AddJaeger(Configuration, 1, 1);
         services.AddTransient<CounterService>();
         services.AddSingleton<ModeratorService>();
@@ -67,12 +67,12 @@ public class Startup
         services.AddSingleton<PreApiService>();
         services.AddSingleton<IIsSold>(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IFlipReceiveTracker>(s => s.GetRequiredService<FlipTrackingService>());
-        services.AddSingleton<ConnectionMultiplexer>(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));
+        services.AddSingleton(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));
         services.AddSingleton<IBaseApi, BaseApi>(s => new BaseApi(Configuration["PROXY_BASE_URL"]));
         services.AddSingleton<IProxyApi, ProxyApi>(s => new ProxyApi(Configuration["PROXY_BASE_URL"]));
         services.AddSingleton<IBazaarFlipperApi, BazaarFlipperApi>(s => new BazaarFlipperApi(Configuration["BAZAARFLIPPER_BASE_URL"]));
         RegisterScyllaSession(services);
-        services.AddHostedService<PreApiService>(s => s.GetRequiredService<PreApiService>());
+        services.AddHostedService(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IAhActive, AhActiveService>();
         services.AddSingleton<CircumventTracker>();
         services.AddSingleton<IPriceStorageService,PriceStorageService>();
