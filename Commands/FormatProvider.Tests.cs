@@ -54,4 +54,3 @@ public class FormatProviderTests
     }
 
 }
-#pragma warning restore CS0101
