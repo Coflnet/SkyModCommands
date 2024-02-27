@@ -15,11 +15,11 @@ public class ProxyReqSyncCommand : McCommand
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         socket.Dialog(db => db.MsgLine($"Syncing settings..."));
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 50; i++)
         {
             if(socket.Settings.IsCompiled)
                 break;
-            await Task.Delay(100);
+            await Task.Delay(200);
         }
         var filterState = socket.GetService<FilterStateService>().State;
         if (await socket.UserAccountTier() >= AccountTier.PREMIUM_PLUS)
