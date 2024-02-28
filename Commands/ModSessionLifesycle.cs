@@ -733,7 +733,7 @@ namespace Coflnet.Sky.Commands.MC
                             f.Tags.Any(s => s.StartsWith("removeAfter=") &&
                                 DateTime.TryParse(s.Split('=').Last(), out var dt) &&
                                 dt < DateTime.UtcNow)
-                                || f.filter.ContainsKey("removeAfter")
+                                || (f.filter?.ContainsKey("removeAfter") ?? false)
                                 ).ToList())
                 {
                     socket.SendMessage(COFLNET + $"Removed filter {filter.ItemTag} because it was set to expire");
