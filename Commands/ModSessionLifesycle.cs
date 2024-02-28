@@ -312,7 +312,11 @@ namespace Coflnet.Sky.Commands.MC
             using var span = socket.CreateActivity("AuthUpdate", ConSpan)?
                 .AddTag("premium", info.Tier.ToString())
                 .AddTag("userId", info.UserId);
-
+            if (socket.IsClosed)
+            {
+                span?.Log("socket is closed");
+                return;
+            }
             try
             {
                 var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
@@ -818,6 +822,7 @@ namespace Coflnet.Sky.Commands.MC
             UserId?.Dispose();
             AccountInfo?.Dispose();
             SessionInfo?.Dispose();
+            AccountSettings?.Dispose();
             PingTimer?.Dispose();
         }
     }

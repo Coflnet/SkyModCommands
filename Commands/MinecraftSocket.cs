@@ -571,6 +571,7 @@ namespace Coflnet.Sky.Commands.MC
             OnConClose?.Invoke();
             sessionLifesycle?.Dispose();
             TopBlocked.Clear();
+            sessionLifesycle = null!;
         }
 
         public new void Close()
@@ -624,7 +625,7 @@ namespace Coflnet.Sky.Commands.MC
             });
             return span;
         }
-
+        public bool IsClosed => ReadyState == WebSocketState.Closed;
         public bool SendMessage(params ChatPart[] parts)
         {
             if (this.ReadyState != WebSocketState.Open && this.ReadyState != WebSocketState.Connecting)
