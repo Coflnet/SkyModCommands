@@ -730,7 +730,7 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 foreach (var filter in list
                         .Where(f => f.Tags != null &&
-                            f.Tags.Any(s => s.StartsWith("removeAfter=") &&
+                            f.Tags.Any(s => s != null && s.StartsWith("removeAfter=") &&
                                 DateTime.TryParse(s.Split('=').Last(), out var dt) &&
                                 dt < DateTime.UtcNow)
                                 || (f.filter?.ContainsKey("removeAfter") ?? false)
