@@ -176,7 +176,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 }
                 else
                 {
-                    stackableSpan.Log($"No uuid found for {item.First.ItemName} using price {price}");
+                    stackableSpan.Log($"No uuid found for {item.First.ItemName} {item.First.Tag} using price {price}");
+                    stackableSpan.Log(JsonConvert.SerializeObject(socket.LastSent.Select(s => new { s.Auction.Tag, s.Auction.Uuid, name = GetItemName(s.Auction), s.Auction.Count })));
                 }
                 await SendListing(stackableSpan, item.First, price, index, uuid);
                 break; // only list one without uuid
