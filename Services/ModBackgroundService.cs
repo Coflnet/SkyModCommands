@@ -118,7 +118,8 @@ namespace Coflnet.Sky.ModCommands.Services
                         var flip = MessagePackSerializer.Deserialize<LowPricedAuction>(val);
                         if (flip.Finder == LowPricedAuction.FinderType.TFM)
                             FixTfmMetadata(flip);
-
+                        if (flip.TargetPrice < flip.Auction.StartingBid + 100_000)
+                            return; // not actually flipable abort
                         if (flip.Auction.Context.ContainsKey("cname"))
                             flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
                         flip.AdditionalProps?.TryAdd("bfcs", "redis");
