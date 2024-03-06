@@ -21,12 +21,13 @@ public class ChatService
     private string chatAuthKey;
     private List<string> mutedUuids;
     public List<string> MutedUuids => mutedUuids;
-
-    public ChatService(IConfiguration config)
+    private SettingsService settingsService;
+    public ChatService(IConfiguration config, SettingsService settingsService)
     {
         api = new(config["CHAT_BASE_URL"]);
         chatAuthKey = config["CHAT_API_KEY"];
         RefreshMutedUsers();
+        this.settingsService = settingsService;
     }
     public async Task<ChannelMessageQueue> Subscribe(Func<ChatMessage, bool> onMessage)
     {
@@ -130,9 +131,9 @@ public class ChatService
         public string SenderUuid;
     }
 
-    private static ISubscriber GetCon()
+    private ISubscriber GetCon()
     {
-        return CacheService.Instance.RedisConnection.GetSubscriber();
+        return settingsService.Con.GetSubscriber();
     }
 }
 
