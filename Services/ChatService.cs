@@ -133,7 +133,7 @@ public class ChatService
 
     private ISubscriber GetCon()
     {
-        return settingsService.Con.GetSubscriber();
+        return settingsService.Con?.GetSubscriber() ?? throw new Exception("No chat connection available");
     }
 }
 
