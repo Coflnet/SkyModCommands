@@ -179,6 +179,10 @@ namespace Coflnet.Sky.ModCommands.Services
                 Console.WriteLine($"Capping target price from {flip.TargetPrice} to {long.Parse(lbin)}");
                 flip.TargetPrice = (long)Math.Min(long.Parse(lbin), flip.TargetPrice);
             }
+            else
+            {
+                flip.AdditionalProps?.TryAdd("capped", "not tfm");
+            }
         }
     }
 }
