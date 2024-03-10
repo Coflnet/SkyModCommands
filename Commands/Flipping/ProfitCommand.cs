@@ -66,7 +66,7 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(COFLNET + $"According to our data {who} made {FormatPrice(socket, response.TotalProfit)} "
                 + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions"
                 + (accounts.Count() > 1 ? $" across your {accounts.Count()} accounts" : "")
-                + $"\nYou spent {FormatPrice(socket, paidSum)} with an average {FormatPrice(socket, (long)response.Flips.Sum(f => f.Profit) * 100 / (paidSum == 0 ? 1 : paidSum))}% profit margin",
+                + $"\n{who} spent {FormatPrice(socket, paidSum)} with an average {FormatPrice(socket, (long)response.Flips.Sum(f => f.Profit) * 100 / (paidSum == 0 ? 1 : paidSum))}% profit margin",
                 null, hover);
             var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
             var best = sorted.FirstOrDefault();
