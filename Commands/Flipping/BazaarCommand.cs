@@ -26,9 +26,9 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
             var converted = Roman.To(int.Parse(number));
             name = $"{name.Trim()} {converted}";
         }
-        if(f.ItemTag.StartsWith("ENCHANTMENT_ULTIMATE"))
+        if (f.ItemTag.StartsWith("ENCHANTMENT_ULTIMATE"))
         {
-            name = name.Substring("ultimate ".Length, name.Length);
+            name = name.Replace("ultimate ", "", StringComparison.OrdinalIgnoreCase);
         }
         return name;
     }
