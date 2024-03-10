@@ -53,17 +53,17 @@ namespace Coflnet.Sky.Commands.MC
             else
                 accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
             var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, time);
+            var who = "you";
+            if (args.Length > 1) // except last arg
+                who = string.Join(" ", args.Take(args.Length - 1));
             if (response.Flips.Count() == 0)
             {
-                var who = "you";
-                if (args.Length > 1) // except last arg
-                    who = string.Join(" ", args.Take(args.Length - 1));
                 socket.Dialog(db => db.MsgLine($"Sorry we don't have any tracked flips for {who} yet"));
                 return;
             }
             string hover = GetHoverText(socket, response);
             var paidSum = response.Flips.Sum(f => f.PricePaid);
-            socket.SendMessage(COFLNET + $"According to our data you made {FormatPrice(socket, response.TotalProfit)} "
+            socket.SendMessage(COFLNET + $"According to our data {who} made {FormatPrice(socket, response.TotalProfit)} "
                 + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions"
                 + (accounts.Count() > 1 ? $" across your {accounts.Count()} accounts" : "")
                 + $"\nYou spent {FormatPrice(socket, paidSum)} with an average {FormatPrice(socket, (long)response.Flips.Sum(f => f.Profit) * 100 / (paidSum == 0 ? 1 : paidSum))}% profit margin",
