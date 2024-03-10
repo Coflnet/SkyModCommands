@@ -679,7 +679,7 @@ namespace Coflnet.Sky.Commands.MC
                     "/cofl blocked",
                     $"{McColorCodes.GRAY} execute {McColorCodes.AQUA}/cofl blocked{McColorCodes.GRAY} to list blocked flips\n" +
                     $"{McColorCodes.GRAY}This message is meant to show you that there were flips\n" +
-                    $"{McColorCodes.GRAY}You can make it show less within /cofl set"),
+                    $"{McColorCodes.GRAY}You can make it show less within /cofl set 3"),
                 new ChatPart(" ", "/cofl void"));
             if (SessionInfo.LastBlockedMsg == default)
                 socket.TryAsyncTimes(() => socket.TriggerTutorial<Blocked>(), "blocked tutorial");
