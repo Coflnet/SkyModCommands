@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <NoWarn>1591</NoWarn>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <PackageReference Include="CassandraCSharpDriver" Version="3.19.5" />
-    <PackageReference Include="Coflnet.Sky.Bazaar.Flipper.Client" Version="0.0.2" />
     <PackageReference Include="Figgle" Version="0.5.1" />
     <PackageReference Include="Coflnet.Sky.Chat.Client" Version="0.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.23">
