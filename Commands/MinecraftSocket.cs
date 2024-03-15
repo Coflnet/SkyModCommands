@@ -432,11 +432,18 @@ namespace Coflnet.Sky.Commands.MC
             if (SessionInfo.McName == null || uuid == null)
             {
                 loadSpan?.SetTag("loading", "externally");
-                var profile = await PlayerSearch.Instance.GetMcProfile(passedId)
-                    ?? throw new CoflnetException("player_not_found", $"Mojang doesn't seem to know a player with the name `{passedId}`. Please check for typos and reconnect.");
-                uuid = profile.Id;
-                SessionInfo.McName = profile.Name;
-                await IndexerClient.TriggerNameUpdate(uuid);
+                try
+                {
+
+                    var profile = await PlayerSearch.Instance.GetMcProfile(passedId);
+                    uuid = profile.Id;
+                    SessionInfo.McName = profile.Name;
+                    await IndexerClient.TriggerNameUpdate(uuid);
+                }
+                catch (Exception)
+                {
+                    throw new CoflnetException("player_not_found", $"Mojang doesn't seem to know a player with the name `{passedId}`. Please check for typos and reconnect.");
+                }
             }
             SessionInfo.McUuid = uuid;
             loadSpan?.SetTag("playerId", passedId);
