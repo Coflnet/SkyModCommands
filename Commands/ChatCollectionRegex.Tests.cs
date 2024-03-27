@@ -38,5 +38,10 @@ namespace Coflnet.Sky.Commands.MC
         {
             Assert.IsTrue(regex.IsMatch("Bid of 197 coins placed for Stick!"));
         }
+        [Test]
+        public void NoBlocksInTheWay()
+        {
+            Assert.IsFalse(regex.IsMatch("There are blocks in the way!"));
+        }
     }
 }
