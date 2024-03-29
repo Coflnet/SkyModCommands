@@ -187,6 +187,8 @@ public class DelayHandler : IDelayHandler
         if (currentDelay != lastDelay)
             OnDelayChange?.Invoke(currentDelay);
         summary.Penalty = currentDelay;
+        if(ids.Any(SlowDownCommand.IsSlowedDown))
+            currentDelay += TimeSpan.FromSeconds(4);
         return summary;
     }
 

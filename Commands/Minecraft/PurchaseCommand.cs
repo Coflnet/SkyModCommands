@@ -56,7 +56,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var timeString = GetLenghtInWords(product, count);
                 var costSum = socket.FormatPrice((long)product.Cost * count);
-                if(socket.SessionInfo.IsMacroBot)
+                if (socket.SessionInfo.IsMacroBot)
                 {
                     socket.SendMessage(new DialogBuilder()
                         .Msg($"To confirm buying the {McColorCodes.AQUA}{product.Title}{McColorCodes.WHITE} service {McColorCodes.AQUA}{count}x ", null, product.Description)
@@ -83,7 +83,12 @@ namespace Coflnet.Sky.Commands.MC
             var targetConId = parts[2];
             if (targetConId != socket.SessionInfo.ConnectionId)
                 throw new Core.CoflnetException("no_conid_match", "The purchase was started on a different connection. To prevent loss of coins please start again.");
+            await Purchase(socket, userApi, productSlug, count);
 
+        }
+
+        public static async Task<bool> Purchase(MinecraftSocket socket, UserApi userApi, string productSlug, int count)
+        {
             try
             {
                 var reference = socket.SessionInfo.ConnectionId.Substring(0, 10) + DateTime.UtcNow.ToString("hh:mm");
@@ -92,6 +97,7 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(TimeSpan.FromSeconds(2));
                 await socket.sessionLifesycle.UpdateAccountTier(socket.sessionLifesycle.AccountInfo);
                 socket.sessionLifesycle.UpdateConnectionTier(socket.AccountInfo);
+                return true;
             }
             catch (Payments.Client.Client.ApiException e)
             {
@@ -104,7 +110,7 @@ namespace Coflnet.Sky.Commands.MC
                             "You can buy multiple at once by adding a number after the product name\n"
                                + $"Example: {McColorCodes.AQUA}/cofl buy pre_api 3")));
             }
-
+            return false;
         }
 
         private static string GetLenghtInWords(PurchaseableProduct product, int count)
