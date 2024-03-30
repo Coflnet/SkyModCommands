@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
+using WebSocketSharp;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -19,7 +20,7 @@ public class SlowDownCommand : McCommand
         var csrf = socket.SessionInfo.ConnectionId;
         var args = arguments.Trim('"').Split(' ');
         var userName = args[0];
-        if (args.Length == 1)
+        if (args.Length == 1 && !userName.IsNullOrEmpty())
         {
             var productsApi = socket.GetService<ProductsApi>();
             var product = await productsApi.ProductsPProductSlugGetAsync("slowdown");
