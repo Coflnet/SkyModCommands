@@ -22,12 +22,14 @@ public class ChatService
     private List<string> mutedUuids;
     public List<string> MutedUuids => mutedUuids;
     private SettingsService settingsService;
-    public ChatService(IConfiguration config, SettingsService settingsService)
+    private ModeratorService moderatorService;
+    public ChatService(IConfiguration config, SettingsService settingsService, ModeratorService moderatorService)
     {
         api = new(config["CHAT_BASE_URL"]);
         chatAuthKey = config["CHAT_API_KEY"];
         RefreshMutedUsers();
         this.settingsService = settingsService;
+        this.moderatorService = moderatorService;
     }
     public async Task<ChannelMessageQueue> Subscribe(Func<ChatMessage, bool> onMessage)
     {
@@ -86,21 +88,29 @@ public class ChatService
         });
     }
 
-    public async Task Send(ModChatMessage message)
+    public async Task Send(MinecraftSocket socket, ModChatMessage message)
     {
         try
         {
+            var isMod = moderatorService.IsModerator(socket);
+            var prefix = message.Tier switch
+            {
+                AccountTier.SUPER_PREMIUM => McColorCodes.RED,
+                AccountTier.PREMIUM_PLUS => McColorCodes.GOLD,
+                AccountTier.PREMIUM => McColorCodes.DARK_GREEN,
+                AccountTier.STARTER_PREMIUM => McColorCodes.WHITE,
+                _ => McColorCodes.GRAY
+            };
+            if (isMod)
+            {
+                if (message.Tier < AccountTier.PREMIUM)
+                    prefix = McColorCodes.DARK_GREEN;
+                prefix = McColorCodes.GOLD + "ⓂⓄⒹ" + prefix;
+            }
             var chatMsg = new ChatMessage(
                 message.SenderUuid ?? throw new CoflnetException("invalid_sender", "Sender uuid is null"),
                 message.SenderName,
-                message.Tier switch
-                {
-                    AccountTier.SUPER_PREMIUM => McColorCodes.RED,
-                    AccountTier.PREMIUM_PLUS => McColorCodes.GOLD,
-                    AccountTier.PREMIUM => McColorCodes.DARK_GREEN,
-                    AccountTier.STARTER_PREMIUM => McColorCodes.WHITE,
-                    _ => McColorCodes.GRAY
-                },
+                prefix,
                 message.Message);
             Activity.Current?.Log("sending to service");
             await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
