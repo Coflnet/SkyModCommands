@@ -7,10 +7,10 @@ using Coflnet.Sky.ModCommands.Dialogs;
 namespace Coflnet.Sky.Commands.MC
 {
 
-    [CommandDescription("Start purchase of a paid plan", 
-        "To buy a plan use /cofl buy <plan> [count]", 
-        "Allows you to buy premium and other plans", 
-        "Buy premium to support the server <3", 
+    [CommandDescription("Start purchase of a paid plan",
+        "To buy a plan use /cofl buy <plan> [count]",
+        "Allows you to buy premium and other plans",
+        "Buy premium to support the server <3",
         "Example /cofl buy premium+ 3")]
     public class PurchaseCommand : McCommand
     {
@@ -87,11 +87,12 @@ namespace Coflnet.Sky.Commands.MC
 
         }
 
-        public static async Task<bool> Purchase(MinecraftSocket socket, UserApi userApi, string productSlug, int count)
+        public static async Task<bool> Purchase(MinecraftSocket socket, UserApi userApi, string productSlug, int count, string reference = null)
         {
             try
             {
-                var reference = socket.SessionInfo.ConnectionId.Substring(0, 10) + DateTime.UtcNow.ToString("hh:mm");
+                if (reference == null)
+                    reference = socket.SessionInfo.ConnectionId.Substring(0, 10) + DateTime.UtcNow.ToString("hh:mm");
                 var userInfo = await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, productSlug, reference, count);
                 socket.Dialog(db => db.MsgLine($"Successfully started purchase of {productSlug} you should receive a confirmation in a few seconds"));
                 await Task.Delay(TimeSpan.FromSeconds(2));

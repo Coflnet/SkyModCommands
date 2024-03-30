@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
@@ -18,23 +19,23 @@ public class SlowDownCommand : McCommand
         var csrf = socket.SessionInfo.ConnectionId;
         var args = arguments.Trim('"').Split(' ');
         var userName = args[0];
-        if(args.Length == 1)
+        if (args.Length == 1)
         {
             var productsApi = socket.GetService<ProductsApi>();
             var product = await productsApi.ProductsPProductSlugGetAsync("slowdown");
             socket.Dialog(db => db.CoflCommand<SlowDownCommand>(
-                    $"Confirm that you want to slow down {McColorCodes.AQUA}{userName}{McColorCodes.RESET} for {product.Cost} CoflCoins {McColorCodes.YELLOW}(click to confirm)", 
+                    $"Confirm that you want to slow down {McColorCodes.AQUA}{userName}{McColorCodes.RESET} for {product.Cost} CoflCoins {McColorCodes.YELLOW}(click to confirm)",
                     $"{userName} {csrf}", $"Slow down {userName}"));
             return;
         }
-        if (args.Length < 1|| args.Length == 2 && args[1] != csrf)
+        if (args.Length < 1 || args.Length == 2 && args[1] != csrf)
         {
             socket.Dialog(db => db.MsgLine($"You need to specify a player. eg. {McColorCodes.AQUA}/cofl slowdown <ign>"));
             return;
         }
         var uuid = await socket.GetPlayerUuid(userName);
         var userApi = socket.GetService<UserApi>();
-        if (!await PurchaseCommand.Purchase(socket, userApi, "slowdown", 1))
+        if (!await PurchaseCommand.Purchase(socket, userApi, "slowdown", 1, userName + DateTime.UtcNow.ToString("hh:mm")))
         {
             socket.Dialog(db => db.MsgLine("That didn't work out, please try again or report this"));
             return;
