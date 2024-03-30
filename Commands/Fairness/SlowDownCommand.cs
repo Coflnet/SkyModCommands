@@ -23,7 +23,7 @@ public class SlowDownCommand : McCommand
             var productsApi = socket.GetService<ProductsApi>();
             var product = await productsApi.ProductsPProductSlugGetAsync("slowdown");
             socket.Dialog(db => db.CoflCommand<SlowDownCommand>(
-                    $"Confirm that you want to slow down {McColorCodes.AQUA}{userName}{McColorCodes.RESET} for {product.Cost} CoflCoins", 
+                    $"Confirm that you want to slow down {McColorCodes.AQUA}{userName}{McColorCodes.RESET} for {product.Cost} CoflCoins {McColorCodes.YELLOW}(click to confirm)", 
                     $"{userName} {csrf}", $"Slow down {userName}"));
             return;
         }
