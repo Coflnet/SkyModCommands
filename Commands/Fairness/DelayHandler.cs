@@ -184,11 +184,11 @@ public class DelayHandler : IDelayHandler
                 macroPenalty = TimeSpan.Zero;
             }
         }
+        if(ids.Any(DiHandler.GetService<DelayService>().IsSlowedDown))
+            currentDelay += TimeSpan.FromSeconds(4);
         if (currentDelay != lastDelay)
             OnDelayChange?.Invoke(currentDelay);
         summary.Penalty = currentDelay;
-        if(ids.Any(SlowDownCommand.IsSlowedDown))
-            currentDelay += TimeSpan.FromSeconds(4);
         return summary;
     }
 

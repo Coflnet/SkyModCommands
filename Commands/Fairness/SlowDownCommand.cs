@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using WebSocketSharp;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -9,12 +10,6 @@ namespace Coflnet.Sky.Commands.MC;
 [CommandDescription("Allows you to slow down some user")]
 public class SlowDownCommand : McCommand
 {
-    private static HashSet<string> _slowDowns = new HashSet<string>();
-
-    public static bool IsSlowedDown(string uuid)
-    {
-        return _slowDowns.Contains(uuid);
-    }
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var csrf = socket.SessionInfo.ConnectionId;
@@ -41,9 +36,25 @@ public class SlowDownCommand : McCommand
             socket.Dialog(db => db.MsgLine("That didn't work out, please try again or report this"));
             return;
         }
-        _slowDowns.Add(uuid);
-        socket.Dialog(db => db.MsgLine($"You have slowed down {userName}"));
-        await Task.Delay(1000 * 62); // TODO: sync with others
-        _slowDowns.Remove(uuid);
+        socket.GetService<DelayService>().SlowDown(uuid);
+        socket.Dialog(db => db.MsgLine($"You have slowed down {userName}", null, "will take effect on next update"));
+
+        var userInfo = await socket.GetService<McAccountService>().GetUserId(uuid);
+        try
+        {
+            await socket.GetService<TopUpApi>().TopUpCustomPostAsync(userInfo.ExternalId, new()
+            {
+                Amount = 100,
+                ProductId = "compensation",
+                Reference = $"slowdown from {socket.SessionInfo.McName} {DateTime.UtcNow.ToString("hh:mm")}"
+            });
+
+        }
+        catch (Exception e)
+        {
+            dev.Logger.Instance.Error(e, "Failed to compensate for slowdown");
+        }
+        await Task.Delay(DelayService.DelayTime);
+        socket.Dialog(db => db.MsgLine($"Slowdown for {userName} expired."));
     }
 }

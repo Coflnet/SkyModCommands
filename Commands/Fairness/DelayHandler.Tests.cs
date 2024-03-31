@@ -31,6 +31,7 @@ public class DelayHandlerTests
         flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));
         delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, accountInfo, new Random(5));
         flipInstance = new FlipInstance() { Auction = new() { StartingBid = 5 } };
+        DiHandler.OverrideService<DelayService, DelayService>(new DelayService(null));
     }
 
     public async Task RequireMc()

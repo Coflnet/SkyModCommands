@@ -75,6 +75,7 @@ public class Startup
         services.AddSingleton<IAhActive, AhActiveService>();
         services.AddSingleton<CircumventTracker>();
         services.AddSingleton<IPriceStorageService,PriceStorageService>();
+        services.AddSingleton<DelayService>();
         services.AddCoflService();
     }
 
