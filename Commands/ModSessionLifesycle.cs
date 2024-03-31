@@ -390,6 +390,13 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 await userIsVerifiedTask;
                 socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc }));
+
+                if(DateTime.Now < new DateTime(2024,4,2))
+                {
+                    socket.Dialog(db => 
+                        db.MsgLine($"Happy Easter! {McColorCodes.OBFUSCATED}!!")
+                        .CoflCommand<PurchaseCommand>($"We got a special 100 prem+ offer for 26% cheaper than buying it weekly (click)", "premium_plus-100", "Click to buy 100 prem+ for 26% off"));
+                }
             }
             catch (Exception e)
             {
