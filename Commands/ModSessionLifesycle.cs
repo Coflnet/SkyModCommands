@@ -394,8 +394,8 @@ namespace Coflnet.Sky.Commands.MC
                 if(DateTime.Now < new DateTime(2024,4,2))
                 {
                     socket.Dialog(db => 
-                        db.MsgLine($"Happy Easter! {McColorCodes.OBFUSCATED}!!")
-                        .CoflCommand<PurchaseCommand>($"We got a special 100 prem+ offer for 26% cheaper than buying it weekly (click)", "premium_plus-100", "Click to buy 100 prem+ for 26% off"));
+                        db.MsgLine($"{McColorCodes.BOLD}Happy Easter! {McColorCodes.OBFUSCATED}!!")
+                        .CoflCommand<PurchaseCommand>($"We got a special {McColorCodes.AQUA}100 days prem+ offer{McColorCodes.RESET} for {McColorCodes.RED}26% cheaper{McColorCodes.RESET} than buying it weekly {McColorCodes.YELLOW}(click)", "premium_plus-100", "Click to buy 100 days prem+ for 26% off"));
                 }
             }
             catch (Exception e)
