@@ -675,19 +675,19 @@ namespace Coflnet.Sky.Commands.MC
                  "/cofl start", "if it doesn't auto reconnect click this");
         }
 
-        public virtual string Error(Exception exception, string? message = null, string? additionalLog = null)
+        public virtual string? Error(Exception exception, string? message = null, string? additionalLog = null)
         {
             using var error = CreateActivity("error", ConSpan)?.AddTag("message", message).AddTag("error", "true");
-            if (IsDevMode || SessionInfo.McUuid == "384a029294fc445e863f2c42fe9709cb")
+            if (IsDevMode || SessionInfo?.McUuid == "384a029294fc445e863f2c42fe9709cb")
                 dev.Logger.Instance.Error(exception, message);
 
             error?.AddEvent(new ActivityEvent(message ?? "error", DateTimeOffset.Now, new(new Dictionary<string, object?> {
                 { "exception", exception },
                 { "additionalLog", additionalLog },
                 { "session", JsonConvert.SerializeObject(SessionInfo) },
-                { "account", sessionLifesycle.AccountInfo?.Value },
+                { "account", sessionLifesycle?.AccountInfo?.Value },
                 { "settings", JsonConvert.SerializeObject(Settings).Truncate(10_000) }})));
-            return error?.Context.TraceId.ToString()!;
+            return error?.Context.TraceId.ToString();
         }
 
         /// <summary>
