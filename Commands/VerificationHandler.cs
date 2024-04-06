@@ -138,8 +138,27 @@ namespace Coflnet.Sky.Commands.MC
                 $"{socket.sessionLifesycle.COFLNET}You connected from an unknown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. ", "/ah"));
             if (targetAuction != null)
             {
-                socket.SendMessage(new ChatPart($"{McColorCodes.YELLOW}[CLICK TO {McColorCodes.BOLD}VERIFY{McColorCodes.RESET + McColorCodes.YELLOW} by BIDDING {bid}]", $"/viewauction {targetAuction?.Uuid}",
-                $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
+                if (socket.SessionInfo.IsMacroBot)
+                {
+                    // autoverify
+                    socket.Dialog(db => db.MsgLine("Attempting to autoverify with a pseudo flip."));
+                    await socket.ModAdapter.SendFlip(FlipperService.LowPriceToFlip(new LowPricedAuction()
+                    {
+                        Auction = new SaveAuction()
+                        {
+                            Uuid = targetAuction.Uuid,
+                            HighestBidAmount = targetAuction.Price,
+                        },
+                        TargetPrice = bid + 1000,
+                        DailyVolume = 1,
+                        Finder = LowPricedAuction.FinderType.EXTERNAL
+                    }));
+                    await Task.Delay(5000);
+                    socket.Dialog(db => db.MsgLine("It can take up to 1 minute to verify your account. If you are not verified after that, please try again."));
+                }
+                else
+                    socket.SendMessage(new ChatPart($"{McColorCodes.YELLOW}[CLICK TO {McColorCodes.BOLD}VERIFY{McColorCodes.RESET + McColorCodes.YELLOW} by BIDDING {bid}]", $"/viewauction {targetAuction?.Uuid}",
+                    $"{McColorCodes.GRAY}Click to open an auction to bid {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}"));
                 SessionInfo.VerificationBidAuctioneer = targetAuction.Seller;
             }
             else
