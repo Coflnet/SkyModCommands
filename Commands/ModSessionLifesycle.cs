@@ -628,7 +628,7 @@ namespace Coflnet.Sky.Commands.MC
                     s.TargetPrice > s.Auction.StartingBid * 2 &&
                     !preApiService.IsSold(s.Auction.Uuid)
                 )
-                .GroupBy(s => s.Auction.Tag).Where(g => g.Count() >= 5).ToList();
+                .GroupBy(s => s.Auction.Tag).Where(g => g.Count() >= 10).ToList();
             var playersToBlock = BlockPlayerBaiting(preApiService);
             foreach (var item in toBlock)
             {
