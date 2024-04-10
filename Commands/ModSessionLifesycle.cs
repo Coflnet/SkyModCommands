@@ -391,9 +391,9 @@ namespace Coflnet.Sky.Commands.MC
                 await userIsVerifiedTask;
                 socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc }));
 
-                if(DateTime.Now < new DateTime(2024,4,2))
+                if (DateTime.Now < new DateTime(2024, 4, 2))
                 {
-                    socket.Dialog(db => 
+                    socket.Dialog(db =>
                         db.MsgLine($"{McColorCodes.BOLD}Happy Easter! {McColorCodes.OBFUSCATED}!!")
                         .CoflCommand<PurchaseCommand>($"We got a special {McColorCodes.AQUA}100 days prem+ offer{McColorCodes.RESET} for {McColorCodes.RED}26% cheaper{McColorCodes.RESET} than buying it weekly {McColorCodes.YELLOW}(click)", "premium_plus-100", "Click to buy 100 days prem+ for 26% off"));
                 }
@@ -620,9 +620,32 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task AddBlacklistOfSpam()
         {
+            var preApiService = socket.GetService<PreApiService>();
+            var badSellers =
+                socket.LastSent.Where(s => s.TargetPrice > s.Auction.StartingBid * 9
+                            && !preApiService.IsSold(s.Auction.Uuid))
+                .GroupBy(s => s.Auction.AuctioneerId + s.Auction.Tag).Where(g => g.Count() >= 3)
+                .ToList();
+            if (badSellers.Any())
+            {
+                foreach (var item in badSellers)
+                {
+                    FlipSettings.Value.BlackList.Add(new()
+                    {
+                        DisplayName = "Automatic blacklist of " + item.First().Auction.ItemName,
+                        ItemTag = item.First().Auction.Tag,
+                        filter = new()
+                            { { "ForceBlacklist", "true" }, { "Seller", item.First().Auction.AuctioneerId }
+                            },
+                        Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(48).ToString("s") }
+                    });
+                    socket.SendMessage(COFLNET + $"Temporarily blacklisted {item.First().Auction.ItemName} from {item.First().Auction.AuctioneerId} for baiting");
+                }
+                await FlipSettings.Update();
+                FlipSettings.Value.RecompileMatchers();
+            }
             if (FlipSettings.Value?.ModSettings?.TempBlacklistSpam == false)
                 return;
-            var preApiService = socket.GetService<PreApiService>();
             var toBlock = socket.LastSent.Where(s =>
                     s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(3) &&
                     s.TargetPrice > s.Auction.StartingBid * 2 &&
