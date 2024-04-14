@@ -22,6 +22,8 @@ public class LeaderboardCommand : McCommand
         var nameApi = socket.GetService<IPlayerNameApi>();
         string boardSlug = GetBoardName();
         int.TryParse(arguments.Trim('"'), out var page);
+        if(page > 0)
+            page--;
         var ownTask = api.ScoresLeaderboardSlugUserUserIdRankGetAsync(boardSlug, socket.SessionInfo.McUuid);
         var leaderboardData = await api.ScoresLeaderboardSlugGetAsync(boardSlug, page * 10, 10);
         var names = await nameApi.PlayerNameNamesBatchPostAsync(leaderboardData.Select(d => d.UserId).ToList());
