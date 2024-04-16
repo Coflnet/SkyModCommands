@@ -177,6 +177,8 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<CookieCommand>();
             Commands.Add<FlipSentOnProxy>();
             Commands.Add<SlowDownCommand>();
+            Commands.Add<CheapAttribCommand>();
+            Commands.Add<OpenUidAuctionCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

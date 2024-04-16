@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,7 +27,7 @@ public class SellInventoryCommand : McCommand
         {
             Activity.Current.Log("selling " + item.ItemName);
             var suffix = "";
-            if(item.Count > 1)
+            if (item.Count > 1)
                 suffix = $" x{item.Count}";
             socket.Dialog(db => db.MsgLine($"§7[§6§lSelling§7]§r{item.ItemName}{suffix}"));
         }
