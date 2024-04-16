@@ -31,10 +31,16 @@ public class CheapAttribCommand : McCommand
             socket.Dialog(db => db.MsgLine($"§6{group.Key}")
                 .ForEach(group.OrderBy(r => r.Tag), (db, r) => db
                     .CoflCommand<OpenUidAuctionCommand>(
-                        $"§7{r.Tag} §6{(r.Price < 0 ? "none found" : r.Price)}", r.AuctionUid,
-                        $"{McColorCodes.AQUA}try to open {r.Tag} in ah\n{McColorCodes.GRAY}execute command again if expired")
+                        $"§7{FormatName(r.Tag)} §6{(r.Price < 0 ? "none found" : socket.FormatPrice(r.Price))}", r.AuctionUid,
+                        $"{McColorCodes.AQUA}try to open {FormatName(r.Tag)} in ah\n{McColorCodes.GRAY}execute command again if expired")
                     .If(() => !r.Tag.EndsWith("LEGGINGS"), db => db.LineBreak())));
         }
+    }
+
+    private string FormatName(string attribname)
+    {
+        var words = attribname.Split('_');
+        return string.Join(" ", words.Select(w => w.First().ToString().ToUpper() + w.Substring(1).ToLower()));
     }
 
     IEnumerable<string> AltName(string attribname)
