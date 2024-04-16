@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,10 +6,16 @@ using Coflnet.Sky.Sniper.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription("Lists ")]
 public class CheapAttribCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
+        if (await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
+        {
+            await socket.PrintRequiresPremPlus();
+            return;
+        }
         var map = Constants.AttributeKeys.SelectMany(k => AltName(k).Select(a => (a, k))).ToDictionary(k => k.a, v => v.k);
         var attribNames = arguments.Trim('"').Split(' ');
         if (attribNames.Length != 2)
@@ -52,19 +57,17 @@ public class CheapAttribCommand : McCommand
     }
 }
 
-public class OpenUidAuctionCommand : McCommand
+public static class CommonDialogExtension
 {
-    public override async Task Execute(MinecraftSocket socket, string arguments)
+    public static async Task PrintRequiresPremPlus(this IMinecraftSocket socket)
     {
-        var uid = long.Parse(arguments.Trim('"'));
-        using (var db = new HypixelContext())
+        if (await socket.UserAccountTier() >= Shared.AccountTier.PREMIUM_PLUS)
         {
-            var auction = db.Auctions.Where(a => a.UId == uid).FirstOrDefault();
-            if (auction == null)
-                throw new CoflnetException("not_found", "The auction with the given uid was not found");
-            if (auction.End < DateTime.UtcNow)
-                throw new CoflnetException("expired", "The auction has already ended");
-            socket.ExecuteCommand("/viewauction " + auction.Uuid);
+            return;
         }
+        socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
+            $"{McColorCodes.RED}{McColorCodes.BOLD}ABORTED\n"
+            + $"{McColorCodes.RED}You need to be a premium plus user to use this command",
+            "premium_plus", $"Click to purchase prem+"));
     }
 }
