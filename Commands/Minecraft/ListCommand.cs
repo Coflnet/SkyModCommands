@@ -32,6 +32,7 @@ namespace Coflnet.Sky.Commands.MC
                     await Help(socket, subArgs);
                     break;
                 case "add":
+                case "a":
                     await Add(socket, subArgs);
                     break;
                 case "addall":
