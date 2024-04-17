@@ -3,12 +3,27 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Sniper.Client.Api;
+using Google.Protobuf.WellKnownTypes;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Coflnet.Sky.Commands.MC;
 
 [CommandDescription("Lists ")]
 public class CheapAttribCommand : McCommand
 {
+    private static Dictionary<string, string> aliases = new() {
+        { "vitality", "mending" },
+        { "mana_regen", "mana_regeneration" }
+    };
+    static CheapAttribCommand()
+    {
+        // validate that values exist
+        foreach (var item in aliases)
+        {
+            if (!Constants.AttributeKeys.Contains(item.Value))
+                throw new System.Exception($"The alias {item.Value} for {item.Key} is not a known attribute");
+        }
+    }
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         if (await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
@@ -16,7 +31,9 @@ public class CheapAttribCommand : McCommand
             await socket.PrintRequiresPremPlus();
             return;
         }
-        var map = Constants.AttributeKeys.SelectMany(k => AltName(k).Select(a => (a, k))).ToDictionary(k => k.a, v => v.k);
+        var map = Constants.AttributeKeys.SelectMany(k => AltName(k).Select(a => (Key: a, Value: k)))
+            .Concat(aliases.Select(a => (a.Key, a.Value)))
+            .ToDictionary(k => k.Key, v => v.Value);
         var attribNames = arguments.Trim('"').Split(' ');
         if (attribNames.Length != 2)
             throw new CoflnetException("invalid_arguments", "Please provide two attribute names without spaces (you can use _ or ommit it) eg manapool mana_regeneration");
