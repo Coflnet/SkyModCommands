@@ -3,18 +3,17 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Sniper.Client.Api;
-using Google.Protobuf.WellKnownTypes;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Coflnet.Sky.Commands.MC;
 
-[CommandDescription("Lists ")]
+[CommandDescription("Lists the cheapest auctions for a given attribute combination", "cheapattrib <attrib1> <attrib2>")]
 public class CheapAttribCommand : McCommand
 {
     private static Dictionary<string, string> aliases = new() {
         { "vitality", "mending" },
         { "mana_regen", "mana_regeneration" }
     };
+    static Dictionary<string, string> map;
     static CheapAttribCommand()
     {
         // validate that values exist
@@ -23,6 +22,9 @@ public class CheapAttribCommand : McCommand
             if (!Constants.AttributeKeys.Contains(item.Value))
                 throw new System.Exception($"The alias {item.Value} for {item.Key} is not a known attribute");
         }
+        map = Constants.AttributeKeys.SelectMany(k => AltName(k).Select(a => (Key: a, Value: k)))
+            .Concat(aliases.Select(a => (a.Key, a.Value)))
+            .ToDictionary(k => k.Key, v => v.Value);
     }
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
@@ -31,20 +33,12 @@ public class CheapAttribCommand : McCommand
             await socket.PrintRequiresPremPlus();
             return;
         }
-        var map = Constants.AttributeKeys.SelectMany(k => AltName(k).Select(a => (Key: a, Value: k)))
-            .Concat(aliases.Select(a => (a.Key, a.Value)))
-            .ToDictionary(k => k.Key, v => v.Value);
         var attribNames = arguments.Trim('"').Split(' ');
         if (attribNames.Length != 2)
             throw new CoflnetException("invalid_arguments", "Please provide two attribute names without spaces (you can use _ or ommit it) eg manapool mana_regeneration");
 
-        // error if not found 
-        foreach (var item in attribNames)
-        {
-            if (!map.ContainsKey(item))
-                throw new CoflnetException("invalid_attribute", $"The attribute {item} is not known, please check for typos or report adding an alias");
-        }
-        var mapped = attribNames.Select(a => map[a]).ToArray();
+
+        var mapped = attribNames.Select(MapAttribute).ToArray();
         var attribApi = socket.GetService<IAttributeApi>();
         var result = await attribApi.ApiAttributeComboLeftAttribRightAttribGetAsync(mapped[0], mapped[1]);
         var grouped = result.GroupBy(r => r.Tag.Split('_').First()).OrderByDescending(g => g.Key);
@@ -59,18 +53,24 @@ public class CheapAttribCommand : McCommand
         }
     }
 
+    public static string MapAttribute(string a)
+    {
+        if (!map.ContainsKey(a))
+            throw new CoflnetException("invalid_attribute", $"The attribute {a} is not known, please check for typos or report adding an alias");
+        return map[a];
+    }
+
     private string FormatName(string attribname)
     {
         var words = attribname.Split('_');
         return string.Join(" ", words.Select(w => w.First().ToString().ToUpper() + w.Substring(1).ToLower()));
     }
 
-    IEnumerable<string> AltName(string attribname)
+    static IEnumerable<string> AltName(string attribname)
     {
         yield return attribname;
         if (attribname.Contains('_'))
             yield return attribname.Replace("_", "");
-
     }
 }
 

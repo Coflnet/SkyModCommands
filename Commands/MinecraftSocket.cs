@@ -179,6 +179,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SlowDownCommand>();
             Commands.Add<CheapAttribCommand>();
             Commands.Add<OpenUidAuctionCommand>();
+            Commands.Add<AttributeUpgradeCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
