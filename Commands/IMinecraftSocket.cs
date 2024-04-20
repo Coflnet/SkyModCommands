@@ -34,7 +34,7 @@ namespace Coflnet.Sky.Commands.MC
         string Error(Exception exception, string? message = null, string? additionalLog = null);
         void ExecuteCommand(string command);
         string FormatPrice(double price);
-        LowPricedAuction GetFlip(string uuid);
+        LowPricedAuction? GetFlip(string uuid);
         string GetFlipMsg(FlipInstance flip);
         Task<string> GetPlayerName(string uuid);
         Task<string> GetPlayerUuid(string name, bool blockError);

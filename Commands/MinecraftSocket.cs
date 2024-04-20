@@ -867,7 +867,7 @@ namespace Coflnet.Sky.Commands.MC
             return prop.Name + " was disabled";
         }
 
-        public LowPricedAuction GetFlip(string uuid)
+        public LowPricedAuction? GetFlip(string uuid)
         {
             return LastSent.Concat(TopBlocked.Select(b => b.Flip)).Where(s => s.Auction.Uuid == uuid).FirstOrDefault();
         }
