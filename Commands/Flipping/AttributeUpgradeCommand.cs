@@ -16,7 +16,7 @@ public class AttributeUpgradeCommand : McCommand
             throw new CoflnetException("invalid_arguments", "Please provide: {item_type} {attribute_name} [start_level] [end_level]");
         var itemType = args[0];
         var attribName = CheapAttribCommand.MapAttribute(args[1]);
-        var startLevel = 0;
+        var startLevel = 1;
         var endLevel = 10;
         if (args.Length > 2)
             startLevel = int.Parse(args[2]);
@@ -34,7 +34,7 @@ public class AttributeUpgradeCommand : McCommand
         var combined = result.Select(r => (r.Key, auctions: r.Value.Select(id => lookup.GetValueOrDefault(id))));
         socket.Dialog(db => db.MsgLine($"§6{itemType} {attribName} {startLevel}-{endLevel}")
             .ForEach(combined, (db, r) => db
-                .MsgLine($"§7Lvl: {McColorCodes.AQUA}{r.Key}")
+                .MsgLine($"§7Lvl: {McColorCodes.AQUA}{int.Parse(r.Key)+1}")
                 .ForEach(r.auctions, (db, a) =>
                     db.If(() => a != null, db => db
                     .MsgLine(
