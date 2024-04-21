@@ -24,17 +24,17 @@ public class AttributeUpgradeCommand : McCommand
             endLevel = int.Parse(args[3]);
         var attribApi = socket.GetService<IAttributeApi>();
         var result = await attribApi.ApiAttributeCheapestItemTypeAttributeGetAsync(itemType, attribName, startLevel, endLevel);
-        var auctionIds = result.Select(e => ((string level, List<string> ids))e).SelectMany(r => r.ids.Select(long.Parse)).ToList();
+        var auctionIds = result.SelectMany(r => r.Value.Select(long.Parse)).ToList();
         List<SaveAuction> auctions;
         using (var db = new HypixelContext())
         {
             auctions = await db.Auctions.Where(a => auctionIds.Contains(a.UId)).ToListAsync();
         }
         var lookup = auctions.ToDictionary(a => a.UId.ToString());
-        var combined = result.Select(e => ((string level, List<string> ids))e).Select(r => (r.level, auctions: r.ids.Select(id => lookup[id])));
+        var combined = result.Select(r => (r.Key, auctions: r.Value.Select(id => lookup[id])));
         socket.Dialog(db => db.MsgLine($"§6{itemType} {attribName} {startLevel}-{endLevel}")
             .ForEach(combined, (db, r) => db
-                .MsgLine($"§7Lvl: {McColorCodes.AQUA}{r.level}")
+                .MsgLine($"§7Lvl: {McColorCodes.AQUA}{r.Key}")
                 .ForEach(r.auctions, (db, a) => db
                     .Msg(
                         $"§6{socket.FormatPrice(a.HighestBidAmount)}", $"/viewauction {a.Uuid}",
