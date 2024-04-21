@@ -7,10 +7,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription("Lists the cheapest upgrade path for some attribute", "attributeupgrade <item_name> <attrib2> {start_level} {end_level}")]
 public class AttributeUpgradeCommand : McCommand
 {
+    public override bool IsPublic => true;
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
+        await socket.PrintRequiresPremPlus();
         var args = arguments.Trim('"').Split(' ');
         if (args.Length < 2)
             throw new CoflnetException("invalid_arguments", "Please provide: {item_type} {attribute_name} [start_level] [end_level]");

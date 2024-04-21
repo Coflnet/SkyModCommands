@@ -9,6 +9,7 @@ namespace Coflnet.Sky.Commands.MC;
 [CommandDescription("Lists the cheapest auctions for a given attribute combination", "cheapattrib <attrib1> <attrib2>")]
 public class CheapAttribCommand : McCommand
 {
+    public override bool IsPublic => true;
     private static Dictionary<string, string> aliases = new() {
         { "vitality", "mending" },
         { "mana_regen", "mana_regeneration" }
