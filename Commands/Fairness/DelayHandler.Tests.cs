@@ -37,19 +37,19 @@ public class DelayHandlerTests
     public async Task RequireMc()
     {
         var summary = await delayHandler.Update(ids, timeProvider.Now);
-        Assert.AreEqual(4, summary.Penalty.TotalSeconds, 0.00001);
+        Assert.That(summary.Penalty.TotalSeconds, Is.EqualTo(4));
     }
 
     public async Task NoDelayWhenNoPenalty()
     {
         result.Penalty = 0;
         var summary = await delayHandler.Update(ids, timeProvider.Now);
-        Assert.AreEqual(0, summary.Penalty.TotalSeconds, 0.00001);
+        Assert.That(summary.Penalty.TotalSeconds, Is.EqualTo(0));
         var stopWatch = new Stopwatch();
         await delayHandler.AwaitDelayForFlip(flipInstance);
         await delayHandler.AwaitDelayForFlip(flipInstance);
         await delayHandler.AwaitDelayForFlip(flipInstance);
-        Assert.AreEqual(0, stopWatch.Elapsed.TotalSeconds, 0.00001);
+        Assert.That(stopWatch.Elapsed.TotalSeconds, Is.EqualTo(0));
     }
 
     [Test]
@@ -57,31 +57,31 @@ public class DelayHandlerTests
     {
         sessionInfo.VerifiedMc = true;
         var summary = await delayHandler.Update(ids, timeProvider.Now);
-        Assert.AreEqual(1, summary.Penalty.TotalSeconds, 0.00001);
+        Assert.That(summary.Penalty.TotalSeconds, Is.EqualTo(1));
         var first = delayHandler.AwaitDelayForFlip(flipInstance);
         var second = delayHandler.AwaitDelayForFlip(flipInstance);
         var third = delayHandler.AwaitDelayForFlip(flipInstance);
         var fourth = delayHandler.AwaitDelayForFlip(flipInstance);
-        Assert.IsFalse(first.IsCompleted);
-        Assert.IsFalse(second.IsCompleted);
-        Assert.IsFalse(third.IsCompleted);
-        Assert.IsFalse(fourth.IsCompleted);
+        Assert.That(!first.IsCompleted);
+        Assert.That(!second.IsCompleted);
+        Assert.That(!third.IsCompleted);
+        Assert.That(!fourth.IsCompleted);
         timeProvider.TickForward(TimeSpan.FromSeconds(0.065));
-        Assert.IsTrue(fourth.IsCompleted);
-        Assert.IsTrue(third.IsCompleted);
-        Assert.IsFalse(second.IsCompleted);
+        Assert.That(fourth.IsCompleted);
+        Assert.That(third.IsCompleted);
+        Assert.That(!second.IsCompleted);
         timeProvider.TickForward(TimeSpan.FromSeconds(0.6));
-        Assert.IsTrue(second.IsCompleted);
-        Assert.IsFalse(first.IsCompleted);
+        Assert.That(second.IsCompleted);
+        Assert.That(!first.IsCompleted);
         timeProvider.TickForward(TimeSpan.FromSeconds(0.25));
-        Assert.IsTrue(first.IsCompleted);
+        Assert.That(first.IsCompleted);
     }
 
     [Test]
     public async Task AntiMacroDelay()
     {
         var summary = await delayHandler.Update(ids, new DateTime());
-        Assert.AreEqual(12, summary.Penalty.TotalSeconds, 0.00001);
+        Assert.That(summary.Penalty.TotalSeconds, Is.EqualTo(12));
     }
     [Test]
     public async Task LongAntiMacroDelay()
@@ -103,14 +103,14 @@ public class DelayHandlerTests
         var summary = await delayHandler.Update(ids, timeProvider.Now);
         var delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
         timeProvider.TickForward(TimeSpan.FromSeconds(0.02));
-        Assert.IsTrue(delayTask.IsCompleted);
+        Assert.That(delayTask.IsCompleted);
         flipInstance.Auction.StartingBid = 5_000_000;
         flipInstance.MedianPrice = 10_100_100;
         flipInstance.Finder = Core.LowPricedAuction.FinderType.SNIPER_MEDIAN;
         delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
-        Assert.IsFalse(delayTask.IsCompleted);
+        Assert.That(!delayTask.IsCompleted);
         timeProvider.TickForward(TimeSpan.FromSeconds(1));
-        Assert.IsTrue(delayTask.IsCompleted);
+        Assert.That(delayTask.IsCompleted);
 
     }
 }

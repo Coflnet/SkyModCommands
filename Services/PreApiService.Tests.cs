@@ -45,7 +45,7 @@ public class PreApiTests
         await service.SendFlipCorrectly(flip, TimeSpan.Zero, connection);
         
         con.Verify(c => c.SendFlip(It.IsAny<LowPricedAuction>()), Times.Once);
-        Assert.AreEqual(flip.Auction.Uuid, lastFlip.Auction.Uuid);
-        Assert.AreEqual("test" + McColorCodes.RED + ".", lastFlip.Auction.Context["cname"]);
+        Assert.That(lastFlip.Auction.Uuid, Is.EqualTo(flip.Auction.Uuid));
+        Assert.That(lastFlip.Auction.Context["cname"], Is.EqualTo("test" + McColorCodes.RED + "."));
     }
 }

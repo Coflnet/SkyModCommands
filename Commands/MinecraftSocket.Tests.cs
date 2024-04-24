@@ -43,7 +43,7 @@ public class MinecraftSocketTests
         var dictionary = new ConcurrentDictionary<IFlipConnection, DateTime>();
         dictionary.TryAdd(new MinecraftSocket(), DateTime.UtcNow);
         dictionary.TryAdd(new MinecraftSocket(), DateTime.UtcNow);
-        Assert.AreEqual(1, dictionary.Count);
+        Assert.That(dictionary.Count, Is.EqualTo(1));
     }
 
     public class TestSocket : MinecraftSocket
@@ -85,7 +85,7 @@ public class FlipStreamTests
         }
         // });
         await Task.Delay(10);
-        Assert.GreaterOrEqual(socket.TopBlocked.Count, 500);
+        Assert.That(socket.TopBlocked.Count,Is.GreaterThanOrEqualTo(500));
 
     }
 }

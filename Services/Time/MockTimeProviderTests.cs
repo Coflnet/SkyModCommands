@@ -18,6 +18,6 @@ public class MockTimeProviderTests
         var sw = new Stopwatch();
         await task;
         // less than 1% of time has actually passed
-        Assert.Greater(0.01, sw.Elapsed.TotalSeconds);
+        Assert.That(0.01,Is.GreaterThan(sw.Elapsed.TotalSeconds));
     }
 }

@@ -13,35 +13,35 @@ namespace Coflnet.Sky.Commands.MC
         [Test]
         public void MatchesAuctionCreation()
         {
-            Assert.IsTrue(regex.IsMatch("BIN Auction started for ◆ Hot Rune I!"));
+            Assert.That(regex.IsMatch("BIN Auction started for ◆ Hot Rune I!"));
         }
 
         [Test]
         public void MatchesAuctionCancel()
         {
-            Assert.IsTrue(regex.IsMatch("You cancelled your auction for ◆ Hot Rune I!"));
+            Assert.That(regex.IsMatch("You cancelled your auction for ◆ Hot Rune I!"));
         }
 
         [Test]
         public void PurchaseAuction()
         {
-            Assert.IsTrue(regex.IsMatch("You purchased ◆ Hot Rune I for 1 coins!"));
+            Assert.That(regex.IsMatch("You purchased ◆ Hot Rune I for 1 coins!"));
         }
 
         [Test]
         public void BazaarCancel()
         {
-            Assert.IsTrue(regex.IsMatch("[Bazaar] Cancelled! Refunded 52x Green Candy from cancelling Sell Offer!"));
+            Assert.That(regex.IsMatch("[Bazaar] Cancelled! Refunded 52x Green Candy from cancelling Sell Offer!"));
         }
         [Test]
         public void PlaceVerificationBid()
         {
-            Assert.IsTrue(regex.IsMatch("Bid of 197 coins placed for Stick!"));
+            Assert.That(regex.IsMatch("Bid of 197 coins placed for Stick!"));
         }
         [Test]
         public void NoBlocksInTheWay()
         {
-            Assert.IsFalse(regex.IsMatch("There are blocks in the way!"));
+            Assert.That(!regex.IsMatch("There are blocks in the way!"));
         }
     }
 }

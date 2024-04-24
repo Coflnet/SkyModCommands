@@ -48,8 +48,8 @@ public class ModVersionAdapterTests
             MedianPrice = 2500000000,
             Context = new()
         });
-        Assert.AreEqual(1, adapter.Messages.Count);
-        Assert.AreEqual(result, string.Join("|", adapter.Messages[0].Select(p => p.text)));
+        Assert.That(adapter.Messages.Count, Is.EqualTo(1));
+        Assert.That(string.Join("|", adapter.Messages[0].Select(p => p.text)), Is.EqualTo(result));
 
     }
 }

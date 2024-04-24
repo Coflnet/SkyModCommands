@@ -17,7 +17,7 @@ public class FormatProviderTests
             Auction = new() { StartingBid = 2500000000 },
             MedianPrice = 2500000000
         });
-        Assert.AreEqual("\nFLIP:  §82,500,000,000 -> 2,500,000,000 (+-87,500,032) ", output);
+        Assert.That(output, Is.EqualTo("\nFLIP:  §82,500,000,000 -> 2,500,000,000 (+-87,500,032) "));
     }
 
 
@@ -39,7 +39,7 @@ public class FormatProviderTests
             MedianPrice = 2500000000,
             Context = new() { { "isRR", "123" } }
         });
-        Assert.AreEqual("§8FLIP ->  §cPRE-RR ", output);
+        Assert.That(output, Is.EqualTo("§8FLIP ->  §cPRE-RR "));
     }
 
     [TestCase(1,"1")]
@@ -50,7 +50,7 @@ public class FormatProviderTests
     [TestCase(105031d,"105K")]
     public void FormatNumberSort(double input, string expected)
     {
-        Assert.AreEqual(expected, FormatProvider.FormatPriceShort(input));
+        Assert.That(FormatProvider.FormatPriceShort(input), Is.EqualTo(expected));
     }
 
 }

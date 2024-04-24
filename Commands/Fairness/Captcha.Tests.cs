@@ -18,7 +18,7 @@ namespace Coflnet.Sky.Commands.MC
             socket.SetupGet(s => s.SessionInfo).Returns(session);
             socket.SetupGet(s => s.AccountInfo).Returns(accountInfo);
             var response = generator.SetupChallenge(socket.Object, session.captchaInfo);
-            Assert.IsTrue(JsonConvert.SerializeObject(response).Contains(session.CaptchaSolutions.First()));
+            Assert.That(JsonConvert.SerializeObject(response).Contains(session.CaptchaSolutions.First()));
         }   
     }
 }
