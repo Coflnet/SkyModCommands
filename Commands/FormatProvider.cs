@@ -6,6 +6,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Core;
 using System.Globalization;
+using System.Net.Sockets;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -234,6 +235,10 @@ namespace Coflnet.Sky.Commands.MC
 
         public ChatPart[] WelcomeMessage()
         {
+            if((con is MinecraftSocket socket) && socket.GetService<IAhActive>().IsAhDisabledDerpy)
+            {
+                return new DialogBuilder().MsgLine("Derpy is mayor, We are using the time to update things. Service might be slower/unavailable for a few hours.", "https://sky.coflnet.com/flipper", "Click to enable the AH");
+            }
             var text = $"§fFound and loaded settings for your connection\n"
                                                 + FormatSettingsSummary(Settings)
                                     + "\n§8: nothing else to do have a nice day :)";
