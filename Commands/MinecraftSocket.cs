@@ -48,7 +48,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public readonly ConcurrentDictionary<string, FlipInstance> ReceivedConfirm = new();
 
-        public static event Action NextUpdateStart;
+        public static event Action? NextUpdateStart;
         /// <summary>
         /// The time flips are expected to come in
         /// </summary>
@@ -67,7 +67,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private static Timer tenSecTimer;
+        private static Timer? tenSecTimer;
         private static IAhActive ahActive => DiHandler.GetService<IAhActive>();
         public IAhActive AhActive => ahActive;
 
@@ -89,6 +89,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             formatProvider = new FormatProvider(this);
         }
+
 
         static MinecraftSocket()
         {
