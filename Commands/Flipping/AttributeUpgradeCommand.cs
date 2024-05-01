@@ -18,8 +18,8 @@ public class AttributeUpgradeCommand : McCommand
         var args = arguments.Trim('"').Split(' ');
         if (args.Length < 2)
             throw new CoflnetException("invalid_arguments", "Please provide: {item_type} {attribute_name} [start_level] [end_level]");
-        var itemType = args[0];
-        if(!ItemDetails.Instance.TagLookup.TryGetValue(itemType, out _))
+        var itemType = args[0].ToUpper();
+        if (ItemDetails.Instance.GetItemIdForTag(itemType) == 0)
         {
             throw new CoflnetException("invalid_arguments", $"The item type {itemType} is not known, check that you entered a valid tag");
         }
@@ -60,7 +60,7 @@ public class AttributeUpgradeCommand : McCommand
                 {
                     db.MsgLine($"{McColorCodes.GREEN} directly buy this tier and save {socket.FormatPrice(totalBefore - tierSum)} for tier {int.Parse(r.Key)}");
                 }
-                if(r.auctions.Count() == 0)
+                if (r.auctions.Count() == 0)
                 {
                     db.MsgLine("§cno auctions found");
                     return;
