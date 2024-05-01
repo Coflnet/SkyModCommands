@@ -32,13 +32,13 @@ public class CheapAttribCommand : McCommand
         if (!await socket.ReguirePremPlus())
             return;
         var attribNames = arguments.Trim('"').Split(' ');
-        if (attribNames.Length != 2)
-            throw new CoflnetException("invalid_arguments", "Please provide two attribute names without spaces (you can use _ or ommit it) eg manapool mana_regeneration");
+        if (attribNames.Length != 3)
+            throw new CoflnetException("invalid_arguments", "Invalid usage.\nuse <item_tag> <attrib_1> <attrib_2>\nPlease provide two attribute names without spaces (you can use _ or ommit it) eg manapool mana_regeneration");
 
-
-        var mapped = attribNames.Select(MapAttribute).ToArray();
+        var tag = attribNames[0];
+        var mapped = attribNames.Skip(1).Select(MapAttribute).ToArray();
         var attribApi = socket.GetService<IAttributeApi>();
-        var result = await attribApi.ApiAttributeComboLeftAttribRightAttribGetAsync(mapped[0], mapped[1]);
+        var result = await attribApi.ApiAttributeComboLeftAttribRightAttribGetAsync(mapped[0], mapped[1], tag);
         var grouped = result.GroupBy(r => r.Tag.Split('_').First()).OrderByDescending(g => g.Key);
         foreach (var group in grouped)
         {
