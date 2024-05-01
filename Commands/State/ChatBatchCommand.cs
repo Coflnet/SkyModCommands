@@ -53,7 +53,7 @@ namespace Coflnet.Sky.Commands.MC
                     var secondLine = batch.Last();
                     if (secondLine.StartsWith("You claimed"))
                         await UpdateSellerAuction(socket, secondLine);
-                    if(item.StartsWith("Bid of"))
+                    if (item.StartsWith("Bid of"))
                         await CheckBid(socket, item);
                 }
             }
@@ -63,20 +63,28 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private async Task CheckBid(MinecraftSocket socket, string item)
+        private async Task CheckBid(MinecraftSocket socket, string line)
         {
             var uuid = socket.SessionInfo.VerificationBidAuctioneer;
             Activity.Current?.Log("checking bid for player " + uuid);
             if (uuid == null)
                 return;
+            var match = Regex.Match(line, @"Bid of (\d+) coins.*");
+            var bid = int.Parse(match.Groups[1].Value);
+            if (bid != socket.SessionInfo.VerificationBidAmount)
+            {
+                socket.Dialog(db => db.MsgLine($"You bid the wrong amount. Please bid the correct amount of {socket.SessionInfo.VerificationBidAmount} to verify your account."));
+                return;
+            }
             var baseApi = socket.GetService<IBaseApi>();
             await baseApi.BaseAhPlayerIdPostWithHttpInfoAsync(uuid);
+            socket.Dialog(db => db.MsgLine($"Registered your verification bid. Waiting for the hypixel api to update to verify the bid.", null, "This can take up to 1 minute."));
         }
 
         private static async Task UpdateSellerAuction(MinecraftSocket socket, string secondLine)
         {
             var name = Regex.Match(secondLine, @"from (\[.*\] |)(.*)'s auction!").Groups[2];
-            if(string.IsNullOrEmpty(name.Value))
+            if (string.IsNullOrEmpty(name.Value))
             {
                 Activity.Current?.Log("no name found in " + secondLine);
                 return;
@@ -85,7 +93,7 @@ namespace Coflnet.Sky.Commands.MC
             var uuid = await socket.GetPlayerUuid(name.Value);
             var baseApi = socket.GetService<IBaseApi>();
             var info = await baseApi.BaseAhPlayerIdPostWithHttpInfoAsync(uuid);
-            if(info.StatusCode != System.Net.HttpStatusCode.OK)
+            if (info.StatusCode != System.Net.HttpStatusCode.OK)
             {
                 Activity.Current?.Log($"failed to get auction info for {name.Value} {info.StatusCode}");
                 return;
