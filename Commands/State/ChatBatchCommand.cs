@@ -66,6 +66,7 @@ namespace Coflnet.Sky.Commands.MC
         private async Task CheckBid(MinecraftSocket socket, string item)
         {
             var uuid = socket.SessionInfo.VerificationBidAuctioneer;
+            Activity.Current?.Log("checking bid for player " + uuid);
             if (uuid == null)
                 return;
             var baseApi = socket.GetService<IBaseApi>();
