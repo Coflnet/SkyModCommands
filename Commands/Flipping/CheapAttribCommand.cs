@@ -29,11 +29,8 @@ public class CheapAttribCommand : McCommand
     }
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if (await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
-        {
-            await socket.PrintRequiresPremPlus();
+        if (!await socket.ReguirePremPlus())
             return;
-        }
         var attribNames = arguments.Trim('"').Split(' ');
         if (attribNames.Length != 2)
             throw new CoflnetException("invalid_arguments", "Please provide two attribute names without spaces (you can use _ or ommit it) eg manapool mana_regeneration");
@@ -77,15 +74,16 @@ public class CheapAttribCommand : McCommand
 
 public static class CommonDialogExtension
 {
-    public static async Task PrintRequiresPremPlus(this IMinecraftSocket socket)
+    public static async Task<bool> ReguirePremPlus(this IMinecraftSocket socket)
     {
         if (await socket.UserAccountTier() >= Shared.AccountTier.PREMIUM_PLUS)
         {
-            return;
+            return true;
         }
         socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
             $"{McColorCodes.RED}{McColorCodes.BOLD}ABORTED\n"
             + $"{McColorCodes.RED}You need to be a premium plus user to use this command",
             "premium_plus", $"Click to purchase prem+"));
+        return false;
     }
 }
