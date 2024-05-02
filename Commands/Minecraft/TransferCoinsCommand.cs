@@ -20,11 +20,7 @@ public class TransferCoinsCommand : McCommand
         {
             throw new CoflnetException("invalid_arguments", "Usage /cofl transfercoins <amount> <user>");
         }
-        var accountUuid = await socket.GetPlayerUuid(minecraftName);
-        var userInfo = await socket.GetService<McAccountService>().GetUserId(accountUuid);
-        if (userInfo == null)
-            throw new CoflnetException("not_found", $"Can't transfer to {minecraftName} because they don't have a Cofl account");
-        var targetUser = userInfo.ExternalId;
+        string targetUser = await GetUserIdFromMcName(socket, minecraftName);
 
         var userApi = socket.GetService<IUserApi>();
         try
@@ -43,4 +39,5 @@ public class TransferCoinsCommand : McCommand
             throw new CoflnetException("payment_error", ex.Message.Substring("Error calling UserUserIdTransferPost: {.Message.:".Length));
         }
     }
+
 }

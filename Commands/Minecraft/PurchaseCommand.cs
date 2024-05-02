@@ -87,7 +87,7 @@ namespace Coflnet.Sky.Commands.MC
 
         }
 
-        public static async Task<bool> Purchase(MinecraftSocket socket, UserApi userApi, string productSlug, int count, string reference = null)
+        public static async Task<bool> Purchase(IMinecraftSocket socket, IUserApi userApi, string productSlug, int count, string reference = null)
         {
             try
             {

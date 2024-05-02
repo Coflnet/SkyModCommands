@@ -7,6 +7,7 @@ namespace Coflnet.Sky.Commands.MC
     [CommandDescription("Add time to a reminder", "Usage: /cl reminder add <reminder> <time>")]
     public class AddReminderTimeCommand : ReminderCommand
     {
+        public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var time = Convert<Extension>(arguments);

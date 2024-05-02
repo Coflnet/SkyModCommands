@@ -5,6 +5,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class EmojiCommand : McCommand
     {
+        public override bool IsPublic => true;
         private Dictionary<string, string> Emoji = new(){
             {":tableflip:","§4(ノಠ益ಠ)§7ノ彡┻━┻"},
             {":sad:", "☹"},

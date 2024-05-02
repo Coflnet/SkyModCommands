@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
@@ -21,5 +22,15 @@ namespace Coflnet.Sky.Commands.MC
         /// Should this command be shown in the help menu
         /// </summary>
         public virtual bool IsPublic => false;
+
+        protected static async Task<string> GetUserIdFromMcName(IMinecraftSocket socket, string minecraftName)
+        {
+            var accountUuid = await socket.GetPlayerUuid(minecraftName, false);
+            var userInfo = await socket.GetService<McAccountService>().GetUserId(accountUuid);
+            if (userInfo == null)
+                throw new CoflnetException("not_found", $"{minecraftName} does not appear to have verified their account yet.");
+            var targetUser = userInfo.ExternalId;
+            return targetUser;
+        }
     }
 }
