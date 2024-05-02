@@ -31,12 +31,12 @@ public class BuyConfigCommand : ArgumentsCommand
         if (args["confirmId"] != socket.SessionInfo.SessionId)
         {
             Console.WriteLine("confirming: " + args["confirmId"]);
-            socket.Dialog(db=>db.CoflCommand<BuyConfigCommand>($"Confirm buying §6{toBebought.Value.Name} §7v{toBebought.Value.Version} for §6{toBebought.Value.Price} CoflCoins {McColorCodes.YELLOW}[CLICK]", 
-                $"{seller} {name} {socket.SessionInfo.SessionId}", 
+            socket.Dialog(db => db.CoflCommand<BuyConfigCommand>($"Confirm buying §6{toBebought.Value.Name} §7v{toBebought.Value.Version} for §6{toBebought.Value.Price} CoflCoins {McColorCodes.YELLOW}[CLICK]",
+                $"{seller} {name} {socket.SessionInfo.SessionId}",
                 $"§aBuy {toBebought.Value.Name} from {seller} for {toBebought.Value.Price} CoflCoins?"));
             return;
         }
-        if (!await PurchaseCommand.Purchase(socket, socket.GetService<IUserApi>(), "config-purchase", toBebought.Value.Price / 600, $"{name} config from {seller}"))
+        if (toBebought.Value.Price != 0 && !await PurchaseCommand.Purchase(socket, socket.GetService<IUserApi>(), "config-purchase", toBebought.Value.Price / 600, $"{name} config from {seller}"))
         {
             socket.Dialog(db => db.MsgLine("Config purchase failed."));
             return;
@@ -51,12 +51,13 @@ public class BuyConfigCommand : ArgumentsCommand
         });
         await configs.Update();
         var topupApi = socket.GetService<ITopUpApi>();
-        await topupApi.TopUpCustomPostAsync(sellerUserId, new()
-        {
-            Amount = toBebought.Value.Price * 70 / 100,
-            Reference = $"config sale {name} to {socket.SessionInfo.McName}",
-            ProductId = "config-sell"
-        });
+        if (toBebought.Value.Price != 0)
+            await topupApi.TopUpCustomPostAsync(sellerUserId, new()
+            {
+                Amount = toBebought.Value.Price * 70 / 100,
+                Reference = $"config sale {name} to {socket.SessionInfo.McName}",
+                ProductId = "config-sell"
+            });
 
     }
 }

@@ -34,6 +34,11 @@ public class SellConfigCommand : McCommand
             socket.SendMessage("The price has to be a number.");
             return;
         }
+        if(priceInt % 600 != 0)
+        {
+            socket.SendMessage("The price has to be a multiple of 600.");
+            return;
+        }
         text = text.Substring(price.Length).Trim();
         var settingsApi = socket.GetService<ISettingsApi>();
         string key = GetKeyFromname(name);
