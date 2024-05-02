@@ -11,7 +11,7 @@ public class ArgumentsCommandTests
     {
         var command = new TestCommand();
         command.TestUsage = "<id> [text (multi word)]";
-        await command.Execute(null, "arg1 arg2 abc");
+        await command.Execute(null, "\"arg1 arg2 abc\"");
         var args = command.TestArgs;
         Assert.That(args["id"], Is.EqualTo("arg1"));
         Assert.That(args["text"], Is.EqualTo("arg2 abc"));
@@ -22,7 +22,7 @@ public class ArgumentsCommandTests
     {
         var command = new TestCommand();
         command.TestUsage = "<id> <text> <number> <bool>";
-        await command.Execute(null, "arg1 arg2 123 true");
+        await command.Execute(null, "\"arg1 arg2 123 true\"");
         var args = command.TestArgs;
         Assert.That(args["id"], Is.EqualTo("arg1"));
         Assert.That(args["text"], Is.EqualTo("arg2"));
@@ -35,7 +35,7 @@ public class ArgumentsCommandTests
     {
         var command = new TestCommand();
         command.TestUsage = "<id> [days={7}]";
-        await command.Execute(null, "arg1");
+        await command.Execute(null, "\"arg1\"");
         var args = command.TestArgs;
         Assert.That(args["id"], Is.EqualTo("arg1"));
         Assert.That(args["days"], Is.EqualTo("7"));
