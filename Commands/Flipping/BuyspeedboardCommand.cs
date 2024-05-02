@@ -22,12 +22,17 @@ public class BuyspeedboardCommand : LeaderboardCommand
             socket.Dialog(db => db.MsgLine("Disabled showing on buyspeedboard, you can enable it again with §b/cl buyspeedboard enable"));
             return;
         }
-        if(arguments.Trim('"') == "enable")
+        else if(arguments.Trim('"') == "enable")
         {
             await DisableBuySpeedBoard(socket, null);
             socket.Dialog(db => db.MsgLine("Enabled showing on buyspeedboard"));
             return;
+        } else if(arguments.Length > 2 && !int.TryParse(arguments.Trim('"'), out _))
+        {
+            socket.Dialog(db => db.MsgLine("Usage: /cl buyspeedboard [page|disable|enable]"));
+            return;
         }
+
         await base.Execute(socket, arguments);
     }
 
