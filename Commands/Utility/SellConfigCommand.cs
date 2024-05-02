@@ -16,7 +16,7 @@ public class SellConfigCommand : McCommand
         };
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if (!(AllowedUsers.Contains(socket.SessionInfo.McUuid) && !socket.GetService<ModeratorService>().IsModerator(socket)) || !socket.SessionInfo.VerifiedMc)
+        if ((!AllowedUsers.Contains(socket.SessionInfo.McUuid) && !socket.GetService<ModeratorService>().IsModerator(socket)) || !socket.SessionInfo.VerifiedMc)
         {
             socket.SendMessage("You need to be whitelisted as config seller to use this command.", null, "Please contact the server owner.");
             return;
