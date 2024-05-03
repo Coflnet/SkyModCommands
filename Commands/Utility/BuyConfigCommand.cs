@@ -47,10 +47,12 @@ public class BuyConfigCommand : ArgumentsCommand
             Version = toBebought.Value.Version,
             ChangeNotes = toBebought.Value.ChangeNotes,
             OwnerId = sellerUserId,
-            PricePaid = toBebought.Value.Price
+            PricePaid = toBebought.Value.Price,
+            OwnerName = seller
         });
         await configs.Update();
         var topupApi = socket.GetService<ITopUpApi>();
+        socket.Dialog(db => db.MsgLine($"§6{toBebought.Value.Name} §7v{toBebought.Value.Version} §6bought"));
         if (toBebought.Value.Price != 0)
             await topupApi.TopUpCustomPostAsync(sellerUserId, new()
             {

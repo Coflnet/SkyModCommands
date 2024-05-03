@@ -91,6 +91,7 @@ public class OwnedConfigs
         public int Version { get; set; }
         public string ChangeNotes { get; set; }
         public string OwnerId { get; set; }
+        public string OwnerName { get; set; }
         public int PricePaid { get; set; }
         public DateTime BoughtAt { get; set; } = DateTime.UtcNow;
     }
