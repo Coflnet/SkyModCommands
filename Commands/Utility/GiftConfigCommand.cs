@@ -39,6 +39,6 @@ public class GiftConfigCommand : ArgumentsCommand
             OwnerName = socket.SessionInfo.McName
         });
         await configs.Update();
-        socket.SendMessage($"Whitelisted {ign} for {name}.");
+        socket.Dialog(db => db.MsgLine($"Gifted {name} to {ign}."));
     }
 }
