@@ -134,7 +134,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             ConSpan.Log("subbing to settings of " + userId);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DEFAULT_SETTINGS);
-            var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings");
+            var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings", ()=>new());
             Activity.Current.Log("got settings");
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
             Activity.Current.Log("got accountInfo");
@@ -163,11 +163,18 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current.Log("subbed to events");
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
             Activity.Current.Log("applied flip settings");
+            await socket.TryAsyncTimes(SubToConfigChanges, "config subscribe");
+        }
+
+        private async Task SubToConfigChanges()
+        {
+            if(AccountSettings.Value == null)
+                await AccountSettings.Update(new AccountSettings());
             var loadedConfigMetadata = AccountSettings.Value.LoadedConfig;
-            if(loadedConfigMetadata != null)
+            if (loadedConfigMetadata != null)
             {
                 LoadedConfig = await SelfUpdatingValue<ConfigContainer>.Create(loadedConfigMetadata.OwnerId, loadedConfigMetadata.Name);
-                if(LoadedConfig.Value != null)
+                if (LoadedConfig.Value != null)
                 {
                     var newConfig = LoadedConfig.Value;
                     ShowConfigUpdateOption(loadedConfigMetadata, newConfig);
