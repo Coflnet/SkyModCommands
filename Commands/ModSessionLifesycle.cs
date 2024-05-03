@@ -175,8 +175,8 @@ namespace Coflnet.Sky.Commands.MC
             span.Log("loaded config " + loadedConfigMetadata?.Name);
             if (loadedConfigMetadata != null)
             {
-                LoadedConfig = await SelfUpdatingValue<ConfigContainer>.Create(loadedConfigMetadata.OwnerId, loadedConfigMetadata.Name);
-                span.Log("got config " + loadedConfigMetadata?.Name);
+                LoadedConfig = await SelfUpdatingValue<ConfigContainer>.Create(loadedConfigMetadata.OwnerId, SellConfigCommand.GetKeyFromname(loadedConfigMetadata.Name), () => throw new Exception("config not found"));
+                span.Log("got config " + LoadedConfig?.Value?.Name);
                 if (LoadedConfig.Value != null)
                 {
                     var newConfig = LoadedConfig.Value;
