@@ -163,6 +163,27 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current.Log("subbed to events");
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
             Activity.Current.Log("applied flip settings");
+            var loadedConfigMetadata = AccountSettings.Value.LoadedConfig;
+            if(loadedConfigMetadata != null)
+            {
+                LoadedConfig = await SelfUpdatingValue<ConfigContainer>.Create(loadedConfigMetadata.OwnerId, loadedConfigMetadata.Name);
+                if(LoadedConfig.Value != null)
+                {
+                    var newConfig = LoadedConfig.Value;
+                    ShowConfigUpdateOption(loadedConfigMetadata, newConfig);
+                    LoadedConfig.OnChange += (config) => ShowConfigUpdateOption(loadedConfigMetadata, config);
+                }
+            }
+
+            void ShowConfigUpdateOption(OwnedConfigs.OwnedConfig loadedConfigMetadata, ConfigContainer newConfig)
+            {
+                if (newConfig.Version > loadedConfigMetadata.Version)
+                {
+                    socket.Dialog(db => db.MsgLine($"Your config: §6{newConfig.Name} §7v{loadedConfigMetadata.Version} §6updated to v{newConfig.Version}")
+                        .MsgLine($"§7{newConfig.ChangeNotes}")
+                        .CoflCommand<LoadConfigCommand>($"[click to load]", $"{newConfig.OwnerId} {newConfig.Name}", "load new version\nWill override your current settings"));
+                }
+            }
         }
 
         /// <summary>

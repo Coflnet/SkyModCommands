@@ -14,7 +14,8 @@ public class LoadConfigCommand : ArgumentsCommand
         var name = args["configName"];
         var key = SellConfigCommand.GetKeyFromname(name);
         var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
-        if (!ownedConfigs.Value.Configs.Any(c => c.Name == name && c.OwnerId == owner))
+        var inOwnerShip = ownedConfigs.Value.Configs.Where(c => c.Name == name && c.OwnerId == owner).FirstOrDefault();
+        if (inOwnerShip == default)
         {
             socket.SendMessage("You don't own this config.");
             return;
@@ -27,5 +28,11 @@ public class LoadConfigCommand : ArgumentsCommand
         }
         await socket.sessionLifesycle.FlipSettings.Update(toLoad.Value.Settings);
         socket.Dialog(db => db.MsgLine($"§6{toLoad.Value.Name} §7v{toLoad.Value.Version} §6loaded"));
+        inOwnerShip.ChangeNotes = toLoad.Value.ChangeNotes;
+        inOwnerShip.Version = toLoad.Value.Version;
+
+        socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = inOwnerShip;
+        await socket.sessionLifesycle.AccountSettings.Update();
+        await ownedConfigs.Update(); // update used version
     }
 }
