@@ -168,12 +168,15 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SubToConfigChanges()
         {
+            using var span = socket.CreateActivity("subToConfigChanges", ConSpan);
             if(AccountSettings.Value == null)
                 await AccountSettings.Update(new AccountSettings());
             var loadedConfigMetadata = AccountSettings.Value.LoadedConfig;
+            span.Log("loaded config " + loadedConfigMetadata?.Name);
             if (loadedConfigMetadata != null)
             {
                 LoadedConfig = await SelfUpdatingValue<ConfigContainer>.Create(loadedConfigMetadata.OwnerId, loadedConfigMetadata.Name);
+                span.Log("got config " + loadedConfigMetadata?.Name);
                 if (LoadedConfig.Value != null)
                 {
                     var newConfig = LoadedConfig.Value;
@@ -184,6 +187,7 @@ namespace Coflnet.Sky.Commands.MC
 
             void ShowConfigUpdateOption(OwnedConfigs.OwnedConfig loadedConfigMetadata, ConfigContainer newConfig)
             {
+                span.Log($"new config {newConfig.Name} {newConfig.Version} > {loadedConfigMetadata.Version}");
                 if (newConfig.Version > loadedConfigMetadata.Version)
                 {
                     socket.Dialog(db => db.MsgLine($"Your config: §6{newConfig.Name} §7v{loadedConfigMetadata.Version} §6updated to v{newConfig.Version}")
