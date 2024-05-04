@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Items.Client.Model;
+using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -23,6 +24,14 @@ namespace Coflnet.Sky.Commands.MC
         public static string FormatEntry(ListEntry elem)
         {
             return $"{elem.DisplayName ?? elem.ItemTag} {(elem.filter == null ? "" : string.Join(" & ", elem.filter.Select(f => $"{McColorCodes.AQUA}{f.Key}{DEFAULT_COLOR}={McColorCodes.GREEN}{f.Value}")))}";
+        }
+
+        protected override DialogBuilder FormatForList(DialogBuilder d, ListEntry e)
+        {
+            var formatted = Format(e);
+            var actionName = e.Disabled ? "enable" : "disable";
+            var prettyActionName = e.Disabled ? $"{McColorCodes.GRAY}(disabled) {McColorCodes.GREEN}[Enable]" : $"{McColorCodes.GRAY}[Disable]";
+            return d.Msg(formatted).Msg($" {prettyActionName}", $"/cofl {Slug} e {GetId(e)}|{actionName}", $"Click to {actionName} the filter");
         }
 
         protected override string LongFormat(ListEntry elem)
@@ -127,6 +136,35 @@ namespace Coflnet.Sky.Commands.MC
                     Element = entry
                 };
             }).Where(e => !isTag || string.IsNullOrEmpty(val) || e.Element.ItemTag == val);
+        }
+
+        protected override async Task Edit(MinecraftSocket socket, string subArgs)
+        {
+            var args = subArgs.Split('|');
+            var id = args[0];
+            var action = args[1];
+            var elements = await GetList(socket);
+            var element = elements.FirstOrDefault(e => GetId(e) == id);
+            if(element == null)
+            {
+                socket.Dialog(db=>db.Msg("The filter could not be found"));
+                return;
+            }
+            if(action == "enable")
+            {
+                element.Disabled = false;
+                socket.Dialog(db => db.Msg("Enabled the filter"));
+            }
+            else if(action == "disable")
+            {
+                element.Disabled = true;
+                socket.Dialog(db => db.Msg("Disabled the filter"));
+            }
+            else if(action == "remove")
+            {
+                elements.Remove(element);
+            }
+            await Update(socket, elements);
         }
 
         private static void TestForExceptions(MinecraftSocket socket, SearchResult r, ListEntry entry)

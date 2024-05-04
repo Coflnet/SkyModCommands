@@ -48,7 +48,7 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private async Task Edit(MinecraftSocket socket, string subArgs)
+        protected virtual async Task Edit(MinecraftSocket socket, string subArgs)
         {
             var targetElem = await Find(socket, subArgs.Split('|').FirstOrDefault());
             if (targetElem.Count == 0)
