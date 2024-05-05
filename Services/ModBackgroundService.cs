@@ -110,6 +110,7 @@ namespace Coflnet.Sky.ModCommands.Services
 
         private void SubscribeConnection(ConnectionMultiplexer multiplexer, CancellationToken stoppingToken)
         {
+            var hostName = System.Net.Dns.GetHostName();
             multiplexer.GetSubscriber().Subscribe("snipes", (chan, val) =>
             {
                 Task.Run(async () =>
@@ -117,6 +118,8 @@ namespace Coflnet.Sky.ModCommands.Services
                     try
                     {
                         var flip = MessagePackSerializer.Deserialize<LowPricedAuction>(val);
+                        if(flip.AdditionalProps.GetValueOrDefault("server") == hostName)
+                            return; // already processed
                         if (flip.Finder == LowPricedAuction.FinderType.TFM)
                             FixTfmMetadata(flip);
                         if (flip.TargetPrice < flip.Auction.StartingBid + 100_000)
@@ -124,7 +127,7 @@ namespace Coflnet.Sky.ModCommands.Services
                         if (flip.Auction.Context.ContainsKey("cname"))
                             flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
                         flip.AdditionalProps?.TryAdd("bfcs", "redis");
-                        await flipperService.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
+                        await DistributeFlipOnServer(flip).ConfigureAwait(false);
                         if (flip.TargetPrice - flip.Auction.StartingBid > 2000000)
                             logger.LogInformation($"scheduled bfcs {flip.Auction.Uuid} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond}");
                         fastTrackSnipes.Inc();
@@ -163,6 +166,11 @@ namespace Coflnet.Sky.ModCommands.Services
                     logger.LogInformation($"Status of Redis multiplexer: {multiplexer.IsConnected}");
                 }
             });
+        }
+
+        protected virtual async Task DistributeFlipOnServer(LowPricedAuction flip)
+        {
+            await flipperService.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
         }
 
         private static void FixTfmMetadata(LowPricedAuction flip)
