@@ -134,7 +134,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             ConSpan.Log("subbing to settings of " + userId);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DEFAULT_SETTINGS);
-            var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings", ()=>new());
+            var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings", () => new());
             Activity.Current.Log("got settings");
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
             Activity.Current.Log("got accountInfo");
@@ -169,7 +169,7 @@ namespace Coflnet.Sky.Commands.MC
         private async Task SubToConfigChanges()
         {
             using var span = socket.CreateActivity("subToConfigChanges", ConSpan);
-            if(AccountSettings.Value == null)
+            if (AccountSettings.Value == null)
                 await AccountSettings.Update(new AccountSettings());
             var loadedConfigMetadata = AccountSettings.Value.LoadedConfig;
             span.Log("loaded config " + loadedConfigMetadata?.Name);
@@ -663,6 +663,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 foreach (var item in badSellers)
                 {
+                    if (FlipSettings.Value.BlackList.Any(b => b.ItemTag == item.First().Auction.Tag))
+                        continue;
                     FlipSettings.Value.BlackList.Add(new()
                     {
                         DisplayName = "Automatic blacklist of " + item.First().Auction.ItemName,
@@ -672,7 +674,10 @@ namespace Coflnet.Sky.Commands.MC
                             },
                         Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(48).ToString("s") }
                     });
-                    socket.SendMessage(COFLNET + $"Temporarily blacklisted {item.First().Auction.ItemName} from {item.First().Auction.AuctioneerId} for baiting");
+                    socket.Dialog(db => db.CoflCommand<BlacklistCommand>(
+                        $"Temporarily blacklisted {item.First().Auction.ItemName} from {item.First().Auction.AuctioneerId} for baiting",
+                        $"rm {item.First().Auction.Tag}",
+                        "click to remove again"));
                 }
                 await FlipSettings.Update();
                 FlipSettings.Value.RecompileMatchers();
