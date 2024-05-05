@@ -668,7 +668,7 @@ namespace Coflnet.Sky.Commands.MC
                         DisplayName = "Automatic blacklist of " + item.First().Auction.ItemName,
                         ItemTag = item.First().Auction.Tag,
                         filter = new()
-                            { { "ForceBlacklist", "true" }, { "Seller", item.First().Auction.AuctioneerId }
+                            { { "Seller", item.First().Auction.AuctioneerId }
                             },
                         Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(48).ToString("s") }
                     });
