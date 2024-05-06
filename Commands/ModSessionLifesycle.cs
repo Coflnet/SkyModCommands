@@ -166,7 +166,7 @@ namespace Coflnet.Sky.Commands.MC
             await socket.TryAsyncTimes(SubToConfigChanges, "config subscribe");
         }
 
-        private async Task SubToConfigChanges()
+        public async Task SubToConfigChanges()
         {
             using var span = socket.CreateActivity("subToConfigChanges", ConSpan);
             if (AccountSettings.Value == null)

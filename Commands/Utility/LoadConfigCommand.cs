@@ -35,5 +35,6 @@ public class LoadConfigCommand : ArgumentsCommand
         socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = inOwnerShip;
         await socket.sessionLifesycle.AccountSettings.Update();
         await ownedConfigs.Update(); // update used version
+        await socket.sessionLifesycle.SubToConfigChanges();
     }
 }
