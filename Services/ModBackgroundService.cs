@@ -77,6 +77,11 @@ namespace Coflnet.Sky.ModCommands.Services
                 try
                 {
                     var instanceStrings = config.GetSection("REDIS_FLIP_INSTANCES").Get<string[]>();
+                    if(instanceStrings == null)
+                    {
+                        logger.LogError("No REDIS_FLIP_INSTANCES found in config, not connecting to any bfcs instances");
+                        return instances;
+                    }
                     foreach (var item in instanceStrings)
                     {
                         AddOption(instances, item);
