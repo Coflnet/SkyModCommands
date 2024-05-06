@@ -26,6 +26,7 @@ public class LoadConfigCommand : ArgumentsCommand
             socket.SendMessage("The config doesn't exist.");
             return;
         }
+        toLoad.Value.Settings.BlockExport = true;
         await socket.sessionLifesycle.FlipSettings.Update(toLoad.Value.Settings);
         socket.Dialog(db => db.MsgLine($"§6{toLoad.Value.Name} §7v{toLoad.Value.Version} §6loaded"));
         inOwnerShip.ChangeNotes = toLoad.Value.ChangeNotes;
