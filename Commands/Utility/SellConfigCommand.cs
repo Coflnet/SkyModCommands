@@ -11,7 +11,8 @@ namespace Coflnet.Sky.Commands.MC;
 public class SellConfigCommand : McCommand
 {
     private static HashSet<string> AllowedUsers = new HashSet<string>(){
-            "e7246661de77474f94627fabf9880f60"
+            "e7246661de77474f94627fabf9880f60",
+            "89481ffed0014b158805c67d4a21c757", // 788963904087916545
         };
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
