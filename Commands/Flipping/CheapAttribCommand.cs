@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.Items.Client.Api;
 using Coflnet.Sky.Sniper.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -29,13 +31,22 @@ public class CheapAttribCommand : McCommand
     }
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if (!await socket.ReguirePremPlus())
-            return;
+       // if (!await socket.ReguirePremPlus())
+       //     return;
         var attribNames = arguments.Trim('"').Split(' ');
         if (attribNames.Length != 3)
             throw new CoflnetException("invalid_arguments", "Invalid usage.\nuse <item_tag> <attrib_1> <attrib_2>\nPlease provide two attribute names without spaces (you can use _ or ommit it) eg manapool mana_regeneration");
 
-        var tag = attribNames[0];
+        var tag = attribNames[0].ToUpper();
+        if(ItemDetails.Instance.GetItemIdForTag(tag, false) == 0)
+        {
+            var itemClient = socket.GetService<IItemsApi>();
+            var item = await itemClient.ItemsSearchTermGetAsync(tag.ToLower());
+            if (item.Count == 0)
+                throw new CoflnetException("invalid_item", $"The item {tag} is not known, please check for typos or report adding an alias");
+            tag = item.First().Tag;
+        }
+        Console.WriteLine($"Using tag {tag}");
         var mapped = attribNames.Skip(1).Select(MapAttribute).ToArray();
         var attribApi = socket.GetService<IAttributeApi>();
         var result = await attribApi.ApiAttributeComboLeftAttribRightAttribGetAsync(mapped[0], mapped[1], tag);
