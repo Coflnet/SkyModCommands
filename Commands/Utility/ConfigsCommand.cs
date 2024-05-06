@@ -38,7 +38,7 @@ public class ConfigsCommand : ListCommand<OwnedConfigs.OwnedConfig, List<OwnedCo
     protected override DialogBuilder FormatForList(DialogBuilder d, OwnedConfigs.OwnedConfig e)
     {
         return d.Msg($"§6{e.Name} §7v{e.Version} §6{e.PricePaid} CoflCoins", null, e.ChangeNotes)
-            .CoflCommand<LoadConfigCommand>($"§aLoad", $"{e.OwnerId} {e.Name}");
+            .CoflCommand<LoadConfigCommand>($" §a[Load]", $"{e.OwnerId} {e.Name}", $"Load {e.Name}");
     }
 
     protected override async Task Remove(MinecraftSocket socket, string arguments)
