@@ -182,6 +182,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<OpenUidAuctionCommand>();
             Commands.Add<AttributeUpgradeCommand>();
             Commands.Add<SellConfigCommand>();
+            Commands.Add<OwnConfigsCommand>();
             Commands.Add<ConfigsCommand>();
             Commands.Add<BuyConfigCommand>();
             Commands.Add<LoadConfigCommand>();

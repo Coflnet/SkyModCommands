@@ -74,6 +74,16 @@ public class SellConfigCommand : McCommand
                 .LineBreak()
                 .MsgLine($"§7{config.Price} CoflCoins"));
         }
+        var configsCommand = MinecraftSocket.Commands.GetBy<ConfigsCommand>();
+        var table = configsCommand.GetTable(socket);
+        var rating = await configsCommand.GetRatingOrDefault(table, name, new()
+        {
+            OwnerId = socket.UserId,
+            Name = name,
+            OwnerName = socket.SessionInfo.McName,
+            PricePaid = priceInt
+        });
+        await table.Insert(rating).ExecuteAsync();
     }
 
     public static string GetKeyFromname(string name)

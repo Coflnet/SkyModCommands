@@ -218,7 +218,7 @@ namespace Coflnet.Sky.Commands.MC
                 }));
         }
 
-        private void ListResponse(DialogBuilder d, TElem e)
+        protected virtual void ListResponse(DialogBuilder d, TElem e)
         {
             FormatForList(d, e).MsgLine($" {McColorCodes.YELLOW}[REMOVE]{DEFAULT_COLOR}", $"/cofl {Slug} rm {GetId(e)}", $"remove {LongFormat(e)}");
         }
