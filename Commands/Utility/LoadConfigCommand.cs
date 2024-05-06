@@ -14,11 +14,16 @@ public class LoadConfigCommand : ArgumentsCommand
         var name = args["configName"];
         var key = SellConfigCommand.GetKeyFromname(name);
         var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
-        var inOwnerShip = ownedConfigs.Value.Configs.Where(c => c.Name == name && c.OwnerId == owner).FirstOrDefault();
+        var inOwnerShip = ownedConfigs.Value.Configs.Where(c => c.Name == name && c.OwnerId == owner).FirstOrDefault() 
+            ?? ownedConfigs.Value.Configs.Where(c => c.Name == name).FirstOrDefault();
         if (inOwnerShip == default)
         {
             socket.SendMessage("You don't own this config.");
             return;
+        }
+        if(!int.TryParse(owner, out _))
+        {
+            owner = inOwnerShip.OwnerId;
         }
         var toLoad = await SelfUpdatingValue<ConfigContainer>.Create(owner, key, () => null);
         if (toLoad.Value == null)
