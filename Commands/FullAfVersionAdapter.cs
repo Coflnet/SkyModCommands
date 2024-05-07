@@ -60,7 +60,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
                 if (Random.Shared.NextDouble() < 0.3)
                 {
-                    socket.Dialog(db => db.Msg("Auction house full, waiting for something to sell or expire"));
+                    socket.Dialog(db => db.Msg("Auction house full, waiting for something to sell or expire before listing another auction"));
                     socket.Send(Response.Create("collectAuctions", new { }));
                 }
                 return; // ah full

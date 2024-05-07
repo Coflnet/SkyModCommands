@@ -42,7 +42,6 @@ public class SellConfigCommand : McCommand
             return;
         }
         text = text.Substring(price.Length).Trim();
-        var settingsApi = socket.GetService<ISettingsApi>();
         string key = GetKeyFromname(name);
         var config = new ConfigContainer()
         {
@@ -53,7 +52,7 @@ public class SellConfigCommand : McCommand
             OwnerId = socket.UserId,
             Price = priceInt
         };
-        var current = await SelfUpdatingValue<ConfigContainer>.Create(socket.UserId, key, () => config);
+        using var current = await SelfUpdatingValue<ConfigContainer>.Create(socket.UserId, key, () => config);
         if (current.Value.Version++ > 1)
         {
             current.Value.Settings = config.Settings;
@@ -86,6 +85,10 @@ public class SellConfigCommand : McCommand
             PricePaid = priceInt
         });
         await table.Insert(rating).ExecuteAsync();
+        // add to own configs
+        using var ownedConfigs = await SelfUpdatingValue<CreatedConfigs>.Create(socket.UserId, "created_configs", () => new());
+        ownedConfigs.Value.Configs.Add(name);
+        await ownedConfigs.Update();
     }
 
     public static string GetKeyFromname(string name)
