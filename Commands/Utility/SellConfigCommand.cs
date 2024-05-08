@@ -21,7 +21,7 @@ public class SellConfigCommand : McCommand
     {
         if ((!AllowedUsers.Contains(socket.SessionInfo.McUuid) && !socket.GetService<ModeratorService>().IsModerator(socket)) || !socket.SessionInfo.VerifiedMc)
         {
-            socket.SendMessage("You need to be whitelisted as config seller to use this command.", null, "Please contact the server owner.");
+            socket.Dialog(db => db.Msg("You need to be whitelisted as config seller to use this command. Contact Äkwav on discord to agree to the terms.", null, "Please contact the server owner."));
             return;
         }
         var name = arguments.Trim('"').Split(' ')[0];
@@ -37,7 +37,7 @@ public class SellConfigCommand : McCommand
             socket.SendMessage("The price has to be a number.");
             return;
         }
-        if(priceInt % 600 != 0)
+        if (priceInt % 600 != 0)
         {
             socket.SendMessage("The price has to be a multiple of 600.");
             return;
