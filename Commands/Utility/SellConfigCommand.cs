@@ -16,6 +16,7 @@ public class SellConfigCommand : McCommand
             "9f57ee301a82450da928f97cb2d1466c", // 470425365593063425
             "dcc434c06bf9463188a1c5ca09c3431d", // 476689961647865866
             "0c49ce5fdffc4783b99ff295de55908f", // 1232813401030525022
+            "7b6e1ac1eb704e159702112aa21d1d97", // 781103483712569384
         };
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
