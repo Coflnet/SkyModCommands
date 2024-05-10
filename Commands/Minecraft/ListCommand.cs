@@ -202,6 +202,8 @@ namespace Coflnet.Sky.Commands.MC
                     ForEach(list.Where(e => (LongFormat(e) + GetId(e) + Format(e)).ToLower().Contains(subArgs.ToLower())), (d, e) => ListResponse(d, e)));
                 return;
             }
+            if (page == 0)
+                page = 1;
             var totalPages = list.Count / pageSize;
             if (totalPages < page)
             {
