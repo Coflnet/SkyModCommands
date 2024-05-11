@@ -58,6 +58,13 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             await table.Where(c => c.Type == "config" && c.OwnerId == targetConfig.OwnerId && c.ConfigName == targetConfig.ConfigName && c.Rating == targetConfigClone.Rating).Delete().ExecuteAsync();
             socket.Dialog(db => db.MsgLine($"Downvoted §6{targetConfig.ConfigName}"));
         }
+        else if (command == "autoupdate")
+        {
+            var settings = socket.sessionLifesycle.AccountSettings;
+            settings.Value.AutoUpdateConfig = !settings.Value.AutoUpdateConfig;
+            await settings.Update();
+            socket.SendMessage($"Auto update configs is now {McColorCodes.AQUA}{(settings.Value.AutoUpdateConfig ? "enabled" : "disabled")}");
+        }
         else
         {
             await base.List(socket, stringArgs);
