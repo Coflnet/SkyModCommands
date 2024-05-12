@@ -184,9 +184,9 @@ public class DelayHandler : IDelayHandler
                 macroPenalty = TimeSpan.Zero;
             }
         }
-        summary.HasBadPlayer = breakdown.BadIds.Count != 0;
+        summary.HasBadPlayer = (breakdown.BadIds?.Count ?? 0) != 0;
 
-        if(ids.Any(DiHandler.GetService<DelayService>().IsSlowedDown))
+        if (ids.Any(DiHandler.GetService<DelayService>().IsSlowedDown))
             currentDelay += TimeSpan.FromSeconds(4);
         if (currentDelay != lastDelay)
             OnDelayChange?.Invoke(currentDelay);
