@@ -17,7 +17,7 @@ public class ProxyReqSyncCommand : McCommand
         socket.Dialog(db => db.MsgLine($"Syncing settings..."));
         for (int i = 0; i < 50; i++)
         {
-            if(socket.Settings.IsCompiled)
+            if (socket.Settings.IsCompiled)
                 break;
             await Task.Delay(200);
         }
@@ -42,6 +42,7 @@ public class ProxyReqSyncCommand : McCommand
 
     private static void SendState(MinecraftSocket socket)
     {
+        using var sync = socket.CreateActivity("settingsSync");
         socket.Send(Response.Create("proxySync", new Format()
         {
             Settings = socket.Settings,
