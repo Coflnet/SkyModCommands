@@ -852,7 +852,7 @@ namespace Coflnet.Sky.Commands.MC
                     using var context = new HypixelContext();
                     var auctions = context.Auctions.Where(a =>
                         itemIds.Contains(a.ItemId) && a.End > DateTime.UtcNow
-                        && a.HighestBidAmount == 0 && a.StartingBid > 20_000_000).Take(50).ToList();
+                        && a.HighestBidAmount == 0 && a.StartingBid > 10_000_000).Take(50).ToList();
                     foreach (var item in auctions.OrderByDescending(a => Random.Shared.Next()).Take(10))
                     {
                         using var sendSpan = socket.CreateActivity("shitItem", ConSpan)?.AddTag("auctionId", item.Uuid);
