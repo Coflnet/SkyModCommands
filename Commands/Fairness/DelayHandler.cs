@@ -184,6 +184,8 @@ public class DelayHandler : IDelayHandler
                 macroPenalty = TimeSpan.Zero;
             }
         }
+        summary.HasBadPlayer = breakdown.BadIds.Count != 0;
+
         if(ids.Any(DiHandler.GetService<DelayService>().IsSlowedDown))
             currentDelay += TimeSpan.FromSeconds(4);
         if (currentDelay != lastDelay)
@@ -204,6 +206,7 @@ public class DelayHandler : IDelayHandler
         public bool MacroWarning;
         public bool VerifiedMc;
         public int nonpurchaseRate;
+        public bool HasBadPlayer;
     }
 
     private TimeSpan GetCorrectDelay(int myIndex)

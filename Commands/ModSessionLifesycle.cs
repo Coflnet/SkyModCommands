@@ -845,6 +845,27 @@ namespace Coflnet.Sky.Commands.MC
                     span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     span.Log(JsonConvert.SerializeObject(summary, Formatting.Indented));
                 }
+                if (summary.HasBadPlayer && socket.LastSent.Count > 10)
+                {
+                    var shitItems = new List<string>() { "JUNGLE_AXE", "JUNGLE_PICKAXE", "GOD_POTION_2", "HEALING_RING", "EMERALD_RING", "MINERAL_TALISMAN" };
+                    var itemIds = shitItems.Select(tag => ItemDetails.Instance.GetItemIdForTag(tag)).ToList();
+                    using var context = new HypixelContext();
+                    var auctions = context.Auctions.Where(a =>
+                        itemIds.Contains(a.ItemId) && a.End > DateTime.UtcNow
+                        && a.HighestBidAmount == 0 && a.StartingBid > 20_000_000).Take(50).ToList();
+                    foreach (var item in auctions.OrderByDescending(a => Random.Shared.Next()))
+                    {
+                        using var sendSpan = socket.CreateActivity("shitItem", ConSpan)?.AddTag("auctionId", item.Uuid);
+                        await socket.ModAdapter.SendFlip(FlipperService.LowPriceToFlip(new LowPricedAuction()
+                        {
+                            Auction = item,
+                            Finder = LowPricedAuction.FinderType.SNIPER,
+                            DailyVolume = (float)(1 + Random.Shared.NextDouble() * 10),
+                            TargetPrice = (long)(item.StartingBid * (1.1 + Random.Shared.NextDouble()))
+                        }));
+                        await Task.Delay(Random.Shared.Next(500, 10000));
+                    }
+                }
                 if (isBot)
                     return;
                 await SendAfkWarningMessages(summary).ConfigureAwait(false);
