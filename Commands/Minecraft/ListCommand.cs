@@ -202,18 +202,19 @@ namespace Coflnet.Sky.Commands.MC
                     ForEach(list.Where(e => (LongFormat(e) + GetId(e) + Format(e)).ToLower().Contains(subArgs.ToLower())), (d, e) => ListResponse(d, e)));
                 return;
             }
-            if (page == 0)
-                page = 1;
             var totalPages = list.Count / pageSize;
+            var displayPage = page;
+            if (displayPage == 0)
+                displayPage = 1;
             if (totalPages < page)
             {
                 socket.SendMessage(new DialogBuilder()
-                .MsgLine($"There are only {McColorCodes.YELLOW}{totalPages}{McColorCodes.WHITE} pages in total (starting from 0)", null, $"Try running it without or a smaller number"));
+                .MsgLine($"There are only {McColorCodes.YELLOW}{totalPages + 1}{McColorCodes.WHITE} pages in total (starting from 1)", null, $"Try running it without or a smaller number"));
                 return;
             }
 
             socket.Dialog(db => db
-                .MsgLine($"Content (page {page}):", $"/cofl {Slug} ls {page + 1}", $"This is page {page} \nthere are {totalPages} pages\nclick this to show the next page")
+                .MsgLine($"Content (page {displayPage}):", $"/cofl {Slug} ls {page + 1}", $"This is page {displayPage} \nthere are {totalPages} pages\nclick this to show the next page")
                 .ForEach(list.Skip(page * pageSize).Take(pageSize), (d, e) =>
                 {
                     ListResponse(d, e);
