@@ -89,6 +89,10 @@ public class SellConfigCommand : ArgumentsCommand
             OwnerName = socket.SessionInfo.McName,
             PricePaid = priceInt
         });
+        if (rating.OwnerName != socket.SessionInfo.McName)
+        {
+            rating.OwnerName = socket.SessionInfo.McName;
+        }
         await table.Insert(rating).ExecuteAsync();
         // add to own configs
         using var ownedConfigs = await SelfUpdatingValue<CreatedConfigs>.Create(socket.UserId, "created_configs", () => new());
