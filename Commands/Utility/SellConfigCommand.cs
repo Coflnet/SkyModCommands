@@ -8,7 +8,7 @@ using Coflnet.Sky.Settings.Client.Api;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
-public class SellConfigCommand : McCommand
+public class SellConfigCommand : ArgumentsCommand
 {
     private static HashSet<string> AllowedUsers = new HashSet<string>(){
             "e7246661de77474f94627fabf9880f60",
@@ -18,21 +18,24 @@ public class SellConfigCommand : McCommand
             "0c49ce5fdffc4783b99ff295de55908f", // 1232813401030525022
             "7b6e1ac1eb704e159702112aa21d1d97", // 781103483712569384
         };
-    public override async Task Execute(MinecraftSocket socket, string arguments)
+
+    protected override string Usage => "<name> [price=0] [changeLog (multi word)]";
+
+    protected override async Task Execute(IMinecraftSocket socket, Arguments args)
     {
         if ((!AllowedUsers.Contains(socket.SessionInfo.McUuid) && !socket.GetService<ModeratorService>().IsModerator(socket)) || !socket.SessionInfo.VerifiedMc)
         {
             socket.Dialog(db => db.Msg("You need to be whitelisted as config seller to use this command. Contact Äkwav on discord to agree to the terms.", null, "Please contact the server owner."));
             return;
         }
-        var name = arguments.Trim('"').Split(' ')[0];
+        var name = args["name"];
         if (name.Length == 0)
         {
-            socket.SendMessage($"Usage: {McColorCodes.AQUA}/cl sellconfig <name> <price> [optional detail note what changed]{McColorCodes.GRAY}. The name is how it will be found via {McColorCodes.AQUA}/cl buyconfig {socket.SessionInfo.McName} <name>");
+            socket.SendMessage($"Usage: {McColorCodes.AQUA}/cl sellconfig <name> [price=0] [optional detail note what changed]{McColorCodes.GRAY}. The name is how it will be found via {McColorCodes.AQUA}/cl buyconfig {socket.SessionInfo.McName} <name>");
             return;
         }
-        var text = arguments.Trim('"').Substring(name.Length).Trim();
-        var price = text.Split(' ')[0];
+        var text = args["changeLog"] ?? "";
+        var price = args["price"];
         if (!int.TryParse(price, out var priceInt))
         {
             socket.SendMessage("The price has to be a number.");
@@ -43,7 +46,6 @@ public class SellConfigCommand : McCommand
             socket.SendMessage("The price has to be a multiple of 600.");
             return;
         }
-        text = text.Substring(price.Length).Trim();
         string key = GetKeyFromname(name);
         var config = new ConfigContainer()
         {
@@ -58,15 +60,16 @@ public class SellConfigCommand : McCommand
         if (current.Value.Version++ > 1)
         {
             current.Value.Settings = config.Settings;
-            current.Value.ChangeNotes = config.ChangeNotes;
-            current.Value.Price = config.Price;
-            current.Value.ChangeNotes = config.ChangeNotes;
+            if (!string.IsNullOrEmpty(config.ChangeNotes))
+                current.Value.ChangeNotes = config.ChangeNotes;
+            if (config.Price != 0 || !string.IsNullOrEmpty(config.ChangeNotes))
+                current.Value.Price = config.Price;
             await current.Update();
             socket.Dialog(db => db.MsgLine($"§6{config.Name} §7v{current.Value.Version} §6updated")
                 .LineBreak()
-                .MsgLine($"§7{config.ChangeNotes}")
+                .MsgLine($"§7{current.Value.ChangeNotes}")
                 .LineBreak()
-                .MsgLine($"§7{config.Price} CoflCoins"));
+                .MsgLine($"§7{current.Value.Price} CoflCoins"));
         }
         else
         {

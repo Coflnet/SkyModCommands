@@ -10,11 +10,17 @@ public class ArgumentsCommandTests
     public async Task ParseOptionalSpace()
     {
         var command = new TestCommand();
-        command.TestUsage = "<id> [text (multi word)]";
-        await command.Execute(null, "\"arg1 arg2 abc\"");
+        command.TestUsage = "<id> [price=0] [text (multi word)]";
+        await command.Execute(null, "\"arg1 3 arg2 abc\"");
         var args = command.TestArgs;
         Assert.That(args["id"], Is.EqualTo("arg1"));
         Assert.That(args["text"], Is.EqualTo("arg2 abc"));
+        Assert.That(args["price"], Is.EqualTo("3"));
+        await command.Execute(null, "\"arg1\"");
+        args = command.TestArgs;
+        Assert.That(args["id"], Is.EqualTo("arg1"));
+        Assert.That(args["text"], Is.EqualTo(""));
+        Assert.That(args["price"], Is.EqualTo("0"));
     }
 
     [Test]

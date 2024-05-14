@@ -32,13 +32,13 @@ public abstract class ArgumentsCommand : McCommand
         var argOrder = Usage;
         if (multiWords.Success)
         {
-            argOrder = argOrder.Replace(" (multi word)", "");
+            argOrder = argOrder.Replace(" (multi word)", "=");
         }
-        var defaultValues = Regex.Matches(argOrder, @"([\w]+)=\{?(\w+)\}?");
+        var defaultValues = Regex.Matches(argOrder, @"([\w]+)=\{?(\w*)\}?");
         var parts = argOrder.Trim('"').Split(' ').Select(p => p.Split('=').First().Trim('<', '>', '[', ']')).ToArray();
         parsed = new Arguments();
         var argParts = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
-        if (argParts.Length != parts.Length && !multiWords.Success && (!defaultValues.FirstOrDefault()?.Success ?? false))
+        if (argParts.Length < argOrder.Count(c=>c=='<'))
         {
             return "The amount of arguments doesn't match";
         }

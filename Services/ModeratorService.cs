@@ -19,7 +19,7 @@ public class ModeratorService
         "e7246661de77474f94627fabf9880f60", // IcyHenryT  
         "cfc37fbedfab4498893ea7799deedde5", // Flooored
     };
-    public bool IsModerator(MinecraftSocket socket)
+    public bool IsModerator(IMinecraftSocket socket)
     {
         return MinecraftUuids.Contains(socket.SessionInfo.McUuid) && socket.SessionInfo.VerifiedMc;
     }
