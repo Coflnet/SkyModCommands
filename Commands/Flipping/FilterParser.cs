@@ -7,6 +7,7 @@ using Coflnet.Sky.Filter;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Items.Client.Api;
+using System.Text.RegularExpressions;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -24,20 +25,18 @@ namespace Coflnet.Sky.Commands.MC
         {
             // has filter
             var parts = val.Split(' ').Reverse().ToList();
-            for (int i = 0; i < parts.Count; i++)
+            var filterMatches = Regex.Matches(val, @"([^ ]+)=([^="" \n]+|""[^""]+"")");
+            foreach (var match in filterMatches.Cast<Match>())
             {
-                var part = parts[i];
-                if (!part.Contains('='))
-                    continue;
+                var key = match.Groups[1].Value.ToLower();
+                var filterVal = match.Groups[2].Value.Trim('"');
 
-                var filterParts = part.Split('=');
-                var filterName = allFilters.Where(f => f.ToLower() == filterParts[0].ToLower()).FirstOrDefault();
+                var filterName = allFilters.Where(f => f.ToLower() == key).FirstOrDefault();
                 if (filterName == null)
                 {
-                    filterName = allFilters.OrderBy(f => Fastenshtein.Levenshtein.Distance(f.ToLower(), filterParts[0].ToLower())).First();
-                    socket.SendMessage(new DialogBuilder().MsgLine($"{McColorCodes.RED}Could not find {McColorCodes.AQUA}{filterParts[0]}{McColorCodes.WHITE}, using closest match {McColorCodes.AQUA}{filterName}{McColorCodes.WHITE} instead"));
+                    filterName = allFilters.OrderBy(f => Fastenshtein.Levenshtein.Distance(f.ToLower(), key)).First();
+                    socket.SendMessage(new DialogBuilder().MsgLine($"{McColorCodes.RED}Could not find {McColorCodes.AQUA}{match.Groups[1].Value}{McColorCodes.WHITE}, using closest match {McColorCodes.AQUA}{filterName}{McColorCodes.WHITE} instead"));
                 }
-                var filterVal = filterParts[1];
                 if (FlipFilter.AdditionalFilters.TryGetValue(filterName, out DetailedFlipFilter dff))
                 {
                     var type = dff.FilterType;
@@ -59,7 +58,7 @@ namespace Coflnet.Sky.Commands.MC
                     if (filterVal.Length < 30)
                     {
                         var uuid = await socket.GetPlayerUuid(filterVal);
-                        if(!string.IsNullOrEmpty(uuid))
+                        if (!string.IsNullOrEmpty(uuid))
                             filterVal = uuid;
                     }
                 }
@@ -75,7 +74,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 filters.Add(filterName, filterVal);
                 // remove filter from search
-                val = val.Substring(0, val.Length - part.Length).Trim();
+                val = val.Replace(match.Value, "").Trim();
             }
 
             return val;
