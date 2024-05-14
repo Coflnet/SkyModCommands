@@ -25,6 +25,10 @@ namespace Coflnet.Sky.Commands.MC
 
         protected static async Task<string> GetUserIdFromMcName(IMinecraftSocket socket, string minecraftName)
         {
+            if (int.TryParse(minecraftName, out var id))
+            {
+                return id.ToString();
+            }
             var accountUuid = await socket.GetPlayerUuid(minecraftName, false);
             var userInfo = await socket.GetService<McAccountService>().GetUserId(accountUuid);
             if (userInfo == null)

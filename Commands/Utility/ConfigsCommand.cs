@@ -74,7 +74,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
 
     protected override void ListResponse(DialogBuilder d, ConfigRating e)
     {
-        FormatForList(d, e).MsgLine($" {McColorCodes.YELLOW}[BUY]{DEFAULT_COLOR}", $"/cofl buyconfig {e.OwnerName} {e.ConfigName}", $"buy {LongFormat(e)}");
+        FormatForList(d, e).MsgLine($" {McColorCodes.YELLOW}[BUY]{DEFAULT_COLOR}", $"/cofl buyconfig {e.OwnerId} {e.ConfigName}", $"buy {LongFormat(e)}");
     }
 
     private async Task<ConfigRating> GetTargetRating(MinecraftSocket socket, string[] args, Table<ConfigRating> table)
