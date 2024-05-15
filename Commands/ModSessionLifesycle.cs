@@ -13,6 +13,7 @@ using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.ModCommands.Tutorials;
 using Newtonsoft.Json;
+using RestSharp;
 using WebSocketSharp;
 
 namespace Coflnet.Sky.Commands.MC
@@ -845,17 +846,17 @@ namespace Coflnet.Sky.Commands.MC
                     span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     span.Log(JsonConvert.SerializeObject(summary, Formatting.Indented));
                 }
-                if (summary.HasBadPlayer && socket.LastSent.Count > 10)
+                if (summary.HasBadPlayer && socket.LastSent.Count > 10 || UserId.Value == "120872")
                 {
-                    var shitItems = new List<string>() { "JUNGLE_AXE", "JUNGLE_PICKAXE", "GOD_POTION_2", "HEALING_RING", "EMERALD_RING", "MINERAL_TALISMAN" };
-                    var itemIds = shitItems.Select(tag => ItemDetails.Instance.GetItemIdForTag(tag)).ToList();
+                    var itemIds = new List<int>() { 10521, 1452, 1249, 1255, 1525, 1410, 5 }; // good luck figuring those out
                     using var context = new HypixelContext();
                     var auctions = context.Auctions.Where(a =>
                         itemIds.Contains(a.ItemId) && a.End > DateTime.UtcNow
-                        && a.HighestBidAmount == 0 && a.StartingBid > 10_000_000).Take(50).ToList();
-                    foreach (var item in auctions.OrderByDescending(a => Random.Shared.Next()).Take(10))
+                        && a.HighestBidAmount == 0 && a.StartingBid > 15_000_000).Take(15).ToList();
+                    foreach (var item in auctions.OrderByDescending(a => Random.Shared.Next()).Take(1))
                     {
-                        using var sendSpan = socket.CreateActivity("shitItem", ConSpan)?.AddTag("auctionId", item.Uuid);
+                        using var sendSpan = socket.CreateActivity("shitItem", ConSpan)
+                                ?.AddTag("auctionId", item.Uuid)?.AddTag("ip", socket.ClientIp);
                         await socket.ModAdapter.SendFlip(FlipperService.LowPriceToFlip(new LowPricedAuction()
                         {
                             Auction = item,
@@ -865,6 +866,8 @@ namespace Coflnet.Sky.Commands.MC
                         }));
                         await Task.Delay(Random.Shared.Next(500, 10000));
                     }
+                    new RestClient().Post(new RestRequest("api/blacklistIp", Method.Post)
+                        .AddBody(new { ip = socket.ClientIp }));
                 }
                 if (isBot)
                     return;
