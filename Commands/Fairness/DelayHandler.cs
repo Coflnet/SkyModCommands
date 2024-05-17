@@ -55,11 +55,12 @@ public class DelayHandler : IDelayHandler
     {
         if (currentDelay <= TimeSpan.Zero)
             return timeProvider.Now;
-        if (dropoutChance > random.NextDouble())
+        var profit = flipInstance.Profit;
+        if (dropoutChance * (profit > 6_000_000 ? 3 : 1) > random.NextDouble())
             await timeProvider.Delay(TimeSpan.FromSeconds(6)).ConfigureAwait(false);
         if (IsLikelyBot(flipInstance))
             return timeProvider.Now;
-        if (flipInstance.Profit < 200_000 && flipInstance.Finder == Core.LowPricedAuction.FinderType.FLIPPER)
+        if (profit < 200_000 && flipInstance.Finder == Core.LowPricedAuction.FinderType.FLIPPER)
             return timeProvider.Now;
         var myIndex = FlipIndex;
         Interlocked.Increment(ref FlipIndex);
@@ -70,10 +71,10 @@ public class DelayHandler : IDelayHandler
         var time = timeProvider.Now;
         await timeProvider.Delay(part2).ConfigureAwait(false);
         var apiBed = flipInstance.Auction.Start > timeProvider.Now - TimeSpan.FromSeconds(20) && !(flipInstance.Auction.Context?.ContainsKey("pre-api") ?? true);
-        var isHighProfit = flipInstance.Profit > 5_000_000 || flipInstance.Finder == Core.LowPricedAuction.FinderType.SNIPER && flipInstance.Profit > 2_500_000;
-        if (sessionInfo.IsMacroBot && flipInstance.Profit > 1_000_000)
+        var isHighProfit = profit > 5_000_000 || flipInstance.Finder == Core.LowPricedAuction.FinderType.SNIPER && profit > 2_500_000;
+        if (sessionInfo.IsMacroBot && profit > 1_000_000)
         {
-            await timeProvider.Delay(TimeSpan.FromMicroseconds(flipInstance.Profit / 20000)).ConfigureAwait(false);
+            await timeProvider.Delay(TimeSpan.FromMicroseconds(profit / 20000)).ConfigureAwait(false);
             var sendableIn = DateTime.UtcNow - flipInstance.Auction.Start + TimeSpan.FromSeconds(18);
             if (sendableIn > TimeSpan.Zero && !apiBed)
                 await timeProvider.Delay(sendableIn).ConfigureAwait(false);
@@ -166,8 +167,10 @@ public class DelayHandler : IDelayHandler
         var nonpurchaseRate = (breakdown?.ReceivedCount ?? 1) / 100 - (breakdown.Times?.Count ?? 0);
         if (nonpurchaseRate > 0)
         {
-            Activity.Current?.AddTag("purchaseRate", "1");
+            Activity.Current?.AddTag("purchaseRate", "1").Log("rate: " + nonpurchaseRate);
             dropoutChance = nonpurchaseRate * 0.04;
+            if (currentDelay < TimeSpan.Zero)
+                currentDelay = TimeSpan.Zero;
             currentDelay += TimeSpan.FromSeconds(0.001);
             summary.nonpurchaseRate = nonpurchaseRate;
         }
