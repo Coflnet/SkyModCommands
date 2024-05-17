@@ -32,14 +32,15 @@ public class CircumventTracker
     {
         socket.TryAsyncTimes(async () =>
         {
-            if(socket.SessionInfo.NotPurchaseRate == 0)
+            if (socket.SessionInfo.NotPurchaseRate == 0)
                 return;
             using var challenge = socket.CreateActivity("challengeCreate", socket.ConSpan);
             var auction = await FindAuction(socket) ?? throw new CoflnetException("no_auction", "No auction found");
             var lowPriced = new LowPricedAuction()
             {
                 Auction = auction,
-                TargetPrice = auction.StartingBid + (long)(socket.Settings.MinProfit * (1 + Random.Shared.NextDouble())),
+                TargetPrice = auction.StartingBid + (auction.StartingBid * socket.Settings.MinProfitPercent / 100) 
+                        + (long)(Math.Max(socket.Settings.MinProfit, 3_000_000) * (1 + Random.Shared.NextDouble())),
                 AdditionalProps = new(),
                 DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() + 0.1f),
                 Finder = socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.SNIPER) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
@@ -92,7 +93,7 @@ public class CircumventTracker
         }
         using var context = new HypixelContext();
         Activity.Current?.Log("From db");
-        return await context.Auctions.OrderByDescending(a => a.Id).Include(a=>a.Enchantments).Include(a=>a.NbtData)
+        return await context.Auctions.OrderByDescending(a => a.Id).Include(a => a.Enchantments).Include(a => a.NbtData)
             .Take(250)
             .Where(a => a.HighestBidAmount == 0).FirstOrDefaultAsync();
     }
