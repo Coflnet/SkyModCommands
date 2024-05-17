@@ -349,11 +349,12 @@ public class FullAfVersionAdapter : AfVersionAdapter
         socket.Dialog(db => db.Msg($"Your connection id is {socket.ConSpan.TraceId}, copy that if you encounter an error"));
         socket.sessionLifesycle.SessionInfo.FlipsEnabled = true;
         socket.SessionInfo.IsMacroBot = true;
+        base.OnAuthorize(accountInfo);
+        RequestInventory();
         if (socket.sessionLifesycle.FlipSettings.Value?.ModSettings?.AutoStartFlipper == null)
             return;
         socket.sessionLifesycle.FlipSettings.Value.ModSettings.AutoStartFlipper = true;
         socket.sessionLifesycle.FlipSettings.Value.Visibility.Seller = false;
-        RequestInventory();
     }
 
     private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)

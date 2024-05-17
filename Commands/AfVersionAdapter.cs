@@ -77,6 +77,16 @@ public class AfVersionAdapter : ModVersionAdapter
         return Task.CompletedTask;
     }
 
+    public override void OnAuthorize(AccountInfo accountInfo)
+    {
+        base.OnAuthorize(accountInfo);
+        socket.TryAsyncTimes(async () =>
+        {
+            socket.AccountInfo.LastMacroConnect = DateTime.UtcNow;
+            await socket.sessionLifesycle.AccountInfo.Update();
+        }, "updating last macro connect");
+    }
+
     public override void SendLoginPrompt(string loginLink)
     {
         socket.Dialog(db => db.MsgLine($"Please §lclick {loginLink} to login").MsgLine("Until you do you are using the free version which will make less profit"));

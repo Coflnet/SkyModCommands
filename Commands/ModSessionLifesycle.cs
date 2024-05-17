@@ -878,7 +878,8 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendAfkWarningMessages(DelayHandler.Summary sumary)
         {
-            if (sumary.AntiAfk && !socket.HasFlippingDisabled())
+            var recentlySwitchedFromMarco = this.AccountInfo?.Value?.LastMacroConnect > DateTime.UtcNow.AddDays(-2);
+            if ((sumary.AntiAfk || recentlySwitchedFromMarco) && !socket.HasFlippingDisabled())
             {
                 if (SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
                 {
