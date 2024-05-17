@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Coflnet.Sky.Proxy.Client.Api;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
+using System.Net.Http;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -44,17 +45,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 foreach (var item in batch)
                 {
-                    if (item.StartsWith("You purchased"))
-                    {
-                        socket.GetService<PreApiService>().PurchaseMessage(socket, item);
-                    }
-                    if (item.StartsWith("BIN Auction started"))
-                        await socket.GetService<PreApiService>().ListingMessage(socket, item);
-                    var secondLine = batch.Last();
-                    if (secondLine.StartsWith("You claimed"))
-                        await UpdateSellerAuction(socket, secondLine);
-                    if (item.StartsWith("Bid of"))
-                        await CheckBid(socket, item);
+                    await ProcessLine(socket, batch, item);
                 }
             }
             catch (Exception e)
@@ -62,6 +53,39 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine("chat produce failed " + e);
             }
         }
+
+        private async Task ProcessLine(MinecraftSocket socket, List<string> batch, string item)
+        {
+            if (item.StartsWith("You purchased"))
+            {
+                socket.GetService<PreApiService>().PurchaseMessage(socket, item);
+            }
+            if (item.StartsWith("BIN Auction started"))
+                await socket.GetService<PreApiService>().ListingMessage(socket, item);
+            var secondLine = batch.Last();
+            if (secondLine.StartsWith("You claimed"))
+                await UpdateSellerAuction(socket, secondLine);
+            if (item.StartsWith("Bid of"))
+                await CheckBid(socket, item);
+            if (item.StartsWith("\nClick the link to visit our website and claim your reward"))
+            {
+                Console.WriteLine("found reward link");
+                var match = Regex.Match(item, @"(https://rewards.hypixel.net/claim-reward/[a-f0-9-]+)");
+                if (match.Success)
+                {
+                    try
+                    {
+                        await RewardHandler.SendRewardOptions(socket, match);
+                    }
+                    catch (Exception)
+                    {
+                        socket.Dialog(db => db.MsgLine("Failed to get reward options. Please report this on our discord."));
+                    }
+                }
+            }
+        }
+
+
 
         private async Task CheckBid(MinecraftSocket socket, string line)
         {

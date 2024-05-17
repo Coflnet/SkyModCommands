@@ -188,6 +188,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<BuyConfigCommand>();
             Commands.Add<LoadConfigCommand>();
             Commands.Add<GiftConfigCommand>();
+            Commands.Add<RewardHandler.ClaimHypixelRewardCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

@@ -5,7 +5,10 @@ namespace Coflnet.Sky.Commands.MC
 {
     public class InventoryModSession : ModSessionLifesycle
     {
-        public const string DefaultChatRegex = @"^(You cannot view this auction!|You claimed|\[Bazaar\]|�r�cCancelled|�r�6Bazaar!|You collected|�6[Auction]|BIN Auction started|You cancelled|You purchased | - | \+ |Trade completed|Bid of).*";
+        public const string DefaultChatRegex =
+                @"^(You cannot view this auction!|You claimed|\[Bazaar\]|�r�cCancelled|�r�6Bazaar!"
+                + @"|You collected|�6[Auction]|BIN Auction started|You cancelled|You purchased "
+                + @"| - | \+ |Trade completed|Bid of|\nClick the link to ).*";
 
         public InventoryModSession(MinecraftSocket socket) : base(socket)
         {
