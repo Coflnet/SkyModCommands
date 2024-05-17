@@ -51,10 +51,10 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private static FlipSettings DEFAULT_SETTINGS => new FlipSettings()
+        public static FlipSettings DefaultSettings => new FlipSettings()
         {
             MinProfit = 100000,
-            MinVolume = 20,
+            MinVolume = 10,
             ModSettings = new ModSettings() { ShortNumbers = true },
             Visibility = new VisibilitySettings() { SellerOpenButton = true, ExtraInfoMax = 3, Lore = true }
         };
@@ -104,7 +104,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 using var waitLogin = socket.CreateActivity("waitLogin", ConSpan);
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
-                FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DEFAULT_SETTINGS);
+                FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DefaultSettings);
                 SubSessionToEventsFor(SessionInfo.McUuid);
             }
             else
@@ -134,7 +134,7 @@ namespace Coflnet.Sky.Commands.MC
         protected virtual async Task SubToSettings(string userId)
         {
             ConSpan.Log("subbing to settings of " + userId);
-            var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DEFAULT_SETTINGS);
+            var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DefaultSettings);
             var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings", () => new());
             Activity.Current.Log("got settings");
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
@@ -514,7 +514,7 @@ namespace Coflnet.Sky.Commands.MC
                 else
                     return SessionInfo.MinecraftUuids;
             var result = (await socket.GetService<McAccountService>()
-                .GetAllAccounts(UserId.Value, DateTime.UtcNow - TimeSpan.FromDays(30))).ToHashSet();
+                .GetAllAccounts(UserId.Value, DateTime.UtcNow - TimeSpan.FromDays(60))).ToHashSet();
             var loadSuccess = result.Any();
             result.Add(SessionInfo.McUuid);
             if (!SessionInfo.McUuid.IsNullOrEmpty() && loadSuccess)
