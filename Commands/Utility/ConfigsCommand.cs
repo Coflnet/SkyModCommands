@@ -69,7 +69,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         {
             socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = null;
             await socket.sessionLifesycle.AccountSettings.Update();
-            socket.sessionLifesycle.LoadedConfig.Dispose();
+            socket.sessionLifesycle.LoadedConfig?.Dispose();
             socket.sessionLifesycle.LoadedConfig = null;
             await socket.sessionLifesycle.FlipSettings.Update(ModSessionLifesycle.DefaultSettings);
             socket.SendMessage("Unloaded config you won't get updates anymore.");
