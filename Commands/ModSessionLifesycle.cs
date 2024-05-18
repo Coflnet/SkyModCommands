@@ -878,8 +878,16 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendAfkWarningMessages(DelayHandler.Summary sumary)
         {
-            var recentlySwitchedFromMarco = this.AccountInfo?.Value?.LastMacroConnect > DateTime.UtcNow.AddDays(-2);
-            if ((sumary.AntiAfk || recentlySwitchedFromMarco) && !socket.HasFlippingDisabled())
+            if (socket.HasFlippingDisabled())
+                return;
+            var recentlySwitchedFromMarco = AccountInfo?.Value?.LastMacroConnect > DateTime.UtcNow.AddDays(-2);
+            if (recentlySwitchedFromMarco && !sumary.AntiAfk && SessionInfo.captchaInfo.LastSolve < DateTime.UtcNow.AddMinutes(-120))
+            {
+                SendMessage("You recently were found to be afk macroing. \nTo proofe that you are a human please solve this captcha.");
+                SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
+                return;
+            }
+            if (sumary.AntiAfk)
             {
                 if (SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20))
                 {
