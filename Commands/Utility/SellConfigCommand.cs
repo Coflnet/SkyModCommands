@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
@@ -96,8 +97,23 @@ public class SellConfigCommand : ArgumentsCommand
         }
         await table.Insert(rating).ExecuteAsync();
         // add to own configs
-        using var ownedConfigs = await SelfUpdatingValue<CreatedConfigs>.Create(socket.UserId, "created_configs", () => new());
-        ownedConfigs.Value.Configs.Add(name);
+        using var createdConfigs = await SelfUpdatingValue<CreatedConfigs>.Create(socket.UserId, "created_configs", () => new());
+        createdConfigs.Value.Configs.Add(name);
+        await createdConfigs.Update();
+        using var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
+        if(ownedConfigs.Value.Configs.Any(c => c.Name == name && c.OwnerId == socket.UserId))
+        {
+            return;
+        }
+        ownedConfigs.Value.Configs.Add(new OwnedConfigs.OwnedConfig()
+        {
+            Name = name,
+            Version = 1,
+            ChangeNotes = text,
+            OwnerId = socket.UserId,
+            PricePaid = priceInt,
+            OwnerName = socket.SessionInfo.McName
+        });
         await ownedConfigs.Update();
     }
 
