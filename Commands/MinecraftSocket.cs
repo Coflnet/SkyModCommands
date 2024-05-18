@@ -697,7 +697,7 @@ namespace Coflnet.Sky.Commands.MC
                 { "exception", exception },
                 { "additionalLog", additionalLog },
                 { "session", JsonConvert.SerializeObject(SessionInfo) },
-                { "account", sessionLifesycle?.AccountInfo?.Value },
+                { "account", JsonConvert.SerializeObject(sessionLifesycle?.AccountInfo?.Value) },
                 { "settings", JsonConvert.SerializeObject(Settings).Truncate(10_000) }})));
             return error?.Context.TraceId.ToString();
         }
