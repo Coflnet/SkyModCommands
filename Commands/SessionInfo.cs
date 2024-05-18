@@ -73,6 +73,7 @@ namespace Coflnet.Sky.Commands.MC
         /// counts up for 100 not purchased flips
         /// </summary>
         public int NotPurchaseRate { get; internal set; }
+        public string ToLowListingAttempt { get; internal set; }
 
         public bool SellAll;
 

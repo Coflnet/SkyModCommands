@@ -67,6 +67,8 @@ namespace Coflnet.Sky.Commands.MC
                 await UpdateSellerAuction(socket, secondLine);
             if (item.StartsWith("Bid of"))
                 await CheckBid(socket, item);
+            if (item.StartsWith("You must set it to at least"))
+                socket.SessionInfo.ToLowListingAttempt = item;
             if (item.StartsWith("\nClick the link to visit our website and claim your reward"))
             {
                 Console.WriteLine("found reward link");

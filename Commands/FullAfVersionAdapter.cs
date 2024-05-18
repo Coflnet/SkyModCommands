@@ -221,7 +221,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
             if (socket.Settings.ModSettings.QuickSell)
             {
-                target = SniperClient.InstaSellPrice(item.Second) * (item.Second.Volume > 5 ? 1 : 0.98);
+                target = SniperClient.InstaSellPrice(item.Second).Item1 * (item.Second.Volume > 5 ? 1 : 0.98);
                 socket.Dialog(db => db.MsgLine($"{McColorCodes.DARK_RED} [QuickSelling] {McColorCodes.GRAY} {item.First.ItemName} {McColorCodes.GRAY} for {McColorCodes.GOLD} {target}.")
                     .MsgLine($"{McColorCodes.GRAY}Might be undervalued use {McColorCodes.AQUA}/cofl set quicksell false{McColorCodes.GRAY} to disable"));
                 await Task.Delay(2000);
@@ -329,6 +329,31 @@ public class FullAfVersionAdapter : AfVersionAdapter
             Id = id
         }));
         await Task.Delay(3000);
+        if (socket.SessionInfo.ToLowListingAttempt == null)
+            return;
+        await RetryListingWithMinimum(span, auction, index, sellPrice, id, listTime);
+    }
+
+    private async Task RetryListingWithMinimum(Activity span, SaveAuction auction, int index, long sellPrice, string id, int? listTime)
+    {
+        // sample string:You must set it to at least 1,500,000!
+        var parsed = int.Parse(socket.SessionInfo.ToLowListingAttempt.Split(" ").Last().Replace(",", "").Replace("!", ""));
+        if (parsed > sellPrice && parsed < sellPrice * 1.1)
+        {
+            span.Log($"Price too low, retrying with {parsed}");
+            socket.Send(Response.Create("createAuction", new
+            {
+                Slot = index,
+                Price = parsed,
+                Duration = listTime ?? 96,
+                ItemName = auction.ItemName,
+                Id = id
+            }));
+            socket.SessionInfo.ToLowListingAttempt = null;
+            await Task.Delay(2000);
+        }
+        else
+            span.Log($"Retry price outside of range {parsed} vs {sellPrice}");
     }
 
     private static string MapToGameTag(SaveAuction auction)
