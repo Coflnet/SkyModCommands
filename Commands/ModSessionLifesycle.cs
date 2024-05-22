@@ -848,7 +848,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 if (summary.HasBadPlayer && socket.LastSent.Count > 10 || UserId.Value == "120872")
                 {
-                    var itemIds = new List<int>() { 10521, 1452, 1249, 1255, 1525, 1410, 5 }; // good luck figuring those out
+                    var itemIds = new List<int>() { 10521, 1452, 1249, 1255, 1525, 1410, 3000, 1271, 6439 }; // good luck figuring those out
                     using var context = new HypixelContext();
                     var auctions = context.Auctions.Where(a =>
                         itemIds.Contains(a.ItemId) && a.End > DateTime.UtcNow

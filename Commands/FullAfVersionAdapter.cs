@@ -10,6 +10,7 @@ using Coflnet.Sky.FlipTracker.Client.Api;
 using Coflnet.Sky.FlipTracker.Client.Model;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -52,7 +53,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         {
             if (listSpace <= 2)
             {
-                using Activity listLog = await UpdateListSpace(span);
+                await UpdateListSpace(span);
             }
             if (activeAuctionCount >= listSpace)
             {
@@ -125,21 +126,28 @@ public class FullAfVersionAdapter : AfVersionAdapter
         return inventory;
     }
 
-    private async Task<Activity> UpdateListSpace(Activity span)
+    private async Task UpdateListSpace(Activity span)
     {
-        // get member count
-        var res = await socket.GetService<Proxy.Client.Api.IProxyApi>().ProxyHypixelGetAsync($"/skyblock/profiles?uuid={socket.SessionInfo.McUuid}");
-        if (res == null)
-            throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
-        var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(JsonConvert.DeserializeObject<string>(res));
-        if (profiles?.Profiles == null)
-            throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
-        var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
-        var membersOnIsland = profile.Members.Count;
-        listSpace = 14 + 3 * (membersOnIsland - 1) - 1; // keep one slot free for update time
-        var listLog = socket.CreateActivity("listLog", span);
-        listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
-        return listLog;
+        using var listLog = socket.CreateActivity("listLog", span);
+        try
+        {
+            // get member count
+            var res = await socket.GetService<Proxy.Client.Api.IProxyApi>().ProxyHypixelGetAsync($"/skyblock/profiles?uuid={socket.SessionInfo.McUuid}");
+            if (res == null)
+                throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
+            var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(JsonConvert.DeserializeObject<string>(res));
+            if (profiles?.Profiles == null)
+                throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
+            var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
+            var membersOnIsland = profile.Members.Count;
+            listSpace = 14 + 3 * (membersOnIsland - 1) - 1; // keep one slot free for update time
+            listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
+        }
+        catch (Exception e)
+        {
+            socket.GetService<ILogger<FullAfVersionAdapter>>().LogError(e, "updating list space");
+            listLog.Log("Error updating list space");
+        }
     }
 
     private async Task ListItems(Activity span, IPlayerApi apiService, List<SaveAuction> inventory, IEnumerable<(SaveAuction First, Sniper.Client.Model.PriceEstimate Second)> toList)
