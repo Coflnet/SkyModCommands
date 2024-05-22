@@ -32,14 +32,14 @@ public class CircumventTracker
     {
         socket.TryAsyncTimes(async () =>
         {
-            if (socket.SessionInfo.NotPurchaseRate == 0)
+            if (socket.SessionInfo.NotPurchaseRate == 0 || await socket.UserAccountTier() < AccountTier.PREMIUM)
                 return;
             using var challenge = socket.CreateActivity("challengeCreate", socket.ConSpan);
             var auction = await FindAuction(socket) ?? throw new CoflnetException("no_auction", "No auction found");
             var lowPriced = new LowPricedAuction()
             {
                 Auction = auction,
-                TargetPrice = auction.StartingBid + (auction.StartingBid * socket.Settings.MinProfitPercent / 100) 
+                TargetPrice = auction.StartingBid + (auction.StartingBid * socket.Settings.MinProfitPercent / 100)
                         + (long)(Math.Max(socket.Settings.MinProfit, 3_000_000) * (1 + Random.Shared.NextDouble())),
                 AdditionalProps = new(),
                 DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() + 0.1f),
