@@ -348,6 +348,7 @@ namespace Coflnet.Sky.Commands.MC
                 "1.2-Alpha" => new SecondVersionAdapter(this),
                 "1.5.0-af" => new FullAfVersionAdapter(this),
                 "1.5.1-af" => new FullAfVersionAdapter(this),
+                "af-2.0.0" => new FullAfVersionAdapter(this),
                 "1.5.0-afclient" => new AfVersionAdapter(this),
                 _ => new FirstModVersionAdapter(this)
             };
