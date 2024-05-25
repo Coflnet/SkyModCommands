@@ -39,8 +39,7 @@ public class CircumventTracker
             var lowPriced = new LowPricedAuction()
             {
                 Auction = auction,
-                TargetPrice = auction.StartingBid + (auction.StartingBid * socket.Settings.MinProfitPercent / 100)
-                        + (long)(Math.Max(socket.Settings.MinProfit, 3_000_000) * (1 + Random.Shared.NextDouble())),
+                TargetPrice = auction.StartingBid + (long)(Math.Max(socket.Settings.MinProfit, 10_000_000) * (0.1 + Random.Shared.NextDouble())),
                 AdditionalProps = new(),
                 DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() + 0.1f),
                 Finder = socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.SNIPER) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
@@ -59,6 +58,13 @@ public class CircumventTracker
                 logger.LogError("Testflip doesn't match {UserId} {entry}", socket.UserId, BlacklistCommand.FormatEntry(item));
                 break;
             }
+            if (socket.SessionInfo.NotPurchaseRate > 3)
+            {
+                // very sus, make a flip up
+                lastSeen.TryAdd(socket.UserId, flip);
+                logger.LogInformation("Creating fake flip for {UserId} {uuid} {auctionUuid} rate was at {rate}", socket.UserId, socket.SessionInfo.McUuid, auction.Uuid, socket.SessionInfo.NotPurchaseRate);
+            }
+
             logger.LogError("Testflip doesn't match {UserId} ({socket.SessionInfo.McUuid}) because {reson} {flip}", socket.UserId, socket.SessionInfo.McUuid, isMatch.Item2, JsonConvert.SerializeObject(lowPriced));
             throw new Exception("No matching flip found " + JsonConvert.SerializeObject(lowPriced));
         }, "creating challenge");
