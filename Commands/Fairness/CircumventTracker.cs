@@ -19,6 +19,7 @@ public class CircumventTracker
 {
     private IConnectApi connectApi;
     private ILogger<CircumventTracker> logger;
+    private int minNewPlayerId = 0;
 
     private ConcurrentDictionary<string, FlipInstance> lastSeen = new();
 
@@ -58,7 +59,17 @@ public class CircumventTracker
                 logger.LogError("Testflip doesn't match {UserId} {entry}", socket.UserId, BlacklistCommand.FormatEntry(item));
                 break;
             }
-            if (socket.SessionInfo.NotPurchaseRate > 3)
+            if(minNewPlayerId == 0)
+            {
+                using var context = new HypixelContext();
+                minNewPlayerId = (await context.Users.MaxAsync(a => a.Id)) - 800;
+            }
+            var min = 4;
+            if(int.TryParse(socket.UserId, out int id) && id > minNewPlayerId)
+            {
+                min = 2; // new players are checked earlier
+            }
+            if (socket.SessionInfo.NotPurchaseRate >= min)
             {
                 // very sus, make a flip up
                 lastSeen.TryAdd(socket.UserId, flip);

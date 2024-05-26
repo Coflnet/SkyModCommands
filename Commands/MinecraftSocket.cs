@@ -827,7 +827,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (Settings?.ModSettings?.PlaySoundOnFlip ?? false)
                     SendSound("note.hat", 1);
             }
-            if (AccountInfo.BadActionCount > 0)
+            if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1)
             {
                 using var track = this.CreateActivity("skipCheck", timer)?.AddTag("count", AccountInfo.BadActionCount);
                 if (sessionLifesycle.UserId.Value == default)
