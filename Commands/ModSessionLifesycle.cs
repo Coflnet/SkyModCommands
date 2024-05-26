@@ -866,8 +866,6 @@ namespace Coflnet.Sky.Commands.MC
                         }));
                         await Task.Delay(Random.Shared.Next(500, 10000));
                     }
-                    new RestClient().Post(new RestRequest("api/blacklistIp", Method.Post)
-                        .AddBody(new { ip = socket.ClientIp }));
                 }
                 if (isBot)
                     return;
