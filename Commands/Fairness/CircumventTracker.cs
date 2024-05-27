@@ -59,13 +59,13 @@ public class CircumventTracker
                 logger.LogError("Testflip doesn't match {UserId} {entry}", socket.UserId, BlacklistCommand.FormatEntry(item));
                 break;
             }
-            if(minNewPlayerId == 0)
+            if (minNewPlayerId == 0)
             {
                 using var context = new HypixelContext();
                 minNewPlayerId = (await context.Users.MaxAsync(a => a.Id)) - 800;
             }
             var min = 4;
-            if(int.TryParse(socket.UserId, out int id) && id > minNewPlayerId)
+            if (int.TryParse(socket.UserId, out int id) && id > minNewPlayerId)
             {
                 min = 2; // new players are checked earlier
             }
@@ -90,14 +90,19 @@ public class CircumventTracker
             using var challenge = socket.CreateActivity("challenge", socket.ConSpan);
             challenge.Log($"Choosen auction id {flip.Auction.Uuid}");
             await Task.Delay(TimeSpan.FromSeconds(2 + Random.Shared.NextDouble() * 3));
-            await connectApi.ConnectChallengePostAsync(new()
-            {
-                AuctionUuid = flip.Auction.Uuid,
-                MinecraftUuid = socket.SessionInfo.McUuid,
-                UserId = socket.UserId
-            });
-            await socket.SendFlip(flip);
+            await SendChallangeFlip(socket, flip);
         }, "sheduling challenge");
+    }
+
+    public async Task SendChallangeFlip(IMinecraftSocket socket, FlipInstance flip)
+    {
+        await connectApi.ConnectChallengePostAsync(new()
+        {
+            AuctionUuid = flip.Auction.Uuid,
+            MinecraftUuid = socket.SessionInfo.McUuid,
+            UserId = socket.UserId
+        });
+        await (socket as MinecraftSocket).ModAdapter.SendFlip(flip);
     }
 
     private static async Task<SaveAuction> FindAuction(IMinecraftSocket socket)
