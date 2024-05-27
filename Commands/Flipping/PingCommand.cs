@@ -26,6 +26,10 @@ public class PingCommand : McCommand
             return;
         }
         var ping = (DateTime.UtcNow - time).TotalMilliseconds;
+        if (ping < 10)
+        {
+            Console.WriteLine($"Ping of {ping}ms from {socket.SessionInfo.McName} {socket.ClientIp} {socket.SessionInfo.McUuid} {socket.UserId}");
+        }
         socket.Dialog(db => db.MsgLine($"Your Ping to Coflnet is: {McColorCodes.AQUA}{ping}ms"));
     }
 }
