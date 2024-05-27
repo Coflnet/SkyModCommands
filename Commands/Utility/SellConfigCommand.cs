@@ -101,7 +101,7 @@ public class SellConfigCommand : ArgumentsCommand
         createdConfigs.Value.Configs.Add(name);
         await createdConfigs.Update();
         using var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
-        if(ownedConfigs.Value.Configs.Any(c => c.Name == name && c.OwnerId == socket.UserId))
+        if (ownedConfigs.Value.Configs.Any(c => c.Name == name && c.OwnerId == socket.UserId))
         {
             return;
         }
@@ -115,6 +115,8 @@ public class SellConfigCommand : ArgumentsCommand
             OwnerName = socket.SessionInfo.McName
         });
         await ownedConfigs.Update();
+        socket.Settings.BlockExport = false;
+        await socket.sessionLifesycle.FlipSettings.Update();
     }
 
     public static string GetKeyFromname(string name)
