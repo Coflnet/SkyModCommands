@@ -71,7 +71,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     await SendAfterDelay(toSend.ToList()).ConfigureAwait(false);
                     var sendList = toSend.ToList();
-                    span.Log(JsonConvert.SerializeObject(sendList?.Select(a=>a.f?.AdditionalProps)));
+                    span.Log(JsonConvert.SerializeObject(sendList?.Select(a => a.f == null ? null : new Dictionary<string, string>(a.f?.AdditionalProps))));
                 }
                 catch (Exception e)
                 {
