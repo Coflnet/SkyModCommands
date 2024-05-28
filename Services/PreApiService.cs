@@ -435,7 +435,15 @@ public class PreApiService : BackgroundService, IPreApiService
                 if (sim.BoughtCount > 25 && Math.Abs(sim.BoughtCount - sim.TargetReceived) <= 1 && isSimilarConnected && didMostSimilarBuyLittleToNoAuctions)
                 {
                     logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} buyer name {buyer} for {flip.Auction.Uuid} userId {connection.UserId}");
+                    for (int i = 0; i < 4; i++)
+                    {
+                        var tracker = connection.GetService<CircumventTracker>();
+                        tracker.Callenge(connection);
+                        await Task.Delay(1000);
+                        tracker.Shedule(connection);
+                    }
                     connection.AccountInfo.McIds.Add(buyer);
+                    connection.AccountInfo.BadActionCount += 10;
                     connection.SessionInfo.McUuid = buyer;
                     connection.SessionInfo.VerifiedMc = false;
                     connection.SessionInfo.MinecraftUuids.Add(buyer);
