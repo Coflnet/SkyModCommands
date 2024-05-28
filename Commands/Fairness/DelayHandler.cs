@@ -33,7 +33,7 @@ public class DelayHandler : IDelayHandler
     public TimeSpan CurrentDelay => currentDelay;
     private TimeSpan currentDelay = DefaultDelay;
     private TimeSpan macroPenalty = TimeSpan.Zero;
-    private double dropoutChance = 0.0;
+    private double dropoutChance = 0.02;
     private SessionInfo sessionInfo;
     private Random random;
     private SelfUpdatingValue<AccountInfo> accountInfo;
