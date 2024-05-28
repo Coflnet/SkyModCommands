@@ -829,7 +829,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (!SessionInfo.VerifiedMc)
                 return;
-            var test = SessionInfo.McUuid == "e547d2ca07634704a9ee99313928522c" || SessionInfo.McName == "ekwav";
+            var test = SessionInfo.McName == "Ekwav";
             if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1 || test)
             {
                 using var track = this.CreateActivity("skipCheck", timer)?.AddTag("count", AccountInfo.BadActionCount);
@@ -839,7 +839,7 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 }
                 var tracker = DiHandler.GetService<CircumventTracker>();
-                if (Math.Min(AccountInfo.BadActionCount + 2, 40d) / 100 > Random.Shared.NextDouble() || test)
+                if (Math.Min(AccountInfo.BadActionCount + 2, 30d) / 100 > Random.Shared.NextDouble() || test)
                     tracker.Callenge(this);
                 tracker.Shedule(this);
             }
