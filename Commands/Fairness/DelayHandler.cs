@@ -187,10 +187,10 @@ public class DelayHandler : IDelayHandler
                 macroPenalty = TimeSpan.Zero;
             }
         }
-        if (accountInfo.Value.ShadinessLevel > 50 && currentDelay < TimeSpan.FromSeconds(2))
+        if (accountInfo.Value.ShadinessLevel > 50 && macroPenalty < TimeSpan.FromSeconds(2) && Random.Shared.NextDouble() < 0.5)
         {
             // shady accounts keep base delay
-            currentDelay += TimeSpan.FromSeconds(2);
+            macroPenalty += TimeSpan.FromSeconds(4);
         }
         summary.HasBadPlayer = (breakdown.BadIds?.Count ?? 0) != 0;
 
