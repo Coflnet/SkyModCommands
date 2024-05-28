@@ -16,7 +16,7 @@ public class AltChecker
     public async Task<int> AltLevel(string uuid)
     {
         var client = new RestClient();
-        var request = new RestRequest($"https://sky.shiiyu.moe/api/v2/coins/", Method.Get);
+        var request = new RestRequest($"https://sky.shiiyu.moe/api/v2/coins/{uuid}", Method.Get);
         var response = await client.ExecuteGetAsync(request);
         var result = JsonConvert.DeserializeObject<Response>(response.Content);
         var maxPurse = result.profiles.Values.Max(p => p.purse);
