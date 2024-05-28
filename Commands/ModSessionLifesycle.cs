@@ -858,7 +858,7 @@ namespace Coflnet.Sky.Commands.MC
                     span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     span.Log(JsonConvert.SerializeObject(summary, Formatting.Indented));
                 }
-                if (summary.HasBadPlayer)
+                if (summary.HasBadPlayer && Random.Shared.NextDouble() < 0.5)
                 {
                     await SendShitFlip();
                 }
@@ -873,8 +873,10 @@ namespace Coflnet.Sky.Commands.MC
         {
             var itemIds = new List<int>() { 10521, 1306, 1249, 2338, 1525, 1410, 3000, 1271, 6439 }; // good luck figuring those out
             var context = new HypixelContext();
+            var start = DateTime.UtcNow - TimeSpan.FromHours(1);
             var auctions = context.Auctions.Where(a =>
                 itemIds.Contains(a.ItemId) && a.End > DateTime.UtcNow
+                && a.Start > start
                 && a.HighestBidAmount == 0 && a.StartingBid > 15_000_000).Take(15).ToList();
             foreach (var item in auctions.OrderByDescending(a => Random.Shared.Next()).Take(1))
             {
