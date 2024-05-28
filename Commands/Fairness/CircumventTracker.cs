@@ -98,13 +98,14 @@ public class CircumventTracker
 
     public async Task SendChallangeFlip(IMinecraftSocket socket, FlipInstance flip)
     {
-        await connectApi.ConnectChallengePostAsync(new()
+        var trackTask = connectApi.ConnectChallengePostAsync(new()
         {
             AuctionUuid = flip.Auction.Uuid,
             MinecraftUuid = socket.SessionInfo.McUuid,
             UserId = socket.UserId
         });
         await (socket as MinecraftSocket).ModAdapter.SendFlip(flip);
+        await trackTask;
     }
 
     private static async Task<SaveAuction> FindAuction(IMinecraftSocket socket)
