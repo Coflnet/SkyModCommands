@@ -38,14 +38,14 @@ public class CircumventTracker
             using var challenge = socket.CreateActivity("challengeCreate", socket.ConSpan);
             var auction = await FindAuction(socket) ?? throw new CoflnetException("no_auction", "No auction found");
             if (auction.Context.ContainsKey("cname") && !auction.Context["cname"].EndsWith("-us"))
-                auction.Context["cname"] += McColorCodes.DARK_GRAY + "-us";
+                auction.Context["cname"] += McColorCodes.GRAY + "-us";
             var lowPriced = new LowPricedAuction()
             {
                 Auction = auction,
                 TargetPrice = auction.StartingBid + (long)(Math.Max(socket.Settings.MinProfit, 10_000_000) * (0.1 + Random.Shared.NextDouble())),
                 AdditionalProps = new() { { "bfcs", "redis" } },
                 DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() + 0.1f),
-                Finder = socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.SNIPER) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
+                Finder = (Random.Shared.NextDouble() < 0.7) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
             };
             var flip = FlipperService.LowPriceToFlip(lowPriced);
             var isMatch = socket.Settings.MatchesSettings(flip);
