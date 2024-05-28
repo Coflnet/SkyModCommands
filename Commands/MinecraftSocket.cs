@@ -42,7 +42,7 @@ namespace Coflnet.Sky.Commands.MC
         public ModSessionLifesycle sessionLifesycle { get; protected set; }
 
         public static bool IsDevMode { get; } = System.Net.Dns.GetHostName().Contains("ekwav");
-        public string ClientIp => Headers["CF-Connecting-IP"] ?? UserEndPoint.Address.ToString();
+        public string ClientIp => Headers["CF-Connecting-IP"] ?? Headers["X-Forwarded-For"] ?? UserEndPoint.Address.ToString();
 
         public static readonly ClassNameDictonary<McCommand?> Commands = new ClassNameDictonary<McCommand?>();
 
@@ -828,7 +828,10 @@ namespace Coflnet.Sky.Commands.MC
                     SendSound("note.hat", 1);
             }
             if (!SessionInfo.VerifiedMc)
+            {
+                timer.Log("not verified");
                 return;
+            }
             var test = SessionInfo.McName == "Ekwav";
             if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1 || test)
             {
