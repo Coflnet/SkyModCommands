@@ -836,7 +836,7 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 }
                 var tracker = DiHandler.GetService<CircumventTracker>();
-                if (Math.Min(AccountInfo.BadActionCount + 2, 40d) / 100 > Random.Shared.NextDouble())
+                if (Math.Min(AccountInfo.BadActionCount + 2, 40d) / 100 > Random.Shared.NextDouble() || SessionInfo.McUuid == "e547d2ca07634704a9ee99313928522c")
                     tracker.Callenge(this);
                 tracker.Shedule(this);
             }
