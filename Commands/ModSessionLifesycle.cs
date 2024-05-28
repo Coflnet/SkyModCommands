@@ -834,6 +834,18 @@ namespace Coflnet.Sky.Commands.MC
             socket.TryAsyncTimes(async () =>
             {
                 await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
+                if (AccountInfo.Value.ShadinessLevel == -1 && SessionInfo.VerifiedMc && AccountInfo.Value.Tier > AccountTier.PREMIUM)
+                {
+                    try
+                    {
+                        var altProb = await socket.GetService<AltChecker>().AltLevel(SessionInfo.McUuid);
+                        AccountInfo.Value.ShadinessLevel = altProb;
+                    }
+                    catch (System.Exception e)
+                    {
+                        socket.Error(e, "getting alt level");
+                    }
+                }
                 var ids = await GetMinecraftAccountUuids();
                 var isBot = socket.ModAdapter is AfVersionAdapter;
 
@@ -848,32 +860,39 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 if (summary.HasBadPlayer && socket.LastSent.Count > 10 || UserId.Value == "120872")
                 {
-                    var itemIds = new List<int>() { 10521, 1306, 1249, 2338, 1525, 1410, 3000, 1271, 6439 }; // good luck figuring those out
-                    using var context = new HypixelContext();
-                    var auctions = context.Auctions.Where(a =>
-                        itemIds.Contains(a.ItemId) && a.End > DateTime.UtcNow
-                        && a.HighestBidAmount == 0 && a.StartingBid > 15_000_000).Take(15).ToList();
-                    foreach (var item in auctions.OrderByDescending(a => Random.Shared.Next()).Take(1))
-                    {
-                        using var sendSpan = socket.CreateActivity("shitItem", ConSpan)
-                                ?.AddTag("auctionId", item.Uuid)?.AddTag("ip", socket.ClientIp);
-
-                        var tracker = DiHandler.GetService<CircumventTracker>();
-                        await tracker.SendChallangeFlip(socket, FlipperService.LowPriceToFlip(new LowPricedAuction()
-                        {
-                            Auction = item,
-                            Finder = LowPricedAuction.FinderType.SNIPER,
-                            DailyVolume = (float)(1 + Random.Shared.NextDouble() * 10),
-                            TargetPrice = (long)(item.StartingBid * (1.1 + Random.Shared.NextDouble()))
-                        }));
-                        await Task.Delay(Random.Shared.Next(500, 10000));
-                    }
+                    await SendShitFlip();
                 }
                 if (isBot)
                     return;
                 await SendAfkWarningMessages(summary).ConfigureAwait(false);
 
             }, "retrieving penalty");
+        }
+
+        private async Task<HypixelContext> SendShitFlip()
+        {
+            var itemIds = new List<int>() { 10521, 1306, 1249, 2338, 1525, 1410, 3000, 1271, 6439 }; // good luck figuring those out
+            var context = new HypixelContext();
+            var auctions = context.Auctions.Where(a =>
+                itemIds.Contains(a.ItemId) && a.End > DateTime.UtcNow
+                && a.HighestBidAmount == 0 && a.StartingBid > 15_000_000).Take(15).ToList();
+            foreach (var item in auctions.OrderByDescending(a => Random.Shared.Next()).Take(1))
+            {
+                using var sendSpan = socket.CreateActivity("shitItem", ConSpan)
+                        ?.AddTag("auctionId", item.Uuid)?.AddTag("ip", socket.ClientIp);
+
+                var tracker = DiHandler.GetService<CircumventTracker>();
+                await tracker.SendChallangeFlip(socket, FlipperService.LowPriceToFlip(new LowPricedAuction()
+                {
+                    Auction = item,
+                    Finder = LowPricedAuction.FinderType.SNIPER,
+                    DailyVolume = (float)(1 + Random.Shared.NextDouble() * 10),
+                    TargetPrice = (long)(item.StartingBid * (1.1 + Random.Shared.NextDouble()))
+                }));
+                await Task.Delay(Random.Shared.Next(500, 10000));
+            }
+
+            return context;
         }
 
         private async Task SendAfkWarningMessages(DelayHandler.Summary sumary)

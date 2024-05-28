@@ -78,7 +78,7 @@ public class DelayHandler : IDelayHandler
             var sendableIn = DateTime.UtcNow - flipInstance.Auction.Start + TimeSpan.FromSeconds(18);
             if (sendableIn > TimeSpan.Zero && !apiBed)
                 await timeProvider.Delay(sendableIn).ConfigureAwait(false);
-            if ((flipInstance.Auction.Context?.TryGetValue("pre-api", out var preApi) ?? false )&& preApi != "recheck" && Random.Shared.NextDouble() < 0.98)
+            if ((flipInstance.Auction.Context?.TryGetValue("pre-api", out var preApi) ?? false) && preApi != "recheck" && Random.Shared.NextDouble() < 0.98)
                 await timeProvider.Delay(TimeSpan.FromSeconds(4)).ConfigureAwait(false); // reserve preapi for nonbots
         }
         if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
@@ -186,6 +186,11 @@ public class DelayHandler : IDelayHandler
                 currentDelay = TimeSpan.Zero;
                 macroPenalty = TimeSpan.Zero;
             }
+        }
+        if (accountInfo.Value.ShadinessLevel > 50 && currentDelay < TimeSpan.FromSeconds(2))
+        {
+            // shady accounts keep base delay
+            currentDelay += TimeSpan.FromSeconds(2);
         }
         summary.HasBadPlayer = (breakdown.BadIds?.Count ?? 0) != 0;
 

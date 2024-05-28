@@ -76,6 +76,7 @@ public class Startup
         services.AddSingleton<CircumventTracker>();
         services.AddSingleton<IPriceStorageService,PriceStorageService>();
         services.AddSingleton<DelayService>();
+        services.AddSingleton<AltChecker>();
         services.AddCoflService();
     }
 
