@@ -858,7 +858,7 @@ namespace Coflnet.Sky.Commands.MC
                     span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     span.Log(JsonConvert.SerializeObject(summary, Formatting.Indented));
                 }
-                if (summary.HasBadPlayer && socket.LastSent.Count > 10 || UserId.Value == "120872")
+                if (summary.HasBadPlayer)
                 {
                     await SendShitFlip();
                 }
