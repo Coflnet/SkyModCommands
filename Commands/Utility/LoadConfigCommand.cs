@@ -14,8 +14,8 @@ public class LoadConfigCommand : ArgumentsCommand
         var name = args["configName"];
         var key = SellConfigCommand.GetKeyFromname(name);
         var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
-        var inOwnerShip = ownedConfigs.Value.Configs.Where(c => c.Name == name && c.OwnerId == owner).FirstOrDefault() 
-            ?? ownedConfigs.Value.Configs.Where(c => c.Name == name).FirstOrDefault();
+        var inOwnerShip = ownedConfigs.Value.Configs.Where(c => c.Name.Equals(name, System.StringComparison.InvariantCultureIgnoreCase) && c.OwnerId == owner).FirstOrDefault() 
+            ?? ownedConfigs.Value.Configs.Where(c => c.Name.Equals(name, System.StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
         if (inOwnerShip == default)
         {
             socket.SendMessage("You don't own this config.");
