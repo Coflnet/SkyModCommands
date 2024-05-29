@@ -89,7 +89,7 @@ public class CircumventTracker
     {
         socket.TryAsyncTimes(async () =>
         {
-            await Task.Delay(100); // time to create a challenge
+            await Task.Delay(5000); // time to create a challenge
             if (!lastSeen.TryRemove(socket.UserId, out var flip))
                 return;
             using var challenge = socket.CreateActivity("challenge", socket.ConSpan);
