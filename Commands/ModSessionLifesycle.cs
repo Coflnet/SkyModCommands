@@ -835,6 +835,8 @@ namespace Coflnet.Sky.Commands.MC
             socket.TryAsyncTimes(async () =>
             {
                 await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
+                if (socket.HasFlippingDisabled())
+                    return;
                 if (AccountInfo.Value.ShadinessLevel == -1 && SessionInfo.VerifiedMc && AccountInfo.Value.Tier > AccountTier.PREMIUM)
                 {
                     try
