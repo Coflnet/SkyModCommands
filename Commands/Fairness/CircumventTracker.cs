@@ -44,7 +44,7 @@ public class CircumventTracker
             var lowPriced = new LowPricedAuction()
             {
                 Auction = auction,
-                TargetPrice = auction.StartingBid + (long)(Math.Max(socket.Settings.MinProfit, 10_000_000) * (0.1 + Random.Shared.NextDouble())),
+                TargetPrice = auction.StartingBid + (long)(Math.Max(socket.Settings.MinProfit, 15_000_000) * (0.2 + Random.Shared.NextDouble())),
                 AdditionalProps = new() { { "bfcs", "redis" } },
                 DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() + 0.1f),
                 Finder = (Random.Shared.NextDouble() < 0.7) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
