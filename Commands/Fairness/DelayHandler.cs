@@ -12,6 +12,7 @@ public interface IDelayHandler
 {
     event Action<TimeSpan> OnDelayChange;
     TimeSpan CurrentDelay { get; }
+    TimeSpan MacroDelay { get; }
     Task<DateTime> AwaitDelayForFlip(FlipInstance flipInstance);
     bool IsLikelyBot(FlipInstance flipInstance);
     Task<DelayHandler.Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime);
@@ -31,6 +32,9 @@ public class DelayHandler : IDelayHandler
 
     private readonly ITimeProvider timeProvider;
     public TimeSpan CurrentDelay => currentDelay;
+
+    public TimeSpan MacroDelay => macroPenalty;
+
     private TimeSpan currentDelay = DefaultDelay;
     private TimeSpan macroPenalty = TimeSpan.Zero;
     private double dropoutChance = 0.02;
@@ -187,12 +191,18 @@ public class DelayHandler : IDelayHandler
                 macroPenalty = TimeSpan.Zero;
             }
         }
-        if (accountInfo.Value.ShadinessLevel > 50 && macroPenalty < TimeSpan.FromSeconds(2) && Random.Shared.NextDouble() < 0.5)
+        summary.HasBadPlayer = (breakdown.BadIds?.Count ?? 0) != 0;
+        if(summary.HasBadPlayer && Random.Shared.NextDouble() < 0.9)
+        {
+            currentDelay -= TimeSpan.FromSeconds(8);
+            macroPenalty += TimeSpan.FromSeconds(5);
+        }
+        if (accountInfo.Value.ShadinessLevel > 50 && macroPenalty < TimeSpan.FromSeconds(2) && Random.Shared.NextDouble() < 0.8)
         {
             // shady accounts keep base delay
             macroPenalty += TimeSpan.FromSeconds(4);
         }
-        summary.HasBadPlayer = (breakdown.BadIds?.Count ?? 0) != 0;
+
 
         if (ids.Any(DiHandler.GetService<DelayService>().IsSlowedDown))
             currentDelay += TimeSpan.FromSeconds(4);

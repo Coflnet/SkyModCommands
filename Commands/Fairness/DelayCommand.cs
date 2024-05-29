@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Tutorials;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -17,10 +19,12 @@ namespace Coflnet.Sky.Commands.MC
     public class DelayCommand : McCommand
     {
         public override bool IsPublic => true;
+        public ConcurrentDictionary<string, int> CallCount = new ();
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var delayAmount = socket.sessionLifesycle.CurrentDelay;
-            Activity.Current?.AddTag("delay", delayAmount.ToString());
+            var macroDelay = socket.sessionLifesycle.MacroDelay;
+            Activity.Current?.AddTag("delay", delayAmount.ToString()).AddTag("macroDelay", macroDelay.ToString());
             if (await socket.UserAccountTier() == 0)
             {
                 socket.Dialog(db => db.MsgLine($"You are using the {McColorCodes.YELLOW}free version{DEFAULT_COLOR} and are thus delayed by over a minute.", "https://sky.coflnet.com/premium", "Opens the premium page")
@@ -38,6 +42,12 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.MsgLine("You are using a random middleman account, this account is delayed by 1 minute please contact me (Äkwav)", null, "This account is used for testing purposes"));
                 return;
             }
+            var called = CallCount.AddOrUpdate(socket.UserId, 1, (k, v) => v + 1);
+            if(called > 30 && Random.Shared.NextDouble() < 0.01 * called)
+            {
+                delayAmount += TimeSpan.FromSeconds(8);
+            }
+            Activity.Current?.AddTag("count", called);
             if (delayAmount <= TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"You are currently not delayed at all :)", null, "Enjoy flipping at full speed☻");
             else if (delayAmount == TimeSpan.FromSeconds(12))

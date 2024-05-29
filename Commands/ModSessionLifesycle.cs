@@ -39,6 +39,7 @@ namespace Coflnet.Sky.Commands.MC
         public VerificationHandler VerificationHandler;
         public FlipProcesser FlipProcessor;
         public TimeSpan CurrentDelay => DelayHandler?.CurrentDelay ?? MC.DelayHandler.DefaultDelay;
+        public TimeSpan MacroDelay => DelayHandler?.MacroDelay ?? default;
         public event Action<TimeSpan> OnDelayChange
         {
             add
