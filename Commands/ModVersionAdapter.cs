@@ -46,7 +46,7 @@ namespace Coflnet.Sky.Commands.MC
                 //new ChatPart(" ❤", $"/cofl rate {uuid} {flip.Finder} up", "Vote this flip up"),
                 //new ChatPart("✖ ", $"/cofl rate {uuid} {flip.Finder} down", "Vote this flip down"),
             };
-            if (flip.Context.TryGetValue("match", out var type) && type.StartsWith("whitelist"))
+            if (flip.IsWhitelisted())
             {
                 parts.Add(WhichBLEntryCommand.CreatePart(
                     "\nWhitelisted ",

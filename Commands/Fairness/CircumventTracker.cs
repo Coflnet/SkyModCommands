@@ -50,6 +50,10 @@ public class CircumventTracker
                 Finder = (Random.Shared.NextDouble() < 0.7) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
             };
             var flip = FlipperService.LowPriceToFlip(lowPriced);
+            if ((socket.AccountInfo.BadActionCount > 20 || socket.SessionInfo.McName == "Ekwav") && Random.Shared.Next() < 0.4)
+            {
+                flip.Context["match"] = "whitelist challenge";
+            };
             var isMatch = socket.Settings.MatchesSettings(flip);
             if (isMatch.Item1)
             {
