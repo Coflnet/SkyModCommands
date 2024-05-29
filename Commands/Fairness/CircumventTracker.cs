@@ -37,7 +37,7 @@ public class CircumventTracker
                 || (socket.AccountInfo.McIds.Count > 3 || socket.AccountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(20)) && Random.Shared.NextDouble() < 0.9) // probably legit
                 return;
             using var challenge = socket.CreateActivity("challengeCreate", socket.ConSpan);
-            var auction = await FindAuction(socket) ?? throw new CoflnetException("no_auction", "No auction found");
+            var auction = await FindAuction(socket) ?? throw new Exception("No auction found");
             if (auction.Context.ContainsKey("cname") && !auction.Context["cname"].EndsWith("-us"))
             {
                 auction.Context["cname"] = auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + '.', "").Replace(McColorCodes.DARK_GRAY + "!", "") + McColorCodes.GRAY + "-us";
@@ -130,7 +130,7 @@ public class CircumventTracker
         using var context = new HypixelContext();
         Activity.Current?.Log("From db");
         return await context.Auctions.OrderByDescending(a => a.Id).Include(a => a.Enchantments).Include(a => a.NbtData)
-            .Take(250)
+            .Take(350)
             .Where(a => a.HighestBidAmount == 0 && a.Start > oldestStart).FirstOrDefaultAsync();
     }
 
