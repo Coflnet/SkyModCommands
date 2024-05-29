@@ -42,7 +42,17 @@ namespace Coflnet.Sky.Commands.MC
         public ModSessionLifesycle sessionLifesycle { get; protected set; }
 
         public static bool IsDevMode { get; } = System.Net.Dns.GetHostName().Contains("ekwav");
-        public string ClientIp => Headers["CF-Connecting-IP"] ?? Headers["X-Forwarded-For"] ?? UserEndPoint.Address.ToString();
+        public string ClientIp => DetermineUserIp();
+
+        private string DetermineUserIp()
+        {
+            var directIp = Headers["CF-Connecting-IP"] ?? Headers["X-Forwarded-For"] ?? UserEndPoint.Address.ToString();
+            if (directIp == "107.152.37.100")
+            {
+                return QueryString["ip"] ?? directIp;
+            }
+            return directIp;
+        }
 
         public static readonly ClassNameDictonary<McCommand?> Commands = new ClassNameDictonary<McCommand?>();
 
