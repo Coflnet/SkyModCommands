@@ -215,11 +215,6 @@ public class FullAfVersionAdapter : AfVersionAdapter
                         .Select(f => f.TargetPrice).DefaultIfEmpty((int)flips.Select(f => f.TargetPrice).Average()).Average();
                 listingSpan.Log($"Found {flips.Count} flips for average price {target}");
             }
-            else if (flips.All(f => f.FinderType == FlipTracker.Client.Model.FinderType.FLIPPER))
-            {
-                // very different from median, might include more, diverge from median
-                target = flips.Select(f => f.TargetPrice).Average() * 0.95;
-            }
             var stored = await storedEstimate;
             if (stored > 1_000_000)
             {
