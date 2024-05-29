@@ -859,7 +859,7 @@ namespace Coflnet.Sky.Commands.MC
                     span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     span.Log(JsonConvert.SerializeObject(summary, Formatting.Indented));
                 }
-                if (summary.HasBadPlayer && Random.Shared.NextDouble() < 0.5)
+                if (summary.HasBadPlayer && Random.Shared.NextDouble() < 0.1)
                 {
                     await SendShitFlip();
                 }
