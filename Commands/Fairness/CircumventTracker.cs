@@ -87,10 +87,11 @@ public class CircumventTracker
 
     public void Shedule(IMinecraftSocket socket)
     {
-        if (!lastSeen.TryRemove(socket.UserId, out var flip))
-            return;
         socket.TryAsyncTimes(async () =>
         {
+            await Task.Delay(100); // time to create a challenge
+            if (!lastSeen.TryRemove(socket.UserId, out var flip))
+                return;
             using var challenge = socket.CreateActivity("challenge", socket.ConSpan);
             challenge.Log($"Choosen auction id {flip.Auction.Uuid}");
             await Task.Delay(TimeSpan.FromSeconds(2 + Random.Shared.NextDouble() * 3));
@@ -112,7 +113,8 @@ public class CircumventTracker
 
     private static async Task<SaveAuction> FindAuction(IMinecraftSocket socket)
     {
-        foreach (var blocked in socket.TopBlocked.Where(b => b.Flip.Auction.Start < DateTime.UtcNow - TimeSpan.FromMinutes(1)))
+        var oldestStart = DateTime.UtcNow - TimeSpan.FromMinutes(1);
+        foreach (var blocked in socket.TopBlocked.Where(b => b.Flip.Auction.Start > oldestStart))
         {
             if (blocked.Reason != "minProfit" && blocked.Reason != "minVolume")
                 continue;
@@ -122,7 +124,7 @@ public class CircumventTracker
         Activity.Current?.Log("From db");
         return await context.Auctions.OrderByDescending(a => a.Id).Include(a => a.Enchantments).Include(a => a.NbtData)
             .Take(250)
-            .Where(a => a.HighestBidAmount == 0).FirstOrDefaultAsync();
+            .Where(a => a.HighestBidAmount == 0 && a.Start > oldestStart).FirstOrDefaultAsync();
     }
 
     public class State
