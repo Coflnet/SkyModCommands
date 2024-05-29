@@ -237,10 +237,10 @@ public class CaptchaGenerator
             if (lastAtStart == last)
                 last = item;
         }
-        if (info.CaptchaType == "optifine")
+        if (info?.CaptchaType == "optifine")
             builder.Replace("´", ".");
         var fillChar = "🇧🇾"[1].ToString();
-        if (info.CaptchaType == "short")
+        if (info?.CaptchaType == "short")
             builder.Replace(" ", " ").Replace("´", "'").Replace(fillChar+ fillChar, "#").Replace("🇧🇾"[0].ToString(),";").Replace(fillChar, ";");
 
         var lines = builder.ToString().Split('\n');
