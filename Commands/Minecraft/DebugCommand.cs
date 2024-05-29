@@ -7,7 +7,7 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var privacySettings = socket.sessionLifesycle.PrivacySettings.Value;
-            if(privacySettings.ChatRegex == ".*")
+            if (privacySettings.ChatRegex == ".*")
             {
                 privacySettings.ChatRegex = InventoryModSession.DefaultChatRegex;
                 await socket.sessionLifesycle.PrivacySettings.Update();
@@ -19,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
             await socket.sessionLifesycle.PrivacySettings.Update();
             foreach (var item in socket.Headers)
             {
-                socket.Dialog(db => db.MsgLine(item.ToString()));
+                socket.Dialog(db => db.Msg($"{item}:{socket.Headers[item.ToString()]}"));
             }
             System.Console.WriteLine("debug command");
         }
