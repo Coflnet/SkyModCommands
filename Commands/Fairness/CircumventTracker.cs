@@ -77,6 +77,8 @@ public class CircumventTracker
             {
                 min = 2; // new players are checked earlier
             }
+            if (socket.AccountInfo?.ShadinessLevel > 90)
+                min /= 2;
             if (socket.SessionInfo.NotPurchaseRate >= min)
             {
                 // very sus, make a flip up
