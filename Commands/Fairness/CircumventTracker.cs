@@ -33,7 +33,8 @@ public class CircumventTracker
     {
         socket.TryAsyncTimes(async () =>
         {
-            if (socket.SessionInfo.NotPurchaseRate == 0 || await socket.UserAccountTier() < AccountTier.PREMIUM)
+            if (socket.SessionInfo.NotPurchaseRate == 0 || await socket.UserAccountTier() < AccountTier.PREMIUM
+                || (socket.AccountInfo.McIds.Count > 3 || socket.AccountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(20)) && Random.Shared.NextDouble() < 0.9) // probably legit
                 return;
             using var challenge = socket.CreateActivity("challengeCreate", socket.ConSpan);
             var auction = await FindAuction(socket) ?? throw new CoflnetException("no_auction", "No auction found");
@@ -67,7 +68,7 @@ public class CircumventTracker
                 logger.LogError("Testflip doesn't match {UserId} {entry}", socket.UserId, BlacklistCommand.FormatEntry(item));
                 break;
             }
-            if (minNewPlayerId == 0)
+            if (minNewPlayerId <= 0)
             {
                 using var context = new HypixelContext();
                 minNewPlayerId = (await context.Users.MaxAsync(a => a.Id)) - 800;
