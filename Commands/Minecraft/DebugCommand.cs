@@ -17,6 +17,10 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(COFLNET + $"Debug enabled, if you didn't do this intentionally, please execute /cofl debug again to disable");
             privacySettings.ChatRegex = ".*";
             await socket.sessionLifesycle.PrivacySettings.Update();
+            foreach (var item in socket.Headers)
+            {
+                socket.Dialog(db => db.MsgLine(item.ToString()));
+            }
             System.Console.WriteLine("debug command");
         }
     }
