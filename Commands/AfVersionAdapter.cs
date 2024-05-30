@@ -43,7 +43,8 @@ public class AfVersionAdapter : ModVersionAdapter
             startingBid = flip.Auction.StartingBid,
             purchaseAt = flip.Auction.Start + TimeSpan.FromSeconds(20) - TimeSpan.FromMilliseconds(4),
             itemName = name,
-            target = flip.Target
+            target = flip.Target,
+            finder = flip.Finder,
         }));
         if (flip.IsWhitelisted())
         {
