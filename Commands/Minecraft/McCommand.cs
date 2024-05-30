@@ -30,6 +30,8 @@ namespace Coflnet.Sky.Commands.MC
                 return id.ToString();
             }
             var accountUuid = await socket.GetPlayerUuid(minecraftName, false);
+            if (accountUuid == null)
+                throw new CoflnetException("not_found", $"Could not find a minecraft account for `{minecraftName}`.");
             var userInfo = await socket.GetService<McAccountService>().GetUserId(accountUuid);
             if (userInfo == null)
                 throw new CoflnetException("not_found", $"{minecraftName} does not appear to have verified their account yet.");
