@@ -104,6 +104,7 @@ namespace Coflnet.Sky.Commands.MC
             if (UserId.Value == default)
             {
                 using var waitLogin = socket.CreateActivity("waitLogin", ConSpan);
+                waitLogin.Log(GetAuthLink(stringId));
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DefaultSettings);
                 SubSessionToEventsFor(SessionInfo.McUuid);
