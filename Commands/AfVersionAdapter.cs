@@ -45,6 +45,7 @@ public class AfVersionAdapter : ModVersionAdapter
             itemName = name,
             target = flip.Target,
             finder = flip.Finder,
+            profitPerc = flip.ProfitPercentage
         }));
         if (flip.IsWhitelisted())
         {
