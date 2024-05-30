@@ -42,7 +42,16 @@ namespace Coflnet.Sky.Commands.MC
                 id = uuid,
                 worth,
                 sound = new { name = shouldPlaySound ? "note.pling" : null, pitch = 1 },
-                auction = flip.Auction,
+                auction = new
+                {
+                    itemName = flip.Auction.ItemName,
+                    enchantments = flip.Auction.Enchantments,
+                    count = flip.Auction.Count,
+                    startingBid = flip.Auction.StartingBid,
+                    tag = flip.Auction.Tag,
+                    end = flip.Auction.End,
+                    auctioneerId = flip.Auction.AuctioneerId,
+                },
                 target = flip.Target,
                 render = Random.Shared.Next(3) switch
                 {
@@ -58,6 +67,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (flip.Profit > 2_000_000)
             {
+                await Task.Delay(300);
                 socket.ExecuteCommand($"/cofl fresponse {uuid} {flip.Auction.StartingBid}");
             }
             return true;
