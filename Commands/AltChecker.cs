@@ -18,6 +18,11 @@ public class AltChecker
         var client = new RestClient();
         var request = new RestRequest($"https://sky.shiiyu.moe/api/v2/coins/{uuid}", Method.Get);
         var response = await client.ExecuteGetAsync(request);
+        if(response.Content.Contains("no SkyBlock profile"))
+        {
+            await client.ExecuteGetAsync(new RestRequest($"https://sky.shiiyu.moe/stats/{uuid}")); // request profile loading
+            return -1;
+        }
         var result = JsonConvert.DeserializeObject<Response>(response.Content);
         var maxPurse = result.profiles.Values.Max(p => p.purse);
         return (int)Math.Max((20_000_000 - maxPurse) / 1_000_000 * 5, 0);
