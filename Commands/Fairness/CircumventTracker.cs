@@ -102,6 +102,12 @@ public class CircumventTracker
             using var challenge = socket.CreateActivity("challenge", socket.ConSpan);
             challenge.Log($"Choosen auction id {flip.Auction.Uuid}");
             await Task.Delay(TimeSpan.FromSeconds(2 + Random.Shared.NextDouble() * 3));
+            for (int i = 0; i < 3; i++)
+            {
+                if (flip.Auction.Start > DateTime.UtcNow - TimeSpan.FromSeconds(40))
+                    break;
+                flip.Auction.Start += + TimeSpan.FromSeconds(20);
+            }
             await SendChallangeFlip(socket, flip);
         }, "sheduling challenge");
     }

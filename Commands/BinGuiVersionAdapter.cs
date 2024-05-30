@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core.Migrations;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.Extensions.Logging;
 
@@ -50,6 +51,7 @@ namespace Coflnet.Sky.Commands.MC
                     startingBid = flip.Auction.StartingBid,
                     tag = flip.Auction.Tag,
                     end = flip.Auction.End,
+                    start = flip.Auction.Start,
                     auctioneerId = flip.Auction.AuctioneerId,
                 },
                 target = flip.Target,
