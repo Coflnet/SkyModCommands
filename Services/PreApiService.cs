@@ -460,19 +460,26 @@ public class PreApiService : BackgroundService, IPreApiService
         }, "skipcheck verify mc uuid", 1);
     }
 
-    private static async Task ChallengeAndCheckResult(IMinecraftSocket connection)
+    private async Task ChallengeAndCheckResult(IMinecraftSocket connection)
     {
         if (connection.SessionInfo.SkipLikeliness < 0 || connection.sessionLifesycle.CurrentDelay > TimeSpan.FromSeconds(0.1))
+        {
+            logger.LogInformation($"skipcheck not challenging {connection.SessionInfo.McUuid} {connection.SessionInfo.McName} {connection.SessionInfo.SkipLikeliness} {connection.sessionLifesycle.CurrentDelay}");
             return; // already checked/not relevant
+        }
         var tracker = connection.GetService<CircumventTracker>();
         var uuid = await tracker.CreateChallenge(connection, true);
         if (uuid == null)
+        {
+            logger.LogInformation($"skipcheck failed to create challenge for {connection.SessionInfo.McUuid} {connection.SessionInfo.McName}");
             return;
+        }
         tracker.Shedule(connection);
         await Task.Delay(TimeSpan.FromMinutes(2));
         // check if it was bought
         var auction = await AuctionService.Instance.GetAuctionAsync(uuid, db => db.Include(a => a.Bids));
         var didBuy = auction.Bids.Any(b => b.Bidder == connection.SessionInfo.McUuid);
+        logger.LogInformation($"skipcheck {connection.SessionInfo.McUuid} {connection.SessionInfo.McName} DidBuy:{didBuy} {uuid}");
         if (didBuy)
             await ChallengePlayer(connection);
         else
