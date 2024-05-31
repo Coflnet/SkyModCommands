@@ -431,16 +431,14 @@ public class PreApiService : BackgroundService, IPreApiService
                 {
                     connection.SessionInfo.SkipLikeliness++;
                     connection.AccountInfo.BadActionCount++;
+                    await ChallengePlayer(connection);
                 }
                 if (sim.BoughtCount > 25 && Math.Abs(sim.BoughtCount - sim.TargetReceived) <= 1 && isSimilarConnected && didMostSimilarBuyLittleToNoAuctions)
                 {
                     logger.LogInformation($"skipcheck Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} buyer name {buyer} for {flip.Auction.Uuid} userId {connection.UserId}");
                     for (int i = 0; i < 4; i++)
                     {
-                        var tracker = connection.GetService<CircumventTracker>();
-                        tracker.Callenge(connection);
-                        await Task.Delay(1000);
-                        tracker.Shedule(connection);
+                        await ChallengePlayer(connection);
                     }
                     connection.AccountInfo.McIds.Add(buyer);
                     connection.AccountInfo.BadActionCount += 10;
@@ -449,12 +447,44 @@ public class PreApiService : BackgroundService, IPreApiService
                     connection.SessionInfo.MinecraftUuids.Add(buyer);
                     await connection.sessionLifesycle.AccountInfo.Update();
                 }
+                else if (sim.BoughtCount > 25 && Math.Abs(sim.BoughtCount - sim.TargetReceived) <= 6 && isSimilarConnected)
+                {
+                    logger.LogInformation($"nevo skipcheck testing Adding Account {sim.PlayerId} for {connection.SessionInfo.McName} from {connectedFrom} buyer name {buyer} for {flip.Auction.Uuid} userId {connection.UserId}");
+                    await ChallengeAndCheckResult(connection);
+                }
             }
             catch (Exception e)
             {
                 logger.LogError(e, $"skipcheck Error finding similar buys for {buyer} {connection.SessionInfo.McUuid}");
             }
         }, "skipcheck verify mc uuid", 1);
+    }
+
+    private static async Task ChallengeAndCheckResult(IMinecraftSocket connection)
+    {
+        if (connection.SessionInfo.SkipLikeliness < 0 || connection.sessionLifesycle.CurrentDelay > TimeSpan.FromSeconds(0.1))
+            return; // already checked/not relevant
+        var tracker = connection.GetService<CircumventTracker>();
+        var uuid = await tracker.CreateChallenge(connection, true);
+        if (uuid == null)
+            return;
+        tracker.Shedule(connection);
+        await Task.Delay(TimeSpan.FromMinutes(2));
+        // check if it was bought
+        var auction = await AuctionService.Instance.GetAuctionAsync(uuid, db => db.Include(a => a.Bids));
+        var didBuy = auction.Bids.Any(b => b.Bidder == connection.SessionInfo.McUuid);
+        if (didBuy)
+            await ChallengePlayer(connection);
+        else
+            connection.SessionInfo.SkipLikeliness--;
+    }
+
+    private static async Task ChallengePlayer(IMinecraftSocket connection)
+    {
+        var tracker = connection.GetService<CircumventTracker>();
+        tracker.Callenge(connection);
+        await Task.Delay(1000);
+        tracker.Shedule(connection);
     }
 
     public async Task ListingMessage(IMinecraftSocket connection, string message)
