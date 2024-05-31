@@ -12,6 +12,7 @@ using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.ModCommands.Tutorials;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using RestSharp;
 using WebSocketSharp;
@@ -873,32 +874,42 @@ namespace Coflnet.Sky.Commands.MC
             }, "retrieving penalty");
         }
 
-        private async Task<HypixelContext> SendShitFlip()
+        private async Task SendShitFlip()
         {
             var itemIds = new List<int>() { 10521, 1306, 1249, 2338, 1525, 1410, 3000, 1271, 6439 }; // good luck figuring those out
-            var context = new HypixelContext();
-            var start = DateTime.UtcNow - TimeSpan.FromHours(1);
+            using var context = new HypixelContext();
+            var start = DateTime.UtcNow - TimeSpan.FromMinutes(1);
+            var maxId = context.Auctions.Max(a => a.Id);
             var auctions = context.Auctions.Where(a =>
-                itemIds.Contains(a.ItemId) && a.End > DateTime.UtcNow
+                a.Id > maxId - 1000 && a.End > DateTime.UtcNow
                 && a.Start > start
-                && a.HighestBidAmount == 0 && a.StartingBid > 15_000_000).Take(15).ToList();
-            foreach (var item in auctions.OrderByDescending(a => Random.Shared.Next()).Take(1))
-            {
-                using var sendSpan = socket.CreateActivity("shitItem", ConSpan)
-                        ?.AddTag("auctionId", item.Uuid)?.AddTag("ip", socket.ClientIp);
+                && a.HighestBidAmount == 0 && a.StartingBid > 15_000_000)
+                .Include(a => a.NbtData).Include(a => a.Enchantments).Take(50).ToList();
 
+
+            var sniperService = socket.GetService<ISniperClient>();
+            var values = await sniperService.GetPrices(auctions);
+            var combined = auctions.Zip(values, (a, v) => new { Auction = a, Value = v }).ToList();
+            foreach (var item in combined.OrderByDescending(c => c.Auction.StartingBid - c.Value.Median).Take(5).OrderByDescending(a => Random.Shared.Next()).Take(1))
+            {
+                var auction = item.Auction;
+                var loss = auction.StartingBid - item.Value.Median;
+                using var sendSpan = socket.CreateActivity("shitItem", ConSpan)
+                        ?.AddTag("auctionId", auction.Uuid)?.AddTag("ip", socket.ClientIp)
+                        .AddTag("estLoss", loss).AddTag("options", auctions.Count);
+                if (loss < 10_000_000)
+                    continue;
                 var tracker = DiHandler.GetService<CircumventTracker>();
                 await tracker.SendChallangeFlip(socket, FlipperService.LowPriceToFlip(new LowPricedAuction()
                 {
-                    Auction = item,
+                    Auction = auction,
                     Finder = LowPricedAuction.FinderType.SNIPER,
                     DailyVolume = (float)(1 + Random.Shared.NextDouble() * 10),
-                    TargetPrice = (long)(item.StartingBid * (1.1 + Random.Shared.NextDouble()))
+                    TargetPrice = (long)(auction.StartingBid * (1.1 + Random.Shared.NextDouble()))
                 }));
                 await Task.Delay(Random.Shared.Next(500, 10000));
             }
 
-            return context;
         }
 
         private async Task SendAfkWarningMessages(DelayHandler.Summary sumary)
