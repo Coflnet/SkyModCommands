@@ -478,9 +478,11 @@ public class PreApiService : BackgroundService, IPreApiService
         await Task.Delay(TimeSpan.FromMinutes(2));
         // check if it was bought
         var auction = await AuctionService.Instance.GetAuctionAsync(uuid, db => db.Include(a => a.Bids));
-        var didBuy = auction.Bids.Any(b => b.Bidder == connection.SessionInfo.McUuid);
-        logger.LogInformation($"skipcheck {connection.SessionInfo.McUuid} {connection.SessionInfo.McName} DidBuy:{didBuy} {uuid}");
-        if (didBuy)
+        if (auction.Bids.Count == 0)
+            return;
+        var didNotBuy = auction.Bids.All(b => b.Bidder != connection.SessionInfo.McUuid);
+        logger.LogInformation($"skipcheck {connection.SessionInfo.McUuid} {connection.SessionInfo.McName} DidBuy:{didNotBuy} {uuid}");
+        if (didNotBuy)
             await ChallengePlayer(connection);
         else
             connection.SessionInfo.SkipLikeliness--;
