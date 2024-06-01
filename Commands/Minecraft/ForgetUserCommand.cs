@@ -16,9 +16,10 @@ public class ForgetUserCommand : McCommand
         var parts = Convert<string>(arguments).Split(' ');
         var id = await IndexerClient.DeleteUser(parts[0], parts[1]);
         socket.Dialog(db => db.MsgLine("Deleted user email").AsGray());
-        await (await SelfUpdatingValue<FlipSettings>.Create(id, "flipSettings")).Update((FlipSettings)null);
-        await (await SelfUpdatingValue<AccountInfo>.Create(id, "accountInfo")).Update((AccountInfo)null);
-        await (await SelfUpdatingValue<AccountSettings>.Create(id, "accountSettings")).Update((AccountSettings)null);
+        var settingsService = socket.GetService<SettingsService>();
+        await settingsService.UpdateSetting<FlipSettings>(id, "flipSettings", null);
+        await settingsService.UpdateSetting<AccountInfo>(id, "accountInfo", null);
+        await settingsService.UpdateSetting<AccountSettings>(id, "accountSettings", null);
         socket.Dialog(db => db.MsgLine("Deleted user settings").AsGray());
         var mcConnect = socket.GetService<McConnect.Api.IConnectApi>();
         await mcConnect.ConnectUserUserIdDeleteAsync(id);
