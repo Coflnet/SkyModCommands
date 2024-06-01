@@ -13,14 +13,15 @@ public class GiftConfigCommand : ArgumentsCommand
     {
         var ign = args["ign"];
         var name = args["configName"];
-        var key = SellConfigCommand.GetKeyFromname(name);
         var from = socket.UserId;
         if (name.Contains(':') && socket.SessionInfo.McName == "Ekwav" && socket.SessionInfo.VerifiedMc)
         {
             var parts = name.Split(':');
             name = parts[1];
             from = parts[0];
+            socket.Dialog(db => db.MsgLine($"Overwrote sender {name} to {ign} from {from}."));
         }
+        var key = SellConfigCommand.GetKeyFromname(name);
         // check it exists
         var toBebought = await SelfUpdatingValue<ConfigContainer>.Create(from, key, () => null);
         if (toBebought.Value == null)
