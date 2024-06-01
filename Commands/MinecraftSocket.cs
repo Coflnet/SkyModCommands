@@ -186,6 +186,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<BazaarCommand>("bz");
             Commands.Add<SwitchRegionCommand>();
             Commands.Add<CopySettingsCommand>();
+            Commands.Add<ForgetUserCommand>();
             Commands.Add<CraftBreakDownCommand>();
             Commands.Add<CookieCommand>();
             Commands.Add<FlipSentOnProxy>();
