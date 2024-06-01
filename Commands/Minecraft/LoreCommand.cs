@@ -23,6 +23,24 @@ namespace Coflnet.Sky.Commands.MC
             });
             var args = Convert<string>(arguments).Split(' ');
 
+            if(args.Length == 1)
+            {
+                if(args[0] == "enable" || args[0] == "true")
+                {
+                    settings.Disabled = false;
+                    await service.UpdateSetting(socket.UserId, "description", settings);
+                    socket.SendMessage("Enabled data in lore");
+                    return;
+                }
+                if(args[0] == "disable" || args[0] == "false")
+                {
+                    settings.Disabled = true;
+                    await service.UpdateSetting(socket.UserId, "description", settings);
+                    socket.SendMessage("Disabled data in lore");
+                    return;
+                }
+            }
+
             if (args.Length < 2)
             {
                 SendCurrentState(socket, settings);
