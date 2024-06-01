@@ -60,6 +60,7 @@ public class BuyConfigCommand : ArgumentsCommand
                 Reference = $"config sale {name} to {socket.SessionInfo.McName}",
                 ProductId = "config-sell"
             });
+        socket.ExecuteCommand($"/cofl loadconfig {sellerUserId} {name}");
 
     }
 }
