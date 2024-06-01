@@ -68,13 +68,14 @@ public class Startup
         services.AddSingleton<IIsSold>(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IFlipReceiveTracker>(s => s.GetRequiredService<FlipTrackingService>());
         services.AddSingleton(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));
+        services.AddSingleton<IConnectionMultiplexer, IConnectionMultiplexer>(s => s.GetRequiredService<ConnectionMultiplexer>());
         services.AddSingleton<IBaseApi, BaseApi>(s => new BaseApi(Configuration["PROXY_BASE_URL"]));
         services.AddSingleton<IProxyApi, ProxyApi>(s => new ProxyApi(Configuration["PROXY_BASE_URL"]));
         RegisterScyllaSession(services);
         services.AddHostedService(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IAhActive, AhActiveService>();
         services.AddSingleton<CircumventTracker>();
-        services.AddSingleton<IPriceStorageService,PriceStorageService>();
+        services.AddSingleton<IPriceStorageService, PriceStorageService>();
         services.AddSingleton<DelayService>();
         services.AddSingleton<AltChecker>();
         services.AddCoflService();
