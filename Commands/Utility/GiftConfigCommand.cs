@@ -14,8 +14,15 @@ public class GiftConfigCommand : ArgumentsCommand
         var ign = args["ign"];
         var name = args["configName"];
         var key = SellConfigCommand.GetKeyFromname(name);
+        var from = socket.UserId;
+        if (name.Contains(':') && socket.SessionInfo.McName == "Ekwav" && socket.SessionInfo.VerifiedMc)
+        {
+            var parts = name.Split(':');
+            name = parts[1];
+            from = parts[0];
+        }
         // check it exists
-        var toBebought = await SelfUpdatingValue<ConfigContainer>.Create(socket.UserId, key, () => null);
+        var toBebought = await SelfUpdatingValue<ConfigContainer>.Create(from, key, () => null);
         if (toBebought.Value == null)
         {
             socket.SendMessage("The config doesn't exist.");
@@ -33,7 +40,7 @@ public class GiftConfigCommand : ArgumentsCommand
             Name = name,
             Version = toBebought.Value.Version,
             ChangeNotes = toBebought.Value.ChangeNotes,
-            OwnerId = socket.UserId,
+            OwnerId = from,
             PricePaid = 0,
             BoughtAt = DateTime.UtcNow,
             OwnerName = socket.SessionInfo.McName
