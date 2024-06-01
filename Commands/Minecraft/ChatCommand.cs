@@ -71,7 +71,7 @@ namespace Coflnet.Sky.Commands.MC
             await chat.Send(socket, new ChatService.ModChatMessage()
             {
                 Message = message,
-                SenderName = socket.SessionInfo.McName,
+                SenderName = socket.AccountInfo?.NickName ?? socket.SessionInfo.McName,
                 Tier = tier,
                 SenderUuid = socket.SessionInfo.McUuid
             });

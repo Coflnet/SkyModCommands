@@ -124,6 +124,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<VoidCommand>();
             Commands.Add<BlockedCommand>();
             Commands.Add<ChatCommand>("c");
+            Commands.Add<NickNameCommand>("nick");
             Commands.Add<RateCommand>();
             Commands.Add<TimeCommand>();
             Commands.Add<DialogCommand>();
