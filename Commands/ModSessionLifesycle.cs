@@ -890,7 +890,7 @@ namespace Coflnet.Sky.Commands.MC
             var sniperService = socket.GetService<ISniperClient>();
             var values = await sniperService.GetPrices(auctions);
             var combined = auctions.Zip(values, (a, v) => new { Auction = a, Value = v }).ToList();
-            foreach (var item in combined.OrderByDescending(c => c.Auction.StartingBid - c.Value.Median).Take(5).OrderByDescending(a => Random.Shared.Next()).Take(1))
+            foreach (var item in combined.OrderByDescending(c => c.Auction.StartingBid - c.Value.Median).Take(5).OrderByDescending(a => Random.Shared.Next()).Take(2))
             {
                 var auction = item.Auction;
                 var loss = auction.StartingBid - item.Value.Median;
