@@ -45,13 +45,13 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.MsgLine("You changed your nickname recently already this can only be done every 2 days"));
                 return;
             }
-            await redis.GetDatabase().StringSetAsync("nickname" + playerId, "true", TimeSpan.FromDays(2));
             socket.AccountInfo.NickName = nickName;
             await socket.sessionLifesycle.AccountInfo.Update();
             socket.Dialog(db => db.MsgLine($"Set your account nickname to {McColorCodes.AQUA}{nickName}")
                 .Msg("Note that if your nickname contains unapropiate words your account may be suspended", null,
                     "This will be displayed in chat instead of your minecraft name\n"
                     + "You can clear it by typing /cofl nickname clear"));
+            await redis.GetDatabase().StringSetAsync("nickname" + playerId, "true", TimeSpan.FromHours(2));
         }
     }
 }

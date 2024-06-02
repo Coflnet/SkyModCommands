@@ -44,7 +44,7 @@ public class CircumventTracker
             return null;
         using var challenge = socket.CreateActivity("challengeCreate", socket.ConSpan);
         var auction = await FindAuction(socket) ?? throw new Exception("No auction found");
-        if (auction.Context.ContainsKey("cname") && !auction.Context["cname"].EndsWith("-us"))
+        if (auction.Context.ContainsKey("cname") && !auction.Context["cname"].EndsWith("-us") && Random.Shared.NextDouble() < 0.5)
         {
             auction.Context["cname"] = auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + '.', "").Replace(McColorCodes.DARK_GRAY + "!", "") + McColorCodes.GRAY + "-us";
         }

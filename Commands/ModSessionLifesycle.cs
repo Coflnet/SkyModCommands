@@ -893,6 +893,10 @@ namespace Coflnet.Sky.Commands.MC
             foreach (var item in combined.OrderByDescending(c => c.Auction.StartingBid - c.Value.Median).Take(5).OrderByDescending(a => Random.Shared.Next()).Take(2))
             {
                 var auction = item.Auction;
+                if(Random.Shared.NextDouble() < 0.3)
+                    auction.Context["cname"] = auction.ItemName + McColorCodes.DARK_GRAY + "!";
+                else if (Random.Shared.NextDouble() < 0.3)
+                    auction.Context["cname"] = auction.ItemName + McColorCodes.GRAY + "-us";
                 var loss = auction.StartingBid - item.Value.Median;
                 using var sendSpan = socket.CreateActivity("shitItem", ConSpan)
                         ?.AddTag("auctionId", auction.Uuid)?.AddTag("ip", socket.ClientIp)
