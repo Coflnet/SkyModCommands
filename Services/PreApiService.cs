@@ -440,11 +440,8 @@ public class PreApiService : BackgroundService, IPreApiService
                     {
                         await ChallengePlayer(connection);
                     }
-                    connection.AccountInfo.McIds.Add(buyer);
-                    connection.AccountInfo.BadActionCount += 10;
-                    connection.SessionInfo.McUuid = buyer;
+                    connection.AccountInfo.BadActionCount += 5;
                     connection.SessionInfo.VerifiedMc = false;
-                    connection.SessionInfo.MinecraftUuids.Add(buyer);
                     await connection.sessionLifesycle.AccountInfo.Update();
                 }
                 else if (sim.BoughtCount > 25 && Math.Abs(sim.BoughtCount - sim.TargetReceived) <= 6 && isSimilarConnected)
