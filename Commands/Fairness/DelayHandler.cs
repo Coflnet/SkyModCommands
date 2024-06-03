@@ -194,7 +194,7 @@ public class DelayHandler : IDelayHandler
         summary.HasBadPlayer = (breakdown.BadIds?.Count ?? 0) != 0;
         if(summary.HasBadPlayer && Random.Shared.NextDouble() < 0.9)
         {
-            currentDelay -= TimeSpan.FromSeconds(7.5);
+            currentDelay -= TimeSpan.FromSeconds(7.2);
             macroPenalty += TimeSpan.FromSeconds(5);
         }
         if (accountInfo.Value.ShadinessLevel > 50 && macroPenalty < TimeSpan.FromSeconds(2) && Random.Shared.NextDouble() < 0.8)
