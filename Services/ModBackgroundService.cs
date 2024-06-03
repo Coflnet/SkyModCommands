@@ -77,7 +77,7 @@ namespace Coflnet.Sky.ModCommands.Services
                 try
                 {
                     var instanceStrings = config.GetSection("REDIS_FLIP_INSTANCES").Get<string[]>();
-                    if(instanceStrings == null)
+                    if (instanceStrings == null)
                     {
                         logger.LogError("No REDIS_FLIP_INSTANCES found in config, not connecting to any bfcs instances");
                         return instances;
@@ -194,6 +194,10 @@ namespace Coflnet.Sky.ModCommands.Services
             else
             {
                 flip.AdditionalProps?.TryAdd("capped", "not tfm");
+            }
+            if (Constants.Vanilla.Contains(flip.Auction.Tag.ToLower()))
+            {
+                flip.TargetPrice = 0;
             }
         }
     }
