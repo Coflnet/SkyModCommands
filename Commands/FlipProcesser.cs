@@ -211,7 +211,7 @@ namespace Coflnet.Sky.Commands.MC
             var sendTime = await delayHandler.AwaitDelayForFlip(bestFlip);
             foreach (var item in toSendDelayed)
             {
-                await SendAndTrackFlip(item.instance, item.lp, sendTime, true).ConfigureAwait(false);
+                await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow, true).ConfigureAwait(false);
                 item.lp.AdditionalProps["it"] = beforeWait.ToString();
             }
         }
@@ -236,7 +236,7 @@ namespace Coflnet.Sky.Commands.MC
             flip.Interesting = Helper.PropertiesSelector.GetProperties(flip.Auction)
                             .OrderByDescending(a => a.Rating).Select(a => a.Value).ToList();
 
-            await SendAndTrackFlip(flip, item.lp, DateTime.UtcNow).ConfigureAwait(false);
+            await SendAndTrackFlip(flip, item.lp, flip.Auction.Start + TimeSpan.FromSeconds(20)).ConfigureAwait(false);
         }
 
         private async Task SendAndTrackFlip(FlipInstance item, LowPricedAuction flip, DateTime sendTime, bool blockSold = false)
