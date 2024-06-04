@@ -49,6 +49,11 @@ public class SellConfigCommand : ArgumentsCommand
             socket.SendMessage("The price has to be a multiple of 600.");
             return;
         }
+        if (int.TryParse(name, out _))
+        {
+            socket.SendMessage("Your config name is a number, this is probably an error and you meant to specify the price. Please correct the order of the arguments.");
+            return;
+        }
         string key = GetKeyFromname(name);
         var config = new ConfigContainer()
         {
@@ -59,6 +64,8 @@ public class SellConfigCommand : ArgumentsCommand
             OwnerId = socket.UserId,
             Price = priceInt
         };
+        socket.Settings.PublishedAs = name;
+        _ = socket.TryAsyncTimes(socket.sessionLifesycle.FlipSettings.Update, "update published as");
         using var current = await SelfUpdatingValue<ConfigContainer>.Create(socket.UserId, key, () => config);
         if (current.Value.Version++ > 1)
         {
