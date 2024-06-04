@@ -221,6 +221,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 listingSpan.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored} instead of {target}");
                 target = stored;
             }
+            // list at least at 90% of median
+            target = Math.Max(target, item.Second.Median * 0.9);
 
             if (socket.Settings.ModSettings.QuickSell)
             {
