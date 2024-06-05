@@ -2,6 +2,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra;
 using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -10,8 +11,8 @@ public class SellInventoryCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if (socket.ModAdapter is not AfVersionAdapter adapter)
-            throw new CoflnetException("forbidden", "This command is only available with an autoflipper client");
+        if (socket.ModAdapter is not AfVersionAdapter adapter || socket.Version.Contains("afclient"))
+            throw new CoflnetException("forbidden", "This command is only available with an autoflipper client like BAF");
         socket.SessionInfo.SellAll = true;
         if (socket.SessionInfo.Inventory == null)
         {
@@ -31,7 +32,7 @@ public class SellInventoryCommand : McCommand
                 suffix = $" x{item.Count}";
             socket.Dialog(db => db.MsgLine($"§7[§6§lSelling§7]§r{item.ItemName}{suffix}"));
         }
-        socket.Dialog(db => db.Msg("Starting to sell all items in your inventory (except armor). \nPlease make sure there is nothing in your inventory you don't want to sell (see above for list)."));
+        socket.Dialog(db => db.Msg("Starting to sell all items in your inventory (except your armor). \nPlease make sure there is nothing in your inventory you don't want to sell (see above for list)."));
         await adapter.TryToListAuction();
     }
 }
