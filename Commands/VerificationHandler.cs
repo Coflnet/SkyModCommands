@@ -148,6 +148,8 @@ namespace Coflnet.Sky.Commands.MC
                         {
                             Uuid = targetAuction.Uuid,
                             HighestBidAmount = targetAuction.Price,
+                            StartingBid = targetAuction.Price,
+                            ItemName = "Verification auction",
                         },
                         TargetPrice = bid + 1000,
                         DailyVolume = 1,
