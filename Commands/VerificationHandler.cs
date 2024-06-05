@@ -54,6 +54,8 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(500).ConfigureAwait(false);
             var mcUuid = SessionInfo.McUuid;
             var userId = accountInfo.UserId.ToString();
+            verificationSpan?.AddTag("userId", userId);
+            verificationSpan?.AddTag("mcUuid", mcUuid);
             if (accountInfo.McIds.Contains(SessionInfo.McUuid))
             {
                 SessionInfo.VerifiedMc = true;
@@ -108,7 +110,7 @@ namespace Coflnet.Sky.Commands.MC
                 return SessionInfo.VerifiedMc;
             }
             verificationSpan.Log(JSON.Stringify(connect));
-            await SendVerificationInstructions(connect);
+            await socket.TryAsyncTimes(() => SendVerificationInstructions(connect), "sending verification instructions");
 
             return false;
         }
