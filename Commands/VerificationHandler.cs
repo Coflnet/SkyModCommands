@@ -142,17 +142,16 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (socket.SessionInfo.IsMacroBot)
                 {
+                    await Task.Delay(5000);
+                    SaveAuction cheapBin;
+                    using (var db = new HypixelContext())
+                        cheapBin = db.Auctions.Where(x => x.Bin && x.StartingBid < 1000 && x.HighestBidAmount == 0 && x.End > DateTime.UtcNow && x.Id > db.Auctions.Max(a => a.Id) - 100_000).FirstOrDefault();
                     // autoverify
                     socket.Dialog(db => db.MsgLine("Attempting to autoverify with a pseudo flip."));
-                    await socket.ModAdapter.SendFlip(FlipperService.LowPriceToFlip(new LowPricedAuction()
+                    var circumventTracker = socket.GetService<CircumventTracker>();
+                    await circumventTracker.SendChallangeFlip(socket, FlipperService.LowPriceToFlip(new LowPricedAuction()
                     {
-                        Auction = new SaveAuction()
-                        {
-                            Uuid = targetAuction.Uuid,
-                            HighestBidAmount = targetAuction.Price,
-                            StartingBid = targetAuction.Price,
-                            ItemName = "Verification auction",
-                        },
+                        Auction = cheapBin,
                         TargetPrice = bid + 1000,
                         DailyVolume = 1,
                         Finder = LowPricedAuction.FinderType.EXTERNAL
@@ -175,12 +174,12 @@ namespace Coflnet.Sky.Commands.MC
             return LastVerificationRequest > DateTime.UtcNow - TimeSpan.FromSeconds(5);
         }
 
-        private async Task<Api.Client.Model.AuctionPreview> GetauctionToBidOn(int bid, string type)
+        private async Task<Api.Client.Model.AuctionPreview> GetauctionToBidOn(int bid, string type, bool bin = false)
         {
             var service = socket.GetService<IAuctionsApi>();
             var options = await service.ApiAuctionsTagItemTagActiveOverviewGetAsync(type, new Dictionary<string, string>()
             {
-                {"Bin","false" }
+                {"Bin",bin.ToString() }
             });
 
             var targetAuction = options.Where(a => a.Price < bid).OrderBy(x => Random.Shared.Next()).FirstOrDefault();
