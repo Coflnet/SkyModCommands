@@ -26,10 +26,10 @@ public class PingCommand : McCommand
             return;
         }
         var ping = (DateTime.UtcNow - time).TotalMilliseconds;
-        if (ping < 10)
-        {
-            Console.WriteLine($"Ping of {ping}ms from {socket.SessionInfo.McName} {socket.ClientIp} {socket.SessionInfo.McUuid} {socket.UserId}");
-        }
-        socket.Dialog(db => db.MsgLine($"Your Ping to Coflnet is: {McColorCodes.AQUA}{ping}ms"));
+        using var db = socket.CreateActivity("PingMeassured", socket.ConSpan);
+        db?.AddTag("ping", ping);
+        Console.WriteLine($"Ping of {ping}ms from {socket.SessionInfo.McName} {socket.ClientIp} {socket.SessionInfo.McUuid} {socket.UserId}");
+        socket.Dialog(db => db.MsgLine($"Your Ping to execute Coflnet commands is: {McColorCodes.AQUA}{ping}ms")
+            .Msg($"{McColorCodes.GRAY}This is the time it takes for your command to reach the server and get executed and sent back to you. Its only partially related to the time your receive flips in."));
     }
 }
