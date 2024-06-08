@@ -1,9 +1,11 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Coflnet.Sky.Commands.MC;
 using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.ModCommands.Services;
@@ -73,5 +75,6 @@ public class PriceStorageService : IPriceStorageService
     {
         // insert with ttl 48h
         await table.Insert(new PriceEstimateValue() { Uuid = uuid, PlayerUuid = playerUuid, Value = value }).SetTTL(48 * 60 * 60).ExecuteAsync();
+        Activity.Current?.Log($"Set price for {uuid} to {value}");
     }
 }
