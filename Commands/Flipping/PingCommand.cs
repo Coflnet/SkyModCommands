@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
@@ -8,6 +11,7 @@ namespace Coflnet.Sky.Commands.MC;
 public class PingCommand : McCommand
 {
     public override bool IsPublic => true;
+    private ConcurrentDictionary<string, List<double>> pings = new();
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
@@ -28,8 +32,18 @@ public class PingCommand : McCommand
         var ping = (DateTime.UtcNow - time).TotalMilliseconds;
         using var db = socket.CreateActivity("PingMeassured", socket.ConSpan);
         db?.AddTag("ping", ping);
-        Console.WriteLine($"Ping of {ping}ms from {socket.SessionInfo.McName} {socket.ClientIp} {socket.SessionInfo.McUuid} {socket.UserId}");
-        socket.Dialog(db => db.MsgLine($"Your Ping to execute Coflnet commands is: {McColorCodes.AQUA}{ping}ms")
+        var thisSession = pings.GetOrAdd(sessionId, (a) => new());
+        thisSession.Add(ping);
+        if(thisSession.Count < 4)
+        {
+            await Task.Delay(100);
+            socket.ExecuteCommand($"/cofl ping {sessionId} {DateTime.UtcNow.Ticks}");
+            return;
+        }
+        var average = thisSession.Average();
+        Console.WriteLine($"Ping of {ping}ms from {socket.SessionInfo.McName} {socket.ClientIp} {socket.SessionInfo.McUuid} {socket.UserId} {average}");
+        socket.Dialog(db => db.MsgLine($"Your Ping to execute Coflnet commands is: {McColorCodes.AQUA}{socket.FormatPrice(average)}ms")
             .Msg($"{McColorCodes.GRAY}This is the time it takes for your command to reach the server and get executed and sent back to you. Its only partially related to the time your receive flips in."));
+        pings.TryRemove(sessionId, out _);
     }
 }
