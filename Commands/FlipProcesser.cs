@@ -181,7 +181,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 flipSendTiming.Observe((DateTime.UtcNow - item.f.Auction.FindTime).TotalSeconds);
             }
-
+            Activity.Current.Log("Sending instant flips");
             foreach (var item in toSendInstant)
             {
                 await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow, true).ConfigureAwait(false);
