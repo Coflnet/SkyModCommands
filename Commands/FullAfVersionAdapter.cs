@@ -157,6 +157,16 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var index = inventory.IndexOf(item.First);
             if (await ShouldSkip(span, apiService, item.First))
                 continue;
+            if(item.First.Tier == Core.Tier.COMMON)
+            {
+                socket.Dialog(db => db.Msg($"Found common item in inventory: {item.First.ItemName} {item.First.Tag} it probably has to be auctioned, please manually create an auction for it. Or report if it can be bin auctioned"));
+                continue;
+            }
+            if (item.Second.MedianKey == null)
+            {
+                socket.Dialog(db => db.MsgLine($"There was no ah price found for {item.First.ItemName} {item.First.Tag}, this item can't be sold. It takes up space in your inventory until you remove it"));
+                continue;
+            }
             var uuid = GetUuid(item.First);
             if (uuid == null)
             {
@@ -220,11 +230,6 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 listingSpan.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored} instead of {target}");
                 target = stored;
-            }
-            if (item.Second.MedianKey == null)
-            {
-                socket.Dialog(db => db.MsgLine($"There was no ah price found for {item.First.ItemName} {item.First.Tag}, this item can't be sold. It takes up space in your inventory until you remove it"));
-                return;
             }
             // list at least at 90% of median
             target = Math.Max(target, item.Second.Median * 0.9);
