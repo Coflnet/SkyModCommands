@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -248,8 +249,9 @@ namespace Coflnet.Sky.Commands.MC
                 if (blockSold && (Settings?.Visibility?.HideSoldAuction ?? false))
                     return;
             }
-
+            Activity.Current?.Log("Initiating send");
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
+            Activity.Current?.Log("Sent flip");
             if (flip.AdditionalProps.ContainsKey("isRR") && socket.AccountInfo?.Tier >= AccountTier.SUPER_PREMIUM)
                 await socket.TriggerTutorial<RoundRobinTutorial>().ConfigureAwait(false);
             if (flip.Finder == LowPricedAuction.FinderType.SNIPER_MEDIAN && flip.Auction.FlatenedNBT.Count >= 3)
