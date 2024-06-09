@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -30,7 +31,7 @@ namespace Coflnet.Sky.Commands.MC
             var solution = info.CurrentSolutions;
             info.CurrentSolutions = new List<string>();
             var receivedAt = DateTime.UtcNow;
-            var attempt = arguments.Trim('"');
+            var attempt = Convert<string>(arguments);
             info.CaptchaRequests++;
             Console.WriteLine($"Recieved {attempt}");
             if (formats.Contains(attempt))
@@ -45,10 +46,68 @@ namespace Coflnet.Sky.Commands.MC
             {
 
                 socket.Dialog(db => db
-                    .ForEach("ayz🤨🤔🇧🇾:|,:-.#ä+!^°~´` ", (db, c) => db.ForEach("01234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|"))
+                    .ForEach("awiI🤨:|,:-.#ä+!^°~´` ", (db, c) => db.ForEach("01234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|"))
                     .LineBreak().ForEach(":;", (db, c) => db.ForEach("012345678901234567890123456789", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|"))
                     .LineBreak().ForEach("´", (db, c) => db.ForEach("012345678901234567890123", (idb, ignore) => idb.Msg(c.ToString())).MsgLine("|"))
                     .MsgLine("Please screenshot the above and post it to our bug-report channel on discord"));
+                return;
+            }
+            if (attempt.StartsWith("config"))
+            {
+
+                var optionsFull = new List<string> { "🤨".First().ToString(), "🤨".First() + "🤨".First().ToString(), "!!", "ii", "#", "°", "█", "┇┇" };
+                var optionsPartial = new List<string> { "::", "´´", ",,", "''", "``", "^", "☺", "⋅⋅⋅⋅" };
+                var subargs = attempt.Split(' ');
+                if (subargs.Length > 2)
+                {
+                    var part = subargs[2];
+                    var accountSettings = socket.sessionLifesycle.AccountInfo.Value;
+                    if (part == "full")
+                    {
+                        accountSettings.CaptchaBoldChar = subargs[3];
+                    }
+                    if (part == "part")
+                    {
+                        accountSettings.CaptchaSlimChar = subargs[3];
+                    }
+                    if (accountSettings.CaptchaBoldChar?.Length > 1 && accountSettings.CaptchaSlimChar?.Length > 1)
+                    {
+                        accountSettings.CaptchaSpaceCount = 1;
+                        // half each of the bold and slim characters
+                        accountSettings.CaptchaBoldChar = accountSettings.CaptchaBoldChar.Substring(0, accountSettings.CaptchaBoldChar.Length / 2);
+                        accountSettings.CaptchaSlimChar = accountSettings.CaptchaSlimChar.Substring(0, accountSettings.CaptchaSlimChar.Length / 2);
+                        Console.WriteLine("Updated captcha config halfed " + accountInfo.CaptchaBoldChar + " " + accountInfo.CaptchaSlimChar);
+                    }
+                    else
+                    {
+                        accountSettings.CaptchaSpaceCount = 2;
+                    }
+
+                    await socket.sessionLifesycle.AccountInfo.Update();
+                    socket.SendMessage(COFLNET + "Updated captcha config");
+                    var length = "01234567890123456789";
+                    var spaceLength = length;
+                    if (accountInfo.CaptchaSpaceCount == 2)
+                        spaceLength = length + length;
+                    socket.Dialog(db => db.MsgLine("If one of the two yellow lines does not line up click it")
+                        .ForEach(length, (db, ignore) => db.Msg(accountInfo.CaptchaBoldChar))
+                            .CoflCommand<CaptchaCommand>(McColorCodes.YELLOW + "|\n", "config full", "Does not line up")
+                        .ForEach(spaceLength, (db, ignore) => db.Msg(" ")).MsgLine(McColorCodes.GREEN + "|")
+                        .ForEach(length, (db, ignore) => db.Msg(accountInfo.CaptchaSlimChar))
+                            .CoflCommand<CaptchaCommand>(McColorCodes.YELLOW + "|\n", "config part", "Does not line up")
+                        .CoflCommand<CaptchaCommand>("They line up", "", "Request a better formated captcha"));
+                    return;
+                }
+                if (subargs.Length > 1)
+                {
+                    if (subargs[1] == "full")
+                        PrintOptions(socket, optionsFull, "full");
+                    if (subargs[1] == "part")
+                        PrintOptions(socket, optionsPartial, "part");
+                    return;
+                }
+                PrintOptions(socket, optionsFull, "full");
+                PrintOptions(socket, optionsPartial, "part");
                 return;
             }
             if (attempt == "another")
@@ -100,6 +159,17 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage($"{McColorCodes.DARK_GREEN}NOTE:{McColorCodes.YELLOW} "
                 + $"Please make sure that the vertical green lines ({McColorCodes.GREEN}|{McColorCodes.YELLOW}) at the end of the captcha line up continuously.\n"
                 + $"{McColorCodes.YELLOW}If they don't line up click on {McColorCodes.AQUA}Vertical{McColorCodes.YELLOW} to get a simpler captcha");
+
+            static void PrintOptions(MinecraftSocket socket, List<string> optionsFull, string part)
+            {
+                var length = "01234567890123456789";
+                var prefix = $"/cofl captcha config set {part} ";
+                socket.Dialog(db => db.MsgLine(McColorCodes.GRAY + "If none line up please report your texture pack on our discord server")
+                    .ForEach(optionsFull, (db, character) => db.ForEach(length, (idb, ignore) => idb.Msg(character)).MsgLine($"{McColorCodes.YELLOW}|", prefix + character, "Click to select")
+                        .ForEach(length + length, (idb, ignore) => idb.Msg(" ")).MsgLine($"{McColorCodes.GREEN}|"))
+                        .MsgLine("Click on a yellow line that aligns with the green line")
+                );
+            }
         }
 
         private async Task RequireAnotherSolve(MinecraftSocket socket, CaptchaInfo info)

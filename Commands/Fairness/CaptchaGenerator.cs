@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Figgle;
@@ -47,6 +48,7 @@ public class CaptchaGenerator
                             + "and helps if the green lines don't match up\nbecause you use a different font\n(you may need to solve one more captcha)"))
             .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use horizontal captcha"))
             .CoflCommand<CaptchaCommand>(McColorCodes.ITALIC + " Another", "another", "Too difficult?\nGet another captcha")
+            .CoflCommand<CaptchaCommand>(McColorCodes.GREEN + " [Click if green line doesn't line up]", "config", "Configure the captcha\nso it lines up correctly")
             .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>(McColorCodes.LIGHT_PURPLE + " I use optifine", "optifine",
                     McColorCodes.GREEN + "The green lines don't allign \nand you use optifine?\ntry this :) or one of the\noptions to the left"))
                 .CoflCommand<VoidCommand>(" ", " ");
@@ -93,15 +95,14 @@ public class CaptchaGenerator
     /// </summary>
     private CaptchaChallenge AsciBaded(IMinecraftSocket socket)
     {
-        var alphaBet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".OrderBy(r => random.Next()).ToList();
+        var alphaBet = "ABCDEFGHIJKLMNOPRSTUVWXYZ7342?".OrderBy(r => random.Next()).ToList();
         var letter = alphaBet.Last();
         var lines = RenderCharLines(letter, socket.AccountInfo);
         var chars = new List<List<Option>>();
         chars.Add(lines);
         var index = 0;
-        while (chars.Sum(c => c.First().Text.Length) < 69)
+        while (chars.Sum(c => c.Average(l => l.Text.Length)) < 50)
             chars.Add(RenderCharLines(alphaBet[index++], socket.AccountInfo));
-
         var challenge = new CaptchaChallenge()
         {
             Question = "Select the letter " + McColorCodes.AQUA + letter +
@@ -113,15 +114,15 @@ public class CaptchaGenerator
         var vertical = socket.AccountInfo.CaptchaType == "vertical";
         HashSet<Option> solutions = new();
         if (!vertical)
-            AddCharactersHorizontally(lines, chars, bigger, parts, solutions);
+            AddCharactersHorizontally(lines, chars, bigger, parts, solutions, socket.AccountInfo);
         else
-            AddCharactersVertically(lines, chars, parts, solutions);
+            AddCharactersVertically(lines, chars, parts, solutions, socket.AccountInfo);
         challenge.Correct = solutions;
         challenge.Options = parts;
         return challenge;
     }
 
-    private void AddCharactersHorizontally(List<Option> lines, List<List<Option>> chars, int bigger, List<Option> parts, HashSet<Option> solutions)
+    private void AddCharactersHorizontally(List<Option> lines, List<List<Option>> chars, int bigger, List<Option> parts, HashSet<Option> solutions, AccountInfo info)
     {
         for (int i = 0; i < bigger; i++)
         {
@@ -129,29 +130,29 @@ public class CaptchaGenerator
                 parts.Add(new() { Text = McColorCodes.GREEN + "|\n" });
             foreach (var item in chars)
             {
-                AddLineOrEmpty(item, parts, i, lines, solutions);
+                AddLineOrEmpty(item, parts, i, lines, solutions, info);
             }
             if (chars.All(c => c.Count <= i || string.IsNullOrWhiteSpace(c[i].Text)))
                 break;
         }
     }
 
-    private void AddCharactersVertically(List<Option> lines, List<List<Option>> chars, List<Option> parts, HashSet<Option> solutions)
+    private void AddCharactersVertically(List<Option> lines, List<List<Option>> chars, List<Option> parts, HashSet<Option> solutions, AccountInfo info)
     {
         foreach (var letterAsci in chars)
         {
             for (int i = 0; i < letterAsci.Count; i++)
             {
-                AddLineOrEmpty(letterAsci, parts, i, lines, solutions);
+                AddLineOrEmpty(letterAsci, parts, i, lines, solutions, info);
                 parts.AddRange(AddParts("".PadLeft(random.Next(2, 8))));
                 parts.Add(new() { Text = "\n" });
             }
         }
     }
 
-    private void AddLineOrEmpty(List<Option> letterAsci, List<Option> parts, int i, List<Option> lines, HashSet<Option> solutions)
+    private void AddLineOrEmpty(List<Option> letterAsci, List<Option> parts, int i, List<Option> lines, HashSet<Option> solutions, AccountInfo info)
     {
-        foreach (var item in GetSplitParts(letterAsci, i))
+        foreach (var item in GetSplitParts(letterAsci, i, info))
         {
             parts.Add(item);
             if (letterAsci == lines)
@@ -159,15 +160,24 @@ public class CaptchaGenerator
         }
     }
 
-    private static IEnumerable<Option> GetSplitParts(List<Option> lines, int i)
+    private static IEnumerable<Option> GetSplitParts(List<Option> lines, int i, AccountInfo info)
     {
         if (lines.Count > i && !string.IsNullOrWhiteSpace(lines[i].Text))
             return AddParts(lines[i].Text);
 
         var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length - (l.Text.Count(c => c == '´' || c == '!' || c == '|' || c == '.') / 2 + l.Text.Count(c => c == ';') / 3));
+        var fillChar = GetMainfillChar();
+        var removeChar = 1;
+        if (info.CaptchaSpaceCount > 0)
+        {
+            fillChar = info.CaptchaBoldChar;
+            var l = lines.Where(l => l.Text.Length > 1).First();
+            removeChar = info.CaptchaSpaceCount;
+            length = (Regex.Matches(l.Text, Regex.Escape(info.CaptchaBoldChar)).Count + Regex.Matches(l.Text, Regex.Escape(info.CaptchaSlimChar)).Count) * info.CaptchaSpaceCount + l.Text.Count(c => c == ' ');
+        }
         var padding = "".PadLeft(length);
         if (Random.Shared.Next(6) == 0)
-            padding = padding.Remove(1, 1).Insert(Random.Shared.Next(0, length - 1), GetMainfillChar());
+            padding = padding.Remove(1, removeChar).Insert(Random.Shared.Next(0, length - 1), fillChar);
         return AddParts(padding);
     }
 
@@ -213,8 +223,15 @@ public class CaptchaGenerator
     /// <returns></returns>
     private List<Option> RenderCharLines(char letter, AccountInfo info)
     {
-        var selectedRenderer = readableFonts.OrderBy(r => Random.Shared.Next()).First();
-        var rendered = selectedRenderer.Render(letter.ToString());
+        string rendered = "";
+        for (int i = 0; i < 10; i++)
+        {
+            var selectedRenderer = readableFonts.OrderBy(r => Random.Shared.Next()).First();
+            rendered = selectedRenderer.Render(letter.ToString());
+            if (rendered.Length > 20)
+                break;
+        }
+
 
         var builder = new StringBuilder(rendered.Length);
         var hasSpaceEnd = rendered.Split('\n').All(l => string.IsNullOrEmpty(l) || l.Last() == ' ');
@@ -237,17 +254,30 @@ public class CaptchaGenerator
             if (lastAtStart == last)
                 last = item;
         }
-        if (info?.CaptchaType == "optifine")
-            builder.Replace("´", ".");
-        var fillChar = "🇧🇾"[1].ToString();
-        if (info?.CaptchaType == "short")
-            builder.Replace(" ", " ").Replace("´", "'").Replace(fillChar+ fillChar, "#").Replace("🇧🇾"[0].ToString(),";").Replace(fillChar, ";");
+        if (info?.CaptchaSpaceCount == 0)
+        {
+            if (info?.CaptchaType == "optifine")
+                builder.Replace("´", ".");
+            var fillChar = "🇧🇾"[1].ToString();
+            if (info?.CaptchaType == "short")
+                builder.Replace(" ", " ").Replace("´", "'").Replace(fillChar + fillChar, "#").Replace("🇧🇾"[0].ToString(), ";").Replace(fillChar, ";");
+        }
+        else
+        {
+            // configured custom chars
+            if (info?.CaptchaBoldChar?.Length > 0)
+                builder.Replace("🇧🇾"[0].ToString(), info.CaptchaBoldChar).Replace("🇧🇾"[1].ToString(), info.CaptchaBoldChar).Replace("!!", info.CaptchaBoldChar);
+            if (info?.CaptchaSlimChar?.Length > 0)
+                builder.Replace("´´", info.CaptchaSlimChar);
+            if (info?.CaptchaSpaceCount > 1)
+                builder.Replace(" ", "  ");
+        }
 
         var lines = builder.ToString().Split('\n');
         return lines.Select(l => new Option()
         {
             Text = l,
-            Hover = letter.ToString() + " " + selectedRenderer.GetType().Name
+            Hover = letter.ToString() + " "
         }).ToList();
 
         static char WriteSpaceOrNoise(StringBuilder builder, char last)
@@ -262,9 +292,7 @@ public class CaptchaGenerator
 
     private static char WriteDot(StringBuilder builder, char last)
     {
-        if (random.Next(0, 20) == 0)
-            builder.Append("!!");
-        else if (random.Next(0, 40) == 0)
+        if (random.Next(0, 40) == 0)
             builder.Append(" ");
         else if (last != "🇧🇾"[0])
         {
@@ -276,7 +304,7 @@ public class CaptchaGenerator
             last = "🇧🇾"[0];
         }
 
-        return last;
+        return "🇧🇾"[0];
     }
 
     private CaptchaChallenge ColorBased(IMinecraftSocket socket)
