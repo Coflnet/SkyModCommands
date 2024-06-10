@@ -157,7 +157,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var index = inventory.IndexOf(item.First);
             if (await ShouldSkip(span, apiService, item.First))
                 continue;
-            if(item.First.Tier == Core.Tier.COMMON)
+            if(item.First.Tier == Core.Tier.COMMON && !item.First.Tag.StartsWith("PET"))
             {
                 socket.Dialog(db => db.Msg($"Found common item in inventory: {item.First.ItemName} {item.First.Tag} it probably has to be auctioned, please manually create an auction for it. Or report if it can be bin auctioned"));
                 continue;
