@@ -86,13 +86,6 @@ namespace Coflnet.Sky.Commands.MC
                 lastSentSpan.Log(JsonConvert.SerializeObject(toBeLogged, Formatting.Indented), 30_000);
             }
             reportSpan.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo, Formatting.Indented), 30_000);
-
-            using var snapshotSpan = socket.CreateActivity("snapshot", reportSpan);
-            foreach (var item in SnapShotService.Instance.SnapShots)
-            {
-                using var singlesnapshotSpan = socket.CreateActivity("snapshot", snapshotSpan);
-                singlesnapshotSpan.Log(item.Time + " " + item.State);
-            }
             TryAddingAllSettings(socket, reportSpan);
             socket.Send(Response.Create("getMods", 0));
             reportSpan.Dispose();
