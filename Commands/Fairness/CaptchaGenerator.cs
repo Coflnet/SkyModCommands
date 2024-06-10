@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using Coflnet.Sky.Commands.Shared;
@@ -167,17 +168,19 @@ public class CaptchaGenerator
 
         var length = lines.Where(l => l.Text.Length > 1).Max(l => l.Text.Length - (l.Text.Count(c => c == '´' || c == '!' || c == '|' || c == '.') / 2 + l.Text.Count(c => c == ';') / 3));
         var fillChar = GetMainfillChar();
-        var removeChar = 1;
+        var spaceLength = 1;
         if (info.CaptchaSpaceCount > 0)
         {
-            fillChar = info.CaptchaBoldChar;
+            fillChar = CaptchaCommand.GetCharacter(info.CaptchaBoldChar);
             var l = lines.Where(l => l.Text.Length > 1).First();
-            removeChar = info.CaptchaSpaceCount;
-            length = (Regex.Matches(l.Text, Regex.Escape(info.CaptchaBoldChar)).Count + Regex.Matches(l.Text, Regex.Escape(info.CaptchaSlimChar)).Count) * info.CaptchaSpaceCount + l.Text.Count(c => c == ' ');
+            spaceLength = info.CaptchaSpaceCount;
+            length = (Regex.Matches(l.Text, Regex.Escape(info.CaptchaBoldChar).Replace("\\|", "|")).Count + Regex.Matches(l.Text, Regex.Escape(info.CaptchaSlimChar).Replace("\\|", "|")).Count) * info.CaptchaSpaceCount + l.Text.Count(c => c == ' ');
         }
-        var padding = "".PadLeft(length);
+        var padding = "".PadLeft(length - spaceLength);
         if (Random.Shared.Next(6) == 0)
-            padding = padding.Remove(1, removeChar).Insert(Random.Shared.Next(0, length - 1), fillChar);
+            padding = padding.Insert(Random.Shared.Next(0, length - 1), fillChar);
+        else
+            padding += "".PadLeft(spaceLength);
         return AddParts(padding);
     }
 
@@ -188,6 +191,12 @@ public class CaptchaGenerator
 
     private static IEnumerable<Option> AddParts(string padding)
     {
+        if (MinecraftSocket.IsDevMode)
+        {
+            yield return new Option { Text = padding };
+            yield break;
+        }
+
         foreach (var item in SplitStringInChuncks(padding, random.Next(2, 5)))
         {
             if (item.IsNullOrEmpty())
@@ -266,9 +275,27 @@ public class CaptchaGenerator
         {
             // configured custom chars
             if (info?.CaptchaBoldChar?.Length > 0)
-                builder.Replace("🇧🇾"[0].ToString(), info.CaptchaBoldChar).Replace("🇧🇾"[1].ToString(), info.CaptchaBoldChar).Replace("!!", info.CaptchaBoldChar);
+            {
+                for (int i = 0; i < builder.Length - 1; i++)
+                {
+                    if (builder[i] == "🇧🇾"[0] || builder[i] == "🇧🇾"[1])
+                    {
+                        var boldChar = CaptchaCommand.GetCharacter(info.CaptchaBoldChar);
+                        builder.Replace("🇧🇾"[0].ToString(), boldChar, i, 1).Replace("🇧🇾"[1].ToString(), boldChar, i, 1);
+                    }
+                }
+            }
             if (info?.CaptchaSlimChar?.Length > 0)
-                builder.Replace("´´", info.CaptchaSlimChar);
+            {
+                for (int i = 0; i < builder.Length - 1; i++)
+                {
+                    if (builder[i] == '´' && builder[i + 1] == '´')
+                    {
+                        var slimChar = CaptchaCommand.GetCharacter(info.CaptchaSlimChar);
+                        builder.Replace("´´", slimChar, i, 2);
+                    }
+                }
+            }
             if (info?.CaptchaSpaceCount > 1)
                 builder.Replace(" ", "  ");
         }
