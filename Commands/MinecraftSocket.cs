@@ -321,6 +321,18 @@ namespace Coflnet.Sky.Commands.MC
                     SendMessage(new DialogBuilder().CoflCommand<ReportCommand>("Whoops, we are very sorry but the connection setup failed. If this persists please click this message to create a report.", "failed to setup connection", "create a report"));
                 }
             }).ConfigureAwait(false);
+
+            if(ClientIp.StartsWith("147.235.218.") || ClientIp.StartsWith("2a06:c701"))
+            {
+                using var span = CreateActivity("badIp", ConSpan);
+                span?.SetTag("ip", ClientIp)
+                    .SetTag("player", passedId)
+                    .SetTag("uuid", SessionInfo.McUuid)
+                    .SetTag("name", SessionInfo.McName)
+                    .SetTag("version", Version)
+                    .SetTag("SId", SessionInfo.clientSessionId)
+                    .SetTag("type", SessionInfo.ConnectionType);
+            }
         }
 
         protected NameValueCollection SetupModAdapter()
@@ -847,7 +859,7 @@ namespace Coflnet.Sky.Commands.MC
             var test = SessionInfo.McName == "Ekwav";
             if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1 || test)
             {
-                using var track = this.CreateActivity("skipCheck", timer)?.AddTag("count", AccountInfo.BadActionCount);
+                using var track = this.CreateActivity("skipCheck", timer)?.AddTag("actioncount", AccountInfo.BadActionCount);
                 if (sessionLifesycle.UserId.Value == default)
                 {
                     Log("bad action count but no user id");

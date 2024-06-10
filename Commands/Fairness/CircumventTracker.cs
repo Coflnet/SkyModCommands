@@ -41,7 +41,10 @@ public class CircumventTracker
     {
         if (socket.SessionInfo.NotPurchaseRate == 0 || await socket.UserAccountTier() < AccountTier.PREMIUM
                         || (socket.AccountInfo.McIds.Count > 3 || socket.AccountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(20)) && Random.Shared.NextDouble() < 0.9) // probably legit
+        {
+            Activity.Current?.Log($"Not creating challenge because probably legit {socket.SessionInfo.NotPurchaseRate}");
             return null;
+        }
         using var challenge = socket.CreateActivity("challengeCreate", socket.ConSpan);
         var auction = await FindAuction(socket) ?? throw new Exception("No auction found");
         if (auction.Context.ContainsKey("cname") && !auction.Context["cname"].EndsWith("-us") && Random.Shared.NextDouble() < 0.5)
