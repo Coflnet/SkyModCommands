@@ -36,10 +36,22 @@ public class BuyConfigCommand : ArgumentsCommand
                 $"§aBuy {toBebought.Value.Name} from {seller} for {toBebought.Value.Price} CoflCoins?"));
             return;
         }
-        if (toBebought.Value.Price != 0 && !await PurchaseCommand.Purchase(socket, socket.GetService<IUserApi>(), "config-purchase", toBebought.Value.Price / 600, $"{name} config from {seller}"))
+        if (toBebought.Value.Price != 0)
         {
-            socket.Dialog(db => db.MsgLine("Config purchase failed."));
-            return;
+            try
+            {
+                var userInfo = await socket.GetService<IUserApi>().UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, "config-purchase", $"{name} config from {seller}", toBebought.Value.Price / 600);
+            }
+            catch (Payments.Client.Client.ApiException e)
+            {
+                var message = e.Message.Substring(68).Trim('}', '"');
+                if (!e.Message.Contains("same reference found")) 
+                { // if same reference exists but the own check did not succeed we probably didn't credit the person the config so do that now
+                    socket.Dialog(db => db.MsgLine(McColorCodes.RED + "An error occured").Msg(message)
+                        .If(() => e.Message.Contains("insuficcient balance"), db => db.CoflCommand<TopUpCommand>(McColorCodes.AQUA + "Click here to top up coins", "", "Click here to buy coins")));
+                    return;
+                }
+            }
         }
         configs.Value.Configs.Add(new OwnedConfigs.OwnedConfig()
         {
