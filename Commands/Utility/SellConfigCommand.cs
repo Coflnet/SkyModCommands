@@ -44,9 +44,9 @@ public class SellConfigCommand : ArgumentsCommand
             socket.SendMessage("The price has to be a number.");
             return;
         }
-        if (priceInt % 600 != 0)
+        if (priceInt % 600 != 0 && priceInt % 900 != 0)
         {
-            socket.SendMessage("The price has to be a multiple of 600.");
+            socket.SendMessage("The price has to be a multiple of 600 or 900.");
             return;
         }
         if (int.TryParse(name, out _))
