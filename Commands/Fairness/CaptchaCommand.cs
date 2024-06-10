@@ -104,10 +104,10 @@ namespace Coflnet.Sky.Commands.MC
                         spaceLength = length + length;
                     socket.Dialog(db => db.MsgLine("If one of the two yellow lines does not line up click it")
                         .ForEach(length, (db, ignore) => db.Msg(GetCharacter(accountInfo.CaptchaBoldChar)))
-                            .CoflCommand<CaptchaCommand>(McColorCodes.YELLOW + "|\n", "config full", "Does not line up")
+                            .CoflCommand<CaptchaCommand>(McColorCodes.YELLOW + "| <-- needs to be above the green line\n", "config full", "Does not line up")
                         .ForEach(spaceLength, (db, ignore) => db.Msg(" ")).MsgLine(McColorCodes.GREEN + "|")
                         .ForEach(length, (db, ignore) => db.Msg(GetCharacter(accountInfo.CaptchaSlimChar)))
-                            .CoflCommand<CaptchaCommand>(McColorCodes.YELLOW + "|\n", "config part", "Does not line up")
+                            .CoflCommand<CaptchaCommand>(McColorCodes.YELLOW + "| <-- needs to be below green line\n", "config part", "Does not line up")
                         .CoflCommand<CaptchaCommand>("[They line up]", "", "Request a better formated captcha"));
                     return;
                 }
@@ -119,7 +119,6 @@ namespace Coflnet.Sky.Commands.MC
                         PrintOptions(socket, optionsPartial, "part");
                     return;
                 }
-                PrintOptions(socket, optionsFull, "full");
                 PrintOptions(socket, optionsPartial, "part");
                 return;
             }
@@ -177,7 +176,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var length = "01234567890123456789";
                 var prefix = $"/cofl captcha config set {part} ";
-                socket.Dialog(db => db.MsgLine(McColorCodes.GRAY + "If none line up please report your texture pack on our discord server")
+                socket.Dialog(db => db.ForEach(length, (db,ignore)=>db.MsgLine("")).MsgLine(McColorCodes.GRAY + "If none line up please report your texture pack on our discord server")
                     .ForEach(optionsFull, (db, character) => db.ForEach(length, (idb, ignore) => idb.Msg(GetCharacter(character))).MsgLine($"{McColorCodes.YELLOW}|", prefix + character, "Click to select")
                         .ForEach(length + length, (idb, ignore) => idb.Msg(" ")).MsgLine($"{McColorCodes.GREEN}|"))
                         .MsgLine("Click on a yellow line that aligns with the green line")
