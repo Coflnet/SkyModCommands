@@ -20,7 +20,7 @@ public class RewardHandler
         Console.WriteLine("fetching reward " + rewardLink);
         var request = new RestRequest(rewardLink, Method.Get);
         request.CookieContainer = cookies;
-        // set user agent to avoid cloudflare
+        // set user agent to avoid cloudflare bot protection
         request.AddHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
         var responseData = await restClient.ExecuteAsync(request);
         var rewsponse = responseData.Content;
@@ -43,7 +43,10 @@ public class RewardHandler
         var rewards = data.rewards;
         socket.Dialog(db => db.MsgLine("Click to claim your reward").ForEach(rewards, (db, reward, i) =>
         {
-            db.CoflCommand<ClaimHypixelRewardCommand>($"->{reward.rarity} {reward.gameType} {reward.amount} {reward.reward}\n", $"{i} {securityToken} {id}");
+            Enum.TryParse<Tier>(reward.rarity, out Tier tier);
+            var paddedRarity = reward.rarity.PadRight(10);
+            var formattedLine = $"{McColorCodes.GRAY}->{socket.formatProvider.GetRarityColor(tier) + paddedRarity} {reward.gameType} {reward.amount} {reward.reward}\n";
+            db.CoflCommand<ClaimHypixelRewardCommand>(formattedLine, $"{i} {securityToken} {id}");
         }));
     }
 
@@ -55,7 +58,6 @@ public class RewardHandler
             var selected = int.Parse(args[0]);
             var token = args[1];
             var id = args[2];
-            //https://rewards.hypixel.net/claim-reward/claim?option=1&id=7ec9e9b9&activeAd=0&_csrf=PpdguC5Z-TpHDXZDyvT5vq0d8SsRKkvdgG98&watchedFallback=false
             var restClient = new RestClient();
             var request = new RestRequest("https://rewards.hypixel.net/claim-reward/claim", Method.Post);
             request.AddHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
