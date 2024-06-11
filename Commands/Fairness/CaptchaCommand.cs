@@ -86,7 +86,7 @@ namespace Coflnet.Sky.Commands.MC
                         accountSettings.CaptchaSlimChar = accountSettings.CaptchaSlimChar.Substring(0, accountSettings.CaptchaSlimChar.Length / 2);
                         Console.WriteLine("Updated captcha config halfed " + accountInfo.CaptchaBoldChar + " " + accountInfo.CaptchaSlimChar);
                     }
-                    else
+                    else if (accountSettings.CaptchaBoldChar != null && accountSettings.CaptchaSlimChar != null)
                     {
                         accountSettings.CaptchaSpaceCount = 2;
                     }
@@ -176,7 +176,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var length = "01234567890123456789";
                 var prefix = $"/cofl captcha config set {part} ";
-                socket.Dialog(db => db.ForEach(length, (db,ignore)=>db.MsgLine("")).MsgLine(McColorCodes.GRAY + "If none line up please report your texture pack on our discord server")
+                socket.Dialog(db => db.ForEach(length, (db, ignore) => db.MsgLine("")).MsgLine(McColorCodes.GRAY + "If none line up please report your texture pack on our discord server")
                     .ForEach(optionsFull, (db, character) => db.ForEach(length, (idb, ignore) => idb.Msg(GetCharacter(character))).MsgLine($"{McColorCodes.YELLOW}|", prefix + character, "Click to select")
                         .ForEach(length + length, (idb, ignore) => idb.Msg(" ")).MsgLine($"{McColorCodes.GREEN}|"))
                         .MsgLine("Click on a yellow line that aligns with the green line")
@@ -189,10 +189,10 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (character.Contains("|"))
             {
-                if(!counter.ContainsKey(character))
+                if (!counter.ContainsKey(character))
                     counter[character] = 0;
                 var prefix = McColorCodes.GRAY;
-                if(counter[character] % 2 == 0)
+                if (counter[character] % 2 == 0)
                     prefix = McColorCodes.LIGHT_PURPLE;
 
                 return character.Split('|')[counter[character]++ % 2];
