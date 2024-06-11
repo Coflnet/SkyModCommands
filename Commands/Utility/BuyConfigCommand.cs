@@ -18,6 +18,7 @@ public class BuyConfigCommand : ArgumentsCommand
         var key = SellConfigCommand.GetKeyFromname(name);
         var sellerUserId = await GetUserIdFromMcName(socket, seller);
         var toBebought = await SelfUpdatingValue<ConfigContainer>.Create(sellerUserId, key, () => null);
+        var reference = $"{name} config from {seller}";
         if (toBebought.Value == null)
         {
             socket.SendMessage("The config doesn't exist.");
@@ -34,18 +35,20 @@ public class BuyConfigCommand : ArgumentsCommand
             socket.Dialog(db => db.CoflCommand<BuyConfigCommand>($"Confirm buying §6{toBebought.Value.Name} §7v{toBebought.Value.Version} for §6{toBebought.Value.Price} CoflCoins {McColorCodes.YELLOW}[CLICK]",
                 $"{seller} {name} {socket.SessionInfo.SessionId}",
                 $"§aBuy {toBebought.Value.Name} from {seller} for {toBebought.Value.Price} CoflCoins?"));
+            // check if it is already bought
+            await CheckIncompletePurchase(socket, seller, name, configs, sellerUserId, toBebought, reference);
             return;
         }
         if (toBebought.Value.Price != 0)
         {
             try
             {
-                var userInfo = await socket.GetService<IUserApi>().UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, "config-purchase", $"{name} config from {seller}", toBebought.Value.Price / 600);
+                var userInfo = await socket.GetService<IUserApi>().UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, "config-purchase", reference, toBebought.Value.Price / 600);
             }
             catch (Payments.Client.Client.ApiException e)
             {
                 var message = e.Message.Substring(68).Trim('}', '"');
-                if (!e.Message.Contains("same reference found")) 
+                if (!e.Message.Contains("same reference found"))
                 { // if same reference exists but the own check did not succeed we probably didn't credit the person the config so do that now
                     socket.Dialog(db => db.MsgLine(McColorCodes.RED + "An error occured").Msg(message)
                         .If(() => e.Message.Contains("insuficcient balance"), db => db.CoflCommand<TopUpCommand>(McColorCodes.AQUA + "Click here to top up coins", "", "Click here to buy coins")));
@@ -53,6 +56,23 @@ public class BuyConfigCommand : ArgumentsCommand
                 }
             }
         }
+        await FinishPurchase(socket, seller, name, configs, sellerUserId, toBebought);
+
+    }
+
+    private static async Task CheckIncompletePurchase(IMinecraftSocket socket, string seller, string name, SelfUpdatingValue<OwnedConfigs> configs, string sellerUserId, SelfUpdatingValue<ConfigContainer> toBebought, string reference)
+    {
+        var recentTransactions = await socket.GetService<ITransactionApi>().TransactionUUserIdGetAsync(socket.UserId);
+        if (recentTransactions.Any(t => t.Reference == reference))
+        {
+            socket.SendMessage("Don't mind that, you already bought this config. Making it available for you in /cofl ownconfigs by retrying successful purchase.");
+            await FinishPurchase(socket, seller, name, configs, sellerUserId, toBebought);
+            return;
+        }
+    }
+
+    private static async Task FinishPurchase(IMinecraftSocket socket, string seller, string name, SelfUpdatingValue<OwnedConfigs> configs, string sellerUserId, SelfUpdatingValue<ConfigContainer> toBebought)
+    {
         configs.Value.Configs.Add(new OwnedConfigs.OwnedConfig()
         {
             Name = name,
@@ -73,6 +93,5 @@ public class BuyConfigCommand : ArgumentsCommand
                 ProductId = "config-sell"
             });
         socket.ExecuteCommand($"/cofl loadconfig {sellerUserId} {name}");
-
     }
 }
