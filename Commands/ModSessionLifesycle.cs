@@ -196,7 +196,12 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     socket.Dialog(db => db.MsgLine($"Your config: §6{newConfig.Name} §7v{loadedConfigMetadata.Version} §6updated to v{newConfig.Version}")
                         .MsgLine($"§7{newConfig.ChangeNotes}")
-                        .CoflCommand<LoadConfigCommand>($"[click to load]", $"{newConfig.OwnerId} {newConfig.Name}", "load new version\nWill override your current settings"));
+                        .If(() => AccountSettings.Value.AutoUpdateConfig, db => db.MsgLine("Loading the updated version automatically.").Msg("To toggle this run /cofl configs autoupdate").AsGray(),
+                        db => db.CoflCommand<LoadConfigCommand>($"[click to load]", $"{newConfig.OwnerId} {newConfig.Name}", "load new version\nWill override your current settings")));
+                    if (AccountSettings.Value.AutoUpdateConfig)
+                    {
+                        socket.ExecuteCommand("/cofl loadconfig " + newConfig.OwnerId + " " + newConfig.Name);
+                    }
                 }
             }
         }
@@ -893,7 +898,7 @@ namespace Coflnet.Sky.Commands.MC
             foreach (var item in combined.OrderByDescending(c => c.Auction.StartingBid - c.Value.Median).Take(5).OrderByDescending(a => Random.Shared.Next()).Take(2))
             {
                 var auction = item.Auction;
-                if(Random.Shared.NextDouble() < 0.3)
+                if (Random.Shared.NextDouble() < 0.3)
                     auction.Context["cname"] = auction.ItemName + McColorCodes.DARK_GRAY + "!";
                 else if (Random.Shared.NextDouble() < 0.3)
                     auction.Context["cname"] = auction.ItemName + McColorCodes.GRAY + "-us";
