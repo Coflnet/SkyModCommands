@@ -35,6 +35,12 @@ public class FlipCommand : McCommand
                     "modAutoStartFlipper false",
                     $"Click to turn autostart off, short hand to toggle is {McColorCodes.AQUA}/cl s fas"));
                 break;
+            case "off":
+            case "disable":
+            case "false":
+                socket.SessionInfo.FlipsEnabled = false;
+                WriteCurrentState(socket);
+                break;
             default:
                 socket.SessionInfo.FlipsEnabled = !socket.SessionInfo.FlipsEnabled;
                 flipSettings.Value.ModSettings.AhDataOnlyMode = false;

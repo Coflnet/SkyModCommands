@@ -923,7 +923,7 @@ namespace Coflnet.Sky.Commands.MC
             var recentlySwitchedFromMarco = AccountInfo?.Value?.LastMacroConnect > DateTime.UtcNow.AddDays(-2);
             if (recentlySwitchedFromMarco && !sumary.AntiAfk && SessionInfo.captchaInfo.LastSolve < DateTime.UtcNow.AddMinutes(-120))
             {
-                SendMessage("You were recently found to be afk macroing. \nTo proof that you are a human please solve this captcha.\nAlternatively click this to disable flips", "/cofl flip", "disable flips until reconnect");
+                SendMessage("You were recently found to be afk macroing. \nTo proof that you are a human please solve this captcha.\nAlternatively click this to disable flips", "/cofl flip off", "disable flips until reconnect");
                 SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
                 return;
             }
