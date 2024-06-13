@@ -926,8 +926,10 @@ namespace Coflnet.Sky.Commands.MC
             if (socket.HasFlippingDisabled() || socket.CurrentRegion != "eu")
                 return;
             var recentlySwitchedFromMarco = AccountInfo?.Value?.LastMacroConnect > DateTime.UtcNow.AddDays(-2);
-            if (recentlySwitchedFromMarco && !sumary.AntiAfk && SessionInfo.captchaInfo.LastSolve < DateTime.UtcNow.AddMinutes(-120) 
-                && SessionInfo.captchaInfo.LastGenerated <  DateTime.UtcNow.AddMinutes(-3))
+            if (recentlySwitchedFromMarco && !sumary.AntiAfk && SessionInfo.captchaInfo.LastSolve < DateTime.UtcNow.AddMinutes(-120)
+                && SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-3)
+                && AccountInfo?.Value?.LastCaptchaSolve < DateTime.UtcNow.AddMinutes(-30)
+                )
             {
                 SendMessage("You were recently found to be afk macroing. \nTo proof that you are a human please solve this captcha.\nAlternatively click this to disable flips", "/cofl flip off", "disable flips until reconnect");
                 SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
