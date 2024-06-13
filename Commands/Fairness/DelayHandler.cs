@@ -79,12 +79,13 @@ public class DelayHandler : IDelayHandler
         Activity.Current.Log("Applied fairness ");
         if (sessionInfo.IsMacroBot && profit > 1_000_000)
         {
-            await timeProvider.Delay(TimeSpan.FromMicroseconds(profit / 20000)).ConfigureAwait(false);
+            await timeProvider.Delay(TimeSpan.FromMilliseconds(profit / 20000)).ConfigureAwait(false);
             var sendableIn = DateTime.UtcNow - flipInstance.Auction.Start + TimeSpan.FromSeconds(18);
             if (sendableIn > TimeSpan.Zero && !apiBed)
                 await timeProvider.Delay(sendableIn).ConfigureAwait(false);
             if ((flipInstance.Auction.Context?.TryGetValue("pre-api", out var preApi) ?? false) && preApi != "recheck" && Random.Shared.NextDouble() < 0.98)
                 await timeProvider.Delay(TimeSpan.FromSeconds(4)).ConfigureAwait(false); // reserve preapi for nonbots
+            Activity.Current.Log("Applied BAF " + sendableIn);
         }
         if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
             await timeProvider.Delay(macroPenalty).ConfigureAwait(false);
@@ -193,7 +194,7 @@ public class DelayHandler : IDelayHandler
             }
         }
         summary.HasBadPlayer = (breakdown.BadIds?.Count ?? 0) != 0;
-        if(summary.HasBadPlayer && Random.Shared.NextDouble() < 0.9)
+        if (summary.HasBadPlayer && Random.Shared.NextDouble() < 0.9)
         {
             currentDelay -= TimeSpan.FromSeconds(7.2);
             macroPenalty += TimeSpan.FromSeconds(5);
