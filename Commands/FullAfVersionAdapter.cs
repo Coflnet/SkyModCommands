@@ -152,7 +152,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     private async Task ListItems(Activity span, IPlayerApi apiService, List<SaveAuction> inventory, IEnumerable<(SaveAuction First, Sniper.Client.Model.PriceEstimate Second)> toList)
     {
-        foreach (var item in toList.OrderByDescending(x=> x.Second.Volume).ThenBy(x => x.Second.Median))
+        foreach (var item in toList.OrderByDescending(x=> x.Second.Volume).ThenByDescending(x => x.Second.Median))
         {
             var index = inventory.IndexOf(item.First);
             if (await ShouldSkip(span, apiService, item.First))
