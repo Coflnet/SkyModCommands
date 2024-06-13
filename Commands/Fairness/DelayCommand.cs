@@ -43,7 +43,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             var called = CallCount.AddOrUpdate(socket.UserId, 1, (k, v) => v + 1);
-            if(called > 30 && Random.Shared.NextDouble() < 0.01 * called)
+            if(Random.Shared.NextDouble() < 0.01 * (called - 100))
             {
                 delayAmount += TimeSpan.FromSeconds(8);
             }
