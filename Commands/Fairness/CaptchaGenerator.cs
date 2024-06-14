@@ -171,10 +171,11 @@ public class CaptchaGenerator
         var spaceLength = 1;
         if (info.CaptchaSpaceCount > 0)
         {
-            fillChar = CaptchaCommand.GetCharacter(info.CaptchaBoldChar ?? "🇧🇾".First().ToString());
+            var boldChar = info.CaptchaBoldChar ?? "🇧🇾".First().ToString();
+            fillChar = CaptchaCommand.GetCharacter(boldChar);
             var l = lines.Where(l => l.Text.Length > 1).First();
             spaceLength = info.CaptchaSpaceCount;
-            length = (Regex.Matches(l.Text, Regex.Escape(info.CaptchaBoldChar).Replace("\\|", "|")).Count + Regex.Matches(l.Text, Regex.Escape(info.CaptchaSlimChar ?? "´´").Replace("\\|", "|")).Count) * info.CaptchaSpaceCount + l.Text.Count(c => c == ' ');
+            length = (Regex.Matches(l.Text, Regex.Escape(boldChar).Replace("\\|", "|")).Count + Regex.Matches(l.Text, Regex.Escape(info.CaptchaSlimChar ?? "´´").Replace("\\|", "|")).Count) * info.CaptchaSpaceCount + l.Text.Count(c => c == ' ');
         }
         var padding = "".PadLeft(length - spaceLength);
         if (Random.Shared.Next(6) == 0)
