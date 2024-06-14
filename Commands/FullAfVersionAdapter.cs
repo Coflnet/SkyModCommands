@@ -94,7 +94,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             return; // created listing
         }
         span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
-        await ListItems(span, apiService, inventory, toList);
+        await ListItems(span, apiService, inventory, toList, listSpace - activeAuctionCount);
     }
 
     private IEnumerable<LowPricedAuction> LastSentFlips()
@@ -140,7 +140,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
             var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
             var membersOnIsland = profile.Members.Count;
-            listSpace = 14 + 3 * (membersOnIsland - 1); // keep one slot free for update time
+            listSpace = 14 + 3 * (membersOnIsland - 1);
             listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
         }
         catch (Exception e)
@@ -150,10 +150,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
         }
     }
 
-    private async Task ListItems(Activity span, IPlayerApi apiService, List<SaveAuction> inventory, IEnumerable<(SaveAuction First, Sniper.Client.Model.PriceEstimate Second)> toList)
+    private async Task ListItems(Activity span, IPlayerApi apiService, List<SaveAuction> inventory, IEnumerable<(SaveAuction First, Sniper.Client.Model.PriceEstimate Second)> toList, int space)
     {
-        foreach (var item in toList.OrderByDescending(x=> x.Second.Volume).ThenByDescending(x => x.Second.Median))
+        var listed = 0;
+        foreach (var item in toList.OrderByDescending(x => x.Second.Volume).ThenByDescending(x => x.Second.Median))
         {
+            if (listed >= space)
+                break;
             var index = inventory.IndexOf(item.First);
             if (await ShouldSkip(span, apiService, item.First))
                 continue;
@@ -203,6 +206,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                     stackableSpan.Log(JsonConvert.SerializeObject(socket.LastSent.Select(s => new { s.Auction.Tag, s.Auction.Uuid, name = GetItemName(s.Auction), s.Auction.Count })));
                 }
                 await SendListing(stackableSpan, item.First, price, index, uuid);
+                listed++;
                 break; // only list one without uuid
             }
             if (socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid))
@@ -249,6 +253,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                     continue;
             }
             await SendListing(listingSpan, item.First, (long)target, index, uuid);
+            listed++;
         }
     }
 
