@@ -177,7 +177,9 @@ namespace Coflnet.Sky.Commands.MC
                 LowPricedAuction.FinderType.STONKS => "RISKY",
                 LowPricedAuction.FinderType.TFM => "TFM",
                 LowPricedAuction.FinderType.AI => "AI",
-                _ => "FLIP"
+                LowPricedAuction.FinderType.FLIPPER => "FLIP",
+                LowPricedAuction.FinderType.CraftCost => "Craft",
+                _ => "Flip"
             };
         }
 
