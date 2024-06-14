@@ -92,6 +92,12 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     if (string.IsNullOrEmpty(accountSettings.CaptchaBoldChar))
                     {
+                        for (int i = 0; i < 10; i++)
+                        {
+                            socket.Dialog(db => db.Break.LineBreak().Break.Break.Break.Break);
+                            await Task.Delay(200);
+                        }
+                        socket.Dialog(db => db.MsgLine("Thanks for selecting one part of the captcha, please now select which of these characters aligns as well"));
                         PrintOptions(socket, optionsFull, "full");
                         return;
                     }
