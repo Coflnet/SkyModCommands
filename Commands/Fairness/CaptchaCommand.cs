@@ -103,7 +103,7 @@ namespace Coflnet.Sky.Commands.MC
                     }
 
                     await socket.sessionLifesycle.AccountInfo.Update();
-                    socket.SendMessage(COFLNET + "Updated captcha config");
+                    socket.SendMessage(COFLNET + "Updated captcha config\n\n\n\n\nJust one last check");
                     var length = "01234567890123456789";
                     var spaceLength = length;
                     if (accountInfo.CaptchaSpaceCount == 2)

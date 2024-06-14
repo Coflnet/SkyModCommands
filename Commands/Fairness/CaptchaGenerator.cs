@@ -128,7 +128,7 @@ public class CaptchaGenerator
         for (int i = 0; i < bigger; i++)
         {
             if (i != 0)
-                parts.Add(new() { Text = McColorCodes.GREEN + "|\n" });
+                parts.Add(new() { Text = McColorCodes.GREEN + "|\n", Hover = "config" });
             foreach (var item in chars)
             {
                 AddLineOrEmpty(item, parts, i, lines, solutions, info);
