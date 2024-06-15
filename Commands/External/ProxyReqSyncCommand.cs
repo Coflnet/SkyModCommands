@@ -21,7 +21,6 @@ public class ProxyReqSyncCommand : McCommand
                 break;
             await Task.Delay(200);
         }
-        await Task.Delay(200);
         if (!socket.sessionLifesycle.TierManager.HasAtLeast( AccountTier.PREMIUM_PLUS))
         {
             socket.Dialog(db => db.MsgLine("Main instance could not verify your premium status. Please try again later."));

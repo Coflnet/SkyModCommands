@@ -576,14 +576,14 @@ namespace Coflnet.Sky.Commands.MC
             else
             {
                 SendMessage(COFLNET + messageStart + $"You use the {McColorCodes.BOLD}FREE{McColorCodes.RESET} version of the flip finder", "/cofl buy", "Click to upgrade tier");
-                if (TierManager.IsConnectedFromOtherAccount(out var otherUUid, out var userTier))
+                if (TierManager.IsConnectedFromOtherAccount(out var otherUUid, out var userTier) && userTier != AccountTier.NONE)
                 {
                     var name = await socket.GetPlayerName(otherUUid);
-                    socket.Dialog(di => di.Msg($"You are using your {userTier} on a the account with the name {McColorCodes.AQUA}{name}", "/cofl licenses", "Click to see your licenses"));
+                    socket.Dialog(di => di
+                        .Msg($"You are using your {userTier} on a the account with the name {McColorCodes.AQUA}{name}", 
+                            "/cofl licenses default " + SessionInfo.McName, "Click to change use it on this account"));
                 }
             }
-
-            await Task.Delay(300).ConfigureAwait(false);
             socket.ModAdapter.OnAuthorize(accountInfo);
         }
 
