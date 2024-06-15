@@ -565,7 +565,7 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(800).ConfigureAwait(false); // allow another half second for the playername to be loaded
             var messageStart = $"Hello {SessionInfo.McName} ({anonymisedEmail}) \n";
             Console.WriteLine("getting tier cached");
-            (var tier,var expire) = await this.TierManager.GetCurrentTierWithExpire();
+            (var tier, var expire) = await this.TierManager.GetCurrentTierWithExpire();
             Console.WriteLine("tier: " + tier);
             if (tier != AccountTier.NONE)
                 SendMessage(
@@ -573,7 +573,14 @@ namespace Coflnet.Sky.Commands.MC
                     $"That is in {McColorCodes.GREEN + (expire - DateTime.UtcNow).ToString("d'd 'h'h 'm'm 's's'")}"
                 );
             else
+            {
                 SendMessage(COFLNET + messageStart + $"You use the {McColorCodes.BOLD}FREE{McColorCodes.RESET} version of the flip finder", "/cofl buy", "Click to upgrade tier");
+                if (TierManager.IsConnectedFromOtherAccount(out var otherUUid, out var userTier))
+                {
+                    var name = await socket.GetPlayerName(otherUUid);
+                    socket.Dialog(di => di.Msg($"You are using your {userTier} on a the account with the name {McColorCodes.AQUA}{name}", "/cofl licenses", "Click to see your licenses"));
+                }
+            }
 
             await Task.Delay(300).ConfigureAwait(false);
             socket.ModAdapter.OnAuthorize(accountInfo);

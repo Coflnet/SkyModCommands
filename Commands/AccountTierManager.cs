@@ -73,7 +73,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire()
         {
-            if (activeSessions == null)
+            if (activeSessions?.Value == null)
                 return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
             // check license
             var licenses = await socket.GetService<ILicenseApi>().ApiLicenseUUserIdGetAsync(userId);
@@ -93,12 +93,26 @@ namespace Coflnet.Sky.Commands.MC
                 activeSessions.Value.UseAccountTierOn = socket.SessionInfo.McUuid;
                 await activeSessions.Update();
             }
-            Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {activeSessions.Value?.UseAccountTierOn}");
+            Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {activeSessions.Value.UseAccountTierOn}");
+            activeSessions.Value.UserAccountTier = expires.Item1;
             if (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid)
             {
                 return (expires.Item1, expires.Item2);
             }
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
+        }
+
+        public bool IsConnectedFromOtherAccount(out string otherAccount, out AccountTier tier)
+        {
+            if (activeSessions == null)
+            {
+                otherAccount = "";
+                tier = AccountTier.NONE;
+                return false;
+            }
+            otherAccount = activeSessions.Value.UseAccountTierOn;
+            tier = activeSessions.Value.UserAccountTier;
+            return otherAccount != socket.SessionInfo.McUuid;
         }
     }
 }

@@ -14,6 +14,8 @@ public class ActiveSessions
     public List<License> Licenses = new List<License>();
     [DataMember(Name = "useAccountTierOn")]
     public string UseAccountTierOn;
+    [DataMember(Name = "userAccountTier")]
+    public AccountTier UserAccountTier;
 }
 
 [DataContract]
