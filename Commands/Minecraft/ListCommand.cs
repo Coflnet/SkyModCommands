@@ -8,6 +8,7 @@ namespace Coflnet.Sky.Commands.MC
 {
     public abstract class ListCommand<TElem, TCol> : McCommand where TCol : ICollection<TElem>
     {
+        protected virtual bool CanAddMultiple { get; } = true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var args = JsonConvert.DeserializeObject<string>(arguments).Replace(@"\u003d", "=");
@@ -109,7 +110,7 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(new DialogBuilder()
                 .MsgLine($"Could not create a new entry, to many possible matches, please select one:")
                 .ForEach(options, (d, o) => d.MsgLine($"{Format(o.Element)} {McColorCodes.YELLOW}[ADD]", $"/cofl {Slug} add !json{JsonConvert.SerializeObject(o.Element)}", $"Add {LongFormat(o.Element)}"))
-                .MsgLine($"{McColorCodes.YELLOW}[ADD ALL]", $"/cofl {Slug} addall {subArgs}", $"Add all the above"));
+                .If(()=>CanAddMultiple,db=>db.MsgLine($"{McColorCodes.YELLOW}[ADD ALL]", $"/cofl {Slug} addall {subArgs}", $"Add all the above")));
         }
 
         protected virtual async Task AddAll(MinecraftSocket socket, string subArgs)

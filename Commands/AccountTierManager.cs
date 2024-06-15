@@ -114,5 +114,13 @@ namespace Coflnet.Sky.Commands.MC
             tier = activeSessions.Value.UserAccountTier;
             return otherAccount != socket.SessionInfo.McUuid;
         }
+
+        public async Task ChangeDefaultTo(string mcUuid)
+        {
+            if (activeSessions == null)
+                return;
+            activeSessions.Value.UseAccountTierOn = mcUuid;
+            await activeSessions.Update();
+        }
     }
 }
