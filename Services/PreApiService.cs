@@ -343,7 +343,7 @@ public class PreApiService : BackgroundService, IPreApiService
         PublishSell(uuid, connection.UserAccountTier().Result);
         CheckHighProfitpurchaser(connection, flip);
         flipsPurchased.Inc();
-        if (connection.AccountInfo.Tier >= AccountTier.SUPER_PREMIUM)
+        if (connection.SessionInfo.SessionTier >= AccountTier.SUPER_PREMIUM)
             preApiFlipPurchased.Inc();
         var source = flip.Auction.Context?.GetValueOrDefault("pre-api");
         LogSender(price, flip, source, connection);

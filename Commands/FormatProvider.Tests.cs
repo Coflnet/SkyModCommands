@@ -15,7 +15,8 @@ public class FormatProviderTests
         var output = provider.FormatFlip(new Shared.FlipInstance()
         {
             Auction = new() { StartingBid = 2500000000 },
-            MedianPrice = 2500000000
+            MedianPrice = 2500000000,
+            Finder = Core.LowPricedAuction.FinderType.FLIPPER
         });
         Assert.That(output, Is.EqualTo("\nFLIP:  §82,500,000,000 -> 2,500,000,000 (+-87,500,032) "));
     }
@@ -39,7 +40,7 @@ public class FormatProviderTests
             MedianPrice = 2500000000,
             Context = new() { { "isRR", "123" } }
         });
-        Assert.That(output, Is.EqualTo("§8FLIP ->  §cPRE-RR "));
+        Assert.That(output, Is.EqualTo("§8Flip ->  §cPRE-RR "));
     }
 
     [TestCase(1,"1")]

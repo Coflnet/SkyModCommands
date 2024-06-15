@@ -37,9 +37,8 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (args == "tier")
             {
-                await socket.UserAccountTier();
-                var accountTier = socket.sessionLifesycle.AccountInfo?.Value;
-                socket.Send(Response.Create("tier", new { accountTier.Tier, accountTier.ExpiresAt }));
+                var accountTier = await socket.sessionLifesycle.TierManager.GetCurrentTierWithExpire();
+                socket.Send(Response.Create("tier", new { accountTier.tier, accountTier.expiresAt }));
                 return;
             }
             try

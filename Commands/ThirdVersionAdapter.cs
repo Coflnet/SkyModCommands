@@ -53,7 +53,7 @@ namespace Coflnet.Sky.Commands.MC
                 (socket as MinecraftSocket).ReceivedConfirm.TryAdd(uuid, flip);
                 _ = socket.TryAsyncTimes(async () =>
                 {
-                    if ((socket.AccountInfo?.Tier ?? 0) >= AccountTier.SUPER_PREMIUM)
+                    if (socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.SUPER_PREMIUM))
                     {
                         // make sure receival is published
                         socket.GetService<PreApiService>().PublishReceive(uuid);

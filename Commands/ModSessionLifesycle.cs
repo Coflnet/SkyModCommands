@@ -22,7 +22,7 @@ namespace Coflnet.Sky.Commands.MC
     /// <summary>
     /// Represents a mod session
     /// </summary>
-    public class ModSessionLifesycle : IDisposable
+    public class ModSessionLifesycle : IDisposable, IAuthUpdate
     {
         protected MinecraftSocket socket;
         public SessionInfo SessionInfo => socket.SessionInfo;
@@ -33,12 +33,16 @@ namespace Coflnet.Sky.Commands.MC
         public SelfUpdatingValue<AccountSettings> AccountSettings;
         public SelfUpdatingValue<PrivacySettings> PrivacySettings;
         public SelfUpdatingValue<ConfigContainer> LoadedConfig;
+        public AccountTierManager TierManager;
         public Activity ConSpan => socket.ConSpan;
         public Timer PingTimer;
         private SpamController spamController = new SpamController();
         public IDelayHandler DelayHandler { get; set; }
         public VerificationHandler VerificationHandler;
         public FlipProcesser FlipProcessor;
+
+        public event EventHandler<string> OnLogin;
+
         public TimeSpan CurrentDelay => DelayHandler?.CurrentDelay ?? MC.DelayHandler.DefaultDelay;
         public TimeSpan MacroDelay => DelayHandler?.MacroDelay ?? default;
         public event Action<TimeSpan> OnDelayChange
@@ -94,7 +98,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 SendPing();
             }, null, TimeSpan.FromSeconds(59), TimeSpan.FromSeconds(59));
-
+            this.TierManager = new AccountTierManager(socket, this);
             UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
             _ = socket.TryAsyncTimes(() => SendLoginPromptMessage(stringId), "login prompt");
             if (MinecraftSocket.IsDevMode)
@@ -118,6 +122,12 @@ namespace Coflnet.Sky.Commands.MC
 
             loadSpan?.Dispose();
             UpdateExtraDelay();
+            TierManager.OnTierChange += (s, Newtier) =>
+            {
+                Console.WriteLine("tier changed to " + Newtier);
+                socket.SessionInfo.SessionTier = Newtier;
+                UpdateConnectionTier(Newtier);
+            };
         }
 
         private async Task SendLoginPromptMessage(string stringId)
@@ -136,6 +146,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected virtual async Task SubToSettings(string userId)
         {
+            OnLogin?.Invoke(this, userId);
             ConSpan.Log("subbing to settings of " + userId);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DefaultSettings);
             var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings", () => new());
@@ -352,7 +363,7 @@ namespace Coflnet.Sky.Commands.MC
         protected virtual async Task UpdateAccountInfo(AccountInfo info)
         {
             using var span = socket.CreateActivity("AuthUpdate", ConSpan)?
-                .AddTag("premium", info.Tier.ToString())
+                .AddTag("premium", TierManager.GetCurrentCached().ToString())
                 .AddTag("userId", info.UserId);
             if (socket.IsClosed)
             {
@@ -361,7 +372,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             try
             {
-                var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info);
+                var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info, socket.SessionInfo);
                 span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (info.UserId.IsNullOrEmpty())
                 {
@@ -377,20 +388,9 @@ namespace Coflnet.Sky.Commands.MC
                     if (currentId != SessionInfo.ConnectionId)
                     {
                         // another connection of this account was opened, close this one
-                        SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "Closing this connection because your account opened another one. There can only be one per account. Use /cofl logout to close all.", "/cofl logout",
-                            "To protect against your mod opening\nmultiple connections which you can't stop,\nwe closed this one.\nThe latest one you opened should still be active");
-                        // wait another sync cycle
-                        await Task.Delay(5000).ConfigureAwait(false);
-                        socket.ExecuteCommand("/cofl stop");
-                        span.Log($"connected from somewhere else {info.ActiveConnectionId} != '{SessionInfo.ConnectionId}' {currentId}");
+                        SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "Another connection was opened, this one may be downgraded to the free version if no license is present", null,
+                            "Licenses allow you to use premium on multiple minecraft accounts at the same time.\nSee /cofl licenses for more information");
 
-                        await Task.Delay(1000);
-                        socket.Dialog(db => db.MsgLine("This connection was suspended, to avoid a reconnect loop of your faulty client its downgraded to free tier"));
-                        AccountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(AccountInfo.Value);
-                        AccountInfo.Value.Tier = AccountTier.NONE;
-                        AccountInfo.Value.ExpiresAt = DateTime.UtcNow;
-                        UserId = SelfUpdatingValue<string>.CreateNoUpdate((string)null);
-                        return;
                     }
                 }
 
@@ -403,8 +403,7 @@ namespace Coflnet.Sky.Commands.MC
                     socket.Close();
                     return;
                 }
-
-                await UpdateAccountTier(info);
+                var tier = await TierManager.GetCurrentCached();
 
                 if (SessionInfo.SentWelcome)
                     return; // don't send hello again
@@ -416,7 +415,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     SendMessage(socket.formatProvider.WelcomeMessage());
                     SessionInfo.FlipsEnabled = true;
-                    UpdateConnectionTier(info, span);
+                    UpdateConnectionTier(tier, span);
                     span?.AddTag("autoStart", "true");
                     await PrintRegionInfo(info);
                 }
@@ -450,7 +449,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task PrintRegionInfo(AccountInfo info)
         {
-            if (info.Tier >= AccountTier.PREMIUM_PLUS && SessionInfo.ConnectionType == null)
+            if (TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS) && SessionInfo.ConnectionType == null)
             {
                 if ((socket.CurrentRegion == info.Region || info.Region == null) && info.Locale == "en")
                     socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>(McColorCodes.GRAY + "Switching region is now done with /cofl switchregion <region>", "", "Click to see region options"));
@@ -486,30 +485,6 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(i * 100);
                 span.Log("waiting for flipsettings");
             }
-        }
-
-        public async Task<AccountTier> UpdateAccountTier(AccountInfo info)
-        {
-            var userApi = socket.GetService<PremiumService>();
-            var previousTier = info.Tier;
-            var expiresTask = userApi.GetCurrentTier(info.UserId);
-            var expires = await expiresTask;
-            info.Tier = expires.Item1;
-            if (info.ExpiresAt != expires.Item2)
-            {
-                info.ExpiresAt = expires.Item2;
-                if (info.Tier > AccountTier.NONE)
-                    _ = socket.TryAsyncTimes(async () =>
-                    {
-                        await AccountInfo.Update(info);
-                    }, "update account info", 1);
-            }
-            if (info.Tier != previousTier)
-            {
-                socket.GetService<FlipperService>().RemoveConnection(socket);
-                await AccountInfo.Update(info);
-            }
-            return info.Tier;
         }
 
         public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
@@ -551,13 +526,9 @@ namespace Coflnet.Sky.Commands.MC
             return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(newid)}";
         }
 
-        public void UpdateConnectionTier(AccountInfo accountInfo, Activity span = null)
+        public void UpdateConnectionTier(AccountTier tier, Activity span = null)
         {
-            ConSpan.SetTag("tier", accountInfo?.Tier.ToString());
-            span?.Log("set connection tier to " + accountInfo?.Tier.ToString());
-            if (accountInfo == null)
-                return;
-
+            ConSpan.SetTag("tier", tier.ToString());
             if (socket.HasFlippingDisabled())
                 return;
             if (FlipSettings.Value.DisableFlips)
@@ -565,9 +536,6 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage(COFLNET + "you currently don't receive flips because you disabled them", "/cofl set disableflips false", "click to enable");
                 return;
             }
-            var tier = accountInfo.Tier;
-            if (accountInfo.ExpiresAt < DateTime.UtcNow)
-                tier = AccountTier.NONE;
             var flipperService = socket.GetService<FlipperService>();
             if (tier == AccountTier.NONE)
                 flipperService.AddNonConnection(socket, false);
@@ -581,10 +549,10 @@ namespace Coflnet.Sky.Commands.MC
                 flipperService.AddStarterConnection(socket, false);
             else if (tier == AccountTier.SUPER_PREMIUM)
             {
-                DiHandler.GetService<PreApiService>().AddUser(socket, accountInfo.ExpiresAt);
+                DiHandler.GetService<PreApiService>().AddUser(socket, DateTime.Now + TimeSpan.FromMinutes(10));
                 flipperService.AddConnectionPlus(socket, false);
                 SessionInfo.captchaInfo.LastSolve = DateTime.UtcNow;
-                socket.SendMessage(McColorCodes.GRAY + "speedup enabled, remaining " + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("g"));
+                socket.SendMessage(McColorCodes.GRAY + "speedup enabled, remaining " + (TierManager.ExpiresAt - DateTime.UtcNow).ToString("g"));
             }
         }
 
@@ -596,10 +564,13 @@ namespace Coflnet.Sky.Commands.MC
             if (SessionInfo.McName == null)
                 await Task.Delay(800).ConfigureAwait(false); // allow another half second for the playername to be loaded
             var messageStart = $"Hello {SessionInfo.McName} ({anonymisedEmail}) \n";
-            if (accountInfo.Tier != AccountTier.NONE && accountInfo.ExpiresAt > DateTime.UtcNow)
+            Console.WriteLine("getting tier cached");
+            (var tier,var expire) = await this.TierManager.GetCurrentTierWithExpire();
+            Console.WriteLine("tier: " + tier);
+            if (tier != AccountTier.NONE)
                 SendMessage(
-                    COFLNET + messageStart + $"You have {McColorCodes.GREEN}{accountInfo.Tier.ToString()} until {accountInfo.ExpiresAt.ToString("yyyy-MMM-dd HH:mm")} UTC", null,
-                    $"That is in {McColorCodes.GREEN + (accountInfo.ExpiresAt - DateTime.UtcNow).ToString("d'd 'h'h 'm'm 's's'")}"
+                    COFLNET + messageStart + $"You have {McColorCodes.GREEN}{tier} until {expire.ToString("yyyy-MMM-dd HH:mm")} UTC", null,
+                    $"That is in {McColorCodes.GREEN + (expire - DateTime.UtcNow).ToString("d'd 'h'h 'm'm 's's'")}"
                 );
             else
                 SendMessage(COFLNET + messageStart + $"You use the {McColorCodes.BOLD}FREE{McColorCodes.RESET} version of the flip finder", "/cofl buy", "Click to upgrade tier");
@@ -635,8 +606,6 @@ namespace Coflnet.Sky.Commands.MC
                 else
                 {
                     socket.Send(Response.Create("ping", 0));
-
-                    UpdateConnectionTier(AccountInfo, span);
                 }
                 SendReminders();
                 socket.TryAsyncTimes(async () =>
@@ -646,8 +615,6 @@ namespace Coflnet.Sky.Commands.MC
                 }, "adjust temp filters", 1);
 
                 UpdateConnectionIfNoFlipSent(span);
-                if (AccountInfo?.Value?.ExpiresAt < DateTime.UtcNow && AccountInfo?.Value?.ExpiresAt > DateTime.UtcNow - TimeSpan.FromMinutes(2))
-                    UpdateConnectionTier(AccountInfo, span);
             }
             catch (InvalidOperationException)
             {
@@ -769,11 +736,14 @@ namespace Coflnet.Sky.Commands.MC
 
         private void UpdateConnectionIfNoFlipSent(Activity span)
         {
-            if (AccountInfo?.Value == null || AccountInfo?.Value?.Tier == AccountTier.NONE)
-                return;
             if (socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-3)))
                 return; // got a flip in the last 3 minutes
-            UpdateConnectionTier(AccountInfo!.Value, span);
+
+            socket.TryAsyncTimes(async () =>
+            {
+                var tier = await TierManager.GetCurrentCached();
+                UpdateConnectionTier(tier, span);
+            }, "resub to flips");
         }
 
         private void SendReminders()
@@ -844,7 +814,7 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
                 if (socket.HasFlippingDisabled())
                     return;
-                if (AccountInfo.Value.ShadinessLevel == -1 && SessionInfo.VerifiedMc && AccountInfo.Value.Tier > AccountTier.PREMIUM)
+                if (AccountInfo.Value.ShadinessLevel == -1 && SessionInfo.VerifiedMc && TierManager.HasAtLeast(AccountTier.PREMIUM))
                 {
                     try
                     {
@@ -972,7 +942,13 @@ namespace Coflnet.Sky.Commands.MC
             AccountInfo?.Dispose();
             SessionInfo?.Dispose();
             AccountSettings?.Dispose();
+            LoadedConfig?.Dispose();
             PingTimer?.Dispose();
         }
+    }
+
+    public interface IAuthUpdate
+    {
+        event EventHandler<string> OnLogin;
     }
 }

@@ -10,7 +10,7 @@ public class FResponseCommand : McCommand
         var uuid = parts[0];
         socket.ReceivedConfirm.TryRemove(uuid, out var value);
         System.Console.WriteLine($"Received confirm for {uuid} from {socket.SessionInfo.McName}");
-        if ((socket.AccountInfo?.Tier ?? 0) >= Shared.AccountTier.SUPER_PREMIUM)
+        if (socket.sessionLifesycle.TierManager.HasAtLeast(Shared.AccountTier.SUPER_PREMIUM))
         {
             // make sure receival is published
             socket.GetService<PreApiService>().PublishReceive(uuid);

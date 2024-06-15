@@ -252,14 +252,14 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current?.Log("Initiating send");
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
             Activity.Current?.Log("Sent flip");
-            if (flip.AdditionalProps.ContainsKey("isRR") && socket.AccountInfo?.Tier >= AccountTier.SUPER_PREMIUM)
+            if (flip.AdditionalProps.ContainsKey("isRR") && socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.SUPER_PREMIUM))
                 await socket.TriggerTutorial<RoundRobinTutorial>().ConfigureAwait(false);
             if (flip.Finder == LowPricedAuction.FinderType.SNIPER_MEDIAN && flip.Auction.FlatenedNBT.Count >= 3)
                 await socket.TriggerTutorial<Flipping>().ConfigureAwait(false);
 
             _ = socket.TryAsyncTimes(async () =>
             {
-                if (socket.AccountInfo?.Tier >= AccountTier.SUPER_PREMIUM)
+                if (socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.SUPER_PREMIUM))
                     preApiFlipSent.Inc();
 
                 // this is actually syncronous
@@ -276,7 +276,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 socket.sessionLifesycle.PingTimer?.Change(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(59));
 
-                if (timeToSend > TimeSpan.FromSeconds(15) && socket.AccountInfo?.Tier >= AccountTier.PREMIUM
+                if (timeToSend > TimeSpan.FromSeconds(15) && socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM)
                     && flip.Finder != LowPricedAuction.FinderType.FLIPPER && !(item.Interesting.FirstOrDefault()?.StartsWith("Bed") ?? false))
                 {
                     // very bad, this flip was very slow, create a report

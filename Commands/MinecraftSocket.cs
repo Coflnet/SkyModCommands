@@ -495,9 +495,9 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnMessage(MessageEventArgs e)
         {
             var parallelAllowed = 2;
-            if ((AccountInfo?.Tier ?? 0) >= AccountTier.PREMIUM_PLUS)
+            if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
                 parallelAllowed = 6;
-            else if ((AccountInfo?.Tier ?? 0) >= AccountTier.STARTER_PREMIUM)
+            else if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
                 parallelAllowed = 4;
 
             if (waiting > parallelAllowed)
@@ -941,16 +941,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task<AccountTier> UserAccountTier()
         {
-            var tier = sessionLifesycle.AccountInfo?.Value?.Tier;
-            var expiresAt = sessionLifesycle.AccountInfo?.Value?.ExpiresAt;
-            if (tier >= AccountTier.NONE && expiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(30) && expiresAt > DateTime.UtcNow - TimeSpan.FromHours(1))
-            {
-                // refresh tier
-                tier = await sessionLifesycle.UpdateAccountTier(sessionLifesycle.AccountInfo?.Value);
-            }
-            else if (tier == null || expiresAt < DateTime.UtcNow)
-                tier = AccountTier.NONE;
-            return tier.Value;
+            return await sessionLifesycle.TierManager.GetCurrentCached();
         }
 
         public Task SendBatch(IEnumerable<LowPricedAuction> flips)

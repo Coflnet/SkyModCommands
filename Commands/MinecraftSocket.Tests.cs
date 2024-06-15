@@ -74,7 +74,7 @@ public class FlipStreamTests
         var socket = new MinecraftSocket();
         socket.SetLifecycleVersion("1.4.2-Alpha");
         socket.sessionLifesycle.FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => new FlipSettings());
-        socket.sessionLifesycle.AccountInfo = await SelfUpdatingValue<AccountInfo>.CreateNoUpdate(() => new AccountInfo() { Tier = AccountTier.PREMIUM });
+        socket.sessionLifesycle.AccountInfo = await SelfUpdatingValue<AccountInfo>.CreateNoUpdate(() => new AccountInfo() {  });
         provider.GetRequiredService<FlipperService>().AddConnection(socket);
 
         //_ = Task.Run(async () =>

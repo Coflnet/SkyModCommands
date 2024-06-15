@@ -181,7 +181,7 @@ public class DelayHandler : IDelayHandler
             summary.nonpurchaseRate = nonpurchaseRate;
         }
 
-        if (accountInfo?.Value?.Tier >= AccountTier.SUPER_PREMIUM)
+        if (sessionInfo.SessionTier >= AccountTier.SUPER_PREMIUM)
         {
             currentDelay *= (1 - DelayReduction);
             if (currentDelay > MaxSuperPremiumDelay)

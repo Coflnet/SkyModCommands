@@ -55,7 +55,7 @@ namespace Coflnet.Sky.Commands.MC
             else
                 socket.SendMessage(COFLNET + $"You are currently delayed by a maximum of {McColorCodes.AQUA}{delayAmount.TotalSeconds}s{McColorCodes.GRAY} by the fairness system. This will decrease over time and is not fully applied to all flips.",
                         null, McColorCodes.GRAY + "Your call to this has been recorded, \nattempts to trick the system will be punished.");
-            if (socket.AccountInfo.Tier == AccountTier.SUPER_PREMIUM && delayAmount > TimeSpan.Zero)
+            if (socket.SessionInfo.SessionTier == AccountTier.SUPER_PREMIUM && delayAmount > TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"While using {McColorCodes.RED}pre api{DEFAULT_COLOR} your delay increases {McColorCodes.GREEN}{DelayHandler.DelayReduction * 100}% slower{DEFAULT_COLOR} "
                     + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
                     null, "Enjoy flipping at high speed☻");

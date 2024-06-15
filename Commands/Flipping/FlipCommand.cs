@@ -45,7 +45,7 @@ public class FlipCommand : McCommand
                 socket.SessionInfo.FlipsEnabled = !socket.SessionInfo.FlipsEnabled;
                 flipSettings.Value.ModSettings.AhDataOnlyMode = false;
                 WriteCurrentState(socket);
-                socket.sessionLifesycle.UpdateConnectionTier(socket.AccountInfo);
+                socket.sessionLifesycle.UpdateConnectionTier(await socket.sessionLifesycle.TierManager.GetCurrentCached());
                 break;
         }
         await socket.TriggerTutorial<Flipping>();

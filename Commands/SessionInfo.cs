@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 using StackExchange.Redis;
@@ -69,6 +70,8 @@ namespace Coflnet.Sky.Commands.MC
 
         public List<SaveAuction> Inventory { get; set; }
         public int SkipLikeliness { get; internal set; }
+
+        public AccountTier SessionTier { get; internal set; }
         /// <summary>
         /// counts up for 100 not purchased flips
         /// </summary>

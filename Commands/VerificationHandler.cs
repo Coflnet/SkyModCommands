@@ -26,13 +26,13 @@ namespace Coflnet.Sky.Commands.MC
         }
 
 
-        public async Task MakeSureUserIsVerified(AccountInfo info)
+        public async Task MakeSureUserIsVerified(AccountInfo info, SessionInfo sessionInfo)
         {
             if (IsLastVerifyRequestRecent())
                 return;
             LastVerificationRequest = DateTime.UtcNow;
             var isVerified = await CheckVerificationStatus(info);
-            if (!isVerified && info.Tier > 0)
+            if (!isVerified && sessionInfo.SessionTier >= AccountTier.PREMIUM)
             {
                 SendMessage("You have premium but you haven't verified your account yet.");
                 await Task.Delay(500).ConfigureAwait(false);
