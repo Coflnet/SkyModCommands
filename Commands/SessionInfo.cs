@@ -69,14 +69,14 @@ namespace Coflnet.Sky.Commands.MC
         public string ConnectionType { get; set; }
 
         public List<SaveAuction> Inventory { get; set; }
-        public int SkipLikeliness { get; internal set; }
+        public int SkipLikeliness { get; set; }
 
         public AccountTier SessionTier { get; set; }
         /// <summary>
         /// counts up for 100 not purchased flips
         /// </summary>
-        public int NotPurchaseRate { get; internal set; }
-        public string ToLowListingAttempt { get; internal set; }
+        public int NotPurchaseRate { get; set; }
+        public string ToLowListingAttempt { get; set; }
 
         public bool SellAll;
 

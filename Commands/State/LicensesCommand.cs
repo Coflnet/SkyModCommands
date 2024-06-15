@@ -59,13 +59,21 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
                             McColorCodes.AQUA + "To prevent accidental loss of coins you can only purchase once per connection.", null,
                             "You can buy licenses for different accounts tho")));
             }
+            socket.Dialog(db => db.MsgLine($"Successfully requested a license for {name}"));
+            if (name == socket.SessionInfo.McName)
+            {
+                await socket.sessionLifesycle.TierManager.RefreshTier();
+                var tiername = await socket.sessionLifesycle.TierManager.GetCurrentCached();
+                socket.Dialog(db => db.MsgLine($"This connection is now {McColorCodes.AQUA}{tiername}"));
+            }
+
             return;
         }
-        if(subargs.Length == 2 && subargs[1].StartsWith("prem"))
+        if (subargs.Length == 2 && subargs[1].StartsWith("prem"))
         {
             socket.Dialog(db => db.MsgLine("Click to confirm purchase/extend a license for " + name, null, "click on the tier name below")
-                .If(()=>!subargs[1].Contains("plus"),db=>db.CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}Premium  ", $"add {name} premium {socket.SessionInfo.ConnectionId}", "Purchase premium license"))
-                .If(()=>subargs[1].Contains("plus"),db=>db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+  ", $"add {name} premium_plus {socket.SessionInfo.ConnectionId}", "Purchase premium+ license")));
+                .If(() => !subargs[1].Contains("plus"), db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}Premium  ", $"add {name} premium {socket.SessionInfo.ConnectionId}", "Purchase premium license"))
+                .If(() => subargs[1].Contains("plus"), db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+  ", $"add {name} premium_plus {socket.SessionInfo.ConnectionId}", "Purchase premium+ license")));
             return;
         }
         socket.Dialog(db => db.MsgLine("Which tier do you want to purchase/extend")
