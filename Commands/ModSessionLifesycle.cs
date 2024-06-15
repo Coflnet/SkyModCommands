@@ -566,6 +566,7 @@ namespace Coflnet.Sky.Commands.MC
             var messageStart = $"Hello {SessionInfo.McName} ({anonymisedEmail}) \n";
             Console.WriteLine("getting tier cached");
             (var tier, var expire) = await this.TierManager.GetCurrentTierWithExpire();
+            socket.SessionInfo.SessionTier = tier;
             Console.WriteLine("tier: " + tier);
             if (tier != AccountTier.NONE)
                 SendMessage(
