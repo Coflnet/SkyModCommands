@@ -30,8 +30,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var uuid = GetUuid(flip.Auction);
         if (uuid == null)
             return result;
-        if (flip.Finder != LowPricedAuction.FinderType.USER)
-            await socket.GetService<IPriceStorageService>().SetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid), flip.Target);
+        var target = flip.Finder == LowPricedAuction.FinderType.USER ? -1 : flip.Target;
+        await socket.GetService<IPriceStorageService>().SetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid), target);
         return result;
     }
 
@@ -235,6 +235,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 listingSpan.Log($"Found {flips.Count} flips for average price {target}");
             }
             var stored = await storedEstimate;
+            if (stored < 0)
+            {
+                if (!socket.SessionInfo.SellAll)
+                    continue;
+                var foundReason = stored == -1 ? "found by USER finder" : "marked with not list filter";
+                socket.Dialog(db => db.Msg($"Because you executed {McColorCodes.AQUA}/cofl sellinventory{McColorCodes.GRAY} item {item.First.ItemName} {foundReason} will be sold at market price"));
+            }
             if (stored > 1_000_000)
             {
                 listingSpan.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored} instead of {target}");
