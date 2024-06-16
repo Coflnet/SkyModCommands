@@ -905,8 +905,8 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             var recentlySwitchedFromMarco = AccountInfo?.Value?.LastMacroConnect > DateTime.UtcNow.AddDays(-2);
             if (recentlySwitchedFromMarco && !sumary.AntiAfk && SessionInfo.captchaInfo.LastSolve < DateTime.UtcNow.AddMinutes(-120)
-                && SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-3)
-                && AccountInfo?.Value?.LastCaptchaSolve < DateTime.UtcNow.AddMinutes(-30)
+                && SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20)
+                && AccountInfo?.Value?.LastCaptchaSolve < DateTime.UtcNow.AddMinutes(-60)
                 )
             {
                 SessionInfo.IsMacroBot = true;
