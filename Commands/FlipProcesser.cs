@@ -37,7 +37,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task NewFlips(IEnumerable<LowPricedAuction> flips)
         {
-            if (socket.HasFlippingDisabled())
+            if (Settings == null || socket.HasFlippingDisabled())
                 return;
             var maxCostFromPurse = socket.SessionInfo.Purse * (Settings.ModSettings.MaxPercentOfPurse == 0 ? 100 : Settings.ModSettings.MaxPercentOfPurse) / 100;
             var prefiltered = flips.Where(f => !SentFlips.ContainsKey(f.UId)
