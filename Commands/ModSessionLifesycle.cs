@@ -580,7 +580,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     var name = await socket.GetPlayerName(otherUUid);
                     socket.Dialog(di => di
-                        .Msg($"You are using your {userTier} on a the account with the name {McColorCodes.AQUA}{name}", 
+                        .Msg($"You are using your {userTier} on a the account with the name {McColorCodes.AQUA}{name}",
                             "/cofl licenses default " + SessionInfo.McName, "Click to change use it on this account"));
                 }
             }
@@ -909,8 +909,12 @@ namespace Coflnet.Sky.Commands.MC
                 && AccountInfo?.Value?.LastCaptchaSolve < DateTime.UtcNow.AddMinutes(-30)
                 )
             {
-                SendMessage("You were recently found to be afk macroing. \nTo proof that you are a human please solve this captcha.\nAlternatively click this to disable flips", "/cofl flip off", "disable flips until reconnect");
-                SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
+                SessionInfo.IsMacroBot = true;
+                if (AccountInfo?.Value?.LastMacroConnect > DateTime.UtcNow.AddHours(-12))
+                {
+                    SendMessage("You were recently found to be afk macroing. \nTo proof that you are a human please solve this captcha.\nAlternatively click this to disable flips", "/cofl flip off", "disable flips until reconnect");
+                    SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
+                }
                 return;
             }
             if (sumary.AntiAfk)
