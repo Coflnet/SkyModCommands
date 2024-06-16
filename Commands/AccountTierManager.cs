@@ -89,7 +89,7 @@ namespace Coflnet.Sky.Commands.MC
             var userApi = socket.GetService<PremiumService>();
             var expiresTask = userApi.GetCurrentTier(userId);
             var expires = await expiresTask;
-            if (activeSessions.Value.UseAccountTierOn == null)
+            if (string.IsNullOrEmpty(activeSessions.Value.UseAccountTierOn))
             {
                 activeSessions.Value.UseAccountTierOn = socket.SessionInfo.McUuid;
                 await activeSessions.Update();
