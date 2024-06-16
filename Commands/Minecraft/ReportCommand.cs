@@ -88,6 +88,8 @@ namespace Coflnet.Sky.Commands.MC
             reportSpan.Log("delay: " + socket.sessionLifesycle.CurrentDelay + "\nsession info " + JsonConvert.SerializeObject(socket.SessionInfo, Formatting.Indented), 30_000);
             TryAddingAllSettings(socket, reportSpan);
             socket.Send(Response.Create("getMods", 0));
+            using (var activeSessionSpan = socket.CreateActivity("activeSessions", reportSpan))
+                activeSessionSpan.Log(socket.sessionLifesycle.TierManager.GetSessionInfo());
             reportSpan.Dispose();
         }
 

@@ -363,7 +363,7 @@ namespace Coflnet.Sky.Commands.MC
         protected virtual async Task UpdateAccountInfo(AccountInfo info)
         {
             using var span = socket.CreateActivity("AuthUpdate", ConSpan)?
-                .AddTag("premium", TierManager.GetCurrentCached().ToString())
+                .AddTag("premium", (await TierManager.GetCurrentCached()).ToString())
                 .AddTag("userId", info.UserId);
             if (socket.IsClosed)
             {
@@ -952,6 +952,7 @@ namespace Coflnet.Sky.Commands.MC
             AccountSettings?.Dispose();
             LoadedConfig?.Dispose();
             PingTimer?.Dispose();
+            TierManager?.Dispose();
         }
     }
 

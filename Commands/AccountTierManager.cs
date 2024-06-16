@@ -3,10 +3,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Sky.Commands.Shared;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    public class AccountTierManager
+    public class AccountTierManager : IDisposable
     {
 #nullable enable
         private readonly IMinecraftSocket socket;
@@ -93,13 +94,44 @@ namespace Coflnet.Sky.Commands.MC
                 activeSessions.Value.UseAccountTierOn = socket.SessionInfo.McUuid;
                 await activeSessions.Update();
             }
-            Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {activeSessions.Value.UseAccountTierOn}");
+            var sessions = activeSessions.Value.Sessions;
+            if (!sessions.Any(s => s.ConnectionId == socket.SessionInfo.ConnectionId))
+            {
+                sessions.Add(new ActiveSession()
+                {
+                    ConnectionId = socket.SessionInfo.ConnectionId,
+                    ClientSessionId = socket.SessionInfo.clientSessionId,
+                    Tier = expires.Item1,
+                    ConnectedAt = DateTime.UtcNow,
+                    Ip = (socket as MinecraftSocket)?.ClientIp,
+                    LastActive = DateTime.UtcNow,
+                    Version = socket.Version
+                });
+                await activeSessions.Update();
+            }
+            else
+            {
+                var session = sessions.First(s => s.ConnectionId == socket.SessionInfo.ConnectionId);
+                session.LastActive = DateTime.UtcNow;
+                session.Tier = expires.Item1;
+                if (session.LastActive < DateTime.Now - TimeSpan.FromMinutes(5))
+                    await activeSessions.Update();
+            }
+            var isCurrentConOnlyCon = sessions.All(s => s.ConnectionId == socket.SessionInfo.ConnectionId || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
+            Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {activeSessions.Value.UseAccountTierOn} {isCurrentConOnlyCon}");
             activeSessions.Value.UserAccountTier = expires.Item1;
-            if (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid)
+            if (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon)
             {
                 return (expires.Item1, expires.Item2);
             }
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
+        }
+
+        public string GetSessionInfo()
+        {
+            if (activeSessions == null)
+                return "No active sessions";
+            return JsonConvert.SerializeObject(activeSessions.Value, Formatting.Indented);
         }
 
         public bool IsConnectedFromOtherAccount(out string otherAccount, out AccountTier tier)
@@ -121,6 +153,13 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             activeSessions.Value.UseAccountTierOn = mcUuid;
             await activeSessions.Update();
+        }
+
+        public void Dispose()
+        {
+            activeSessions?.Value.Sessions.RemoveAll(s => s.ConnectionId == socket.SessionInfo.ConnectionId);
+            activeSessions?.Update().ContinueWith(t => activeSessions?.Dispose());
+            activeSessions = null;
         }
     }
 }

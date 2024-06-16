@@ -43,7 +43,7 @@ public class ActiveSession
     [DataMember(Name = "version")]
     public string Version;
     [DataMember(Name = "sessionId")]
-    public string SessionId;
+    public string ClientSessionId;
     /// <summary>
     /// Service tier used for this connection
     /// </summary>
