@@ -63,11 +63,11 @@ namespace Coflnet.Sky.Commands.MC
             }
             string hover = GetHoverText(socket, response);
             var paidSum = response.Flips.Sum(f => f.PricePaid);
-            socket.SendMessage(COFLNET + $"According to our data {who} made {FormatPrice(socket, response.TotalProfit)} "
-                + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions"
-                + (accounts.Count() > 1 ? $" across your {accounts.Count()} accounts" : "")
-                + $"\n{who} spent {FormatPrice(socket, paidSum)} with an average {FormatPrice(socket, (long)response.Flips.Sum(f => f.Profit) * 100 / (paidSum == 0 ? 1 : paidSum))}% profit margin",
-                null, hover);
+            socket.Dialog(db => db.Msg($"According to our data {who} made {FormatPrice(socket, response.TotalProfit)} "
+                + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions", null, hover)
+                .Msg(accounts.Count() > 1 ? $" across your {accounts.Count()} accounts" : "", null, string.Join("\n", accounts.Select(a => $"- {a}")))
+                 .Msg($"\n{who} spent {FormatPrice(socket, paidSum)} with an average {FormatPrice(socket, (long)response.Flips.Sum(f => f.Profit) * 100 / (paidSum == 0 ? 1 : paidSum))}% profit margin",
+                null, hover));
             var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
             var best = sorted.FirstOrDefault();
             var worst = sorted.LastOrDefault();
