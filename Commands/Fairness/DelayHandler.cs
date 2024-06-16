@@ -102,8 +102,8 @@ public class DelayHandler : IDelayHandler
         if (currentDelay == AntiAfkDelay)
             return false; // afk users don't get instant flips
 
-        // 50% chance of no delay so lowest ping macro doesn't get a huge advantage
-        if (random.NextDouble() > 0.5)
+        // 20% chance of no delay so lowest ping macro doesn't get a huge advantage
+        if (random.NextDouble() > 0.8)
             return false;
 
         var tag = flipInstance.Auction?.Tag;
@@ -120,7 +120,8 @@ public class DelayHandler : IDelayHandler
                         || tag == "BAT_WAND" || tag == "DWARF_TURTLE_SHELMET" || tag == "JUJU_SHORTBOW"
                         || tag.Contains("GEMSTONE") || tag.StartsWith("FINAL_DESTINATION"))
                         && profitPercent > 200)
-                    || profitPercent > 900;
+                    || profitPercent > 900
+                    || flipInstance.Volume > 42;
     }
 
     public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime)
