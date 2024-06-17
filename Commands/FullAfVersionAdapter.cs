@@ -94,7 +94,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             return; // created listing
         }
         span.Log($"Checking sellable {toList.Count()} total {inventory.Count}. Space {listSpace} active {activeAuctionCount}");
-        await ListItems(span, apiService, inventory, toList, listSpace - activeAuctionCount);
+        await ListItems(span, apiService, inventory, toList, listSpace < 10 ? 14 : listSpace - activeAuctionCount);
     }
 
     private IEnumerable<LowPricedAuction> LastSentFlips()
