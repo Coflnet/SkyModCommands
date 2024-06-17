@@ -549,7 +549,7 @@ namespace Coflnet.Sky.Commands.MC
                 flipperService.AddStarterConnection(socket, false);
             else if (tier == AccountTier.SUPER_PREMIUM)
             {
-                DiHandler.GetService<PreApiService>().AddUser(socket, DateTime.Now + TimeSpan.FromMinutes(10));
+                DiHandler.GetService<PreApiService>().AddUser(socket, TierManager.ExpiresAt);
                 flipperService.AddConnectionPlus(socket, false);
                 SessionInfo.captchaInfo.LastSolve = DateTime.UtcNow;
                 socket.SendMessage(McColorCodes.GRAY + "speedup enabled, remaining " + (TierManager.ExpiresAt - DateTime.UtcNow).ToString("g"));
