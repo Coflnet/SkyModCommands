@@ -83,15 +83,23 @@ public class BuyConfigCommand : ArgumentsCommand
             OwnerName = seller
         });
         await configs.Update();
-        var topupApi = socket.GetService<ITopUpApi>();
-        socket.Dialog(db => db.MsgLine($"§6{toBebought.Value.Name} §7v{toBebought.Value.Version} §6bought"));
-        if (toBebought.Value.Price != 0)
-            await topupApi.TopUpCustomPostAsync(sellerUserId, new()
-            {
-                Amount = toBebought.Value.Price * 70 / 100,
-                Reference = $"config sale {name} to {socket.SessionInfo.McName}",
-                ProductId = "config-sell"
-            });
+        try
+        {
+
+            var topupApi = socket.GetService<ITopUpApi>();
+            socket.Dialog(db => db.MsgLine($"§6{toBebought.Value.Name} §7v{toBebought.Value.Version} §6bought"));
+            if (toBebought.Value.Price != 0)
+                await topupApi.TopUpCustomPostAsync(sellerUserId, new()
+                {
+                    Amount = toBebought.Value.Price * 70 / 100,
+                    Reference = $"config sale {name} to {socket.SessionInfo.McName}",
+                    ProductId = "config-sell"
+                });
+        }
+        catch (Exception e)
+        {
+            socket.Error(e, "Failed to credit the seller");
+        }
         socket.ExecuteCommand($"/cofl loadconfig {sellerUserId} {name}");
     }
 }
