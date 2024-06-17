@@ -93,7 +93,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             await SendListing(span, item.Auction, (long)targetPrice, index, uuid);
             return; // created listing
         }
-        span.Log($"Checking sellable {toList.Count()} total {inventory.Count}");
+        span.Log($"Checking sellable {toList.Count()} total {inventory.Count}. Space {listSpace} active {activeAuctionCount}");
         await ListItems(span, apiService, inventory, toList, listSpace - activeAuctionCount);
     }
 
