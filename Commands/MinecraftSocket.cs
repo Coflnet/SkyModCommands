@@ -191,9 +191,9 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<CookieCommand>();
             Commands.Add<FlipSentOnProxy>();
             Commands.Add<SlowDownCommand>();
-            Commands.Add<CheapAttribCommand>();
+            Commands.Add<CheapAttribCommand>("ca");
             Commands.Add<OpenUidAuctionCommand>();
-            Commands.Add<AttributeUpgradeCommand>();
+            Commands.Add<AttributeUpgradeCommand>("au");
             Commands.Add<SellConfigCommand>();
             Commands.Add<OwnConfigsCommand>();
             Commands.Add<ConfigsCommand>();
