@@ -44,6 +44,8 @@ public class ActiveSession
     public string Version;
     [DataMember(Name = "sessionId")]
     public string ClientSessionId;
+    [DataMember(Name = "minecraftUuid")]
+    public string MinecraftUuid;
     /// <summary>
     /// Service tier used for this connection
     /// </summary>

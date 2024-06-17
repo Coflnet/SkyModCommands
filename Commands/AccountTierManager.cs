@@ -105,7 +105,8 @@ namespace Coflnet.Sky.Commands.MC
                     ConnectedAt = DateTime.UtcNow,
                     Ip = (socket as MinecraftSocket)?.ClientIp,
                     LastActive = DateTime.UtcNow,
-                    Version = socket.Version
+                    Version = socket.Version,
+                    MinecraftUuid = socket.SessionInfo.McUuid
                 });
                 await activeSessions.Update();
             }
