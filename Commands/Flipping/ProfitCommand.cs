@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.PlayerName.Client.Api;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
@@ -52,6 +53,12 @@ namespace Coflnet.Sky.Commands.MC
                 accounts = new string[] { await socket.GetPlayerUuid(args.First()) };
             else
                 accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+            Task<Dictionary<string, string>> namesTask = null;
+            if (accounts.Count() > 1)
+            {
+                var nameService = socket.GetService<IPlayerNameApi>();
+                namesTask = nameService.PlayerNameNamesBatchPostAsync(accounts.ToList());
+            }
             var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, time);
             var who = "you";
             if (args.Length > 1) // except last arg
@@ -63,9 +70,10 @@ namespace Coflnet.Sky.Commands.MC
             }
             string hover = GetHoverText(socket, response);
             var paidSum = response.Flips.Sum(f => f.PricePaid);
+            var names = namesTask == null ? null : await namesTask;
             socket.Dialog(db => db.Msg($"According to our data {who} made {FormatPrice(socket, response.TotalProfit)} "
                 + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions", null, hover)
-                .Msg(accounts.Count() > 1 ? $" across your {accounts.Count()} accounts" : "", null, string.Join("\n", accounts.Select(a => $"- {a}")))
+                .Msg(accounts.Count() > 1 ? $" across your {accounts.Count()} accounts" : "", null, string.Join("\n", names.Select(a => $"- {a.Value}")))
                  .Msg($"\n{who} spent {FormatPrice(socket, paidSum)} with an average {FormatPrice(socket, (long)response.Flips.Sum(f => f.Profit) * 100 / (paidSum == 0 ? 1 : paidSum))}% profit margin",
                 null, hover));
             var sorted = response.Flips.OrderByDescending(f => f.Profit).ToList();
