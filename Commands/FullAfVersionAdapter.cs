@@ -237,6 +237,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var stored = await storedEstimate;
             if (stored < 0)
             {
+                listingSpan.Log($"Stored price for {item.First.ItemName} was {target}");
                 if (!socket.SessionInfo.SellAll)
                     continue;
                 var foundReason = stored == -1 ? "found by USER finder" : "marked with not list filter";
