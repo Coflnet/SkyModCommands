@@ -315,7 +315,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 .Msg($"Can be disabled with {McColorCodes.AQUA}/cofl set maxItemsInInventory 0"));
             return (true, false);
         }
-        var isFull = socket.SessionInfo.Inventory?.Skip(10).Count(x => x == null) < 3;
+        var spaceLeft = socket.SessionInfo.Inventory?.Skip(10).Count(x => x == null);
+        var isFull = spaceLeft < 3;
         if (maxItemsAllowedInInventory > 100)
         {
             // special case user wants to not stop buying
@@ -330,6 +331,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (Random.Shared.NextDouble() < 0.3)
                 RequestInventory();
         }
+        else if (spaceLeft < 10 && Random.Shared.NextDouble() < 0.9 / spaceLeft)
+            return (false, true); // randomly wait so an item is still bought every once in a while
         return (isFull, false);
     }
 

@@ -200,7 +200,7 @@ public class DelayHandler : IDelayHandler
             currentDelay -= TimeSpan.FromSeconds(7.2);
             macroPenalty += TimeSpan.FromSeconds(5);
         }
-        if (accountInfo.Value.ShadinessLevel > 50 && macroPenalty < TimeSpan.FromSeconds(2) && Random.Shared.NextDouble() < 0.8)
+        if (accountInfo.Value?.ShadinessLevel > 50 && macroPenalty < TimeSpan.FromSeconds(2) && Random.Shared.NextDouble() < 0.8)
         {
             // shady accounts keep base delay
             macroPenalty += TimeSpan.FromSeconds(4);
