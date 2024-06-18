@@ -55,7 +55,7 @@ public class CircumventTracker
         {
             Auction = auction,
             TargetPrice = auction.StartingBid + (long)(Math.Max(socket.Settings.MinProfit, 15_000_000) * (0.2 + Random.Shared.NextDouble())),
-            AdditionalProps = new() { { "bfcs", "redis" }, {"challenge", ""} },
+            AdditionalProps = new() { { "bfcs", "redis" }, { "challenge", "" } },
             DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() + 0.1f),
             Finder = (Random.Shared.NextDouble() < 0.7) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
         };
@@ -129,7 +129,8 @@ public class CircumventTracker
             MinecraftUuid = socket.SessionInfo.McUuid,
             UserId = socket.UserId
         });
-        await (socket as MinecraftSocket).ModAdapter.SendFlip(flip);
+        var adapter = (socket as MinecraftSocket).ModAdapter;
+        await adapter.SendFlip(flip);
         await trackTask;
         await Task.Delay(5000);
         socket.Dialog(db => db.MsgLine("Hello there,")
@@ -140,6 +141,10 @@ public class CircumventTracker
             .MsgLine("As long as you didn't do any modifications/run non-official client versions you have nothing to worry about.")
             .MsgLine("If you aren't flipping you may want to turn off flips with /cofl flip. If you are trying to flip you may want to check your settings.")
             .MsgLine("We are sorry for the inconvenience and hope you have a great day."));
+        await Task.Delay(5000);
+        flip.Target = flip.Auction.StartingBid;
+        if (adapter is AfVersionAdapter) // send correction
+            await adapter.SendFlip(flip);
     }
 
     private static async Task<SaveAuction> FindAuction(IMinecraftSocket socket)
