@@ -188,7 +188,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             var toSendDelayed = noBed.ExceptBy(toSendInstant.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid);
             await SendDelayed(noBed, toSendDelayed).ConfigureAwait(false);
-
+            Activity.Current.Log("Waiting for beds");
             // beds
             foreach (var item in bedsToWaitFor.OrderBy(b => b.Item2))
             {
@@ -259,6 +259,8 @@ namespace Coflnet.Sky.Commands.MC
 
             _ = socket.TryAsyncTimes(async () =>
             {
+                if (isSold)
+                    return; // no need to track sold flips
                 if (socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.SUPER_PREMIUM))
                     preApiFlipSent.Inc();
 
