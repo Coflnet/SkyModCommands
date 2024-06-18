@@ -61,6 +61,7 @@ public class SetCommand : McCommand
             {
                 var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();
                 socket.Settings.Changer = socket.SessionInfo.ConnectionId;
+                socket.Settings.LastChanged = name;
                 await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
             }
             var doc = updater.GetDocFor(name);
