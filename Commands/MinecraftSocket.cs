@@ -323,7 +323,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }).ConfigureAwait(false);
 
-            if(ClientIp.StartsWith("147.235.218.") || ClientIp.StartsWith("2a06:c701"))
+            if (ClientIp.StartsWith("147.235.218.") || ClientIp.StartsWith("2a06:c701"))
             {
                 using var span = CreateActivity("badIp", ConSpan);
                 span?.SetTag("ip", ClientIp)
@@ -723,9 +723,9 @@ namespace Coflnet.Sky.Commands.MC
             error?.AddEvent(new ActivityEvent(message ?? "error", DateTimeOffset.Now, new(new Dictionary<string, object?> {
                 { "exception", exception },
                 { "additionalLog", additionalLog },
-                { "session", JsonConvert.SerializeObject(SessionInfo) },
-                { "account", JsonConvert.SerializeObject(sessionLifesycle?.AccountInfo?.Value) },
-                { "settings", JsonConvert.SerializeObject(Settings).Truncate(10_000) }})));
+                { "session", JsonConvert.SerializeObject(SessionInfo) } })));
+            error.Log(JsonConvert.SerializeObject(sessionLifesycle?.AccountInfo?.Value));
+            error.Log(JsonConvert.SerializeObject(Settings).Truncate(10_000));
             return error?.Context.TraceId.ToString();
         }
 

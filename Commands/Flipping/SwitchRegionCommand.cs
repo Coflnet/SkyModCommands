@@ -11,7 +11,7 @@ public class SwitchRegionCommand : McCommand
     public override bool IsPublic => true;
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        var selected = JsonConvert.DeserializeObject<string>(arguments).ToLower();
+        var selected = JsonConvert.DeserializeObject<string>(arguments).ToLower().Trim();
         if (string.IsNullOrEmpty(selected))
         {
             socket.Dialog(db => db.MsgLine($"Current region: {McColorCodes.AQUA}{socket.AccountInfo.Region}")
@@ -48,7 +48,7 @@ public class SwitchRegionCommand : McCommand
         }
         else
         {
-            socket.Dialog(db => db.MsgLine($"Unknown region {McColorCodes.AQUA}{selected}"));
+            socket.Dialog(db => db.MsgLine($"Unknown region `{McColorCodes.AQUA}{selected}`"));
         }
         return;
     }
