@@ -43,11 +43,7 @@ public class CaptchaGenerator
         return new DialogBuilder().LineBreak()
             .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text)).Break
             .MsgLine($"{challenge.Question}", null, "anti macro question, please click on the answer")
-            .If(() => captchaType != "vertical", db => db.LineBreak()
-                        .CoflCommand<CaptchaCommand>(McColorCodes.AQUA + "Vertical |", "vertical",
-                            $"{McColorCodes.GREEN}Use vertical captcha \n{McColorCodes.GRAY}this will print the letters below one another\n"
-                            + "and helps if the green lines don't match up\nbecause you use a different font\n(you may need to solve one more captcha)"))
-            .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>("Big captcha", "big", "Use horizontal captcha"))
+            .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>("Horizontal captcha", "big", "Use horizontal captcha"))
             .CoflCommand<CaptchaCommand>(McColorCodes.ITALIC + " Another", "another", "Too difficult?\nGet another captcha")
             .CoflCommand<CaptchaCommand>(McColorCodes.GREEN + " [Click if green line doesn't line up]", "config", "Configure the captcha\nso it lines up correctly")
             .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>(McColorCodes.LIGHT_PURPLE + " I use optifine", "optifine",
