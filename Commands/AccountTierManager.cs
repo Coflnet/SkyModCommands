@@ -90,22 +90,14 @@ public class AccountTierManager : IAccountTierManager
     {
         if (activeSessions?.Value == null)
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
-        // check license
-        var licenses = await socket.GetService<ILicenseApi>().ApiLicenseUUserIdGetAsync(userId);
-        var thisAccount = licenses.Where(l => l.TargetId == socket.SessionInfo.McUuid && l.Expires > DateTime.UtcNow);
-        if (thisAccount.Any())
-        {
-            var premPlus = thisAccount.FirstOrDefault(l => l.ProductSlug == "premium_plus");
-            if (premPlus != null)
-                return (AccountTier.PREMIUM_PLUS, premPlus.Expires);
-        }
+        var startValue = activeSessions?.Value;
         var userApi = socket.GetService<PremiumService>();
         var expiresTask = userApi.GetCurrentTier(userId);
         var expires = await expiresTask;
         if (string.IsNullOrEmpty(activeSessions.Value.UseAccountTierOn))
         {
             activeSessions.Value.UseAccountTierOn = socket.SessionInfo.McUuid;
-            await activeSessions.Update();
+            await SyncState(startValue);
         }
         var sessions = activeSessions.Value.Sessions;
         if (!sessions.Any(s => s.ConnectionId == socket.SessionInfo.ConnectionId))
@@ -121,19 +113,63 @@ public class AccountTierManager : IAccountTierManager
                 Version = socket.Version,
                 MinecraftUuid = socket.SessionInfo.McUuid
             });
-            await activeSessions.Update();
+            Console.WriteLine($"Added session {socket.SessionInfo.ConnectionId} for {socket.SessionInfo.McUuid}");
+            await SyncState(startValue);
         }
         else
         {
             var session = sessions.First(s => s.ConnectionId == socket.SessionInfo.ConnectionId);
-            session.LastActive = DateTime.UtcNow;
-            session.Tier = expires.Item1;
-            if (session.LastActive < DateTime.Now - TimeSpan.FromMinutes(5))
-                await activeSessions.Update();
+            if (session.Outdated)
+            {
+                activeSessions.Dispose();
+                Console.WriteLine("connected from somewhere else with the same minecraft account");
+                socket.Dialog(db => db.MsgLine($"You connected from somewhere else with the same minecraft account this connection is being downgraded"));
+                socket.sessionLifesycle.UpdateConnectionTier(AccountTier.NONE);
+                return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
+            }
+            if (session.LastActive < DateTime.UtcNow - TimeSpan.FromSeconds(5))
+            {
+                session.LastActive = DateTime.UtcNow;
+                session.Tier = expires.Item1;
+                Console.WriteLine($"Updating activity on session {socket.SessionInfo.ConnectionId} for {socket.SessionInfo.McUuid} to {session.LastActive}");
+                await SyncState(startValue);
+            }
+        }
+        var sameMcAccount = sessions.Where(s => s.MinecraftUuid == socket.SessionInfo.McUuid).ToList();
+        if (sameMcAccount.Count() > 1)
+        {
+            var amITheLast = sameMcAccount.OrderByDescending(s => s.LastActive).ThenBy(s => s.ConnectionId).First().ConnectionId == socket.SessionInfo.ConnectionId;
+            var others = sameMcAccount.Where(s => s.ConnectionId != socket.SessionInfo.ConnectionId).ToList();
+            if (amITheLast)
+            { // only the latest session updates the state
+                foreach (var session in others.Where(o => o.LastActive < DateTime.UtcNow - TimeSpan.FromMinutes(5)))
+                {
+                    sessions.Remove(session);
+                }
+                if (others.Where(s => !s.Outdated).Any())
+                {
+                    foreach (var session in others.Where(o => o.LastActive >= DateTime.UtcNow - TimeSpan.FromHours(1)))
+                    {
+                        session.Outdated = true;
+                    }
+                    Console.WriteLine($"Removed {others.Count} other connections for {socket.SessionInfo.McUuid} from {socket.SessionInfo.ConnectionId}");
+                    await SyncState(startValue);
+                }
+            }
         }
         var isCurrentConOnlyCon = sessions.All(s => s.ConnectionId == socket.SessionInfo.ConnectionId || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
-        Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {activeSessions.Value.UseAccountTierOn} {isCurrentConOnlyCon}");
+        Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {socket.SessionInfo.ConnectionId} {isCurrentConOnlyCon}");
         activeSessions.Value.UserAccountTier = expires.Item1;
+
+        // check license
+        var licenses = await socket.GetService<ILicenseApi>().ApiLicenseUUserIdGetAsync(userId);
+        var thisAccount = licenses.Where(l => l.TargetId == socket.SessionInfo.McUuid && l.Expires > DateTime.UtcNow);
+        if (thisAccount.Any())
+        {
+            var premPlus = thisAccount.FirstOrDefault(l => l.ProductSlug == "premium_plus");
+            if (premPlus != null)
+                return (AccountTier.PREMIUM_PLUS, premPlus.Expires);
+        }
         if (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon)
         {
             return (expires.Item1, expires.Item2);
@@ -144,6 +180,14 @@ public class AccountTierManager : IAccountTierManager
             return (AccountTier.PREMIUM, thisAccount.First().Expires);
         }
         return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
+    }
+
+    private async Task SyncState(ActiveSessions? startValue)
+    {
+        await Task.Delay(1000);
+        Console.WriteLine("Syncing state");
+        if (startValue == activeSessions.Value)
+            await activeSessions.Update();
     }
 
     public string GetSessionInfo()
@@ -171,7 +215,7 @@ public class AccountTierManager : IAccountTierManager
         if (activeSessions == null)
             return;
         activeSessions.Value.UseAccountTierOn = mcUuid;
-        await activeSessions.Update();
+        await SyncState(activeSessions.Value);
     }
 
     public void Dispose()

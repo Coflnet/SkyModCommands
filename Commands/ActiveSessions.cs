@@ -51,4 +51,6 @@ public class ActiveSession
     /// </summary>
     [DataMember(Name = "tier")]
     public AccountTier Tier;
+    [DataMember(Name = "outdated")]
+    public bool Outdated;
 }
