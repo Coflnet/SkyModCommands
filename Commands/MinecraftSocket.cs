@@ -438,6 +438,8 @@ namespace Coflnet.Sky.Commands.MC
         {
             try
             {
+                if(name.Length == 32)
+                    return name; // already a uuid
                 return await DiHandler.GetService<PlayerName.PlayerNameService>()
                         .GetUuid(name);
             }
