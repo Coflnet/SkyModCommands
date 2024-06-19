@@ -33,7 +33,7 @@ namespace Coflnet.Sky.Commands.MC
         public SelfUpdatingValue<AccountSettings> AccountSettings;
         public SelfUpdatingValue<PrivacySettings> PrivacySettings;
         public SelfUpdatingValue<ConfigContainer> LoadedConfig;
-        public AccountTierManager TierManager;
+        public IAccountTierManager TierManager;
         public Activity ConSpan => socket.ConSpan;
         public Timer PingTimer;
         private SpamController spamController = new SpamController();
