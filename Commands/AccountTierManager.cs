@@ -29,13 +29,14 @@ public class AccountTierManager : IAccountTierManager
     private AccountTier? lastTier;
     private DateTime expiresAt;
     private string userId;
-
+    IAuthUpdate loginNotification;
     public DateTime ExpiresAt => expiresAt;
 
     public AccountTierManager(IMinecraftSocket socket, IAuthUpdate loginNotification)
     {
         this.socket = socket;
         loginNotification.OnLogin += LoginNotification_OnLogin;
+        this.loginNotification = loginNotification;
     }
 
     private void LoginNotification_OnLogin(object? sender, string userId)
@@ -97,7 +98,6 @@ public class AccountTierManager : IAccountTierManager
             var premPlus = thisAccount.FirstOrDefault(l => l.ProductSlug == "premium_plus");
             if (premPlus != null)
                 return (AccountTier.PREMIUM_PLUS, premPlus.Expires);
-            return (AccountTier.PREMIUM, thisAccount.First().Expires);
         }
         var userApi = socket.GetService<PremiumService>();
         var expiresTask = userApi.GetCurrentTier(userId);
@@ -138,6 +138,11 @@ public class AccountTierManager : IAccountTierManager
         {
             return (expires.Item1, expires.Item2);
         }
+        if (thisAccount.Any())
+        {
+            // active account may be prem+ which takes priority
+            return (AccountTier.PREMIUM, thisAccount.First().Expires);
+        }
         return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
     }
 
@@ -171,6 +176,7 @@ public class AccountTierManager : IAccountTierManager
 
     public void Dispose()
     {
+        loginNotification.OnLogin -= LoginNotification_OnLogin;
         activeSessions?.Value.Sessions.RemoveAll(s => s.ConnectionId == socket.SessionInfo.ConnectionId);
         activeSessions?.Update().ContinueWith(t => activeSessions?.Dispose());
         activeSessions = null;
