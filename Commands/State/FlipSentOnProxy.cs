@@ -21,7 +21,7 @@ public class FlipSentOnProxy : McCommand
         if (data.PlayerId != socket.SessionInfo.McUuid)
             throw new Exception("PlayerId does not match the session");
         await socket.GetService<IFlipReceiveTracker>().ReceiveFlip(data.AuctionId, data.PlayerId, data.Time);
-        if (data.Value > 0)
+        if (data.Value != 0)
             await socket.GetService<IPriceStorageService>().SetPrice(Guid.Parse(data.PlayerId), data.ItemId, data.Value);
     }
 }
