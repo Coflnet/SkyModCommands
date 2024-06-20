@@ -30,7 +30,8 @@ namespace Coflnet.Sky.ModCommands.Dialogs
         }
         public DialogBuilder MsgLine(string message, string onClick = null, string hover = null)
         {
-            Parts.Add(new ChatPart(message + "\n", onClick == null ? CurrentUrl : onClick, hover));
+            Parts.Add(new ChatPart(message, onClick ?? CurrentUrl, hover));
+            LineBreak();
             return this;
         }
         public DialogBuilder ForEach<T>(IEnumerable<T> collection, Action<DialogBuilder,T> action)
