@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
@@ -53,12 +54,20 @@ public class AccountTierManager : IAccountTierManager
 
     private async Task CheckAccounttier()
     {
-        var currentTier = await GetCurrentTierWithExpire();
-        if (currentTier.tier != lastTier)
+        try
         {
-            OnTierChange?.Invoke(this, currentTier.tier);
+            var currentTier = await GetCurrentTierWithExpire();
+            if (currentTier.tier != lastTier)
+            {
+                OnTierChange?.Invoke(this, currentTier.tier);
+            }
+            (lastTier, expiresAt) = currentTier;
         }
-        (lastTier, expiresAt) = currentTier;
+        catch (Exception e)
+        {
+            socket.Error(e, "Error checking account tier", JsonConvert.SerializeObject(activeSessions?.Value));
+            throw;
+        }
     }
 
     private void ActiveSessions_OnChange(ActiveSessions sessions)
@@ -100,7 +109,7 @@ public class AccountTierManager : IAccountTierManager
             await SyncState(startValue);
         }
         var sessions = activeSessions.Value.Sessions;
-        if (!sessions.Any(s => s.ConnectionId == socket.SessionInfo.ConnectionId))
+        if (!sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId))
         {
             sessions.Add(new ActiveSession()
             {
