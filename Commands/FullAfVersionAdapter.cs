@@ -72,7 +72,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var sniperService = socket.GetService<ISniperClient>();
         var values = await sniperService.GetPrices(inventory);
         var toList = inventory.Zip(values).Skip(9).Where(x => x.First != null && x.Second.Median > 1000);
-        span.Log(JsonConvert.SerializeObject(toList));
+        using (var dataResult = socket.CreateActivity("listData", span))
+            dataResult.Log(JsonConvert.SerializeObject(toList));
         foreach (var item in LastSentFlips())
         {
             var itemUuid = item.Auction.FlatenedNBT?.FirstOrDefault(y => y.Key == "uuid").Value;

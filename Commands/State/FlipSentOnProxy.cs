@@ -23,5 +23,7 @@ public class FlipSentOnProxy : McCommand
         await socket.GetService<IFlipReceiveTracker>().ReceiveFlip(data.AuctionId, data.PlayerId, data.Time);
         if (data.Value != 0)
             await socket.GetService<IPriceStorageService>().SetPrice(Guid.Parse(data.PlayerId), data.ItemId, data.Value);
+        if (socket.ModAdapter is FullAfVersionAdapter af)
+            await af.TryToListAuction();
     }
 }
