@@ -660,7 +660,7 @@ namespace Coflnet.Sky.Commands.MC
                     commands.Add(item.onClick.ToString());
                     item.text += $"{McColorCodes.DARK_AQUA}({commands.Count})";
                 }
-                SendMessage(dialog.Concat(commands.Select(c => new ChatPart($"{McColorCodes.DARK_AQUA}({commands.IndexOf(c) + 1}){McColorCodes.GRAY} {c}"))).ToArray());
+                SendMessage(dialog.Concat(commands.Select(c => new ChatPart($"{McColorCodes.DARK_AQUA}({commands.IndexOf(c) + 1}){McColorCodes.GRAY} {c} \n"))).ToArray());
             }
             else
                 SendMessage(dialog);
