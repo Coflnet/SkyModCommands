@@ -80,6 +80,22 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             .CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}Premium  ", $"add {name} premium {socket.SessionInfo.ConnectionId}", "Purchase/extend premium license")
             .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+  ", $"add {name} premium_plus {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license"));
     }
+
+    protected override async Task NoEntriesFound(MinecraftSocket socket, string subArgs)
+    {
+        var uuids = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+        if (uuids.Count() <= 1)
+        {
+            socket.Dialog(db => db.MsgLine("You only have one account, you may want to use").CoflCommand<PurchaseCommand>($"{McColorCodes.AQUA} /cofl buy", "", "Get buy menu"));
+            return;
+        }
+        var allnames = await GetNames(socket, uuids);
+        socket.Dialog(db => db.MsgLine("You don't have any licenses yet. You can purchase one for one of your verified accounts")
+            .ForEach(uuids, (db, id) => db.Msg($"{McColorCodes.GRAY}> {McColorCodes.AQUA}{allnames.GetValueOrDefault(id) ?? id}")
+                .CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}{allnames.GetValueOrDefault(id) ?? id}  ", $"add {allnames.GetValueOrDefault(id) ?? id} premium", $"Purchase/extend premium license for {allnames.GetValueOrDefault(id) ?? id}")
+                .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}{allnames.GetValueOrDefault(id) ?? id}  ", $"add {allnames.GetValueOrDefault(id) ?? id} premium_plus", $"Purchase/extend premium+ license for {allnames.GetValueOrDefault(id) ?? id}").LineBreak()));
+    }
+
     protected override async Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)
     {
         return null;
@@ -103,9 +119,8 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
     protected override async Task<List<PublicLicenseWithName>> GetList(MinecraftSocket socket)
     {
         var licenseApi = socket.GetService<ILicenseApi>();
-        var nameApi = socket.GetService<PlayerName.PlayerNameService>();
         var licenses = await licenseApi.ApiLicenseUUserIdGetAsync(socket.UserId);
-        var allnames = await nameApi.GetNames(licenses.Select(l => l.TargetId));
+        Dictionary<string, string> allnames = await GetNames(socket, licenses.Select(l => l.TargetId));
         return licenses.ConvertAll(l => new PublicLicenseWithName
         {
             Expires = l.Expires,
@@ -113,6 +128,13 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             TargetId = l.TargetId,
             TargetName = allnames?.GetValueOrDefault(l.TargetId) ?? l.TargetId.Truncate(5) + "..."
         });
+    }
+
+    private static async Task<Dictionary<string, string>> GetNames(MinecraftSocket socket, IEnumerable<string> uuids)
+    {
+        var nameApi = socket.GetService<PlayerName.PlayerNameService>();
+        var allnames = await nameApi.GetNames(uuids);
+        return allnames;
     }
 
     protected override Task Update(MinecraftSocket socket, List<PublicLicenseWithName> newCol)

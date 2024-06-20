@@ -214,12 +214,24 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
 
+            if(list.Count == 0)
+            {
+                await NoEntriesFound(socket, subArgs);
+                return;
+            }
+
             socket.Dialog(db => db
                 .MsgLine($"Content (page {displayPage}):", $"/cofl {Slug} ls {page + 1}", $"This is page {displayPage} \nthere are {totalPages} pages\nclick this to show the next page")
                 .ForEach(list.Skip(page * pageSize).Take(pageSize), (d, e) =>
                 {
                     ListResponse(d, e);
                 }));
+        }
+
+        protected virtual Task NoEntriesFound(MinecraftSocket socket, string subArgs)
+        {
+            socket.SendMessage(new DialogBuilder().MsgLine($"No entries found for. You can add new ones with {McColorCodes.AQUA}/cofl {Slug} add <argument>{DEFAULT_COLOR}"));
+            return Task.CompletedTask;
         }
 
         protected virtual void ListResponse(DialogBuilder d, TElem e)
