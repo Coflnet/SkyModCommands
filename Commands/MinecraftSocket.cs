@@ -438,7 +438,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             try
             {
-                if(name.Length == 32)
+                if (name.Length == 32)
                     return name; // already a uuid
                 return await DiHandler.GetService<PlayerName.PlayerNameService>()
                         .GetUuid(name);
@@ -648,7 +648,22 @@ namespace Coflnet.Sky.Commands.MC
 
         public virtual void Dialog(Func<SocketDialogBuilder, DialogBuilder> creation)
         {
-            SendMessage(creation.Invoke(new SocketDialogBuilder(this)));
+            var dialog = creation.Invoke(new SocketDialogBuilder(this)).Build();
+            if (ModAdapter is FullAfVersionAdapter)
+            {
+                // get click command and print them as text
+                var commands = new List<string>();
+                foreach (var item in dialog)
+                {
+                    if (item.onClick == null)
+                        continue;
+                    commands.Add(item.onClick.ToString());
+                    item.text += $"{McColorCodes.DARK_AQUA}({commands.Count})";
+                }
+                SendMessage(dialog.Concat(commands.Select(c => new ChatPart($"{McColorCodes.DARK_AQUA}({commands.IndexOf(c) + 1}){McColorCodes.GRAY} {c}"))).ToArray());
+            }
+            else
+                SendMessage(dialog);
         }
 
 
