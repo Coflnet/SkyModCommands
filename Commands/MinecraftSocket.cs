@@ -649,21 +649,21 @@ namespace Coflnet.Sky.Commands.MC
         public virtual void Dialog(Func<SocketDialogBuilder, DialogBuilder> creation)
         {
             var dialog = creation.Invoke(new SocketDialogBuilder(this)).Build();
-            if (ModAdapter is FullAfVersionAdapter)
+            if (ModAdapter is not FullAfVersionAdapter && !IsDevMode)
             {
-                // get click command and print them as text
-                var commands = new List<string>();
-                foreach (var item in dialog)
-                {
-                    if (item.onClick == null)
-                        continue;
-                    commands.Add(item.onClick.ToString());
-                    item.text += $"{McColorCodes.DARK_AQUA}({commands.Count})";
-                }
-                SendMessage(dialog.Concat(commands.Select(c => new ChatPart($"{McColorCodes.DARK_AQUA}({commands.IndexOf(c) + 1}){McColorCodes.GRAY} {c} \n"))).ToArray());
-            }
-            else
                 SendMessage(dialog);
+                return;
+            }
+            // get click command and print them as text
+            var commands = new List<string>();
+            foreach (var item in dialog)
+            {
+                if (item.onClick == null)
+                    continue;
+                commands.Add(item.onClick.ToString());
+                item.text += $"{McColorCodes.DARK_AQUA}({commands.Count})";
+            }
+            SendMessage(dialog.Concat(commands.Select(c => new ChatPart($"{McColorCodes.DARK_AQUA}({commands.IndexOf(c) + 1}){McColorCodes.GRAY} {c} \n"))).ToArray());
         }
 
 
@@ -875,8 +875,7 @@ namespace Coflnet.Sky.Commands.MC
                 timer.Log("not verified");
                 return;
             }
-            var test = SessionInfo.McName == "Ekwav";
-            if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1 || test)
+            if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1)
             {
                 using var track = this.CreateActivity("skipCheck", timer)?.AddTag("actioncount", AccountInfo.BadActionCount);
                 if (sessionLifesycle.UserId.Value == default)
@@ -885,7 +884,7 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 }
                 var tracker = DiHandler.GetService<CircumventTracker>();
-                if (Math.Min(AccountInfo.BadActionCount + 2, 30d) / 100 > Random.Shared.NextDouble() || test)
+                if (Math.Min(AccountInfo.BadActionCount + 2, 30d) / 100 > Random.Shared.NextDouble())
                     tracker.Callenge(this);
                 tracker.Shedule(this);
             }
