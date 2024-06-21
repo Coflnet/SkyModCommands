@@ -55,6 +55,7 @@ namespace Coflnet.Sky.Commands.MC
                     auctioneerId = flip.Auction.AuctioneerId,
                 },
                 target = flip.Target,
+                finder = flip.Finder,
                 render = Random.Shared.Next(3) switch
                 {
                     1 => "21d837ca222cbc0bc12426f5da018c3a931b406008800960a9df112a596e7d62",
