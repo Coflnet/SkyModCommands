@@ -16,6 +16,9 @@ namespace Coflnet.Sky.Commands.MC
         {
             var list = GetSettings(socket);
             list.Value.WhiteList = newCol;
+            list.Value.Changer = socket.SessionInfo.ConnectionId;
+            list.Value.RecompileMatchers();
+            list.Value.LastChanged = "preventUpdateMsg";
             list.Value.LastChanged = null;
             await list.Update(list.Value);
         }
