@@ -75,7 +75,7 @@ public class SwitchRegionCommand : McCommand
             Timeout = 5000
         };
         var response = await restClient.ExecuteAsync(request);
-        var reachable = response.StatusCode != 0;
+        var reachable = response.StatusCode != 0 && response.StatusCode != System.Net.HttpStatusCode.NotFound;
         return reachable;
     }
 }
