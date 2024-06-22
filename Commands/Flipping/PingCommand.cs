@@ -14,6 +14,8 @@ public class PingCommand : McCommand
     private ConcurrentDictionary<string, List<double>> pings = new();
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
+        if (MinecraftSocket.NextFlipTime > DateTime.UtcNow && MinecraftSocket.NextFlipTime < DateTime.UtcNow.AddSeconds(12))
+            socket.Dialog(db => db.MsgLine($"The ah updates soon. Ping may appear higher now than it actually is because cpu is used to load auctions as fast as possible for you."));
         var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
         var sessionId = socket.SessionInfo.SessionId;
         if (args.Length <= 1)
@@ -34,7 +36,7 @@ public class PingCommand : McCommand
         db?.AddTag("ping", ping);
         var thisSession = pings.GetOrAdd(sessionId, (a) => new());
         thisSession.Add(ping);
-        if(thisSession.Count < 4)
+        if (thisSession.Count < 4)
         {
             await Task.Delay(100);
             socket.ExecuteCommand($"/cofl ping {sessionId} {DateTime.UtcNow.Ticks}");

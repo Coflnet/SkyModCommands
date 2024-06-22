@@ -62,7 +62,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <summary>
         /// The time flips are expected to come in
         /// </summary>
-        protected static DateTime NextFlipTime { get; set; }
+        public static DateTime NextFlipTime { get; private set; }
 
         //int IFlipConnection.UserId => int.Parse(sessionLifesycle?.UserId?.Value ?? "0");
         public string UserId
