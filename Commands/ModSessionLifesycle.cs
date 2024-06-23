@@ -124,7 +124,8 @@ namespace Coflnet.Sky.Commands.MC
             UpdateExtraDelay();
             TierManager.OnTierChange += (s, Newtier) =>
             {
-                Console.WriteLine("tier changed to " + Newtier);
+                if (Newtier != AccountTier.NONE)
+                    Console.WriteLine("tier changed to " + Newtier);
                 socket.SessionInfo.SessionTier = Newtier;
                 UpdateConnectionTier(Newtier);
             };
