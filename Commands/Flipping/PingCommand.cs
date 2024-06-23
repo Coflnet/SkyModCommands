@@ -14,14 +14,16 @@ public class PingCommand : McCommand
     private ConcurrentDictionary<string, List<double>> pings = new();
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if (MinecraftSocket.NextFlipTime > DateTime.UtcNow && MinecraftSocket.NextFlipTime < DateTime.UtcNow.AddSeconds(12))
+        if (MinecraftSocket.NextFlipTime > DateTime.UtcNow.AddSeconds(52) && MinecraftSocket.NextFlipTime < DateTime.UtcNow.AddSeconds(65))
             socket.Dialog(db => db.MsgLine($"The ah updates soon. Ping may appear higher now than it actually is because cpu is used to load auctions as fast as possible for you."));
         var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
         var sessionId = socket.SessionInfo.SessionId;
         if (args.Length <= 1)
         {
-            socket.ExecuteCommand($"/cofl ping {sessionId} {DateTime.UtcNow.Ticks}");
             socket.Dialog(db => db.MsgLine($"Testing ping"));
+            socket.ExecuteCommand($"/cofl ping {sessionId} {DateTime.UtcNow.Ticks}");
+            await Task.Delay(800);
+            socket.ExecuteCommand($"/cofl ping {sessionId} {DateTime.UtcNow.Ticks}");
             return;
         }
         var returnedSessionId = args[0];
@@ -43,9 +45,11 @@ public class PingCommand : McCommand
             return;
         }
         var average = thisSession.Average();
+        var lowest = thisSession.Min();
         Console.WriteLine($"Ping of {ping}ms from {socket.SessionInfo.McName} {socket.ClientIp} {socket.SessionInfo.McUuid} {socket.UserId} {average}");
         socket.Dialog(db => db.MsgLine($"Your Ping to execute Coflnet commands is: {McColorCodes.AQUA}{socket.FormatPrice(average)}ms")
-            .Msg($"{McColorCodes.GRAY}This is the time it takes for your command to reach the server and get executed and sent back to you. Its only partially related to the time your receive flips in."));
+            .Msg($"The time to receive flips is estimated to be {McColorCodes.AQUA}{socket.FormatPrice(lowest / 2)}ms"));
+        await Task.Delay(1000);
         pings.TryRemove(sessionId, out _);
     }
 }
