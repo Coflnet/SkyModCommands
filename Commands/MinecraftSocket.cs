@@ -742,6 +742,7 @@ namespace Coflnet.Sky.Commands.MC
                 { "additionalLog", additionalLog },
                 { "session", JsonConvert.SerializeObject(SessionInfo) } })));
             error.Log(JsonConvert.SerializeObject(sessionLifesycle?.AccountInfo?.Value));
+            error.Log($"Calling stacktrace: {Environment.StackTrace}");
             error.Log(JsonConvert.SerializeObject(Settings).Truncate(10_000));
             return error?.Context.TraceId.ToString();
         }
