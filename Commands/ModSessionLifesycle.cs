@@ -122,13 +122,15 @@ namespace Coflnet.Sky.Commands.MC
 
             loadSpan?.Dispose();
             UpdateExtraDelay();
-            TierManager.OnTierChange += (s, Newtier) =>
-            {
-                if (Newtier != AccountTier.NONE)
-                    Console.WriteLine("tier changed to " + Newtier);
-                socket.SessionInfo.SessionTier = Newtier;
-                UpdateConnectionTier(Newtier);
-            };
+            TierManager.OnTierChange += TierChangedHandler;
+        }
+
+        private void TierChangedHandler(object sender, AccountTier Newtier)
+        {
+            if (Newtier != AccountTier.NONE)
+                Console.WriteLine("tier changed to " + Newtier);
+            socket.SessionInfo.SessionTier = Newtier;
+            UpdateConnectionTier(Newtier);
         }
 
         private async Task SendLoginPromptMessage(string stringId)
@@ -958,6 +960,7 @@ namespace Coflnet.Sky.Commands.MC
             LoadedConfig?.Dispose();
             PingTimer?.Dispose();
             TierManager?.Dispose();
+            TierManager.OnTierChange -= TierChangedHandler;
         }
     }
 
