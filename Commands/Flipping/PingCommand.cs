@@ -22,8 +22,6 @@ public class PingCommand : McCommand
                 socket.Dialog(db => db.MsgLine($"The ah updates soon. Ping may appear higher now than it actually is because cpu is used to load auctions as fast as possible for you."));
             socket.Dialog(db => db.MsgLine($"Testing ping"));
             socket.ExecuteCommand($"/cofl ping {sessionId} {DateTime.UtcNow.Ticks}");
-            await Task.Delay(800);
-            socket.ExecuteCommand($"/cofl ping {sessionId} {DateTime.UtcNow.Ticks}");
             return;
         }
         var returnedSessionId = args[0];
