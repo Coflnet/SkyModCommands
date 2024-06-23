@@ -39,6 +39,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (Settings == null || socket.HasFlippingDisabled())
                 return;
+            var start = DateTime.UtcNow;
             var maxCostFromPurse = socket.SessionInfo.Purse * (Settings.ModSettings.MaxPercentOfPurse == 0 ? 100 : Settings.ModSettings.MaxPercentOfPurse) / 100;
             var prefiltered = flips.Where(f => !SentFlips.ContainsKey(f.UId)
                 && FinderEnabled(f)
@@ -61,9 +62,9 @@ namespace Coflnet.Sky.Commands.MC
             var toSend = matches.Where(f => NotBlockedForSpam(f.instance, f.f)).ToList();
             foreach (var item in toSend)
             {
-
                 var timeToSend = DateTime.UtcNow - item.f.Auction.FindTime;
                 item.f.AdditionalProps["dl"] = (timeToSend).ToString();
+                item.f.AdditionalProps["ft"] = (DateTime.UtcNow - start).ToString();
             }
             using (var span = socket.CreateActivity("Flip", socket.ConSpan)
                 ?.AddTag("uuid", matches.First().f.Auction.Uuid)
