@@ -613,7 +613,14 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnClose(CloseEventArgs? e)
         {
             base.OnClose(e);
-            GetService<FlipperService>().RemoveConnection(this);
+            try
+            {
+                GetService<FlipperService>().RemoveConnection(this);
+            }
+            catch (Exception er)
+            {
+                dev.Logger.Instance.Error(er, "on close");
+            }
             ConSpan.SetTag("close reason", e?.Reason);
 
             ConSpan?.Dispose();
