@@ -39,7 +39,7 @@ public class UploadScoreboardCommand : McCommand
         socket.SessionInfo.IsStranded = isStranded;
         socket.SessionInfo.IsDungeon = isDungeon;
         socket.SessionInfo.IsRift = isRift;
-        if (wasNotFlippable && !socket.SessionInfo.IsNotFlipable)
+        if (wasNotFlippable && !socket.SessionInfo.IsNotFlipable && !socket.HasFlippingDisabled())
         {
             socket.Dialog(db => db.MsgLine("Flips reenabled because you left non-flippable gamemode"));
         }
