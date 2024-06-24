@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cassandra;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC;
 

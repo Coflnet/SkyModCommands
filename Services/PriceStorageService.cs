@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
-using Coflnet.Sky.Commands.MC;
+using Coflnet.Sky.Commands.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.ModCommands.Services;
