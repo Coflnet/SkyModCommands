@@ -541,7 +541,11 @@ namespace Coflnet.Sky.Commands.MC
             }
             var flipperService = socket.GetService<FlipperService>();
             if (tier == AccountTier.NONE)
+            {
+                // remove other tiers
+                flipperService.RemoveConnection(socket);
                 flipperService.AddNonConnection(socket, false);
+            }
             if (tier == AccountTier.PREMIUM)
                 flipperService.AddConnection(socket, false);
             else if (tier == AccountTier.PREMIUM_PLUS)
