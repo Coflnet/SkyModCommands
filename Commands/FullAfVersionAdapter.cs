@@ -37,6 +37,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     public override async Task TryToListAuction()
     {
+        await Task.Delay(5000);
         if (DateTime.UtcNow - lastListing < TimeSpan.FromSeconds(15) || socket.CurrentRegion != Region.EU)
             return;
         using var span = socket.CreateActivity("listAuctionTry", socket.ConSpan);
