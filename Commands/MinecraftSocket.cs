@@ -196,12 +196,12 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<AttributeUpgradeCommand>("au");
             Commands.Add<SellConfigCommand>();
             Commands.Add<OwnConfigsCommand>();
-            Commands.Add<ConfigsCommand>();
+            Commands.Add<ConfigsCommand>("config");
             Commands.Add<BuyConfigCommand>();
             Commands.Add<LoadConfigCommand>();
             Commands.Add<GiftConfigCommand>();
             Commands.Add<RewardHandler.ClaimHypixelRewardCommand>();
-            Commands.Add<LicensesCommand>();
+            Commands.Add<LicensesCommand>("license");
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
