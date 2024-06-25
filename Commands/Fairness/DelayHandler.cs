@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using System.Threading;
 using System.Diagnostics;
+using Confluent.Kafka;
+using Moq;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -205,7 +207,8 @@ public class DelayHandler : IDelayHandler
             // shady accounts keep base delay
             macroPenalty += TimeSpan.FromSeconds(4);
         }
-
+        var lastOne = breakdown.Times.LastOrDefault();
+        summary.ReduceBadActions = TimeSpan.Parse(lastOne.Age) < TimeSpan.FromMinutes(2) && lastOne.TotalSeconds > 3.1 && breakdown.Penalty > 0.5 && breakdown.Buys.Count > 5;
 
         if (ids.Any(DiHandler.GetService<DelayService>().IsSlowedDown))
             currentDelay += TimeSpan.FromSeconds(4);
@@ -228,6 +231,7 @@ public class DelayHandler : IDelayHandler
         public bool VerifiedMc;
         public int nonpurchaseRate;
         public bool HasBadPlayer;
+        public bool ReduceBadActions;
     }
 
     private TimeSpan GetCorrectDelay(int myIndex)

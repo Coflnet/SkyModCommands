@@ -857,6 +857,11 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     await SendShitFlip();
                 }
+                if (summary.ReduceBadActions && Random.Shared.Next(0, 100) < AccountInfo.Value.BadActionCount)
+                {
+                    AccountInfo.Value.BadActionCount--;
+                    await AccountInfo.Update(AccountInfo.Value);
+                }
                 if (isBot)
                     return;
                 await SendAfkWarningMessages(summary).ConfigureAwait(false);
