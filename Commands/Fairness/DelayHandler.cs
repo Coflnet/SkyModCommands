@@ -207,8 +207,9 @@ public class DelayHandler : IDelayHandler
             // shady accounts keep base delay
             macroPenalty += TimeSpan.FromSeconds(4);
         }
-        var lastOne = breakdown.Times.LastOrDefault();
-        summary.ReduceBadActions = TimeSpan.Parse(lastOne.Age) < TimeSpan.FromMinutes(2) && lastOne.TotalSeconds > 3.1 && breakdown.Penalty > 0.5 && breakdown.Buys.Count > 5;
+        var lastOne = breakdown?.Times?.LastOrDefault();
+        if (lastOne != null)
+            summary.ReduceBadActions = TimeSpan.Parse(lastOne.Age) < TimeSpan.FromMinutes(2) && lastOne.TotalSeconds > 3.1 && breakdown.Penalty > 0.5 && breakdown.Buys.Count > 5;
 
         if (ids.Any(DiHandler.GetService<DelayService>().IsSlowedDown))
             currentDelay += TimeSpan.FromSeconds(4);
