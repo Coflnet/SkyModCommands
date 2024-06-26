@@ -5,8 +5,6 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using System.Threading;
 using System.Diagnostics;
-using Confluent.Kafka;
-using Moq;
 
 namespace Coflnet.Sky.Commands.MC;
 
