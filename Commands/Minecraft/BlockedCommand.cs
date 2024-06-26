@@ -29,6 +29,11 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.CoflCommand<FlipCommand>("You don't have flips enabled, as a result there are no flips blocked.\nClick to enable flips", "", "Click to enable them"));
                 return;
             }
+            if (socket.SessionInfo.Purse == -1)
+            {
+                socket.Dialog(db => db.MsgLine("It looks like you are not in skyblock currently. Flips are only shown in skyblock."));
+                return;
+            }
             if (socket.TopBlocked.Count == 0)
             {
                 socket.SendMessage(COFLNET + "No blocked flips found, it can take a while after you connected");
@@ -96,12 +101,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"Note that you don't have premium, flips will show up very late if at all. Eg. the user finder doesn't work. \n{McColorCodes.GREEN}[Click to change that]", "", "Click to select a premium plan"));
             }
 
-            if (socket.SessionInfo.Purse == -1)
-            {
-                await Task.Delay(1000);
-                socket.Dialog(db => db.MsgLine("It looks like you are not in skyblock currently. Flips are only shown in skyblock."));
-            }
-            else if (socket.SessionInfo.Purse != 0 && socket.SessionInfo.Purse < 10_000_000)
+            if (socket.SessionInfo.Purse != 0 && socket.SessionInfo.Purse < 10_000_000)
             {
                 await Task.Delay(2000);
                 socket.Dialog(db => db.MsgLine("You don't have many coins in your purse. Flips you can't afford aren't shown."));
