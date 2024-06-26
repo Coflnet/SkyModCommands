@@ -65,7 +65,7 @@ namespace Coflnet.Sky.Commands.MC
         [JsonIgnore]
         public CaptchaInfo captchaInfo = new();
 
-        public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon || IsRift;
+        public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon || IsRift || Purse == -1;
         public string ConnectionType { get; set; }
 
         public List<SaveAuction> Inventory { get; set; }
