@@ -13,6 +13,7 @@ public class UploadScoreboardCommand : McCommand
         var isBingo = false;
         var isStranded = false;
         var isRift = false;
+        var hasPurse = false;
         foreach (var item in args)
         {
             if (item.Contains("SKYBLOCK GUEST"))
@@ -31,7 +32,10 @@ public class UploadScoreboardCommand : McCommand
                 isRift = true;
             }
             if (item.StartsWith("Purse:") || item.StartsWith("Piggy: "))
+            {
                 await new UpdatePurseCommand().Execute(socket, item.Substring(7).Replace(",", "").Split(" ")[0]);
+                hasPurse = true;
+            }
         }
         var wasNotFlippable = socket.SessionInfo.IsNotFlipable;
         socket.SessionInfo.IsIronman = isIronman;
@@ -39,6 +43,8 @@ public class UploadScoreboardCommand : McCommand
         socket.SessionInfo.IsStranded = isStranded;
         socket.SessionInfo.IsDungeon = isDungeon;
         socket.SessionInfo.IsRift = isRift;
+        if(!hasPurse)
+            socket.SessionInfo.Purse = -1;
         if (wasNotFlippable && !socket.SessionInfo.IsNotFlipable && !socket.HasFlippingDisabled())
         {
             socket.Dialog(db => db.MsgLine("Flips reenabled because you left non-flippable gamemode"));
