@@ -658,7 +658,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 foreach (var item in badSellers)
                 {
-                    if (FlipSettings.Value.BlackList.Any(b => b.ItemTag == item.First().Auction.Tag))
+                    if (FlipSettings.Value?.BlackList?.Any(b => b.ItemTag == item.First().Auction.Tag) ?? true)
                         continue;
                     FlipSettings.Value.BlackList.Add(new()
                     {
