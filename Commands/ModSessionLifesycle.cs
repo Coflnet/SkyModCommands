@@ -572,9 +572,13 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(800).ConfigureAwait(false); // allow another half second for the playername to be loaded
             var messageStart = $"Hello {SessionInfo.McName} ({anonymisedEmail}) \n";
             Console.WriteLine("getting tier cached");
-            (var tier, var expire) = await this.TierManager.GetCurrentTierWithExpire();
+            (var tier, var expire) = await TierManager.GetCurrentTierWithExpire();
+            if(tier == AccountTier.NONE)
+            {
+                await Task.Delay(800).ConfigureAwait(false); 
+                (tier, expire) = await TierManager.GetCurrentTierWithExpire();
+            }
             socket.SessionInfo.SessionTier = tier;
-            Console.WriteLine("tier: " + tier);
             if (tier != AccountTier.NONE)
                 SendMessage(
                     COFLNET + messageStart + $"You have {McColorCodes.GREEN}{tier} until {expire.ToString("yyyy-MMM-dd HH:mm")} UTC", null,
