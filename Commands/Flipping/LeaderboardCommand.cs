@@ -16,23 +16,22 @@ public class LeaderboardCommand : McCommand
 
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if (await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
-            throw new CoflnetException("forbidden", "You need to have at least premium plus to use this command");
+        var isPremPlus = await socket.UserAccountTier() >= Shared.AccountTier.PREMIUM_PLUS;
         var api = socket.GetService<IScoresApi>();
         var nameApi = socket.GetService<IPlayerNameApi>();
         string boardSlug = GetBoardName();
         int.TryParse(arguments.Trim('"'), out var page);
-        if(page > 0)
+        if (page > 0)
             page--;
         var ownTask = api.ScoresLeaderboardSlugUserUserIdRankGetAsync(boardSlug, socket.SessionInfo.McUuid);
         var leaderboardData = await api.ScoresLeaderboardSlugGetAsync(boardSlug, page * 10, 10);
         var names = await nameApi.PlayerNameNamesBatchPostAsync(leaderboardData.Select(d => d.UserId).ToList());
         var rank = await ownTask;
-        socket.Dialog(db => db.MsgLine($"Top players for this week:").ForEach(leaderboardData, (db, data) =>
+        socket.Dialog(db => db.If(() => isPremPlus, (db) => db.MsgLine($"Top players for this week:").ForEach(leaderboardData, (db, data) =>
         {
             var displayName = names.Where(n => n.Key == data.UserId).Select(d => d.Value).FirstOrDefault() ?? "unknown";
             PrintLine(socket, db, data, displayName);
-        }).MsgLine($"You are rank: §6{socket.FormatPrice(rank)}"));
+        }), db => db.MsgLine("To see the top results you need to have premium plus.")).MsgLine($"You are rank: §6{socket.FormatPrice(rank)}"));
     }
 
     protected virtual void PrintLine(MinecraftSocket socket, DialogBuilder db, BoardScore data, string displayName)
