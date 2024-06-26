@@ -45,8 +45,9 @@ public class PingCommand : McCommand
         var average = thisSession.Average();
         var lowest = thisSession.Min();
         db?.AddTag("minping", lowest);
-        Console.WriteLine($"Ping of {ping}ms from {socket.SessionInfo.McName} {socket.ClientIp} {socket.SessionInfo.McUuid} {socket.UserId} {average}");
-        socket.Dialog(db => db.MsgLine($"Your Ping to execute Coflnet commands is: {McColorCodes.AQUA}{socket.FormatPrice(average)}ms")
+        Console.Write($"Ping of {ping}ms from {socket.SessionInfo.McName} {socket.ClientIp} {socket.SessionInfo.McUuid} {average}");
+        Console.WriteLine($" {socket.UserId}");
+        socket.Dialog(db => db.MsgLine($"Your Ping to execute SkyCofl commands is: {McColorCodes.AQUA}{socket.FormatPrice(average)}ms")
             .Msg($"The time to receive flips is estimated to be {McColorCodes.AQUA}{socket.FormatPrice(lowest / 2)}ms", 
                 null, "That is half of your lowest ping\nFlips only need to travel to you but not back"));
         pings.TryRemove(sessionId, out _);
