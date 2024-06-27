@@ -87,6 +87,9 @@ public class DelayHandler : IDelayHandler
                 await timeProvider.Delay(TimeSpan.FromSeconds(4)).ConfigureAwait(false); // reserve preapi for nonbots
             Activity.Current.Log("Applied BAF " + sendableIn);
         }
+        else if ((flipInstance.Auction.Context?.TryGetValue("pre-api", out var preApi) ?? false) && preApi != "recheck" && Random.Shared.NextDouble() < 0.98)
+            await timeProvider.Delay(delay * 3).ConfigureAwait(false); // reserve preapi for non-macroers
+
         if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
             await timeProvider.Delay(macroPenalty).ConfigureAwait(false);
         return time;
