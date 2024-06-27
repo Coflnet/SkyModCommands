@@ -14,6 +14,7 @@ public class PingCommand : McCommand
     private ConcurrentDictionary<string, List<double>> pings = new();
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
+        var startTime = DateTime.UtcNow;
         var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
         var sessionId = socket.SessionInfo.SessionId;
         if (args.Length <= 1)
@@ -31,7 +32,7 @@ public class PingCommand : McCommand
             socket.Dialog(db => db.MsgLine($"This command should be called without any arguments {returnedSessionId} {sessionId}"));
             return;
         }
-        var ping = (DateTime.UtcNow - time).TotalMilliseconds;
+        var ping = (startTime - time).TotalMilliseconds;
         using var db = socket.CreateActivity("PingMeassured", socket.ConSpan);
         db?.AddTag("ping", ping);
         var thisSession = pings.GetOrAdd(sessionId, (a) => new());

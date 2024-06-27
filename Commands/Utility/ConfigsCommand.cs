@@ -34,7 +34,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             targetConfig.Upvotes.Add(socket.UserId);
             targetConfig.Rating++;
             await table.Insert(targetConfig).ExecuteAsync();
-            await table.Where(c => c.Type == "config" && c.OwnerId == targetConfig.OwnerId && c.ConfigName == targetConfig.ConfigName && c.Rating == targetConfigClone.Rating).Delete().ExecuteAsync();
+            await Delete(table, targetConfigClone);
             socket.Dialog(db => db.MsgLine($"Upvoted §6{targetConfig.ConfigName}"));
         }
         else if (command == "-rep")
@@ -79,6 +79,11 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             await base.List(socket, stringArgs);
             socket.SendMessage($"See {McColorCodes.AQUA}/cofl configs help{McColorCodes.GRAY} to see options.");
         }
+    }
+
+    public static async Task Delete(Table<ConfigRating> table, ConfigRating targetConfig)
+    {
+        await table.Where(c => c.Type == "config" && c.OwnerId == targetConfig.OwnerId && c.ConfigName == targetConfig.ConfigName && c.Rating == targetConfig.Rating).Delete().ExecuteAsync();
     }
 
     protected override void ListResponse(DialogBuilder d, ConfigRating e)
