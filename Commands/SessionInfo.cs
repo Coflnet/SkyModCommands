@@ -7,7 +7,7 @@ using StackExchange.Redis;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    public class SessionInfo : IDisposable
+    public class SessionInfo : IDisposable, IPlayerInfo
     {
         /// <summary>
         /// The sessionId as set by the client
@@ -52,7 +52,7 @@ namespace Coflnet.Sky.Commands.MC
         public DateTime LastCaptchaSolve => captchaInfo.LastSolve;
         [JsonIgnore]
         public IEnumerable<string> CaptchaSolutions => captchaInfo.CurrentSolutions;
-        public long Purse { get; internal set; }
+        public long Purse { get; set; }
 
         public bool IsIronman { get; internal set; }
         public bool IsBingo { get; internal set; }
@@ -77,6 +77,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public int NotPurchaseRate { get; set; }
         public string ToLowListingAttempt { get; set; }
+        public long AhSlotsOpen { get; set; } = -1;
 
         public bool SellAll;
 

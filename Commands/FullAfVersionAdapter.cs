@@ -68,6 +68,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 return; // ah full
             }
         }
+        // set for configs
+        socket.SessionInfo.AhSlotsOpen = listSpace - activeAuctionCount;
         List<SaveAuction> inventory = await WaitForInventory();
         // retrieve price
         var sniperService = socket.GetService<ISniperClient>();

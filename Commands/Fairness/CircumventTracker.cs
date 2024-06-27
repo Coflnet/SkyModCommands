@@ -72,7 +72,7 @@ public class CircumventTracker
         };
         foreach (var item in socket.Settings.BlackList)
         {
-            if (!item.MatchesSettings(flip))
+            if (!item.MatchesSettings(flip, socket.SessionInfo))
                 continue;
             logger.LogError("Testflip doesn't match {UserId} {entry}", socket.UserId, BlacklistCommand.FormatEntry(item));
             break;

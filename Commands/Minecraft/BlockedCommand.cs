@@ -61,7 +61,7 @@ namespace Coflnet.Sky.Commands.MC
                     Console.WriteLine("parsing filters");
                     var filters = new Dictionary<string, string>();
                     searchVal = await new FilterParser().ParseFiltersAsync(socket, searchVal, filters, FlipFilter.AllFilters);
-                    var filter = new FlipFilter(filters);
+                    var filter = new FlipFilter(filters, socket.SessionInfo);
                     Console.WriteLine($"remaining filter: {searchVal} filters: {JsonConvert.SerializeObject(filters)}");
                     baseCollection = baseCollection.Where(b => filter.IsMatch(FlipperService.LowPriceToFlip(b.Flip)));
                 }

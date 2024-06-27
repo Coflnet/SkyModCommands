@@ -48,9 +48,9 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.CoflCommand<BlacklistCommand>(text, "rm " + BlacklistCommand.FormatId(item), "Remove this filter"));
         }
 
-        public static bool Matches(LowPricedAuction flip, ListEntry item)
+        public static bool Matches(SessionInfo info, LowPricedAuction flip, ListEntry item)
         {
-            return item.MatchesSettings(FlipperService.LowPriceToFlip(flip));
+            return item.MatchesSettings(FlipperService.LowPriceToFlip(flip), info);
         }
 
         public static ChatPart CreatePart(string text, Args target, string hover = null)

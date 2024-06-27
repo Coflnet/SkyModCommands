@@ -12,7 +12,6 @@ public class AfVersionAdapter : ModVersionAdapter
     protected int listSpace = 2;
     protected int activeAuctionCount = 0;
     protected Dictionary<string, int> CheckedPurchase = new();
-    protected int RemainingListings => listSpace - activeAuctionCount;
     public AfVersionAdapter(MinecraftSocket socket) : base(socket)
     {
     }
@@ -52,7 +51,7 @@ public class AfVersionAdapter : ModVersionAdapter
             await Task.Delay(300);
             foreach (var item in socket.Settings.WhiteList)
             {
-                if (!item.MatchesSettings(flip))
+                if (!item.MatchesSettings(flip, socket.SessionInfo))
                     continue;
 
                 socket.Dialog(db => db.Msg($"{name} for {flip.Auction.StartingBid} matched your Whitelist entry: {BlacklistCommand.FormatEntry(item)}\n" +
@@ -69,7 +68,7 @@ public class AfVersionAdapter : ModVersionAdapter
 
     protected static string GetItemName(SaveAuction auction)
     {
-        return (auction?.Context?.GetValueOrDefault("cname") ?? auction.ItemName).Replace("§8.","").Replace("§7-us","");
+        return (auction?.Context?.GetValueOrDefault("cname") ?? auction.ItemName).Replace("§8.", "").Replace("§7-us", "");
     }
 
     public virtual Task TryToListAuction()
@@ -104,7 +103,7 @@ public class AfVersionAdapter : ModVersionAdapter
             return true;
         }
         var minProfitPercent = socket.Settings?.MinProfitPercent ?? 0;
-        if (RemainingListings < 2)
+        if (socket.SessionInfo.AhSlotsOpen < 2)
             minProfitPercent = Math.Max(9, minProfitPercent);
         if (flip.Finder != LowPricedAuction.FinderType.USER && flip.ProfitPercentage < minProfitPercent)
         {
