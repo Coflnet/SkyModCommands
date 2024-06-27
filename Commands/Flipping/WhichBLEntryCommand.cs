@@ -25,7 +25,7 @@ namespace Coflnet.Sky.Commands.MC
 
             foreach (var item in targetList)
             {
-                if (Matches(flip, item))
+                if (Matches(socket.SessionInfo, flip, item))
                 {
                     var bl = BlacklistCommand.FormatEntry(item);
                     var text = $"This flip matched the filter {bl} {McColorCodes.GRAY}[{McColorCodes.RED}REMOVE{McColorCodes.GRAY}]";

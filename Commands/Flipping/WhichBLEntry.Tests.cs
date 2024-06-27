@@ -10,23 +10,25 @@ namespace Coflnet.Sky.Commands.MC
         [SetUp]
         public void Setup()
         {
-            DiHandler.OverrideService<FilterEngine,FilterEngine>(new FilterEngine());
+            DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine());
         }
         [Test]
         public void MatchWithTag()
         {
-            Assert.That(WhichBLEntryCommand.Matches(
-                new LowPricedAuction() { Auction = new SaveAuction() { Tag = "test" } }, 
+            Assert.That(WhichBLEntryCommand.Matches(new(),
+                new LowPricedAuction() { Auction = new SaveAuction() { Tag = "test" } },
                 new ListEntry() { ItemTag = "test" }));
-            Assert.That(!WhichBLEntryCommand.Matches(
-                new LowPricedAuction() { Auction = new SaveAuction() { Tag = "other" } }, 
+            Assert.That(!WhichBLEntryCommand.Matches(new(),
+                new LowPricedAuction() { Auction = new SaveAuction() { Tag = "other" } },
                 new ListEntry() { ItemTag = "test" }));
         }
         [Test]
         public void MatchWithFilter()
         {
-            Assert.That(!WhichBLEntryCommand.Matches(new LowPricedAuction() { 
-                Auction = new SaveAuction() { Tag = "test" } }, 
+            Assert.That(!WhichBLEntryCommand.Matches(new(), new LowPricedAuction()
+            {
+                Auction = new SaveAuction() { Tag = "test" }
+            },
                 new ListEntry() { filter = new() { { "Reforge", "Giant" } } }));
         }
     }
