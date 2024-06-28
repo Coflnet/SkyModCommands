@@ -30,7 +30,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public SessionInfo SessionInfo { get; protected set; } = new SessionInfo();
 
-        public FlipSettings Settings => sessionLifesycle.FlipSettings;
+        public FlipSettings Settings => sessionLifesycle?.FlipSettings;
         public AccountInfo AccountInfo => sessionLifesycle?.AccountInfo;
 
         public string Version { get; private set; }
