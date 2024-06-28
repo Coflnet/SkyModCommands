@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,73 +13,124 @@ namespace Coflnet.Sky.Commands.MC;
 
 public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<ConfigsCommand.ConfigRating>>
 {
+    protected Dictionary<string, Func<IEnumerable<ConfigRating>, IOrderedEnumerable<ConfigRating>>> sorters = new(){
+        {"rating", e => e.OrderByDescending(c => c.Rating)},
+        {"rep", e => e.OrderByDescending(c => c.Rating)},
+        {"price", e => e.OrderBy(c => c.Price)},
+        {"name", e => e.OrderBy(c => c.ConfigName)},
+        {"new", e => e.OrderBy(c => c.Created)},
+        {"newest", e => e.OrderBy(c => c.Created)},
+        {"oldest", e => e.OrderByDescending(c => c.Created)},
+        {"updated", e => e.OrderBy(c => c.LastUpdated)},
+        {"lastupdated", e => e.OrderBy(c => c.LastUpdated)}
+    };
     protected override async Task DefaultAction(MinecraftSocket socket, string stringArgs)
     {
         var args = stringArgs.Split(' ');
         var command = args[0];
+        Console.WriteLine($"Command: {command}");
         if (command == "+rep")
         {
-            var table = GetTable(socket);
-            var targetConfig = await GetTargetRating(socket, args, table);
-            if (targetConfig.Upvotes.Contains(socket.UserId))
-            {
-                socket.SendMessage("You already upvoted this config.");
-                return;
-            }
-            var targetConfigClone = targetConfig.Copy();
-            if (targetConfig.Downvotes.Contains(socket.UserId))
-            {
-                targetConfig.Downvotes.Remove(socket.UserId);
-                targetConfig.Rating++;
-            }
-            targetConfig.Upvotes.Add(socket.UserId);
-            targetConfig.Rating++;
-            await table.Insert(targetConfig).ExecuteAsync();
-            await Delete(table, targetConfigClone);
-            socket.Dialog(db => db.MsgLine($"Upvoted §6{targetConfig.ConfigName}"));
+            await GiveRep(socket, args);
         }
         else if (command == "-rep")
         {
-            var table = GetTable(socket);
-            var targetConfig = await GetTargetRating(socket, args, table);
-            var targetConfigClone = targetConfig.Copy();
-            if (targetConfig.Downvotes.Contains(socket.UserId))
-            {
-                socket.SendMessage("You already downvoted this config.");
-                return;
-            }
-            if (targetConfig.Upvotes.Contains(socket.UserId))
-            {
-                targetConfig.Upvotes.Remove(socket.UserId);
-                targetConfig.Rating--;
-            }
-            targetConfig.Downvotes.Add(socket.UserId);
-            targetConfig.Rating--;
-            await table.Insert(targetConfig).ExecuteAsync();
-            await table.Where(c => c.Type == "config" && c.OwnerId == targetConfig.OwnerId && c.ConfigName == targetConfig.ConfigName && c.Rating == targetConfigClone.Rating).Delete().ExecuteAsync();
-            socket.Dialog(db => db.MsgLine($"Downvoted §6{targetConfig.ConfigName}"));
+            await RemoveRep(socket, args);
         }
         else if (command == "autoupdate")
         {
-            var settings = socket.sessionLifesycle.AccountSettings;
-            settings.Value.AutoUpdateConfig = !settings.Value.AutoUpdateConfig;
-            await settings.Update();
-            socket.SendMessage($"Auto update configs is now {McColorCodes.AQUA}{(settings.Value.AutoUpdateConfig ? "enabled" : "disabled")}");
+            await ToggleAutoupdate(socket);
         }
         else if (command == "unload")
         {
-            socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = null;
-            await socket.sessionLifesycle.AccountSettings.Update();
-            socket.sessionLifesycle.LoadedConfig?.Dispose();
-            socket.sessionLifesycle.LoadedConfig = null;
-            await socket.sessionLifesycle.FlipSettings.Update(ModSessionLifesycle.DefaultSettings);
-            socket.SendMessage("Unloaded config you won't get updates anymore.");
+            await UnloadConfig(socket);
+        }
+        else if (sorters.TryGetValue(command, out var sorter))
+        {
+            await PrintSorted(socket, sorter);
+            return;
         }
         else
         {
             await base.List(socket, stringArgs);
             socket.SendMessage($"See {McColorCodes.AQUA}/cofl configs help{McColorCodes.GRAY} to see options.");
         }
+    }
+
+    private async Task GiveRep(MinecraftSocket socket, string[] args)
+    {
+        var table = GetTable(socket);
+        var targetConfig = await GetTargetRating(socket, args, table);
+        if (targetConfig.Upvotes.Contains(socket.UserId))
+        {
+            socket.SendMessage("You already upvoted this config.");
+            return;
+        }
+        var targetConfigClone = targetConfig.Copy();
+        if (targetConfig.Downvotes.Contains(socket.UserId))
+        {
+            targetConfig.Downvotes.Remove(socket.UserId);
+            targetConfig.Rating++;
+        }
+        targetConfig.Upvotes.Add(socket.UserId);
+        targetConfig.Rating++;
+        await table.Insert(targetConfig).ExecuteAsync();
+        await Delete(table, targetConfigClone);
+        socket.Dialog(db => db.MsgLine($"Upvoted §6{targetConfig.ConfigName}"));
+    }
+
+    private async Task RemoveRep(MinecraftSocket socket, string[] args)
+    {
+        var table = GetTable(socket);
+        var targetConfig = await GetTargetRating(socket, args, table);
+        var targetConfigClone = targetConfig.Copy();
+        if (targetConfig.Downvotes.Contains(socket.UserId))
+        {
+            socket.SendMessage("You already downvoted this config.");
+            return;
+        }
+        if (targetConfig.Upvotes.Contains(socket.UserId))
+        {
+            targetConfig.Upvotes.Remove(socket.UserId);
+            targetConfig.Rating--;
+        }
+        targetConfig.Downvotes.Add(socket.UserId);
+        targetConfig.Rating--;
+        await table.Insert(targetConfig).ExecuteAsync();
+        await table.Where(c => c.Type == "config" && c.OwnerId == targetConfig.OwnerId && c.ConfigName == targetConfig.ConfigName && c.Rating == targetConfigClone.Rating).Delete().ExecuteAsync();
+        socket.Dialog(db => db.MsgLine($"Downvoted §6{targetConfig.ConfigName}"));
+    }
+
+    private static async Task ToggleAutoupdate(MinecraftSocket socket)
+    {
+        var settings = socket.sessionLifesycle.AccountSettings;
+        settings.Value.AutoUpdateConfig = !settings.Value.AutoUpdateConfig;
+        await settings.Update();
+        socket.SendMessage($"Auto update configs is now {McColorCodes.AQUA}{(settings.Value.AutoUpdateConfig ? "enabled" : "disabled")}");
+    }
+
+    private static async Task UnloadConfig(MinecraftSocket socket)
+    {
+        socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = null;
+        await socket.sessionLifesycle.AccountSettings.Update();
+        socket.sessionLifesycle.LoadedConfig?.Dispose();
+        socket.sessionLifesycle.LoadedConfig = null;
+        await socket.sessionLifesycle.FlipSettings.Update(ModSessionLifesycle.DefaultSettings);
+        socket.SendMessage("Unloaded config you won't get updates anymore.");
+    }
+
+    private async Task PrintSorted(MinecraftSocket socket, Func<IEnumerable<ConfigRating>, IOrderedEnumerable<ConfigRating>> sorter)
+    {
+        var elements = await GetList(socket);
+
+        elements = sorter(elements).ToList();
+
+        socket.Dialog(db => db
+            .MsgLine($"Sorted results:", $"/cofl {Slug} ls", $"See unsorted result")
+            .ForEach(elements.Take(12), (d, e) =>
+            {
+                ListResponse(d, e);
+            }));
     }
 
     public static async Task Delete(Table<ConfigRating> table, ConfigRating targetConfig)
@@ -124,6 +176,8 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
                 Price = owned.PricePaid,
                 Type = "config",
                 Rating = 0,
+                Created = DateTime.UtcNow,
+                LastUpdated = DateTime.UtcNow,
                 Upvotes = new List<string>(),
                 Downvotes = new List<string>()
             };
@@ -168,6 +222,16 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
 
     protected override Task<List<ConfigRating>> GetList(MinecraftSocket socket)
     {
+        // add created and last updated columns
+        try
+        {
+            socket.GetService<ISession>().Execute("ALTER TABLE config_ratings ADD lastupdated timestamp");
+            socket.GetService<ISession>().Execute("ALTER TABLE config_ratings ADD created timestamp");
+        }
+        catch (System.Exception e)
+        {
+            // already exists
+        }
         var table = GetTable(socket);
         return table.Where(c => c.Type == "config").ExecuteAsync().ContinueWith(t => t.Result.ToList());
     }
@@ -197,6 +261,8 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         public string OwnerId { get; set; }
         public string OwnerName { get; set; }
         public int Price { get; set; }
+        public DateTime Created { get; set; }
+        public DateTime LastUpdated { get; set; }
         public List<string> Upvotes { get; set; }
         public List<string> Downvotes { get; set; }
 
@@ -210,6 +276,8 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
                 OwnerId = OwnerId,
                 OwnerName = OwnerName,
                 Price = Price,
+                Created = Created,
+                LastUpdated = LastUpdated,
                 Upvotes = new List<string>(Upvotes),
                 Downvotes = new List<string>(Downvotes)
             };

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -99,12 +100,13 @@ public class SellConfigCommand : ArgumentsCommand
             OwnerId = socket.UserId,
             Name = name,
             OwnerName = socket.SessionInfo.McName,
-            PricePaid = priceInt
+            PricePaid = priceInt,
         });
         if (rating.OwnerName != socket.SessionInfo.McName)
         {
             rating.OwnerName = socket.SessionInfo.McName;
         }
+        rating.LastUpdated = DateTime.UtcNow;
         await table.Insert(rating).ExecuteAsync();
         // add to own configs
         using var createdConfigs = await SelfUpdatingValue<CreatedConfigs>.Create(socket.UserId, "created_configs", () => new());

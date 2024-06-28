@@ -203,6 +203,13 @@ namespace Coflnet.Sky.Commands.MC
                     ForEach(list.Where(e => (LongFormat(e) + GetId(e) + Format(e)).ToLower().Contains(subArgs.ToLower())), (d, e) => ListResponse(d, e)));
                 return;
             }
+
+            if(list.Count == 0)
+            {
+                await NoEntriesFound(socket, subArgs);
+                return;
+            }
+            
             var totalPages = list.Count / pageSize;
             var displayPage = page;
             if (displayPage == 0)
@@ -211,12 +218,6 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.SendMessage(new DialogBuilder()
                 .MsgLine($"There are only {McColorCodes.YELLOW}{totalPages + 1}{McColorCodes.WHITE} pages in total (starting from 1)", null, $"Try running it without or a smaller number"));
-                return;
-            }
-
-            if(list.Count == 0)
-            {
-                await NoEntriesFound(socket, subArgs);
                 return;
             }
 
