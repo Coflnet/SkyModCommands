@@ -22,6 +22,7 @@ namespace Coflnet.Sky.Commands.MC
             var toLoad = list.Where(l => l.Name == arguments.Trim('"')).Select(l => l.settings).FirstOrDefault();
             if (toLoad == null)
                 throw new CoflnetException("not_found", "No backup with that name found, try using /cofl backup list to see all backups and use the option to restore from there");
+            FlipFilter.CopyRelevantToNew(toLoad, socket.sessionLifesycle.FlipSettings);
             await socket.sessionLifesycle.FlipSettings.Update(toLoad);
         }
     }

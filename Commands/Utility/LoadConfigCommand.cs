@@ -32,6 +32,8 @@ public class LoadConfigCommand : ArgumentsCommand
             return;
         }
         toLoad.Value.Settings.BlockExport = toLoad.Value.OwnerId != socket.UserId;
+
+        FlipFilter.CopyRelevantToNew(toLoad.Value.Settings, socket.sessionLifesycle.FlipSettings);
         await socket.sessionLifesycle.FlipSettings.Update(toLoad.Value.Settings);
         socket.Dialog(db => db.MsgLine($"§6{toLoad.Value.Name} §7v{toLoad.Value.Version} §6loaded"));
         inOwnerShip.ChangeNotes = toLoad.Value.ChangeNotes;
