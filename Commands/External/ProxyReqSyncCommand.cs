@@ -21,12 +21,17 @@ public class ProxyReqSyncCommand : McCommand
                 break;
             await Task.Delay(200);
         }
-        if (!socket.sessionLifesycle.TierManager.HasAtLeast( AccountTier.PREMIUM_PLUS))
+        if (!socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
         {
-            socket.Dialog(db => db.MsgLine("Main instance could not verify your premium status. Please try again later."));
+            await Task.Delay(500);
+            await socket.sessionLifesycle.TierManager.RefreshTier();
+            if (!socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
+            {
+                socket.Dialog(db => db.MsgLine("Main instance could not verify your premium status. Please try again later."));
+            }
         }
         var filterState = socket.GetService<FilterStateService>().State;
-            socket.Send(Response.Create("filterData", filterState));
+        socket.Send(Response.Create("filterData", filterState));
         SendState(socket);
         socket.sessionLifesycle.AccountInfo.OnChange += (a) => SendState(socket);
         socket.sessionLifesycle.FlipSettings.ShouldPreventUpdate += (a) =>
