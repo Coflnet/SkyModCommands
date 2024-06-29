@@ -884,6 +884,12 @@ namespace Coflnet.Sky.Commands.MC
                 timer.Log("not verified");
                 return;
             }
+            var expiresAt = sessionLifesycle.TierManager.ExpiresAt;
+            if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM) && expiresAt > DateTime.UtcNow && expiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(2))
+            {
+                Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
+                    .CoflCommand<PurchaseCommand>($"Your premium tier is about to expire. {McColorCodes.YELLOW}[CLICK to see options]", "", "show purchase menu"));
+            }
             if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1)
             {
                 using var track = this.CreateActivity("skipCheck", timer)?.AddTag("actioncount", AccountInfo.BadActionCount);
