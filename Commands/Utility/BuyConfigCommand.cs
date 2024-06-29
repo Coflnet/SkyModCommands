@@ -26,7 +26,10 @@ public class BuyConfigCommand : ArgumentsCommand
         }
         if (configs.Value.Configs.Any(c => c.Name == name && c.OwnerId == sellerUserId))
         {
-            socket.SendMessage("You already own this config.");
+            socket.Dialog(db => db.CoflCommand<LoadConfigCommand>(
+                    $"You already own this config. {McColorCodes.YELLOW}[CLICK to load]", 
+                    $"{sellerUserId} {name}", 
+                    $"Click here to load the config\n{McColorCodes.AQUA}/cofl loadconfig {sellerUserId} {name}"));
             return;
         }
         if (args["confirmId"] != socket.SessionInfo.SessionId)
