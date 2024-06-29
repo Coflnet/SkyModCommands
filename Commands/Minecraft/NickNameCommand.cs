@@ -11,11 +11,19 @@ namespace Coflnet.Sky.Commands.MC
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            
+            var nickName = JsonConvert.DeserializeObject<string>(arguments);
+            if (nickName == "clear")
+            {
+                socket.AccountInfo.NickName = null;
+                await socket.sessionLifesycle.AccountInfo.Update();
+                socket.SendMessage(COFLNET + "Cleared your nickname");
+                return;
+            }
             if (!await socket.ReguirePremPlus())
             {
                 return;
             }
-            var nickName = JsonConvert.DeserializeObject<string>(arguments);
             if (string.IsNullOrEmpty(nickName))
             {
                 socket.SendMessage(COFLNET + "Please provide a nickname");
@@ -29,13 +37,6 @@ namespace Coflnet.Sky.Commands.MC
             if (nickName.Contains(" "))
             {
                 socket.SendMessage(COFLNET + "Nicknames can't contain spaces");
-                return;
-            }
-            if (nickName == "clear")
-            {
-                socket.AccountInfo.NickName = null;
-                await socket.sessionLifesycle.AccountInfo.Update();
-                socket.SendMessage(COFLNET + "Cleared your nickname");
                 return;
             }
 
