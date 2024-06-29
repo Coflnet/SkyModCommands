@@ -50,12 +50,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var profile = await context.Players.FindAsync(socket.SessionInfo.McUuid);
             activeAuctionCount = await context.Auctions.Where(a => a.SellerId == profile.Id && a.End > DateTime.UtcNow).CountAsync();
         }
+        if (listSpace - activeAuctionCount <= 2)
+        {
+            await UpdateListSpace(span);
+        }
         if (activeAuctionCount >= 14)
         {
-            if (listSpace <= 2)
-            {
-                await UpdateListSpace(span);
-            }
+
             if (activeAuctionCount >= listSpace)
             {
                 span.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName}");
