@@ -888,7 +888,8 @@ namespace Coflnet.Sky.Commands.MC
             if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM) && expiresAt > DateTime.UtcNow && expiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(2))
             {
                 Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
-                    .CoflCommand<PurchaseCommand>($"Your premium tier is about to expire. {McColorCodes.YELLOW}[CLICK to see options]", "", "show purchase menu"));
+                    .CoflCommand<PurchaseCommand>($"Your premium tier is about to expire in {(int)(expiresAt - DateTime.UtcNow).TotalMinutes} minutes. {McColorCodes.YELLOW}[CLICK to see options]", "", "show purchase menu")
+                    .Break.Msg($"{McColorCodes.RED}-----------------------------"));
             }
             if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1)
             {
