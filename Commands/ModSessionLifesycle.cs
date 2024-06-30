@@ -574,9 +574,9 @@ namespace Coflnet.Sky.Commands.MC
             var messageStart = $"Hello {SessionInfo.McName} ({anonymisedEmail}) \n";
             Console.WriteLine("getting tier cached");
             (var tier, var expire) = await TierManager.GetCurrentTierWithExpire();
-            if(tier == AccountTier.NONE)
+            if (tier == AccountTier.NONE)
             {
-                await Task.Delay(800).ConfigureAwait(false); 
+                await Task.Delay(800).ConfigureAwait(false);
                 (tier, expire) = await TierManager.GetCurrentTierWithExpire();
             }
             socket.SessionInfo.SessionTier = tier;
@@ -866,6 +866,13 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     AccountInfo.Value.BadActionCount--;
                     await AccountInfo.Update(AccountInfo.Value);
+                }
+                if (SessionInfo.NotPurchaseRate > 1 && socket.Settings?.MinProfit > 1_500_000 && DateTime.UtcNow.Minute % 15 == 0)
+                {
+                    socket.Dialog(db => db.MsgLine("It seems like you were unable to purchase flips recently. \nWe are adjusting your main settings which should help you get more flips."));
+                    socket.ExecuteCommand($"/cofl set minprofit {socket.Settings.MinProfit * 9 / 10}");
+                    if (socket.Settings.MinVolume < 3)
+                        socket.ExecuteCommand($"/cofl set minvolume 3");
                 }
                 if (isBot)
                     return;

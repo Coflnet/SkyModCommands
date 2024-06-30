@@ -106,6 +106,12 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(2000);
                 socket.Dialog(db => db.MsgLine("You don't have many coins in your purse. Flips you can't afford aren't shown."));
             }
+            else if (socket.sessionLifesycle.AccountSettings.Value.LoadedConfig != null && socket.sessionLifesycle.CurrentDelay <= TimeSpan.FromMilliseconds(50))
+            {
+                var averageProfit = socket.LastSent.Select(l => l.TargetPrice - l.Auction.StartingBid).DefaultIfEmpty(0).Average();
+                if (socket.Settings?.MinProfit > 2_000_000 && averageProfit > 8_000_000)
+                    socket.Dialog(db => db.MsgLine("You seem to have a pretty restrictive config that only shows you flips with high competition. Consider lowering your min profit."));
+            }
         }
 
         private static List<MinecraftSocket.BlockedElement> GetRandomFlips(MinecraftSocket socket)
