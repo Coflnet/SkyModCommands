@@ -176,11 +176,12 @@ public class AccountTierManager : IAccountTierManager
         var thisAccount = licenses.Where(l => l.TargetId == socket.SessionInfo.McUuid && l.Expires > DateTime.UtcNow);
         if (thisAccount.Any())
         {
+            Console.WriteLine($"Licenses for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(thisAccount)}")
             var premPlus = thisAccount.FirstOrDefault(l => l.ProductSlug == "premium_plus");
             if (premPlus != null)
                 return (AccountTier.PREMIUM_PLUS, premPlus.Expires);
         }
-        if (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon)
+        if ((activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon) && expires.Item1 > AccountTier.NONE)
         {
             return (expires.Item1, expires.Item2);
         }
