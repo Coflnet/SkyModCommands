@@ -181,7 +181,11 @@ public class DelayHandler : IDelayHandler
             dropoutChance = nonpurchaseRate * 0.04;
             if (currentDelay < TimeSpan.Zero)
                 currentDelay = TimeSpan.Zero;
-            currentDelay += TimeSpan.FromSeconds(0.001);
+            if (random.NextDouble() < dropoutChance)
+            {
+                currentDelay += TimeSpan.FromSeconds(0.001);
+                dropoutChance *= 5;
+            }
             summary.nonpurchaseRate = nonpurchaseRate;
         }
 
