@@ -39,7 +39,7 @@ public class CircumventTracker
 
     public async Task<string?> CreateChallenge(IMinecraftSocket socket, bool forceCreate = false)
     {
-        if (socket.SessionInfo.NotPurchaseRate <= 1 || await socket.UserAccountTier() < AccountTier.PREMIUM
+        if (socket.SessionInfo.NotPurchaseRate <= 2 || await socket.UserAccountTier() < AccountTier.PREMIUM
                         || (socket.AccountInfo.McIds.Count > 3 || socket.AccountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(20) || socket.UserId.Length < 6) && Random.Shared.NextDouble() < 0.9) // probably legit
         {
             Activity.Current?.Log($"Not creating challenge because probably legit {socket.SessionInfo.NotPurchaseRate}");
