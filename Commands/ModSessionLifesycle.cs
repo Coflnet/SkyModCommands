@@ -871,8 +871,8 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     socket.Dialog(db => db.MsgLine("It seems like you were unable to purchase flips recently. \nWe are adjusting your main settings which should help you get more flips."));
                     socket.ExecuteCommand($"/cofl set minprofit {socket.Settings.MinProfit * 9 / 10}");
-                    if (socket.Settings.MinVolume < 3)
-                        socket.ExecuteCommand($"/cofl set minvolume 3");
+                    if (socket.Settings.MinVolume < 1 && socket.sessionLifesycle.AccountSettings.Value.LoadedConfig != null)
+                        socket.ExecuteCommand($"/cofl set minvolume 1.5");
                 }
                 if (isBot)
                     return;
