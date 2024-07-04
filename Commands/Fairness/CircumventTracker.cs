@@ -46,6 +46,16 @@ public class CircumventTracker
             return null;
         }
         using var challenge = socket.CreateActivity("challengeCreate", socket.ConSpan);
+        var pastChallenges = await connectApi.ConnectChallengesUserIdGetWithHttpInfoAsync(socket.UserId);
+        var matchingChallengeCount = pastChallenges.Data.Count(c => c.BoughtBy == c.MinecraftUuid);
+        var notMatchingCount = pastChallenges.Data.Count(c => c.BoughtBy != c.MinecraftUuid && c.BoughtBy != null);
+        if (matchingChallengeCount > 0 && matchingChallengeCount > notMatchingCount)
+        {
+            Activity.Current?.Log($"Not creating challenge because too many matching challenges {matchingChallengeCount} {notMatchingCount} total {pastChallenges.Data.Count}");
+            Activity.Current?.AddTag("reason", "selfbought");
+            return null;
+        }
+
         var auction = await FindAuction(socket) ?? throw new Exception("No auction found");
         if (auction.Context.ContainsKey("cname") && !auction.Context["cname"].EndsWith("-us") && Random.Shared.NextDouble() < 0.5)
         {
@@ -70,18 +80,8 @@ public class CircumventTracker
         {
             flip.Context["match"] = "whitelist challenge"; // make it match
         };
-        foreach (var item in socket.Settings.BlackList)
-        {
-            if (!item.MatchesSettings(flip, socket.SessionInfo))
-                continue;
-            logger.LogError("Testflip doesn't match {UserId} {entry}", socket.UserId, BlacklistCommand.FormatEntry(item));
-            break;
-        }
-        if (minNewPlayerId <= 0)
-        {
-            using var context = new HypixelContext();
-            minNewPlayerId = (await context.Users.MaxAsync(a => a.Id)) - 800;
-        }
+        LogMatchingFilter(socket, flip);
+        await LoadNewPlayerThreshold();
         var min = 4;
         if (int.TryParse(socket.UserId, out int id) && id > minNewPlayerId)
         {
@@ -99,6 +99,26 @@ public class CircumventTracker
 
         logger.LogError("Testflip doesn't match {UserId} ({socket.SessionInfo.McUuid}) because {reson} {flip}", socket.UserId, socket.SessionInfo.McUuid, isMatch.Item2, JsonConvert.SerializeObject(lowPriced));
         throw new Exception("No matching flip found " + JsonConvert.SerializeObject(lowPriced));
+    }
+
+    private async Task LoadNewPlayerThreshold()
+    {
+        if (minNewPlayerId <= 0)
+        {
+            using var context = new HypixelContext();
+            minNewPlayerId = (await context.Users.MaxAsync(a => a.Id)) - 800;
+        }
+    }
+
+    private void LogMatchingFilter(IMinecraftSocket socket, FlipInstance flip)
+    {
+        foreach (var item in socket.Settings.BlackList)
+        {
+            if (!item.MatchesSettings(flip, socket.SessionInfo))
+                continue;
+            logger.LogError("Testflip doesn't match {UserId} {entry}", socket.UserId, BlacklistCommand.FormatEntry(item));
+            break;
+        }
     }
 
     public void Shedule(IMinecraftSocket socket)
