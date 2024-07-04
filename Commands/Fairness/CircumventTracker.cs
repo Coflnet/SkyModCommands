@@ -150,7 +150,7 @@ public class CircumventTracker
     private static async Task<SaveAuction> FindAuction(IMinecraftSocket socket)
     {
         var oldestStart = DateTime.UtcNow - TimeSpan.FromMinutes(1);
-        foreach (var blocked in socket.TopBlocked.Where(b => b.Flip.Auction.Start > oldestStart))
+        foreach (var blocked in socket.TopBlocked.Where(b => b.Flip.Auction.Start > oldestStart).OrderBy(b=>b.Flip.Auction.StartingBid))
         {
             if (blocked.Reason != "minProfit" && blocked.Reason != "minVolume")
                 continue;
