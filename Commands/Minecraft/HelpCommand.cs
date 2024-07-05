@@ -14,15 +14,15 @@ public class HelpCommand : McCommand
     {
         Add("login", PrintLoginHelp, "help with login");
         Add("verify", VerifyHelp, "verifying your account");
-        Add("commands",  PrintCommandHelp, "command list and explanation", "c");
+        Add("commands", PrintCommandHelp, "command list and explanation", "c");
 
         void Add(string full, Action<MinecraftSocket, string> action, string primer, string shortName = null)
         {
-            Actions.Add(full, (primer,action));
-            if(shortName == null)
+            Actions.Add(full, (primer, action));
+            if (shortName == null)
                 return;
-            Actions.Add(shortName, (primer,action));
-            ShortMap.Add(full,shortName);
+            Actions.Add(shortName, (primer, action));
+            ShortMap.Add(full, shortName);
         }
     }
     public override Task Execute(MinecraftSocket socket, string arguments)
@@ -33,8 +33,8 @@ public class HelpCommand : McCommand
             action.Item2(socket, arguments);
         else
             socket.Dialog(db => db.Break.MsgLine("Please select the topic you need help for:")
-                .ForEach(Actions.Where(k => k.Key.Length > 2), (db, a) => 
-                    db.MsgLine($" - {McColorCodes.AQUA}{a.Key}{McColorCodes.GRAY} {(ShortMap.TryGetValue(a.Key, out var val) ? $"({val}) " : "")}- {a.Value.Item1}", 
+                .ForEach(Actions.Where(k => k.Key.Length > 2), (db, a) =>
+                    db.MsgLine($" - {McColorCodes.AQUA}{a.Key}{McColorCodes.GRAY} {(ShortMap.TryGetValue(a.Key, out var val) ? $"({val}) " : "")}- {a.Value.Item1}",
                         "/cofl help " + a.Key, "click to get help"))
                 .MsgLine($"{McColorCodes.DARK_GRAY} You can also use /cofl help <topic> to get help for a specific topic, or /cl h <topic> for short"));
         return Task.CompletedTask;
@@ -46,7 +46,8 @@ public class HelpCommand : McCommand
                             .Msg("For this you have to bid a specific amount of coins on any auction on the auction house.")
                             .MsgLine("This allows us to check your bid amount via the API and verify that you have control of the Minecraft account.")
                             .MsgLine("The alternative was to use the Minecraft login system. That would require the mod to create a session login which would get users worried about their session id being stolen.")
-                            .MsgLine("Verification is required to make sure that you have ownership of the account. You get 1 free day of premium for verifying your account."));
+                            .MsgLine("Verification is required to make sure that you have ownership of the account. You get 1 free day of premium for verifying your account.")
+                            .MsgLine($"You can check your verification status with {McColorCodes.AQUA}/cofl verify"));
     }
 
     private static void PrintLoginHelp(MinecraftSocket socket, string arguments)
@@ -73,7 +74,7 @@ public class HelpCommand : McCommand
         }
         var toDisplay = withDescription.Skip(page * pageSize).Take(pageSize);
         var pageToNavigateTo = page + 2;
-        if(pageToNavigateTo > withDescription.Count() / pageSize)
+        if (pageToNavigateTo > withDescription.Count() / pageSize)
             pageToNavigateTo = 1;
         socket.Dialog(d => d.CoflCommand<HelpCommand>($"AvailableCommands are (page {(page + 1)}/{withDescription.Count() / pageSize}):\n", "c " + pageToNavigateTo, "click to get next page")
             .ForEach(toDisplay, (db, c) =>

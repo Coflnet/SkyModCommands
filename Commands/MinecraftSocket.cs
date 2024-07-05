@@ -203,6 +203,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<GiftConfigCommand>();
             Commands.Add<RewardHandler.ClaimHypixelRewardCommand>();
             Commands.Add<LicensesCommand>("license");
+            Commands.Add<VerifyCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
