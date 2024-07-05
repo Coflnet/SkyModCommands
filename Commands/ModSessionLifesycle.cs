@@ -378,7 +378,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info, socket.SessionInfo);
                 span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
-                if (info.UserId.IsNullOrEmpty())
+                if (info.UserId != socket.UserId && socket.UserId?.Length > 2)
                 {
                     info.UserId = socket.UserId;
                     await AccountInfo.Update(info);
@@ -870,7 +870,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (SessionInfo.NotPurchaseRate > 1 && socket.Settings?.MinProfit > 1_500_000 && DateTime.UtcNow.Minute % 10 == 0)
                 {
                     socket.Dialog(db => db.MsgLine("It seems like you were unable to purchase flips recently. \nWe are adjusting your main settings which should help you get more flips."));
-                    socket.Settings.MinProfit = socket.Settings.MinProfit * 9/ 10;
+                    socket.Settings.MinProfit = socket.Settings.MinProfit * 9 / 10;
                     if (socket.Settings.MinVolume < 1 && socket.sessionLifesycle.AccountSettings.Value.LoadedConfig != null)
                         socket.Settings.MinVolume = 1;
                 }
