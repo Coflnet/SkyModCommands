@@ -228,20 +228,11 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         throw new CoflnetException("not_possible", "use the /cl buyconfig command to buy configs");
     }
 
-    protected override Task<List<ConfigRating>> GetList(MinecraftSocket socket)
+    protected override async Task<List<ConfigRating>> GetList(MinecraftSocket socket)
     {
-        // add created and last updated columns
-        try
-        {
-            socket.GetService<ISession>().Execute("ALTER TABLE config_ratings ADD lastupdated timestamp");
-            socket.GetService<ISession>().Execute("ALTER TABLE config_ratings ADD created timestamp");
-        }
-        catch (System.Exception e)
-        {
-            // already exists
-        }
         var table = GetTable(socket);
-        return table.Where(c => c.Type == "config").ExecuteAsync().ContinueWith(t => t.Result.ToList());
+        var content = await table.Where(c => c.Type == "config").ExecuteAsync();
+        return content.OrderByDescending(c => c.Rating).ToList();
     }
 
     protected override Task Update(MinecraftSocket socket, List<ConfigRating> newCol)
