@@ -143,6 +143,14 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         FormatForList(d, e).MsgLine($" {McColorCodes.YELLOW}[BUY]{DEFAULT_COLOR}", $"/cofl buyconfig {e.OwnerId} {e.ConfigName}", $"buy {LongFormat(e)}");
     }
 
+    protected override DialogBuilder FormatForList(DialogBuilder d, ConfigRating elem)
+    {
+        return d.Msg($"§6{elem.ConfigName} §7by {elem.OwnerName} {McColorCodes.GRAY}(")
+            .CoflCommand<ConfigsCommand>($"{McColorCodes.GREEN}⬆{elem.Upvotes.Count} ", $"+rep {elem.OwnerId} {elem.ConfigName}", "upvote")
+            .CoflCommand<ConfigsCommand>($"{McColorCodes.RED}⬇{elem.Downvotes.Count}", $"-rep {elem.OwnerId} {elem.ConfigName}", "downvote")
+            .Msg($"{McColorCodes.GRAY})");
+    }
+
     private async Task<ConfigRating> GetTargetRating(MinecraftSocket socket, string[] args, Table<ConfigRating> table)
     {
         var configName = args[2];
@@ -243,8 +251,6 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
 
     protected override string Format(ConfigRating elem)
     {
-
-        // emoji for upvote and downvote
         return $"§6{elem.ConfigName} §7by {elem.OwnerName} {McColorCodes.GRAY}({McColorCodes.GREEN}⬆{elem.Upvotes.Count} {McColorCodes.RED}⬇{elem.Downvotes.Count}{McColorCodes.GRAY})";
     }
 
