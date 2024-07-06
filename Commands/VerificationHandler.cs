@@ -52,6 +52,8 @@ namespace Coflnet.Sky.Commands.MC
             using var verificationSpan = socket.CreateActivity("VerificationCheck", ConSpan);
             while (string.IsNullOrEmpty(SessionInfo.McUuid))
                 await Task.Delay(500).ConfigureAwait(false);
+            if (accountInfo?.UserId == null)
+                return false;
             var mcUuid = SessionInfo.McUuid;
             var userId = accountInfo.UserId.ToString();
             verificationSpan?.AddTag("userId", userId);

@@ -6,6 +6,13 @@ public class VerifyCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
+        if (socket.AccountInfo == null)
+        {
+            socket.SendMessage("You are not logged in. Please log in first.");
+            await Task.Delay(4000);
+            socket.ModAdapter.SendLoginPrompt(socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId));
+            return;
+        }
         var verifcationHandler = socket.sessionLifesycle.VerificationHandler;
         var isVerified = await verifcationHandler.CheckVerificationStatus(socket.AccountInfo);
         if (isVerified)
