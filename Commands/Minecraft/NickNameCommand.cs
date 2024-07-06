@@ -52,7 +52,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var connectApi = socket.GetService<IConnectApi>();
                 var userInfo = await connectApi.ConnectMinecraftMcUuidGetAsync(existingUuid);
-                if (userInfo.ExternalId != socket.UserId)
+                if (userInfo?.ExternalId != socket.UserId)
                 {
                     socket.Dialog(db => db.MsgLine($"You can't nick as {nickName} as it is already used by another user"));
                     return;
