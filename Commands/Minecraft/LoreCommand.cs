@@ -40,6 +40,13 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 }
             }
+            var privacySettings = socket.sessionLifesycle.PrivacySettings;
+            if(!privacySettings.Value.ExtendDescriptions)
+            {
+                socket.Dialog(db => db.MsgLine("You have disabled the display of additional information on items")
+                    .CoflCommand<SetCommand>("[Click here to enable]", "privacyextendDescriptions true", "Enable the display of additional information on items"));
+                return;
+            }
 
             if (args.Length < 2)
             {
