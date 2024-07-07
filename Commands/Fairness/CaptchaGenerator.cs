@@ -100,10 +100,10 @@ public class CaptchaGenerator
         var index = 0;
         while (chars.Sum(c => c.Average(l => l.Text.Length)) < 50)
             chars.Add(RenderCharLines(alphaBet[index++], socket.AccountInfo));
+        var charType = int.TryParse(letter.ToString(), out var _) ? "number" : "letter";
         var challenge = new CaptchaChallenge()
         {
-            Question = "Select the letter " + McColorCodes.AQUA + letter +
-                $"\n{McColorCodes.GRAY}Click what looks the most like the letter " + McColorCodes.AQUA + letter
+            Question = $"{McColorCodes.BOLD}Click {McColorCodes.RESET}what looks the most like the {charType} {McColorCodes.AQUA}{letter}"
         };
         var bigger = chars.Max(l => l.Count);
         chars = chars.OrderBy(r => random.Next()).ToList();
