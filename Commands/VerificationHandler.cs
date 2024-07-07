@@ -151,13 +151,15 @@ namespace Coflnet.Sky.Commands.MC
                     // autoverify
                     socket.Dialog(db => db.MsgLine("Attempting to autoverify with a pseudo flip."));
                     var circumventTracker = socket.GetService<CircumventTracker>();
-                    await circumventTracker.SendChallangeFlip(socket, FlipperService.LowPriceToFlip(new LowPricedAuction()
+                    var flip = FlipperService.LowPriceToFlip(new LowPricedAuction()
                     {
                         Auction = cheapBin,
                         TargetPrice = bid + 1000,
                         DailyVolume = 1,
                         Finder = LowPricedAuction.FinderType.EXTERNAL
-                    }));
+                    });
+                    flip.Context["match"] = "whitelist shitflip";
+                    await circumventTracker.SendChallangeFlip(socket, flip);
                     await Task.Delay(5000);
                     socket.Dialog(db => db.MsgLine("It can take up to 1 minute to verify your account. If you are not verified after that, please try again."));
                 }

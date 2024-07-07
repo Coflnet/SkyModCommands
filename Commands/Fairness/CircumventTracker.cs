@@ -40,7 +40,7 @@ public class CircumventTracker
     public async Task<string?> CreateChallenge(IMinecraftSocket socket, bool forceCreate = false)
     {
         if (socket.SessionInfo.NotPurchaseRate <= 2 || await socket.UserAccountTier() < AccountTier.PREMIUM || socket.sessionLifesycle.CurrentDelay > TimeSpan.FromSeconds(1)
-                        || LikelyLegit() && Random.Shared.NextDouble() < 0.9)
+                        || LikelyLegit(socket) && Random.Shared.NextDouble() < 0.9)
         {
             Activity.Current?.Log($"Not creating challenge because probably legit {socket.SessionInfo.NotPurchaseRate}");
             return null;
@@ -101,7 +101,7 @@ public class CircumventTracker
         throw new Exception("No matching flip found " + JsonConvert.SerializeObject(lowPriced));
     }
 
-    private static bool LikelyLegit()
+    private static bool LikelyLegit(IMinecraftSocket socket)
     {
         return socket.AccountInfo.McIds.Count > 3 || socket.AccountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(20) || socket.UserId.Length < 6 || socket.sessionLifesycle.CurrentDelay > TimeSpan.FromSeconds(0.5);
     }
@@ -158,6 +158,17 @@ public class CircumventTracker
         await adapter.SendFlip(flip);
         await trackTask;
         await Task.Delay(5000);
+        if (flip.Context["match"].Contains("shitflip"))
+        {
+            if (Random.Shared.NextDouble() < 0.2)
+            {
+                socket.Dialog(db => db.MsgLine("Hello there.")
+                    .MsgLine($"The auction for {flip.Auction.ItemName} was overvalued on purpose because you were blacklisted as punishment for abuse.")
+                    .MsgLine("Abuse is not cool.")
+                    .MsgLine("When you matured a bit more you can start over on a fresh account that has no connection to the blacklisted one :)"));
+            }
+            return;
+        }
         socket.Dialog(db => db.MsgLine("Hello there,")
             .MsgLine("Sorry to disturb you, but we have noticed you didn't buy any flips in a while.")
             .MsgLine($"The auction for {flip.Auction.ItemName} was overvalued on purpose to check who would buy it.")
