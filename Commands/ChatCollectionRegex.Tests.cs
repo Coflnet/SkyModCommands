@@ -43,5 +43,10 @@ namespace Coflnet.Sky.Commands.MC
         {
             Assert.That(!regex.IsMatch("There are blocks in the way!"));
         }
+        [Test]
+        public void TriggerReward()
+        {
+            Assert.That(regex.IsMatch("\nClick th' link t' visit our website an' plunder yer treasure: https://rewards.hypixel.net/claim-reward/225a264d"));
+        }
     }
 }

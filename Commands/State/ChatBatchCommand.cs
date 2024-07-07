@@ -69,7 +69,7 @@ namespace Coflnet.Sky.Commands.MC
                 await CheckBid(socket, item);
             if (item.StartsWith("You must set it to at least"))
                 socket.SessionInfo.ToLowListingAttempt = item;
-            if (item.StartsWith("\nClick the link to visit our website and claim your reward"))
+            if (item.StartsWith("\nClick th"))
             {
                 Console.WriteLine("found reward link");
                 var match = Regex.Match(item, @"(https://rewards.hypixel.net/claim-reward/[a-f0-9-]+)");
@@ -79,8 +79,9 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         await RewardHandler.SendRewardOptions(socket, match);
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
+                        dev.Logger.Instance.Error(e, "Failed to get reward options");
                         socket.Dialog(db => db.MsgLine("Failed to get reward options. Please report this on our discord."));
                     }
                 }

@@ -45,7 +45,7 @@ public class RewardHandler
         {
             Enum.TryParse<Tier>(reward.rarity, out Tier tier);
             var paddedRarity = reward.rarity.PadRight(10);
-            var gameName = GameNameMapping.GetValueOrDefault(reward.gameType, reward.gameType);
+            var gameName = reward.gameType != null ? GameNameMapping.GetValueOrDefault(reward.gameType, reward.gameType) : null;
             var formattedLine = $"{McColorCodes.GRAY}->{socket.formatProvider.GetRarityColor(tier) + paddedRarity} {gameName} {reward.amount} {reward.reward}\n";
             db.CoflCommand<ClaimHypixelRewardCommand>(formattedLine, $"{i} {securityToken} {id}");
         }));

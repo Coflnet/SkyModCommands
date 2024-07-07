@@ -8,7 +8,7 @@ namespace Coflnet.Sky.Commands.MC
         public const string DefaultChatRegex =
                 @"^(You cannot view this auction!|You claimed|\[Bazaar\]|�r�cCancelled|�r�6Bazaar!"
                 + @"|You collected|�6[Auction]|BIN Auction started|You cancelled|You purchased "
-                + @"| - | \+ |Trade completed|Bid of|\nClick the link to |You must set it to at least).*";
+                + @"| - | \+ |Trade completed|Bid of|\nClick the link to |\nClick th' li|You must set it to at least).*";
 
         public InventoryModSession(MinecraftSocket socket) : base(socket)
         {
