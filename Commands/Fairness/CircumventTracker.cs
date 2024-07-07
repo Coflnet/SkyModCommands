@@ -39,8 +39,8 @@ public class CircumventTracker
 
     public async Task<string?> CreateChallenge(IMinecraftSocket socket, bool forceCreate = false)
     {
-        if (socket.SessionInfo.NotPurchaseRate <= 2 || await socket.UserAccountTier() < AccountTier.PREMIUM
-                        || (socket.AccountInfo.McIds.Count > 3 || socket.AccountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(20) || socket.UserId.Length < 6) && Random.Shared.NextDouble() < 0.9) // probably legit
+        if (socket.SessionInfo.NotPurchaseRate <= 2 || await socket.UserAccountTier() < AccountTier.PREMIUM || socket.sessionLifesycle.CurrentDelay > TimeSpan.FromSeconds(1)
+                        || LikelyLegit() && Random.Shared.NextDouble() < 0.9)
         {
             Activity.Current?.Log($"Not creating challenge because probably legit {socket.SessionInfo.NotPurchaseRate}");
             return null;
@@ -99,6 +99,11 @@ public class CircumventTracker
 
         logger.LogError("Testflip doesn't match {UserId} ({socket.SessionInfo.McUuid}) because {reson} {flip}", socket.UserId, socket.SessionInfo.McUuid, isMatch.Item2, JsonConvert.SerializeObject(lowPriced));
         throw new Exception("No matching flip found " + JsonConvert.SerializeObject(lowPriced));
+    }
+
+    private static bool LikelyLegit()
+    {
+        return socket.AccountInfo.McIds.Count > 3 || socket.AccountInfo.ExpiresAt > DateTime.UtcNow + TimeSpan.FromDays(20) || socket.UserId.Length < 6 || socket.sessionLifesycle.CurrentDelay > TimeSpan.FromSeconds(0.5);
     }
 
     private async Task LoadNewPlayerThreshold()
