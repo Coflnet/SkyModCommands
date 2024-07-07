@@ -45,7 +45,8 @@ public class RewardHandler
         {
             Enum.TryParse<Tier>(reward.rarity, out Tier tier);
             var paddedRarity = reward.rarity.PadRight(10);
-            var formattedLine = $"{McColorCodes.GRAY}->{socket.formatProvider.GetRarityColor(tier) + paddedRarity} {reward.gameType} {reward.amount} {reward.reward}\n";
+            var gameName = GameNameMapping.GetValueOrDefault(reward.gameType, reward.gameType);
+            var formattedLine = $"{McColorCodes.GRAY}->{socket.formatProvider.GetRarityColor(tier) + paddedRarity} {gameName} {reward.amount} {reward.reward}\n";
             db.CoflCommand<ClaimHypixelRewardCommand>(formattedLine, $"{i} {securityToken} {id}");
         }));
     }
@@ -79,6 +80,32 @@ public class RewardHandler
             return Task.CompletedTask;
         }
     }
+
+    private static Dictionary<string, string> GameNameMapping = new()
+    {
+        {"WALLS3", "Mega Walls" },
+        {"QUAKECRAFT", "Quakecraft" },
+        {"WALLS", "Walls"},
+        {"PAINTBALL", "Paintball"},
+        {"SURVIVAL_GAMES", "Blitz SG"},
+        {"TNTGAMES", "TNT Games"},
+        {"VAMPIREZ", "VampireZ"},
+        {"ARCADE", "Arcade"},
+        {"ARENA", "Arena"},
+        {"UHC", "UHC"},
+        {"MCGO", "Cops and Crims"},
+        {"BATTLEGROUND", "Warlords" },
+        {"SUPER_SMASH", "Smash Heroes"},
+        {"GINGERBREAD", "Turbo Kart Racers"},
+        {"SKYWARS", "SkyWars" },
+        {"TRUE_COMBAT", "CrazyWalls"},
+        {"SPEEDUHC", "Speed UHC"},
+        {"BEDWARS", "Bed Wars" },
+        {"BUILD_BATTLE", "Build Battle" },
+        {"MURDER_MYSTERY", "Murder Mystery"},
+        {"DUELS", "Duels"},
+        {"LEGACY", "Classic" }
+    };
 
     public class Ad
     {
