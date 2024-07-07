@@ -171,8 +171,10 @@ public class CircumventTracker
     {
         var oldestStart = DateTime.UtcNow - TimeSpan.FromMinutes(1);
         foreach (var blocked in socket.TopBlocked.Where(b => b.Flip.Auction.Start > oldestStart)
-                                    .OrderBy(b=>b.Flip.Auction.StartingBid/b.Flip.DailyVolume))
+                                    .OrderBy(b => b.Flip.Auction.StartingBid / b.Flip.DailyVolume))
         {
+            if (blocked.Flip.Auction.StartingBid > 90_000_000)
+                continue; // bit too pricey
             if (blocked.Reason != "minProfit" && blocked.Reason != "minVolume")
                 continue;
             return blocked.Flip.Auction;
@@ -181,7 +183,7 @@ public class CircumventTracker
         Activity.Current?.Log("From db");
         return await context.Auctions.OrderByDescending(a => a.Id).Include(a => a.Enchantments).Include(a => a.NbtData)
             .Take(350)
-            .Where(a => a.HighestBidAmount == 0 && a.Start > oldestStart).FirstOrDefaultAsync();
+            .Where(a => a.HighestBidAmount == 0 && a.Start > oldestStart && a.StartingBid < 5_000_000).FirstOrDefaultAsync();
     }
 
     public class State
