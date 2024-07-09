@@ -62,7 +62,8 @@ public class DelayHandler : IDelayHandler
         var profit = flipInstance.Profit;
         if (dropoutChance * (profit > 6_000_000 ? 3 : 1) > random.NextDouble())
             await timeProvider.Delay(TimeSpan.FromSeconds(6)).ConfigureAwait(false);
-        if (IsLikelyBot(flipInstance))
+        var isPreApi = (flipInstance.Auction.Context?.TryGetValue("pre-api", out var preApi) ?? false) && preApi != "recheck";
+        if (IsLikelyBot(flipInstance) && !isPreApi)
             return timeProvider.Now;
         if (profit < 200_000 && flipInstance.Finder == Core.LowPricedAuction.FinderType.FLIPPER)
             return timeProvider.Now;
@@ -83,12 +84,12 @@ public class DelayHandler : IDelayHandler
             var sendableIn = flipInstance.Auction.Start - timeProvider.Now + TimeSpan.FromSeconds(18);
             if (sendableIn > TimeSpan.Zero && !apiBed)
                 await timeProvider.Delay(sendableIn).ConfigureAwait(false);
-            if ((flipInstance.Auction.Context?.TryGetValue("pre-api", out var preApi) ?? false) && preApi != "recheck" && Random.Shared.NextDouble() < 0.98)
+            if (isPreApi && Random.Shared.NextDouble() < 0.98)
                 await timeProvider.Delay(TimeSpan.FromSeconds(4)).ConfigureAwait(false); // reserve preapi for nonbots
             Activity.Current.Log("Applied BAF " + sendableIn);
         }
-        else if ((flipInstance.Auction.Context?.TryGetValue("pre-api", out var preApi) ?? false) && preApi != "recheck" && Random.Shared.NextDouble() < 0.98)
-            await timeProvider.Delay(delay * 3).ConfigureAwait(false); // reserve preapi for non-macroers
+        else if (isPreApi && Random.Shared.NextDouble() < 0.98)
+            await timeProvider.Delay(delay * 5).ConfigureAwait(false); // reserve preapi for non-macroers
 
         if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
             await timeProvider.Delay(macroPenalty).ConfigureAwait(false);
