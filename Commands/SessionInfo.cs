@@ -70,7 +70,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public List<SaveAuction> Inventory { get; set; }
         public int SkipLikeliness { get; set; }
-        public int LicenseCount { get; set; }
+        public int LicensePoints { get; set; }
 
         public AccountTier SessionTier { get; set; }
         /// <summary>

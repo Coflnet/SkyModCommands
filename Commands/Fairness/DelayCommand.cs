@@ -53,7 +53,7 @@ namespace Coflnet.Sky.Commands.MC
             else if (delayAmount == TimeSpan.FromSeconds(12))
                 socket.Dialog(db => db.CoflCommand<CaptchaCommand>($"You flipped for too long and have to solve a captcha to remove your 12 second delay {McColorCodes.AQUA}click to get one", "", "Generates a new captcha"));
             else
-                socket.SendMessage(COFLNET + $"You are currently delayed by a maximum of {McColorCodes.AQUA}{delayAmount.TotalSeconds}s{McColorCodes.GRAY} by the fairness system. This will decrease over time and is not fully applied to all flips.",
+                socket.SendMessage(COFLNET + $"You are currently delayed by {McColorCodes.AQUA}{delayAmount.TotalSeconds}s{McColorCodes.GRAY} on api flips by the fairness system. This will decrease over time and is not fully applied to all flips.",
                         null, McColorCodes.GRAY + "Your call to this has been recorded, \nattempts to trick the system will be punished.");
             if (socket.SessionInfo.SessionTier == AccountTier.SUPER_PREMIUM && delayAmount > TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"While using {McColorCodes.RED}pre api{DEFAULT_COLOR} your delay increases {McColorCodes.GREEN}{DelayHandler.DelayReduction * 100}% slower{DEFAULT_COLOR} "
@@ -68,13 +68,13 @@ namespace Coflnet.Sky.Commands.MC
             if (socket.Settings?.Visibility?.Seller ?? false)
                 ShowWarning(socket, "show seller name", "showseller");
 
-            if (socket.SessionInfo.LicenseCount > 0)
+            if (socket.SessionInfo.LicensePoints > 0)
             {
                 var adjustedDelay = delayAmount;
-                adjustedDelay /= Math.Pow(0.7, socket.SessionInfo.LicenseCount);
-                adjustedDelay += TimeSpan.FromSeconds(0.02 * socket.SessionInfo.LicenseCount);
+                adjustedDelay /= Math.Pow(0.7, socket.SessionInfo.LicensePoints);
+                adjustedDelay += TimeSpan.FromSeconds(0.02 * socket.SessionInfo.LicensePoints);
                 var delayReducedBy = delayAmount - adjustedDelay;
-                socket.Dialog(db => db.MsgLine($"Because of your {socket.SessionInfo.LicenseCount} licenses your delay is reduced by {McColorCodes.AQUA}{delayReducedBy.TotalSeconds}s{DEFAULT_COLOR} from {McColorCodes.RED}{adjustedDelay.TotalSeconds}s{DEFAULT_COLOR}."));
+                socket.Dialog(db => db.MsgLine($"Because of your {socket.SessionInfo.LicensePoints} licenses your delay is reduced by {McColorCodes.AQUA}{delayReducedBy.TotalSeconds}s{DEFAULT_COLOR} from {McColorCodes.RED}{adjustedDelay.TotalSeconds}s{DEFAULT_COLOR}."));
             }
 
             await socket.TriggerTutorial<DelayTutorial>();
