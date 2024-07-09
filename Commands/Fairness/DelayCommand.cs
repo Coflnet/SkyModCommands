@@ -71,10 +71,10 @@ namespace Coflnet.Sky.Commands.MC
             if (socket.SessionInfo.LicensePoints > 0)
             {
                 var adjustedDelay = delayAmount;
-                adjustedDelay /= Math.Pow(0.7, socket.SessionInfo.LicensePoints);
-                adjustedDelay += TimeSpan.FromSeconds(0.02 * socket.SessionInfo.LicensePoints);
+                adjustedDelay /= Math.Pow(0.945, socket.SessionInfo.LicensePoints);
+                adjustedDelay += TimeSpan.FromSeconds(0.01 * socket.SessionInfo.LicensePoints);
                 var delayReducedBy = delayAmount - adjustedDelay;
-                socket.Dialog(db => db.MsgLine($"Because of your {socket.SessionInfo.LicensePoints} licenses your delay is reduced by {McColorCodes.AQUA}{delayReducedBy.TotalSeconds}s{DEFAULT_COLOR} from {McColorCodes.RED}{adjustedDelay.TotalSeconds}s{DEFAULT_COLOR}."));
+                socket.Dialog(db => db.MsgLine($"Because of your license(s) your delay is reduced by {McColorCodes.AQUA}{delayReducedBy.TotalSeconds}s{DEFAULT_COLOR} from {McColorCodes.RED}{adjustedDelay.TotalSeconds}s{DEFAULT_COLOR}."));
             }
 
             await socket.TriggerTutorial<DelayTutorial>();
