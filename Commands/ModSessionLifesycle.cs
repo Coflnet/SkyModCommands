@@ -867,12 +867,11 @@ namespace Coflnet.Sky.Commands.MC
                     AccountInfo.Value.BadActionCount--;
                     await AccountInfo.Update(AccountInfo.Value);
                 }
-                if (SessionInfo.NotPurchaseRate > 1 && socket.Settings?.MinProfit > 1_500_000 && DateTime.UtcNow.Minute % 10 == 0)
+                if (SessionInfo.NotPurchaseRate > 2 && socket.Settings?.MinProfit > 1_500_000 && DateTime.UtcNow.Minute % 15 == 0)
                 {
-                    socket.Dialog(db => db.MsgLine("It seems like you were unable to purchase flips recently. \nWe are adjusting your main settings which should help you get more flips."));
-                    socket.Settings.MinProfit = socket.Settings.MinProfit * 9 / 10;
-                    if (socket.Settings.MinVolume < 1 && socket.sessionLifesycle.AccountSettings.Value.LoadedConfig != null)
-                        socket.Settings.MinVolume = 1;
+                    socket.Dialog(db => db.MsgLine("It seems like you were unable to purchase flips recently. \n"
+                      + "If you tried a lot we recommend you to lower your minprofit setting and maybe block flips with high profit\n."
+                      + "That should help you to get flips with less competition"));
                 }
                 if (isBot)
                     return;
