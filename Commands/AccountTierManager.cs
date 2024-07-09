@@ -173,6 +173,7 @@ public class AccountTierManager : IAccountTierManager
 
         // check license
         var licenses = await socket.GetService<ILicenseApi>().ApiLicenseUUserIdGetAsync(userId);
+        socket.SessionInfo.LicenseCount = licenses.Count;
         var thisAccount = licenses.Where(l => l.TargetId == socket.SessionInfo.McUuid && l.Expires > DateTime.UtcNow);
         if (thisAccount.Any())
         {

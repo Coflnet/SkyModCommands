@@ -219,6 +219,11 @@ public class DelayHandler : IDelayHandler
 
         if (ids.Any(DiHandler.GetService<DelayService>().IsSlowedDown))
             currentDelay += TimeSpan.FromSeconds(4);
+        if (sessionInfo.LicenseCount > 0)
+        {
+            currentDelay *= Math.Pow(0.7, sessionInfo.LicenseCount);
+            currentDelay -= TimeSpan.FromSeconds(0.02 * sessionInfo.LicenseCount);
+        }
         if (currentDelay != lastDelay)
             OnDelayChange?.Invoke(currentDelay);
         summary.Penalty = currentDelay;

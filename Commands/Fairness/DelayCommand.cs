@@ -19,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
     public class DelayCommand : McCommand
     {
         public override bool IsPublic => true;
-        public ConcurrentDictionary<string, int> CallCount = new ();
+        public ConcurrentDictionary<string, int> CallCount = new();
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var delayAmount = socket.sessionLifesycle.CurrentDelay;
@@ -43,7 +43,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             var called = CallCount.AddOrUpdate(socket.UserId, 1, (k, v) => v + 1);
-            if(Random.Shared.NextDouble() < 0.01 * (called - 100))
+            if (Random.Shared.NextDouble() < 0.01 * (called - 100))
             {
                 delayAmount += TimeSpan.FromSeconds(8);
             }
@@ -67,6 +67,15 @@ namespace Coflnet.Sky.Commands.MC
                 ShowWarning(socket, "show second lowest bin", "showslbin");
             if (socket.Settings?.Visibility?.Seller ?? false)
                 ShowWarning(socket, "show seller name", "showseller");
+
+            if (socket.SessionInfo.LicenseCount > 0)
+            {
+                var adjustedDelay = delayAmount;
+                adjustedDelay /= Math.Pow(0.7, socket.SessionInfo.LicenseCount);
+                adjustedDelay += TimeSpan.FromSeconds(0.02 * socket.SessionInfo.LicenseCount);
+                var delayReducedBy = delayAmount - adjustedDelay;
+                socket.Dialog(db => db.MsgLine($"Because of your {socket.SessionInfo.LicenseCount} licenses your delay is reduced by {McColorCodes.AQUA}{delayReducedBy.TotalSeconds}s{DEFAULT_COLOR} from {McColorCodes.RED}{adjustedDelay.TotalSeconds}s{DEFAULT_COLOR}."));
+            }
 
             await socket.TriggerTutorial<DelayTutorial>();
             if (delayAmount >= TimeSpan.FromSeconds(1))
