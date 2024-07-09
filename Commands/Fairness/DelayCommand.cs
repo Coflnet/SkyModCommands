@@ -68,8 +68,9 @@ namespace Coflnet.Sky.Commands.MC
             if (socket.Settings?.Visibility?.Seller ?? false)
                 ShowWarning(socket, "show seller name", "showseller");
 
-            if (socket.SessionInfo.LicensePoints > 0)
+            if (socket.SessionInfo.LicensePoints > 0 && delayAmount > TimeSpan.Zero)
             {
+                await Task.Delay(10);
                 var adjustedDelay = delayAmount;
                 adjustedDelay /= Math.Pow(0.945, socket.SessionInfo.LicensePoints);
                 adjustedDelay += TimeSpan.FromSeconds(0.01 * socket.SessionInfo.LicensePoints);
