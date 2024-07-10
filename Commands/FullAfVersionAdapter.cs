@@ -95,6 +95,9 @@ public class FullAfVersionAdapter : AfVersionAdapter
             listingSpan.Log(JsonConvert.SerializeObject(item));
             var marketBased = toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid).Select(x => Math.Min(x.Second.Median, x.Second.Lbin.Price)).FirstOrDefault();
             var targetPrice = Math.Max(item.TargetPrice, marketBased * 0.95);
+            var stored = await socket.GetService<IPriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
+            if (stored < 0)
+                continue; // user finder/do not relist
             await SendListing(span, item.Auction, (long)targetPrice, index, uuid);
             return; // created listing
         }
