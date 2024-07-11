@@ -39,6 +39,12 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "Nicknames can't contain spaces");
                 return;
             }
+            var alphaNumericRegex = new System.Text.RegularExpressions.Regex("^[a-zA-Z0-9_]*$");
+            if(!alphaNumericRegex.IsMatch(nickName))
+            {
+                socket.SendMessage(COFLNET + "Nicknames can only contain letters, numbers and underscores");
+                return;
+            }
 
             var redis = socket.GetService<IConnectionMultiplexer>();
             var playerId = socket.UserId;
