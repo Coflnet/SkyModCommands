@@ -68,8 +68,12 @@ public class SetCommand : McCommand
             socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{doc.RealName}{DEFAULT_COLOR} to {McColorCodes.WHITE}{finalValue}", null, doc.Info));
             if (page > 0)
                 await PrintSettingsPage(socket, page);
-            if(arguments.ToLower().Contains("modtimer"))
+            if (arguments.ToLower().Contains("modtimer"))
                 socket.sessionLifesycle.StartTimer(12);
+            if (arguments.ToLower().StartsWith("privacydisable"))
+            {
+                ProducePrivacyChangeForState(socket);
+            }
 
             socket.GetService<FlipperService>().UpdateFilterSumaries();
         }
@@ -84,6 +88,19 @@ public class SetCommand : McCommand
             socket.SendMessage(new ChatPart(COFLNET + "an error occured while executing that"));
 
         }
+    }
+
+    private static void ProducePrivacyChangeForState(MinecraftSocket socket)
+    {
+        socket.GetService<IStateUpdateService>().Produce(socket.SessionInfo?.McName, new UpdateMessage()
+        {
+            Kind = UpdateMessage.UpdateKind.Setting,
+            Settings = new()
+            {
+                DisableTradeTracking = socket.sessionLifesycle.PrivacySettings.Value.DisableTradeStoring
+            },
+            UserId = socket.UserId
+        });
     }
 
     private static async Task<int> PrintSettingsPage(MinecraftSocket socket, int page)
