@@ -75,6 +75,7 @@ public class Startup
         services.AddHostedService(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IAhActive, AhActiveService>();
         services.AddSingleton<CircumventTracker>();
+        services.AddSingleton<BlockedService>();
         services.AddSingleton<IPriceStorageService, PriceStorageService>();
         services.AddSingleton<DelayService>();
         services.AddSingleton<AltChecker>();

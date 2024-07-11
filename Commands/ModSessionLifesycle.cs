@@ -605,7 +605,8 @@ namespace Coflnet.Sky.Commands.MC
         public void HouseKeeping()
         {
             FlipProcessor.MinuteCleanup();
-            while (socket.TopBlocked.Count > 300)
+            var max = SessionInfo.SessionTier >= AccountTier.PREMIUM_PLUS ? 1000 : 200;
+            while (socket.TopBlocked.Count > max)
                 socket.TopBlocked.TryDequeue(out _);
             spamController.Reset();
         }
@@ -750,8 +751,20 @@ namespace Coflnet.Sky.Commands.MC
             SessionInfo.LastBlockedMsg = DateTime.UtcNow;
 
             // remove blocked (if clear failed to do so)
-            while (socket.TopBlocked.Count > 345)
-                socket.TopBlocked.TryDequeue(out _);
+            socket.TryAsyncTimes(async () =>
+            {
+                var service = socket.GetService<BlockedService>();
+                while (socket.TopBlocked.Count > 300)
+                    if (socket.TopBlocked.TryDequeue(out var blocked) && SessionInfo.SessionTier >= AccountTier.PREMIUM_PLUS)
+                        await service.AddBlockedReason(new()
+                        {
+                            AuctionUuid = Guid.Parse(blocked.Flip.Auction.Uuid),
+                            BlockedAt = blocked.Now,
+                            FinderType = blocked.Flip.Finder,
+                            Reason = blocked.Reason,
+                            UserId = socket.UserId
+                        });
+            }, "blocked cleanup");
         }
 
         private void UpdateConnectionIfNoFlipSent(Activity span)

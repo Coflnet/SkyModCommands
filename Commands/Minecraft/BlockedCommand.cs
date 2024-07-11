@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Coflnet.Sky.Commands.Shared;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -18,6 +19,20 @@ namespace Coflnet.Sky.Commands.MC
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            var searchVal = JsonConvert.DeserializeObject<string>(arguments).ToLower();
+
+            if (Guid.TryParse(searchVal, out var auctionUUid))
+            {
+                var blockedService = socket.GetService<BlockedService>();
+                var blocked = await blockedService.GetBlockedReasons(socket.UserId, auctionUUid);
+                if (blocked.Count() == 0)
+                {
+                    socket.SendMessage(COFLNET + "No blocked reason recorded for this auction. Maybe not found as a flip");
+                    return;
+                }
+                socket.Dialog(db => db.ForEach(blocked, (db, b) => db.MsgLine($"{b.FinderType} blocked for {b.Reason}", null, $"At {b.BlockedAt}")));
+                return;
+            }
             if (socket.SessionInfo.IsNotFlipable)
             {
                 socket.SendMessage(COFLNET + "You are not in a gamemode that does not have access to the auction house. \n"
@@ -53,7 +68,6 @@ namespace Coflnet.Sky.Commands.MC
 
             if (arguments.Length > 2)
             {
-                var searchVal = JsonConvert.DeserializeObject<string>(arguments).ToLower();
                 var baseCollection = socket.TopBlocked.AsQueryable(); ;
                 Console.WriteLine("found filters " + searchVal);
                 if (searchVal.Contains('='))
