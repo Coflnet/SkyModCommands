@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
             if (Guid.TryParse(searchVal, out var auctionUUid))
             {
                 var blockedService = socket.GetService<BlockedService>();
-                var blocked = await blockedService.GetBlockedReasons(socket.UserId, auctionUUid);
+                var blocked = (await blockedService.GetBlockedReasons(socket.UserId, auctionUUid)).ToList();
                 if (blocked.Count() == 0)
                 {
                     socket.SendMessage(COFLNET + "No blocked reason recorded for this auction. Maybe not found as a flip");
