@@ -21,10 +21,11 @@ public class BlockedService
                 .PartitionKey(x => x.UserId)
                 .ClusteringKey(x => x.AuctionUuid)
                 .ClusteringKey(x => x.FinderType)
+                .Column(o => o.FinderType, c => c.WithName("finder_type").WithDbType<int>())
                 .Column(x => x.BlockedAt, cm => cm.WithName("blocked_at"))
                 .Column(x => x.Reason, cm => cm.WithName("reason"))
         );
-        table = new Table<BlockedReason>(session);
+        table = new Table<BlockedReason>(session, mapping);
         table.CreateIfNotExists();
     }
 
