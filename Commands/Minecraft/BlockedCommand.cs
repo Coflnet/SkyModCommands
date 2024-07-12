@@ -6,6 +6,7 @@ using Coflnet.Sky.Commands.Shared;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -23,14 +24,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (Guid.TryParse(searchVal, out var auctionUUid))
             {
-                var blockedService = socket.GetService<BlockedService>();
-                var blocked = (await blockedService.GetBlockedReasons(socket.UserId, auctionUUid)).ToList();
-                if (blocked.Count() == 0)
-                {
-                    socket.SendMessage(COFLNET + "No blocked reason recorded for this auction. Maybe not found as a flip");
-                    return;
-                }
-                socket.Dialog(db => db.ForEach(blocked, (db, b) => db.MsgLine($"{b.FinderType} blocked for {b.Reason}", null, $"At {b.BlockedAt}")));
+                await SendBlockedAuction(socket, searchVal, auctionUUid);
                 return;
             }
             if (socket.SessionInfo.IsNotFlipable)
@@ -126,6 +120,28 @@ namespace Coflnet.Sky.Commands.MC
                 if (socket.Settings?.MinProfit > 2_000_000 && averageProfit > 8_000_000)
                     socket.Dialog(db => db.MsgLine("You seem to have a pretty restrictive config that only shows you flips with high competition. Consider lowering your min profit."));
             }
+        }
+
+        private async Task SendBlockedAuction(MinecraftSocket socket, string searchVal, Guid auctionUUid)
+        {
+            var blockedService = socket.GetService<BlockedService>();
+            var blocked = (await blockedService.GetBlockedReasons(socket.UserId, auctionUUid)).ToList();
+            if (blocked.Count() == 0)
+            {
+                if (socket.SessionInfo.SessionTier <= AccountTier.PREMIUM)
+                {
+                    socket.Dialog(db => db.CoflCommand<FlipCommand>("You don't have prem+, only prem+ user blocked reasons are stored. \nthis is due to the added cost of storing that data.\nClick to change that", "prem+", "Click to purchase prem+"));
+                    return;
+                }
+                var auction = await AuctionService.Instance.GetAuctionAsync(searchVal);
+                if (auction.End > DateTime.Now.AddDays(-6))
+                    socket.SendMessage(COFLNET + "No blocked reason recorded for this auction. Maybe not found as a flip");
+                else
+                    socket.SendMessage(COFLNET + "No blocked reason recorded for this auction. It happened too long ago");
+                return;
+            }
+            socket.Dialog(db => db.ForEach(blocked, (db, b) => db.MsgLine($"{b.FinderType} blocked for {b.Reason}", null, $"At {b.BlockedAt}")));
+            return;
         }
 
         private static List<MinecraftSocket.BlockedElement> GetRandomFlips(MinecraftSocket socket)
