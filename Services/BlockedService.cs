@@ -6,10 +6,17 @@ using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Coflnet.Sky.Core;
+using static Coflnet.Sky.ModCommands.Services.BlockedService;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
-public class BlockedService
+public interface IBlockedService
+{
+    Task AddBlockedReason(BlockedReason reason);
+    Task<IEnumerable<BlockedReason>> GetBlockedReasons(string userId, Guid auctionUuid);
+}
+
+public class BlockedService : IBlockedService
 {
     Table<BlockedReason> table;
 

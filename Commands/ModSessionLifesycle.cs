@@ -753,7 +753,7 @@ namespace Coflnet.Sky.Commands.MC
             // remove blocked (if clear failed to do so)
             socket.TryAsyncTimes(async () =>
             {
-                var service = socket.GetService<BlockedService>();
+                var service = socket.GetService<IBlockedService>();
                 while (socket.TopBlocked.Count > 300)
                     if (socket.TopBlocked.TryDequeue(out var blocked) && SessionInfo.SessionTier >= AccountTier.PREMIUM_PLUS)
                         await service.AddBlockedReason(new()

@@ -124,7 +124,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendBlockedAuction(MinecraftSocket socket, string searchVal, Guid auctionUUid)
         {
-            var blockedService = socket.GetService<BlockedService>();
+            var blockedService = socket.GetService<IBlockedService>();
             var blocked = (await blockedService.GetBlockedReasons(socket.UserId, auctionUUid)).ToList();
             if (blocked.Count() == 0)
             {
