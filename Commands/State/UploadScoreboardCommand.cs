@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
 using Newtonsoft.Json;
@@ -5,6 +6,23 @@ using Newtonsoft.Json;
 namespace Coflnet.Sky.Commands.MC;
 public class UploadScoreboardCommand : McCommand
 {
+    /*
+    "SKYBLOCK CO-OP",
+"www.hypixel.net",
+"             ",
+" (56/4.8k) Combat XP",
+"Revenant Horror IV",
+"Slayer Quest",
+"         ",
+"Bits: 10,920",
+"᠅ Mithril: 4,614",
+"      ",
+" ⏣ Upper Mines",
+" 8:40am ☀",
+" Autumn 13th",
+"  ",
+"07/12/24 m182R"
+*/
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var args = JsonConvert.DeserializeObject<string[]>(arguments);
@@ -13,7 +31,7 @@ public class UploadScoreboardCommand : McCommand
         var isBingo = false;
         var isStranded = false;
         var isRift = false;
-        var hasPurse = false;
+        var isInSkyblock = args.FirstOrDefault()?.Contains("SKYBLOCK") ?? false;
         foreach (var item in args)
         {
             if (item.Contains("SKYBLOCK GUEST"))
@@ -34,7 +52,7 @@ public class UploadScoreboardCommand : McCommand
             if (item.StartsWith("Purse:") || item.StartsWith("Piggy: "))
             {
                 await new UpdatePurseCommand().Execute(socket, item.Substring(7).Replace(",", "").Split(" ")[0]);
-                hasPurse = true;
+                isInSkyblock = true;
             }
         }
         var wasNotFlippable = socket.SessionInfo.IsNotFlipable;
@@ -43,7 +61,7 @@ public class UploadScoreboardCommand : McCommand
         socket.SessionInfo.IsStranded = isStranded;
         socket.SessionInfo.IsDungeon = isDungeon;
         socket.SessionInfo.IsRift = isRift;
-        if(!hasPurse)
+        if(!isInSkyblock)
             socket.SessionInfo.Purse = -1;
         if (wasNotFlippable && !socket.SessionInfo.IsNotFlipable && !socket.HasFlippingDisabled())
         {
