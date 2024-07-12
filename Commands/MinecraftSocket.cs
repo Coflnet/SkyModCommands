@@ -614,6 +614,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override void OnClose(CloseEventArgs? e)
         {
+            using var closingSpan = CreateActivity("closing", ConSpan);
             base.OnClose(e);
             try
             {
