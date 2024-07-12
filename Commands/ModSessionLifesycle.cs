@@ -753,17 +753,15 @@ namespace Coflnet.Sky.Commands.MC
             // remove blocked (if clear failed to do so)
             socket.TryAsyncTimes(async () =>
             {
-                var service = socket.GetService<IBlockedService>();
-                while (socket.TopBlocked.Count > 300)
-                    if (socket.TopBlocked.TryDequeue(out var blocked) && SessionInfo.SessionTier >= AccountTier.PREMIUM_PLUS)
-                        await service.AddBlockedReason(new()
-                        {
-                            AuctionUuid = Guid.Parse(blocked.Flip.Auction.Uuid),
-                            BlockedAt = blocked.Now,
-                            FinderType = blocked.Flip.Finder,
-                            Reason = blocked.Reason,
-                            UserId = socket.UserId
-                        });
+                if (SessionInfo.SessionTier >= AccountTier.PREMIUM_PLUS)
+                {
+                    using var span = socket.CreateActivity("blockedcleanup", ConSpan);
+                    var service = socket.GetService<IBlockedService>();
+                    await service.ArchiveBlockedFlipsUntil(socket.TopBlocked, socket.UserId, 300);
+                    return;
+                }
+                while (socket.TopBlocked.Count > 200)
+                    socket.TopBlocked.TryDequeue(out _);
             }, "blocked cleanup");
         }
 
