@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Sniper.Client.Api;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -31,7 +33,8 @@ public class AttributeFlipCommand : ReadOnlyListCommand<Sniper.Client.Model.Attr
     protected override async Task<IEnumerable<Sniper.Client.Model.AttributeFlip>> GetElements(MinecraftSocket socket, string val)
     {
         var service = socket.GetService<IAttributeApi>();
-        return await service.ApiAttributeCraftsGetAsync();
+        var raw = await service.ApiAttributeCraftsGetWithHttpInfoAsync();
+        return JsonConvert.DeserializeObject<List<Sniper.Client.Model.AttributeFlip>>(raw.RawContent);
     }
 
     protected override string GetId(Sniper.Client.Model.AttributeFlip elem)
