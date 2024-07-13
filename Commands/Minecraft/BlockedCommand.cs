@@ -137,7 +137,7 @@ namespace Coflnet.Sky.Commands.MC
                     socket.SendMessage(COFLNET + "No blocked reason recorded for this auction. It happened too long ago");
                 return;
             }
-            socket.Dialog(db => db.ForEach(blocked, (db, b) => db.MsgLine($"{b.FinderType} blocked for {b.Reason}", null, $"At {b.BlockedAt}")));
+            socket.Dialog(db => db.ForEach(blocked, (db, b) => db.MsgLine($"{b.FinderType} {McColorCodes.GRAY}blocked for {McColorCodes.RESET}{b.Reason}", null, $"At {b.BlockedAt}")));
             return;
         }
 
