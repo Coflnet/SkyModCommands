@@ -204,6 +204,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<RewardHandler.ClaimHypixelRewardCommand>();
             Commands.Add<LicensesCommand>("license");
             Commands.Add<VerifyCommand>();
+            Commands.Add<AttributeFlipCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

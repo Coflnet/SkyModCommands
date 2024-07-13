@@ -14,16 +14,22 @@ public abstract class ReadOnlyListCommand<T> : McCommand
     {
         var arguments = JsonConvert.DeserializeObject<string>(args);
         var title = GetTitle(arguments);
+        if (arguments.ToLower() == "help")
+        {
+            socket.Dialog(db => db.MsgLine(Title).MsgLine("Usage: /cofl " + Slug + " [sort] [search|page] ")
+                .If(() => sorters.Count > 0, db => db.MsgLine("Sort options: " + string.Join(", ", sorters.Keys))));
+            return;
+        }
         var elements = (await GetElements(socket, arguments)).ToList();
-        if (sorters.TryGetValue(arguments.Split(' ')[0].Trim('"'), out var sorter))
+        if (sorters.TryGetValue(arguments.Split(' ')[0], out var sorter))
         {
             elements = sorter(elements).ToList();
             arguments = RemoveSortArgument(arguments);
         }
-        if (!int.TryParse(arguments.Trim('"'), out int page) && arguments.Trim('"').Length > 1)
+        if (!int.TryParse(arguments, out int page) && arguments.Length > 1)
         {
             // search
-            elements = elements.Where(e => GetId(e).ToLower().Contains(arguments.Trim('"').ToLower())).ToList();
+            elements = elements.Where(e => GetId(e).ToLower().Contains(arguments.ToLower())).ToList();
         }
         if (page < 0)
             page = elements.Count / PageSize + page;
@@ -43,7 +49,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
 
     protected virtual string RemoveSortArgument(string arguments)
     {
-        if(arguments.Split(' ').Length == 1)
+        if (arguments.Split(' ').Length == 1)
             return "";
         arguments = arguments.Split(' ').Skip(1).Aggregate((a, b) => a + " " + b);
         return arguments;
