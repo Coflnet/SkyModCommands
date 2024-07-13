@@ -887,7 +887,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (SessionInfo.NotPurchaseRate > 2 && socket.Settings?.MinProfit > 1_500_000 && DateTime.UtcNow.Minute % 15 == 0)
                 {
                     socket.Dialog(db => db.MsgLine("It seems like you were unable to purchase flips recently. \n"
-                      + "If you tried a lot we recommend you to lower your minprofit setting and maybe block flips with high profit\n."
+                      + "If you tried a lot we recommend you to lower your minprofit setting and maybe block flips with high profit.\n"
                       + "That should help you to get flips with less competition"));
                 }
                 if (isBot)
