@@ -376,6 +376,12 @@ namespace Coflnet.Sky.Commands.MC
             }
             try
             {
+                if (info.CaptchaType == "vertical")
+                {
+                    if (info.LastMacroConnect < DateTime.Now.AddDays(-1))
+                        info.LastMacroConnect = DateTime.Now.AddDays(-1);
+                    SessionInfo.IsMacroBot = true;
+                }
                 var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info, socket.SessionInfo);
                 span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (info.UserId != socket.UserId && socket.UserId?.Length > 2)

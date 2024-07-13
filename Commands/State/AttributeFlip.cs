@@ -26,8 +26,10 @@ public class AttributeFlipCommand : ReadOnlyListCommand<Sniper.Client.Model.Attr
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Sniper.Client.Model.AttributeFlip elem)
     {
-        db.MsgLine($"{elem.Tag} to {socket.FormatPrice(elem.Target)} apply:", $"/viewauction {elem.AuctionToBuy}", $"click to open the auction in question\n{McColorCodes.GRAY}do that before you buy the things to upgrade")
-            .ForEach(elem.Ingredients, (db, ing) => db.MsgLine($"- {ing.AttributeName}"));
+        db.MsgLine($"{McColorCodes.GREEN}{elem.Tag} {McColorCodes.RESET}to {McColorCodes.AQUA}{socket.FormatPrice(elem.Target)} {McColorCodes.RESET}apply:",
+                $"/viewauction {elem.AuctionToBuy}",
+                $"click to open the auction in question\n{McColorCodes.GRAY}do that before you buy the things to upgrade")
+            .ForEach(elem.Ingredients, (db, ing) => db.MsgLine($"{McColorCodes.GRAY}- {McColorCodes.RESET}{ing.AttributeName}"));
     }
 
     protected override async Task<IEnumerable<Sniper.Client.Model.AttributeFlip>> GetElements(MinecraftSocket socket, string val)
