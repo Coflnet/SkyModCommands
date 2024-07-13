@@ -59,6 +59,8 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + $"While using {McColorCodes.RED}pre api{DEFAULT_COLOR} your delay increases {McColorCodes.GREEN}{DelayHandler.DelayReduction * 100}% slower{DEFAULT_COLOR} "
                     + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
                     null, "Enjoy flipping at high speed☻");
+            else if (socket.SessionInfo.SessionTier == AccountTier.PREMIUM)
+                socket.SendMessage($"Note that because you are not on the prem+ tier flips with {McColorCodes.DARK_GRAY}! {McColorCodes.RESET}or {McColorCodes.DARK_GRAY}.{McColorCodes.RESET} behind the item name are sent to you 1000 milliseconds later. If they are more than 1m profit you may not get them anymore because a prem+ user already purchased them.");
             if ((socket.Settings?.Visibility?.LowestBin ?? false) && socket.Settings.AllowedFinders != Core.LowPricedAuction.FinderType.SNIPER)
                 ShowWarning(socket, "show lowest bin", "showlbin");
             if ((socket.Settings?.BasedOnLBin ?? false) && socket.Settings.AllowedFinders != Core.LowPricedAuction.FinderType.SNIPER)
