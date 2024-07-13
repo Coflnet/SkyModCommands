@@ -18,6 +18,8 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         var command = args[0];
         if (command == "default")
         {
+            if (args.Length == 1)
+                throw new CoflnetException("no_username", "Please provide the username you want your account license to default to");
             var uuid = await socket.GetPlayerUuid(args[1]);
             await socket.sessionLifesycle.TierManager.ChangeDefaultTo(uuid);
             socket.Dialog(db => db.MsgLine($"Changed default account you use your account premium on to {McColorCodes.AQUA}{args[1]}"));
