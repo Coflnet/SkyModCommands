@@ -22,7 +22,10 @@ namespace Coflnet.Sky.Commands.MC
         public ConcurrentDictionary<string, int> CallCount = new();
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            var delayAmount = socket.sessionLifesycle.CurrentDelay - (CallCount.GetValueOrDefault(socket.UserId) * TimeSpan.FromMicroseconds(1));
+            var reduction = CallCount.GetValueOrDefault(socket.UserId) * TimeSpan.FromMicroseconds(1);
+            if (socket.sessionLifesycle.CurrentDelay >= TimeSpan.FromSeconds(2))
+                reduction = TimeSpan.Zero;
+            var delayAmount = socket.sessionLifesycle.CurrentDelay - reduction;
             var macroDelay = socket.sessionLifesycle.MacroDelay;
             Activity.Current?.AddTag("delay", delayAmount.ToString()).AddTag("macroDelay", macroDelay.ToString());
             if (await socket.UserAccountTier() == 0)
