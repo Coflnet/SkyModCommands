@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.Sniper.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -11,7 +12,25 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            var uuid = arguments.Trim('"');
+            var uuid = Convert<string>(arguments);
+            if (uuid.EndsWith("refresh"))
+            {
+                var sniperApi = socket.GetService<ISniperApi>();
+                var parts = uuid.Split(' ');
+                var tag = parts[0];
+                var actualUuid = parts[1];
+                Console.WriteLine($"Reassign request from {socket.UserId} for {tag} {actualUuid}");
+                var result = await sniperApi.ApiSniperReassignPostAsync(tag, actualUuid);
+                if (result.Any())
+                {
+                    socket.SendMessage("Moved the reference to another bucket, thanks for notifying");
+                }
+                else
+                {
+                    socket.SendMessage("Reference was not moved, maybe it was already correct. If not report it");
+                }
+                return;
+            }
             var flip = socket.GetFlip(uuid);
             if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.SNIPER) ?? false)
             {
@@ -46,16 +65,16 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 }
                 // split on first occurance of : and then add the color codes
-                var lines = breakdown.Split('\n').Select(l=>l.Split(':')).Select(l => $" {l[0]}: {McColorCodes.AQUA}{string.Join(":",l.Skip(1))}{McColorCodes.GRAY}");
+                var lines = breakdown.Split('\n').Select(l => l.Split(':')).Select(l => $" {l[0]}: {McColorCodes.AQUA}{string.Join(":", l.Skip(1))}{McColorCodes.GRAY}");
                 socket.Dialog(d => d.MsgLine($"Here is the breakdown of values:")
-                    .ForEach(lines, (d,l) => d.MsgLine(l)));
+                    .ForEach(lines, (d, l) => d.MsgLine(l)));
                 return;
             }
             socket.ModAdapter.SendMessage(new ChatPart("Caclulating references", "https://sky.coflnet.com/auction/" + uuid, "please give it a second"));
             var based = await CoreServer.ExecuteCommandWithCache<string, IEnumerable<BasedOnCommandResponse>>("flipBased", uuid);
             if (based == null)
                 socket.ModAdapter.SendMessage(new ChatPart("Woops, sorry but there could be no references found or another error occured :("));
-            else if(based.Count() == 0)
+            else if (based.Count() == 0)
             {
                 socket.SendMessage("No references found for that flip on your connection anymore, sorry :/");
             }
@@ -113,7 +132,12 @@ namespace Coflnet.Sky.Commands.MC
             //   parts.Add(new ChatPart($"It was compared to {McColorCodes.AQUA} these auctions {DEFAULT_COLOR}, open ah", $"/viewauction {reference.Uuid}", McColorCodes.GREEN + "open it on ah"));
             if (flip.AdditionalProps.TryGetValue("closest", out var closestKey))
                 parts.Add(new ChatPart($"Used key {closestKey}"));
-            parts.AddRange(references.Select(r => FormatAuction(socket, r)
+            parts.AddRange(references.SelectMany(r =>
+            {
+                return RefreshReference(socket, r);
+
+
+            }
             ));
             if (flip.Finder == LowPricedAuction.FinderType.SNIPER && !string.IsNullOrEmpty(referenceId))
             {
@@ -123,6 +147,12 @@ namespace Coflnet.Sky.Commands.MC
                 parts.Add(new ChatPart($" [website]", $"https://sky.coflnet.com/auction/{reference.Uuid}", "open it on website"));
             }
             socket.ModAdapter.SendMessage(parts.ToArray());
+
+            static IEnumerable<ChatPart> RefreshReference(MinecraftSocket socket, SaveAuction r)
+            {
+                yield return FormatAuction(socket, r);
+                yield return new ChatPart($"{McColorCodes.GREEN}[Refresh]", $"/cofl reference {r.Tag} {r.Uuid} refresh", "This reference is wrong and should be refreshed");
+            }
 
             static ChatPart FormatAuction(MinecraftSocket socket, SaveAuction r)
             {
