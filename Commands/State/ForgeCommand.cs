@@ -8,6 +8,8 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription("Displays forge flips you can do based on hotM level",
+    "Recognizes your quick forge level and adjusts time accordingly")]
 public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
 {
     protected override void Format(MinecraftSocket socket, DialogBuilder db, ForgeFlip elem)
@@ -58,7 +60,12 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
         throw new System.NotImplementedException();
     }
 
-    protected override string Title => $"New Command, looking for feedback :) {McColorCodes.OBFUSCATED}!!!\nMost profitable Forge Flips you can do";
+    protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<ForgeFlip> elements)
+    {
+        db.MsgLine("New Command, looking for feedback :) {McColorCodes.OBFUSCATED}!!!");
+    }
+
+    protected override string Title => $"nMost profitable Forge Flips you can do";
 
     public override bool IsPublic => true;
 
