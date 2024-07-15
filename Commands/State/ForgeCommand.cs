@@ -30,8 +30,8 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
             purchaseText = $"{McColorCodes.RED}{socket.FormatPrice(elem.CraftData.CraftCost)}";
 
         db.MsgLine($"{elem.CraftData.ItemName} {purchaseText}{McColorCodes.GRAY}->{McColorCodes.GREEN}{socket.FormatPrice(elem.CraftData.SellPrice)}", null, hover)
-            .MsgLine($"{McColorCodes.GRAY}Profit: {McColorCodes.GOLD}{socket.FormatPrice(elem.ProfitPerHour)} {McColorCodes.GRAY}per hour")
-            .MsgLine($"{McColorCodes.GRAY}Duration: {McColorCodes.AQUA}{TimeSpan.FromSeconds(elem.Duration).TotalHours} hours");
+            .MsgLine($"{McColorCodes.GRAY}Profit: {McColorCodes.GOLD}{socket.FormatPrice(elem.ProfitPerHour)} {McColorCodes.GRAY}per hour ({elem.CraftData.Volume} volume)")
+            .MsgLine($"{McColorCodes.GRAY}Duration: {McColorCodes.AQUA}{TimeSpan.FromSeconds(elem.Duration + 1).TotalHours} hours");
     }
 
     protected override async Task<IEnumerable<ForgeFlip>> GetElements(MinecraftSocket socket, string val)
@@ -65,7 +65,7 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
         db.MsgLine("New Command, looking for feedback :)");
     }
 
-    protected override string Title => $"nMost profitable Forge Flips you can do";
+    protected override string Title => $"Most profitable Forge Flips you can do";
 
     public override bool IsPublic => true;
 
