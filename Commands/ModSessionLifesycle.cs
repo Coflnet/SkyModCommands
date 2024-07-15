@@ -186,10 +186,12 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task SubToConfigChanges()
         {
+            var loadedConfigMetadata = AccountSettings.Value.LoadedConfig;
+            if(loadedConfigMetadata == null)
+                return;
             using var span = socket.CreateActivity("subToConfigChanges", ConSpan);
             if (AccountSettings.Value == null)
                 await AccountSettings.Update(new AccountSettings());
-            var loadedConfigMetadata = AccountSettings.Value.LoadedConfig;
             span.Log("loaded config " + loadedConfigMetadata?.Name);
             if (loadedConfigMetadata != null)
             {

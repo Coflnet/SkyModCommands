@@ -62,7 +62,7 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<ForgeFlip> elements)
     {
-        db.MsgLine("New Command, looking for feedback :) {McColorCodes.OBFUSCATED}!!!");
+        db.MsgLine("New Command, looking for feedback :)");
     }
 
     protected override string Title => $"nMost profitable Forge Flips you can do";
