@@ -49,7 +49,7 @@ public class AccountTierManager : IAccountTierManager
             activeSessions = await SelfUpdatingValue<ActiveSessions>.Create(userId, "activeSessions", () => new ActiveSessions());
             await CheckAccounttier();
             activeSessions.OnChange += ActiveSessions_OnChange;
-        }, "get active sessions", 2);
+        }, "get active sessions", 3);
     }
 
     private async Task CheckAccounttier()
@@ -97,12 +97,14 @@ public class AccountTierManager : IAccountTierManager
 
     public async Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire()
     {
-        if (activeSessions?.Value == null)
-            return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
-        var startValue = activeSessions?.Value;
         var userApi = socket.GetService<PremiumService>();
-        var expiresTask = userApi.GetCurrentTier(userId);
-        var expires = await expiresTask;
+        var expires = await userApi.GetCurrentTier(userId);
+        if (activeSessions?.Value == null)
+        {
+            Console.WriteLine($"No active sessions for {socket.SessionInfo.McUuid}");
+            return (expires.Item1, DateTime.UtcNow + TimeSpan.FromSeconds(30));
+        }
+        var startValue = activeSessions?.Value;
         if (string.IsNullOrEmpty(activeSessions.Value.UseAccountTierOn))
         {
             activeSessions.Value.UseAccountTierOn = socket.SessionInfo.McUuid;
