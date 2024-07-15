@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -158,7 +159,7 @@ public class CircumventTracker
         await adapter.SendFlip(flip);
         await trackTask;
         await Task.Delay(5000);
-        if (flip.Context["match"].Contains("shitflip"))
+        if (flip.Context.GetValueOrDefault("match")?.Contains("shitflip") ?? false)
         {
             if (Random.Shared.NextDouble() < 0.2)
             {
