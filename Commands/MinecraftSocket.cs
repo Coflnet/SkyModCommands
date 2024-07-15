@@ -205,6 +205,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<LicensesCommand>("license");
             Commands.Add<VerifyCommand>();
             Commands.Add<AttributeFlipCommand>();
+            Commands.Add<ForgeCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
