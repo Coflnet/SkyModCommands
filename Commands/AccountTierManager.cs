@@ -102,11 +102,13 @@ public class AccountTierManager : IAccountTierManager
     }
     private async Task<(AccountTier tier, DateTime expiresAt)> CalculateCurrentTierWithExpire()
     {
+        using var span = socket.CreateActivity("tierCalc", socket.ConSpan);
         var userApi = socket.GetService<PremiumService>();
         var expires = await userApi.GetCurrentTier(userId);
         if (activeSessions?.Value == null)
         {
             Console.WriteLine($"No active sessions for {socket.SessionInfo.McUuid} {userId}");
+            span.Log("early");
             return (expires.Item1, DateTime.UtcNow + TimeSpan.FromMinutes(5));
         }
         var startValue = activeSessions?.Value;
@@ -182,6 +184,9 @@ public class AccountTierManager : IAccountTierManager
         var licenses = (await socket.GetService<ILicenseApi>().ApiLicenseUUserIdGetAsync(userId)).Where(l => l.Expires > DateTime.UtcNow).ToList();
         socket.SessionInfo.LicensePoints = licenses.Sum(l => l.ProductSlug == "premium_plus" ? 5 : 1);
         var thisAccount = licenses.Where(l => l.TargetId == socket.SessionInfo.McUuid && l.Expires > DateTime.UtcNow);
+        span.Log($"AccountTier {expires.Item1} {expires.Item2}");
+        span.Log($"Licenses {JsonConvert.SerializeObject(licenses)}");
+        span.Log($"Sessions {JsonConvert.SerializeObject(sessions)}");
         if (thisAccount.Any())
         {
             Console.WriteLine($"Licenses for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(thisAccount)}");
@@ -198,6 +203,7 @@ public class AccountTierManager : IAccountTierManager
             // active account may be prem+ which takes priority
             return (AccountTier.PREMIUM, thisAccount.First().Expires);
         }
+        span.Log("none");
         return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
     }
 
