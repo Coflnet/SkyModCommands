@@ -96,8 +96,13 @@ namespace Coflnet.Sky.Commands.MC
 
         private static void AssertValidNumberFilter(string filterName, string filterVal, FilterType type)
         {
-            if (type.HasFlag(FilterType.NUMERICAL) && !NumberDetailedFlipFilter.IsValidInput(filterVal))
+            if (type.HasFlag(FilterType.NUMERICAL) && !IsValidInput(filterVal))
                 throw new CoflnetException("invalid_value", $"The provided filter value {filterVal} is not valid for {filterName}");
+        }
+
+        private static bool IsValidInput(string input)
+        {
+            return NumberParser.TryDouble(input.Replace("<", "").Replace(">", "").Split("-")[0], out _);
         }
     }
 }
