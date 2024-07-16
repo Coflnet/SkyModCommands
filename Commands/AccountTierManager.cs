@@ -101,8 +101,8 @@ public class AccountTierManager : IAccountTierManager
         var expires = await userApi.GetCurrentTier(userId);
         if (activeSessions?.Value == null)
         {
-            Console.WriteLine($"No active sessions for {socket.SessionInfo.McUuid}");
-            return (expires.Item1, DateTime.UtcNow + TimeSpan.FromSeconds(30));
+            Console.WriteLine($"No active sessions for {socket.SessionInfo.McUuid} {userId}");
+            return (expires.Item1, DateTime.UtcNow + TimeSpan.FromMinutes(5));
         }
         var startValue = activeSessions?.Value;
         if (string.IsNullOrEmpty(activeSessions.Value.UseAccountTierOn))
