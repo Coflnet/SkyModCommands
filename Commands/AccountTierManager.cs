@@ -57,11 +57,6 @@ public class AccountTierManager : IAccountTierManager
         try
         {
             var currentTier = await GetCurrentTierWithExpire();
-            if (currentTier.tier != lastTier)
-            {
-                OnTierChange?.Invoke(this, currentTier.tier);
-            }
-            (lastTier, expiresAt) = currentTier;
         }
         catch (Exception e)
         {
@@ -96,6 +91,16 @@ public class AccountTierManager : IAccountTierManager
     }
 
     public async Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire()
+    {
+        var currentTier = await CalculateCurrentTierWithExpire();
+        if (currentTier.tier != lastTier)
+        {
+            OnTierChange?.Invoke(this, currentTier.tier);
+        }
+        (lastTier, expiresAt) = currentTier;
+        return currentTier;
+    }
+    private async Task<(AccountTier tier, DateTime expiresAt)> CalculateCurrentTierWithExpire()
     {
         var userApi = socket.GetService<PremiumService>();
         var expires = await userApi.GetCurrentTier(userId);
