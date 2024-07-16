@@ -891,9 +891,16 @@ namespace Coflnet.Sky.Commands.MC
             var expiresAt = sessionLifesycle.TierManager.ExpiresAt;
             if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM) && expiresAt > DateTime.UtcNow && expiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(2))
             {
-                Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
+                TryAsyncTimes(async () =>
+                {
+                    var updated = await sessionLifesycle.TierManager.GetCurrentTierWithExpire();
+                    if(updated.expiresAt > DateTime.UtcNow.AddMinutes(2))
+                        return;
+                    Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
                     .CoflCommand<PurchaseCommand>($"Your premium tier is about to expire in {(int)(expiresAt - DateTime.UtcNow).TotalMinutes} minutes. {McColorCodes.YELLOW}[CLICK to see options]", "", "show purchase menu")
                     .Break.Msg($"{McColorCodes.RED}-----------------------------"));
+                }, "reloading tier");
+                
             }
             if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1)
             {
