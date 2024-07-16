@@ -28,8 +28,9 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
         var purchaseText = $"{McColorCodes.DARK_GRAY}???";
         if (elem.CraftData.CraftCost < 20_000_000_000)
             purchaseText = $"{McColorCodes.RED}{socket.FormatPrice(elem.CraftData.CraftCost)}";
-
-        db.MsgLine($"{elem.CraftData.ItemName} {purchaseText}{McColorCodes.GRAY}->{McColorCodes.GREEN}{socket.FormatPrice(elem.CraftData.SellPrice)}", null, hover)
+        var estimatedProfit = elem.CraftData.SellPrice * 98 / 100 - elem.CraftData.CraftCost;
+        var profit = $"{McColorCodes.GRAY}({McColorCodes.AQUA}+{socket.FormatPrice(estimatedProfit)} {McColorCodes.GRAY})";
+        db.MsgLine($"{elem.CraftData.ItemName} {purchaseText}{McColorCodes.GRAY}->{McColorCodes.GREEN}{socket.FormatPrice(elem.CraftData.SellPrice)} {profit}", null, hover)
             .MsgLine($"{McColorCodes.GRAY}Profit: {McColorCodes.GOLD}{socket.FormatPrice(elem.ProfitPerHour)} {McColorCodes.GRAY}per hour ({elem.CraftData.Volume} volume)")
             .MsgLine($"{McColorCodes.GRAY}Duration: {McColorCodes.AQUA}{TimeSpan.FromSeconds(elem.Duration + 1).TotalHours} hours");
     }
