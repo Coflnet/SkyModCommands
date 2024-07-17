@@ -68,7 +68,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (string.IsNullOrEmpty(socket.SessionInfo.McName))
                 throw new CoflnetException("no_username", "Sorry we couldn't load your chat profile. Please try again in a few seconds.");
-            var tier = await socket.UserAccountTier();
+            var tier = socket.SessionInfo.SessionTier;
             await chat.Send(socket, new ChatService.ModChatMessage()
             {
                 Message = message,
