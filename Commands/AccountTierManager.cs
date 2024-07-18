@@ -104,7 +104,13 @@ public class AccountTierManager : IAccountTierManager
     {
         using var span = socket.CreateActivity("tierCalc", socket.ConSpan);
         var userApi = socket.GetService<PremiumService>();
-        var expires = await userApi.GetCurrentTier(userId);
+        (AccountTier, DateTime) expires;
+        if (expiresAt < DateTime.UtcNow)
+            expires = await userApi.GetCurrentTier(userId);
+        else
+        {
+            expires = (lastTier ?? AccountTier.NONE, expiresAt);
+        }
         if (activeSessions?.Value == null)
         {
             Console.WriteLine($"No active sessions for {socket.SessionInfo.McUuid} {userId}");
