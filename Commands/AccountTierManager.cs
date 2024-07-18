@@ -150,6 +150,7 @@ public class AccountTierManager : IAccountTierManager
                 Console.WriteLine("connected from somewhere else with the same minecraft account");
                 socket.Dialog(db => db.MsgLine($"You connected from somewhere else with the same minecraft account this connection is being downgraded"));
                 socket.sessionLifesycle.UpdateConnectionTier(AccountTier.NONE);
+                span.Log(JsonConvert.SerializeObject(sessions));
                 return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
             }
             if (session.LastActive < DateTime.UtcNow - TimeSpan.FromSeconds(5))
@@ -253,7 +254,8 @@ public class AccountTierManager : IAccountTierManager
     {
         loginNotification.OnLogin -= LoginNotification_OnLogin;
         activeSessions?.Value.Sessions.RemoveAll(s => s.ConnectionId == socket.SessionInfo.ConnectionId);
-        activeSessions?.Update().ContinueWith(t => activeSessions?.Dispose());
+        var oldActive = activeSessions;
+        activeSessions?.Update().ContinueWith(t => oldActive?.Dispose());
         activeSessions = null;
     }
 }
