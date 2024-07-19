@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Commands.Shared.Test;
@@ -23,10 +24,16 @@ public class ProxyReqSyncCommand : McCommand
         }
         if (!socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
         {
-            await Task.Delay(500);
-            await socket.sessionLifesycle.TierManager.RefreshTier();
+            for (int i = 0; i < 5; i++)
+            {
+                await socket.sessionLifesycle.TierManager.RefreshTier();
+                await Task.Delay(1500);
+                if(socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
+                    break;
+            }
             if (!socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
             {
+                Activity.Current.Log("Main instance could not verify your premium status. Please try again later.");
                 socket.Dialog(db => db.MsgLine("Main instance could not verify your premium status. Please try again later."));
             }
         }

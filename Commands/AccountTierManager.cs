@@ -103,10 +103,12 @@ public class AccountTierManager : IAccountTierManager
     }
     private async Task<(AccountTier tier, DateTime expiresAt)> CalculateCurrentTierWithExpire()
     {
+        if (string.IsNullOrEmpty(userId))
+            return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
         using var span = socket.CreateActivity("tierCalc", socket.ConSpan);
         var userApi = socket.GetService<PremiumService>();
         (AccountTier, DateTime) expires;
-        if (expiresAt < DateTime.UtcNow)
+        if (expiresAt < DateTime.UtcNow.AddMinutes(5))
             expires = await userApi.GetCurrentTier(userId);
         else
         {
@@ -115,8 +117,8 @@ public class AccountTierManager : IAccountTierManager
         if (activeSessions?.Value == null)
         {
             Console.WriteLine($"No active sessions for {socket.SessionInfo.McUuid} {userId}");
-            span.Log("early");
-            return (expires.Item1, DateTime.UtcNow + TimeSpan.FromMinutes(5));
+            span.Log("early " + expires);
+            return (expires.Item1, expires.Item2);
         }
         var startValue = activeSessions?.Value;
         if (string.IsNullOrEmpty(activeSessions.Value.UseAccountTierOn))
