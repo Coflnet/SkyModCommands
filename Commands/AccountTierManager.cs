@@ -82,6 +82,7 @@ public class AccountTierManager : IAccountTierManager
 
     public async Task RefreshTier()
     {
+        expiresAt = DateTime.UtcNow;
         await CheckAccounttier();
     }
 

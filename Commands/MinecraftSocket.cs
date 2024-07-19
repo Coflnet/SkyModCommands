@@ -893,6 +893,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 TryAsyncTimes(async () =>
                 {
+                    await sessionLifesycle.TierManager.RefreshTier();
                     var updated = await sessionLifesycle.TierManager.GetCurrentTierWithExpire();
                     if(updated.expiresAt > DateTime.UtcNow.AddMinutes(2))
                         return;
