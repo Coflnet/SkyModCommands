@@ -112,13 +112,13 @@ namespace Coflnet.Sky.Commands.MC
                 waitLogin.Log(GetAuthLink(stringId));
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DefaultSettings);
-                SubSessionToEventsFor(SessionInfo.McUuid);
             }
             else
             {
                 using var sub2SettingsSpan = socket.CreateActivity("sub2Settings", ConSpan);
                 await SubToSettings(UserId);
             }
+            SubSessionToEventsFor(SessionInfo.McUuid);
 
             loadSpan?.Dispose();
             UpdateExtraDelay();
@@ -187,7 +187,7 @@ namespace Coflnet.Sky.Commands.MC
         public async Task SubToConfigChanges()
         {
             var loadedConfigMetadata = AccountSettings.Value.LoadedConfig;
-            if(loadedConfigMetadata == null)
+            if (loadedConfigMetadata == null)
                 return;
             using var span = socket.CreateActivity("subToConfigChanges", ConSpan);
             if (AccountSettings.Value == null)
@@ -239,7 +239,7 @@ namespace Coflnet.Sky.Commands.MC
         private void SubSessionToEventsFor(string val)
         {
             var targetSub = SessionInfo.EventBrokerSub;
-            if(val.Length != 32)
+            if (val.Length != 32)
                 targetSub = SessionInfo.EventBrokerUserSub;
             targetSub?.Unsubscribe();
             Console.WriteLine("subbing to events for" + val + " from " + SessionInfo.McName);
