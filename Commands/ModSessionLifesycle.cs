@@ -238,11 +238,18 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SubSessionToEventsFor(string val)
         {
-            SessionInfo.EventBrokerSub?.Unsubscribe();
-            SessionInfo.EventBrokerSub = socket.GetService<EventBrokerClient>().SubEvents(val, onchange =>
+            var targetSub = SessionInfo.EventBrokerSub;
+            if(val.Length != 32)
+                targetSub = SessionInfo.EventBrokerUserSub;
+            targetSub?.Unsubscribe();
+            targetSub = socket.GetService<EventBrokerClient>().SubEvents(val, onchange =>
             {
                 SendMessage(COFLNET + onchange.Message);
             });
+            if (val.Length != 32)
+                SessionInfo.EventBrokerUserSub = targetSub;
+            else
+                SessionInfo.EventBrokerSub = targetSub;
         }
 
         /// <summary>
