@@ -195,7 +195,7 @@ namespace Coflnet.Sky.ModCommands.Services
             {
                 flip.AdditionalProps?.TryAdd("capped", "not tfm");
             }
-            if (Constants.Vanilla.Contains(flip.Auction.Tag.ToLower()))
+            if (Constants.Vanilla.Contains(flip.Auction.Tag.ToLower()) || flip.Auction.Tag.Contains("MIDAS"))
             {
                 flip.TargetPrice = 0;
             }
