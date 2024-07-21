@@ -35,11 +35,11 @@ public class CaptchaGenerator
             _ => MathBased(socket)
         };
 
-        captchaSpan?.Log(JsonConvert.SerializeObject(new { info.CurrentSolutions, challenge.Options, challenge.Correct }, Formatting.Indented));
 
         info.CurrentSolutions = challenge.Correct.Select(c => c.Code).ToList();
         info.LastGenerated = DateTime.UtcNow;
         var captchaType = socket.AccountInfo.CaptchaType;
+        captchaSpan?.Log(JsonConvert.SerializeObject(new { info.CurrentSolutions, challenge.Options, challenge.Correct }));
         return new DialogBuilder().LineBreak()
             .ForEach(challenge.Options, (d, o) => d.CoflCommand<CaptchaCommand>(o.Text, o.Code, o.Text)).Break
             .MsgLine($"{challenge.Question}", null, "anti macro question, please click on the answer")

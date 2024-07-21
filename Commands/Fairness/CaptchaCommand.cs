@@ -134,7 +134,7 @@ namespace Coflnet.Sky.Commands.MC
             if (string.IsNullOrEmpty(attempt))
                 socket.Dialog(db => db
                     .MsgLine($"{McColorCodes.BLUE}You requested to get a new captcha.")
-                    .MsgLine($"{McColorCodes.OBFUSCATED}OOO{McColorCodes.RESET + McColorCodes.BLUE} This counts as a failed attempt. Have fun."));
+                    .MsgLine($"{McColorCodes.OBFUSCATED}Cheater{McColorCodes.RESET + McColorCodes.BLUE} This counts as a failed attempt. Have fun."));
             else
             {
                 socket.SendMessage(COFLNET + "Checking your response");
@@ -148,6 +148,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (info.RequireSolves > 0)
                 {
                     socket.SendMessage(COFLNET + McColorCodes.GREEN + "You solved the captcha, but you failed too many previously so please solve another one\n");
+                    Activity.Current.Log("correct");
                     await RequireAnotherSolve(socket, info).ConfigureAwait(false);
                     return;
                 }
