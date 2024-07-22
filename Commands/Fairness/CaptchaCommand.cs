@@ -106,13 +106,13 @@ namespace Coflnet.Sky.Commands.MC
                     var spaceLength = length;
                     if (accountInfo.CaptchaSpaceCount == 2)
                         spaceLength = length + length;
-                    socket.Dialog(db => db.MsgLine("If one of the two yellow lines does not line up click it")
+                    socket.Dialog(db => db.MsgLine("If one of the two yellow lines does not line up click it").Break
                         .ForEach(length, (db, ignore) => db.Msg(GetCharacter(accountInfo.CaptchaBoldChar ?? "🇧🇾"[0].ToString())))
                             .CoflCommand<CaptchaCommand>(McColorCodes.YELLOW + "| <-- needs to be above the green line\n", "config full", "Does not line up")
                         .ForEach(spaceLength, (db, ignore) => db.Msg(" ")).MsgLine(McColorCodes.GREEN + "|")
                         .ForEach(length, (db, ignore) => db.Msg(GetCharacter(accountInfo.CaptchaSlimChar ?? "´´")))
                             .CoflCommand<CaptchaCommand>(McColorCodes.YELLOW + "| <-- needs to be below green line\n", "config part", "Does not line up")
-                        .CoflCommand<CaptchaCommand>("[They line up]", "", "Request a better formated captcha"));
+                        .CoflCommand<CaptchaCommand>("[Both yellow lines above and below the green align]", "", "If not BOTH yellow lines align press the one that does not\nIf they do press this to\nRequest a better formated captcha"));
                     return;
                 }
                 if (subargs.Length > 1)
