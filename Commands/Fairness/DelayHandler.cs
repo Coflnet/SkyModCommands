@@ -153,6 +153,8 @@ public class DelayHandler : IDelayHandler
         else
             summary.VerifiedMc = true;
 
+        summary.LastPurchase = breakdown.Buys.Values.Select(v => v.Value).DefaultIfEmpty(default).Max();
+
         if (HasFlippedForLong(lastCaptchaSolveTime, hourCount) && breakdown.BoughtWorth > 80_000_000)
         {
             summary.AntiAfk = true;
@@ -244,6 +246,7 @@ public class DelayHandler : IDelayHandler
         public int nonpurchaseRate;
         public bool HasBadPlayer;
         public bool ReduceBadActions;
+        public DateTime LastPurchase;
     }
 
     private TimeSpan GetCorrectDelay(int myIndex)
