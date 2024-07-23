@@ -186,7 +186,7 @@ public class AccountTierManager : IAccountTierManager
                 }
             }
         }
-        var isCurrentConOnlyCon = sessions.All(s => s.ConnectionId == socket.SessionInfo.ConnectionId || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
+        var isCurrentConOnlyCon = sessions.All(s => s.ConnectionId == socket.SessionInfo.ConnectionId || s.Outdated || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
         Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {socket.SessionInfo.ConnectionId} {isCurrentConOnlyCon}");
         activeSessions.Value.UserAccountTier = expires.Item1;
 
