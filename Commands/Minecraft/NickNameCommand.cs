@@ -26,7 +26,8 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (string.IsNullOrEmpty(nickName))
             {
-                socket.SendMessage(COFLNET + "Please provide a nickname");
+                socket.Dialog(db=>db.MsgLine($"usage {McColorCodes.AQUA}/cofl nickname [nickname]")
+                    .MsgLine($"Alternatively {McColorCodes.AQUA}/cofl nickname clear{McColorCodes.GRAY} to clear your nickname"));
                 return;
             }
             if (nickName.Length > 16)
