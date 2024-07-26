@@ -112,7 +112,7 @@ namespace Coflnet.Sky.Commands.MC
                         .ForEach(spaceLength, (db, ignore) => db.Msg(" ")).MsgLine(McColorCodes.GREEN + "|")
                         .ForEach(length, (db, ignore) => db.Msg(GetCharacter(accountInfo.CaptchaSlimChar ?? "´´")))
                             .CoflCommand<CaptchaCommand>(McColorCodes.YELLOW + "| <-- needs to be below green line\n", "config part", "Does not line up")
-                        .CoflCommand<CaptchaCommand>("[Both yellow lines above and below the green align]", "", 
+                        .CoflCommand<CaptchaCommand>("[Both yellow lines above and below the green align]", "",
                             "If not BOTH yellow lines align press the one that does not\nIf they do press this to\nRequest a better formated captcha").Break);
                     return;
                 }
@@ -186,6 +186,11 @@ namespace Coflnet.Sky.Commands.MC
                     .ForEach(optionsFull, (db, character) => db.ForEach(length, (idb, ignore) => idb.Msg(GetCharacter(character))).MsgLine($"{McColorCodes.YELLOW}|", prefix + character, "Click to select")
                         .ForEach(length + length, (idb, ignore) => idb.Msg(" ")).MsgLine($"{McColorCodes.GREEN}|"))
                         .MsgLine("Click on a yellow line that aligns with the green line")
+                        .Msg($"{McColorCodes.GRAY}Its important that the this sentence is in one line as well", null,
+                            "If this is split into two lines \n"
+                           + "your chat with may not be wide enought \n"
+                           + "to display the captcha correctly\n"
+                           + "please adjust it in your MC settings")
                 );
             }
         }
