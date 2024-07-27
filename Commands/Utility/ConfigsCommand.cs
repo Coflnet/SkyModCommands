@@ -43,7 +43,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         }
         else if (command == "unload")
         {
-            await UnloadConfig(socket);
+            await UnloadAndResetConfig(socket);
         }
         else if (sorters.TryGetValue(command, out var sorter))
         {
@@ -109,14 +109,19 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         socket.SendMessage($"Auto update configs is now {McColorCodes.AQUA}{(settings.Value.AutoUpdateConfig ? "enabled" : "disabled")}");
     }
 
-    public static async Task UnloadConfig(MinecraftSocket socket)
+    private static async Task UnloadAndResetConfig(MinecraftSocket socket)
+    {
+        await Unloadconfig(socket);
+        await socket.sessionLifesycle.FlipSettings.Update(ModSessionLifesycle.DefaultSettings);
+        socket.SendMessage("Unloaded config you won't get updates anymore.");
+    }
+
+    public static async Task Unloadconfig(MinecraftSocket socket)
     {
         socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = null;
         await socket.sessionLifesycle.AccountSettings.Update();
         socket.sessionLifesycle.LoadedConfig?.Dispose();
         socket.sessionLifesycle.LoadedConfig = null;
-        await socket.sessionLifesycle.FlipSettings.Update(ModSessionLifesycle.DefaultSettings);
-        socket.SendMessage("Unloaded config you won't get updates anymore.");
     }
 
     private async Task PrintSorted(MinecraftSocket socket, Func<IEnumerable<ConfigRating>, IOrderedEnumerable<ConfigRating>> sorter)
