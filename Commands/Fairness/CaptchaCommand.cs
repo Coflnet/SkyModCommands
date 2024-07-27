@@ -176,7 +176,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             socket.SendMessage($"{McColorCodes.DARK_GREEN}NOTE:{McColorCodes.YELLOW} "
                 + $"Please make sure that the vertical green lines ({McColorCodes.GREEN}|{McColorCodes.YELLOW}) at the end of the captcha line up continuously.\n"
-                + $"{McColorCodes.YELLOW}If they don't line up click on {McColorCodes.AQUA}Vertical{McColorCodes.YELLOW} to get a simpler captcha");
+                + $"{McColorCodes.YELLOW}If they don't line up click on {McColorCodes.GREEN}The green text above{McColorCodes.YELLOW} to configure your texturepack");
 
             static void PrintOptions(MinecraftSocket socket, List<string> optionsFull, string part)
             {
@@ -215,7 +215,8 @@ namespace Coflnet.Sky.Commands.MC
         {
             socket.SendMessage(COFLNET + "Generating captcha");
             await Task.Delay(Math.Max(Math.Max(info.RequireSolves, 1), info.CaptchaRequests) * 800 * debugMultiplier).ConfigureAwait(false);
-            socket.SendMessage(new CaptchaGenerator().SetupChallenge(socket, info));
+            var msg = new CaptchaGenerator().SetupChallenge(socket, info);
+            socket.SendMessage(msg);
             if (info.CaptchaRequests > 10)
             {
                 info.CaptchaRequests = 0;
