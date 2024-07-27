@@ -109,7 +109,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         socket.SendMessage($"Auto update configs is now {McColorCodes.AQUA}{(settings.Value.AutoUpdateConfig ? "enabled" : "disabled")}");
     }
 
-    private static async Task UnloadConfig(MinecraftSocket socket)
+    public static async Task UnloadConfig(MinecraftSocket socket)
     {
         socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = null;
         await socket.sessionLifesycle.AccountSettings.Update();
