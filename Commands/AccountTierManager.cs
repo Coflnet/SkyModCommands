@@ -126,10 +126,6 @@ public class AccountTierManager : IAccountTierManager
             activeSessions.Value.UseAccountTierOn = socket.SessionInfo.McUuid;
             await SyncState(startValue);
         }
-        if(activeSessions.Value.Sessions == null)
-        {
-            activeSessions.Value.Sessions = new ();
-        }
         var sessions = activeSessions.Value.Sessions;
         sessions.RemoveAll(s => s?.ConnectionId == null || s.MinecraftUuid == null);
         if (!sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId))
