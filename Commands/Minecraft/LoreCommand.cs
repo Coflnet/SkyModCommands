@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
@@ -23,16 +24,16 @@ namespace Coflnet.Sky.Commands.MC
             });
             var args = Convert<string>(arguments).Split(' ');
 
-            if(args.Length == 1)
+            if (args.Length == 1)
             {
-                if(args[0] == "enable" || args[0] == "true")
+                if (args[0] == "enable" || args[0] == "true")
                 {
                     settings.Disabled = false;
                     await service.UpdateSetting(socket.UserId, "description", settings);
                     socket.SendMessage("Enabled data in lore");
                     return;
                 }
-                if(args[0] == "disable" || args[0] == "false")
+                if (args[0] == "disable" || args[0] == "false")
                 {
                     settings.Disabled = true;
                     await service.UpdateSetting(socket.UserId, "description", settings);
@@ -41,7 +42,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }
             var privacySettings = socket.sessionLifesycle.PrivacySettings;
-            if(!privacySettings.Value.ExtendDescriptions)
+            if (!privacySettings.Value.ExtendDescriptions)
             {
                 socket.Dialog(db => db.MsgLine("You have disabled the display of additional information on items")
                     .CoflCommand<SetCommand>("[Click here to enable]", "privacyextendDescriptions true", "Enable the display of additional information on items"));
@@ -110,6 +111,15 @@ namespace Coflnet.Sky.Commands.MC
             var lineNum = 0;
             var colorIndex = 0;
             var optionsToAdd = Enum.GetValues<DescriptionField>().Where(e => (int)e < 9000).GroupBy(e => (int)e).Select(g => g.First()).ToList();
+            var Lines = new List<DescriptionField>[] {
+                [DescriptionField.LBIN, DescriptionField.MEDIAN, DescriptionField.CRAFT_COST, DescriptionField.BazaarBuy, DescriptionField.BazaarSell],
+                [DescriptionField.LBIN_KEY,DescriptionField.MEDIAN_KEY,DescriptionField.ITEM_KEY,DescriptionField.FullCraftCost],
+                [DescriptionField.EnchantCost, DescriptionField.GemValue, DescriptionField.ModifierCost, DescriptionField.FinderEstimates],
+                [DescriptionField.VOLUME, DescriptionField.SpentOnAhFees, DescriptionField.KatUpgradeCost, DescriptionField.Volatility],
+                [DescriptionField.TimeToSell, DescriptionField.InstaSellPrice, DescriptionField.PRICE_PAID, DescriptionField.LastSoldFor],
+                [] };
+            var existing = Lines.SelectMany(l => l).Append(DescriptionField.NONE).ToHashSet();
+            Lines.Last().AddRange(optionsToAdd.Where(o => !existing.Contains(o)));
             var d = DialogBuilder.New.CoflCommand<SetCommand>($"Toggle ah filter highlighting", "loreHighlightFilterMatch", $"Toggle {(settings.HighlightFilterMatch ? "off" : "on")}")
             .Break.ForEach(settings.Fields, (d, line) =>
             {
@@ -128,7 +138,8 @@ namespace Coflnet.Sky.Commands.MC
                     elementInLine++;
                 }).LineBreak();
                 lineNum++;
-            }).Break.MsgLine("Add one of the following stats").ForEach(optionsToAdd, (d, f) =>
+            }).Break.MsgLine("Add one of the following stats")
+                .ForEach(Lines, (d, line) => d.ForEach(line, (d, f) =>
             {
                 var color = (colorIndex++ % 3) switch
                 {
@@ -138,7 +149,7 @@ namespace Coflnet.Sky.Commands.MC
                 };
                 var explanation = GetDescriptionFromEnumValue(f);
                 d.CoflCommand<LoreCommand>(color + f.ToString(), $"add {lineNum} {f}", $"Add {f} to the next line\n" + explanation).Msg(" ");
-            });
+            }).LineBreak());
             socket.SendMessage(d.Build());
         }
 
