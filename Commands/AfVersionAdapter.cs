@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 public class AfVersionAdapter : ModVersionAdapter
@@ -53,9 +54,9 @@ public class AfVersionAdapter : ModVersionAdapter
             {
                 if (!item.MatchesSettings(flip, socket.SessionInfo))
                     continue;
-
                 socket.Dialog(db => db.Msg($"{name} for {flip.Auction.StartingBid} matched your Whitelist entry: {BlacklistCommand.FormatEntry(item)}\n" +
                     $"Found by {flip.Finder} finder"));
+                Activity.Current.Log("Whitelisted by " + JsonConvert.SerializeObject(item));
                 break;
             }
         }
