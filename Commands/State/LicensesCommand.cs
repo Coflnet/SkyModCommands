@@ -105,12 +105,23 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
 
     protected override string Format(PublicLicenseWithName elem)
     {
+        if(elem.Expires < DateTime.UtcNow)
+        {
+            return $"{McColorCodes.GRAY}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{McColorCodes.STRIKE}{elem.ProductSlug}{McColorCodes.RED} expired";
+        }
         return $"{McColorCodes.GRAY}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{elem.ProductSlug} {McColorCodes.AQUA}{elem.Expires - DateTime.UtcNow:dd}{McColorCodes.GRAY}days";
     }
 
     protected override void ListResponse(DialogBuilder d, PublicLicenseWithName e)
     {
-        FormatForList(d, e).MsgLine($" {McColorCodes.YELLOW}[EXTEND]{DEFAULT_COLOR}", $"/cofl {Slug} add {e.TargetId} {e.ProductSlug}", $"Extend {LongFormat(e)}");
+        var displayText = $" {McColorCodes.YELLOW}[EXTEND]{DEFAULT_COLOR}";
+        var hoverText = $"Extend {LongFormat(e)}";
+        if(e.Expires < DateTime.UtcNow)
+        {
+            displayText = $" {McColorCodes.GREEN}[RENEW]{DEFAULT_COLOR}";
+            hoverText = $"Renew {McColorCodes.DARK_GREEN}{e.ProductSlug} {McColorCodes.GRAY}for {McColorCodes.GREEN}{e.TargetName}";
+        }
+        FormatForList(d, e).MsgLine(displayText, $"/cofl {Slug} add {e.TargetId} {e.ProductSlug}", hoverText);
     }
 
     protected override string GetId(PublicLicenseWithName elem)
