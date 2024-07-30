@@ -58,6 +58,16 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.MsgLine("Derpy is mayor, the ah is closed"));
                 return;
             }
+            if (socket.Settings.DisableFlips)
+            {
+                socket.Dialog(db => db.MsgLine("You turned flipping off. To turn it on do /cofl flip always"));
+                return;
+            }
+            if (socket.HasFlippingDisabled())
+            {
+                socket.Dialog(db => db.MsgLine("You seem to have flipping disabled, not sure how, please make a report with '/cofl report' and a thead on our discord."));
+                return;
+            }
             List<MinecraftSocket.BlockedElement> flipsToSend;
 
             if (arguments.Length > 2)
