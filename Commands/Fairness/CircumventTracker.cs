@@ -48,8 +48,8 @@ public class CircumventTracker
         }
         using var challenge = socket.CreateActivity("challengeCreate", socket.ConSpan);
         var pastChallenges = await connectApi.ConnectChallengesUserIdGetWithHttpInfoAsync(socket.UserId);
-        var matchingChallengeCount = pastChallenges.Data.Count(c => c.BoughtBy == c.MinecraftUuid);
-        var notMatchingCount = pastChallenges.Data.Count(c => c.BoughtBy != c.MinecraftUuid && c.BoughtBy != null);
+        var matchingChallengeCount = pastChallenges.Data.Count(c => socket.SessionInfo.MinecraftUuids.Contains(c.BoughtBy));
+        var notMatchingCount = pastChallenges.Data.Count(c => c.BoughtBy != null && !socket.SessionInfo.MinecraftUuids.Contains(c.BoughtBy));
         if (matchingChallengeCount > 0 && matchingChallengeCount > notMatchingCount)
         {
             Activity.Current?.Log($"Not creating challenge because too many matching challenges {matchingChallengeCount} {notMatchingCount} total {pastChallenges.Data.Count}");
