@@ -47,7 +47,7 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
     private static async Task<List<Crafts.Models.ProfitableCraft>> NewMethod(ICraftsApi craftApi)
     {
         var data = await craftApi.CraftsProfitGetWithHttpInfoAsync();
-        return JsonConvert.DeserializeObject<List<Crafts.Models.ProfitableCraft>>(data.Data.ToString());
+        return JsonConvert.DeserializeObject<List<Crafts.Models.ProfitableCraft>>(data.RawContent);
     }
 
     protected override string GetId(Crafts.Models.ProfitableCraft elem)
