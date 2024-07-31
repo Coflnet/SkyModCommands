@@ -21,10 +21,11 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Crafts.Models.ProfitableCraft elem)
     {
         var ingedientList = string.Join('\n', elem.Ingredients.Select(i => $"{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost {McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}"));
-        var hoverText = "CraftingIngredients:\n" + ingedientList
+        var hoverText = $"{McColorCodes.GRAY}Ingredients for {elem.ItemName}:\n" + ingedientList
         + $"\n{McColorCodes.GRAY}CraftCost: {McColorCodes.GOLD}{socket.FormatPrice(elem.CraftCost)}"
-        + $"\n{McColorCodes.GRAY}Volume: {McColorCodes.GREEN}{socket.FormatPrice(elem.Volume)}";
-        db.Msg($"{elem.ItemName} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice(elem.Median)}", $"/recipe {elem.ItemId}", hoverText);
+        + $"\n{McColorCodes.GRAY}Volume: {McColorCodes.GREEN}{socket.FormatPrice(elem.Volume)}  {McColorCodes.YELLOW}Click to open recipe menu"
+        + $"{McColorCodes.GRAY}Estimated Profit: {McColorCodes.AQUA}{socket.FormatPrice(elem.SellPrice - elem.CraftCost)}";
+        db.MsgLine($" {elem.ItemName} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice(elem.Median)} {McColorCodes.YELLOW}[Open Recipe]", $"/recipe {elem.ItemId}", hoverText);
     }
 
     protected override async Task<IEnumerable<Crafts.Models.ProfitableCraft>> GetElements(MinecraftSocket socket, string val)
