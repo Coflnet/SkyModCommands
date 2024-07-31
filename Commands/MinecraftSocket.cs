@@ -556,7 +556,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var closest = Commands.Where(c => c.Value is { IsPublic: true }).Select(c => c.Key).MinBy(x => Fastenshtein.Levenshtein.Distance(x.ToLower(), a.type));
                 var altCommand = $"/cofl {closest} {a.data.Trim('"')}";
-                SendMessage($"{COFLNET}The command '{McColorCodes.ITALIC + a.type + McColorCodes.RESET + McCommand.DEFAULT_COLOR}' is not known. Hover for info\n",
+                SendMessage($"{COFLNET}The command '{McColorCodes.ITALIC + a.type + McColorCodes.RESET + McCommand.DEFAULT_COLOR}' is not known. Maybe you meant '{closest}\n",
                             altCommand.Trim('"'),
                             $"Did you mean '{McColorCodes.ITALIC + closest + McColorCodes.RESET + McCommand.DEFAULT_COLOR}'?\nClick to execute\n{McColorCodes.WHITE + altCommand}");
                 return;
