@@ -206,6 +206,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<VerifyCommand>();
             Commands.Add<AttributeFlipCommand>();
             Commands.Add<ForgeCommand>();
+            Commands.Add<CraftsCommand>("craft");
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
