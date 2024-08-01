@@ -5,15 +5,16 @@ using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC;
 
+#nullable enable
 [DataContract]
 public class ActiveSessions
 {
     [DataMember(Name = "sessions")]
-    public List<ActiveSession> Sessions = new List<ActiveSession>();
+    public List<ActiveSession?> Sessions = new List<ActiveSession?>();
     [DataMember(Name = "licenses")]
     public List<License> Licenses = new List<License>();
     [DataMember(Name = "useAccountTierOn")]
-    public string UseAccountTierOn;
+    public string? UseAccountTierOn;
     [DataMember(Name = "userAccountTier")]
     public AccountTier UserAccountTier;
 }
@@ -39,7 +40,7 @@ public class ActiveSession
     [DataMember(Name = "connectedAt")]
     public DateTime ConnectedAt = DateTime.UtcNow;
     [DataMember(Name = "ip")]
-    public string Ip;
+    public string? Ip;
     [DataMember(Name = "version")]
     public string Version;
     [DataMember(Name = "sessionId")]

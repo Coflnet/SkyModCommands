@@ -146,7 +146,7 @@ public class AccountTierManager : IAccountTierManager
         }
         else
         {
-            var session = sessions.First(s => s.ConnectionId == socket.SessionInfo.ConnectionId);
+            var session = sessions.First(s => s?.ConnectionId == socket.SessionInfo.ConnectionId);
             if (session.Outdated)
             {
                 activeSessions.Dispose();
@@ -164,10 +164,10 @@ public class AccountTierManager : IAccountTierManager
                 await SyncState(startValue);
             }
         }
-        var sameMcAccount = sessions.Where(s => s.MinecraftUuid == socket.SessionInfo.McUuid).ToList();
+        var sameMcAccount = sessions.Where(s => s?.MinecraftUuid == socket.SessionInfo.McUuid).ToList();
         if (sameMcAccount.Count() > 1)
         {
-            var amITheLast = sameMcAccount.OrderByDescending(s => s.LastActive).ThenBy(s => s.ConnectionId).First().ConnectionId == socket.SessionInfo.ConnectionId;
+            var amITheLast = sameMcAccount.OrderByDescending(s => s.LastActive).ThenBy(s => s.ConnectionId).First()!.ConnectionId == socket.SessionInfo.ConnectionId;
             var others = sameMcAccount.Where(s => s.ConnectionId != socket.SessionInfo.ConnectionId).ToList();
             if (amITheLast)
             { // only the latest session updates the state
@@ -186,7 +186,7 @@ public class AccountTierManager : IAccountTierManager
                 }
             }
         }
-        var isCurrentConOnlyCon = sessions.All(s => s.ConnectionId == socket.SessionInfo.ConnectionId || s.Outdated || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
+        var isCurrentConOnlyCon = sessions.All(s => s == null || s.ConnectionId == socket.SessionInfo.ConnectionId || s.Outdated || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
         Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {socket.SessionInfo.ConnectionId} {isCurrentConOnlyCon}");
         activeSessions.Value.UserAccountTier = expires.Item1;
 
