@@ -37,12 +37,17 @@ public abstract class ReadOnlyListCommand<T> : McCommand
             page = 1;
         var toDisplay = elements.Skip((page - 1) * PageSize).Take(PageSize);
         var totalPages = elements.Count / PageSize + 1;
-        var dialog = DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})")
-            .ForEach(toDisplay, (db, elem) => Format(socket, db, elem));
+        DialogBuilder dialog = PrintResult(socket, title, page, toDisplay, totalPages);
         if (toDisplay.Count() == 0)
             dialog.MsgLine(NoMatchText);
         PrintSumary(socket, dialog, elements);
         socket.SendMessage(dialog.Build());
+    }
+
+    protected virtual DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<T> toDisplay, int totalPages)
+    {
+        return DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})")
+                    .ForEach(toDisplay, (db, elem) => Format(socket, db, elem));
     }
 
     protected virtual string NoMatchText => "No elements found";
