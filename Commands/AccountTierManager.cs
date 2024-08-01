@@ -219,10 +219,13 @@ public class AccountTierManager : IAccountTierManager
 
     private async Task SyncState(ActiveSessions? startValue)
     {
-        await Task.Delay(1000);
-        Console.WriteLine("Syncing state");
-        if (startValue == activeSessions.Value)
-            await activeSessions.Update();
+        _ = socket.TryAsyncTimes(async () =>
+        {
+            await Task.Delay(1000);
+            Console.WriteLine("Syncing state");
+            if (startValue == activeSessions.Value)
+                await activeSessions.Update();
+        }, "sync state", 1);
     }
 
     public string GetSessionInfo()
