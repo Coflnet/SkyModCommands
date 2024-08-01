@@ -19,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
             foreach (var item in list)
             {
                 System.Console.WriteLine("logging out " + item);
-                await socket.GetService<SettingsService>().UpdateSetting<string>("mod", item, null);
+                await socket.GetService<SettingsService>().UpdateSetting<string>(item, "userId", null);
             }
             var userId = account.UserId;
             account.ConIds.Clear();
