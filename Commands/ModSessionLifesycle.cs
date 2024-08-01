@@ -99,7 +99,7 @@ namespace Coflnet.Sky.Commands.MC
                 SendPing();
             }, null, TimeSpan.FromSeconds(59), TimeSpan.FromSeconds(59));
             this.TierManager = new AccountTierManager(socket, this);
-            UserId = await SelfUpdatingValue<string>.Create("mod", stringId);
+            UserId = await SelfUpdatingValue<string>.Create(stringId, "userId");
             _ = socket.TryAsyncTimes(() => SendLoginPromptMessage(stringId), "login prompt");
             if (MinecraftSocket.IsDevMode)
             {
