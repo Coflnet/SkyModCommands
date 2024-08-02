@@ -644,7 +644,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public void SendMessage(string text, string? clickAction = null, string? hoverText = null)
         {
-            if (this.ReadyState != WebSocketState.Open)
+            if (ReadyState != WebSocketState.Open)
             {
                 RemoveMySelf();
                 return;
@@ -705,7 +705,7 @@ namespace Coflnet.Sky.Commands.MC
         public bool IsClosed => ReadyState == WebSocketState.Closed;
         public bool SendMessage(params ChatPart[] parts)
         {
-            if (this.ReadyState != WebSocketState.Open && this.ReadyState != WebSocketState.Connecting)
+            if (ReadyState != WebSocketState.Open && ReadyState != WebSocketState.Connecting)
             {
                 RemoveMySelf();
                 return false;
@@ -776,7 +776,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public void Send(Response response)
         {
-            if (this.ReadyState == WebSocketState.Closed)
+            if (ReadyState == WebSocketState.Closed)
             {
                 RemoveMySelf();
                 return;
@@ -789,9 +789,9 @@ namespace Coflnet.Sky.Commands.MC
         {
             try
             {
-                if (this.ReadyState != WebSocketState.Open)
+                if (ReadyState != WebSocketState.Open)
                 {
-                    Log("con check was false");
+                    Log("con check was false " + ReadyState);
                     return false;
                 }
                 var start = DateTime.UtcNow;
@@ -828,7 +828,7 @@ namespace Coflnet.Sky.Commands.MC
         /// <returns></returns>
         public Task<bool> SendSold(string uuid)
         {
-            if (this.ReadyState != WebSocketState.Open)
+            if (ReadyState != WebSocketState.Open)
                 return Task.FromResult(false);
             // don't send extra messages
             return Task.FromResult(true);
@@ -838,7 +838,7 @@ namespace Coflnet.Sky.Commands.MC
         private void TenSecBeforeUpdate()
         {
             using var timer = CreateActivity("timer", ConSpan);
-            if (this.ReadyState == WebSocketState.Closed)
+            if (ReadyState == WebSocketState.Closed)
             {
                 NextUpdateStart -= TenSecBeforeUpdate;
                 return;
@@ -906,7 +906,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1)
             {
-                using var track = this.CreateActivity("skipCheck", timer)?.AddTag("actioncount", AccountInfo.BadActionCount);
+                using var track = CreateActivity("skipCheck", timer)?.AddTag("actioncount", AccountInfo.BadActionCount);
                 if (sessionLifesycle.UserId.Value == default)
                 {
                     Log("bad action count but no user id");
@@ -978,7 +978,7 @@ namespace Coflnet.Sky.Commands.MC
             if (!result)
             {
                 Log("failed");
-                Log(this.ReadyState.ToString());
+                Log(ReadyState.ToString());
             }
 
 
