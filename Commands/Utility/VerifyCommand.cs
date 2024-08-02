@@ -9,9 +9,7 @@ public class VerifyCommand : McCommand
     {
         if (socket.AccountInfo == null)
         {
-            socket.SendMessage("You are not logged in. Please log in first.");
-            await Task.Delay(4000);
-            socket.ModAdapter.SendLoginPrompt(socket.sessionLifesycle.GetAuthLink(socket.SessionInfo.SessionId));
+            socket.SendLoginPrompt();
             return;
         }
         var verifcationHandler = socket.sessionLifesycle.VerificationHandler;

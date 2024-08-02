@@ -28,6 +28,12 @@ namespace Coflnet.Sky.Commands.MC
         {
             var info = socket.SessionInfo.captchaInfo;
             var accountInfo = socket.AccountInfo;
+            if (accountInfo == null)
+            {
+                socket.SendMessage("Captchas are not relevant/displayed when you are not logged in");
+                socket.SendLoginPrompt();
+                return;
+            }
             var solution = info.CurrentSolutions;
             info.CurrentSolutions = new List<string>();
             var receivedAt = DateTime.UtcNow;
