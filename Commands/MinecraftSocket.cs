@@ -771,7 +771,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 using var error = CreateActivity("error", ConSpan)?.AddTag("message", message).AddTag("error", "true");
             }
-            ConSpan?.AddEvent(new ActivityEvent("message", DateTimeOffset.Now, new(new KeyValuePair<string, object?>[] { new("message", message) })));
+            Activity.Current.Log(message);
         }
 
         public void Send(Response response)
