@@ -47,6 +47,8 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
         {
             if (unlocked.HotMLevel < item.RequiredHotMLevel)
                 continue;
+            if(item.ProfitPerHour <= 0)
+                continue;
             if (unlocked.QuickForgeSpeed != 0)
             {
                 item.Duration = (int)((float)item.Duration * unlocked.QuickForgeSpeed);
@@ -69,6 +71,7 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
     protected override string Title => $"Most profitable Forge Flips you can do";
 
     public override bool IsPublic => true;
+    protected override int PageSize => 5;
 
     protected override string NoMatchText => "No forge flips found that you can do, did you unlock it?";
 }
