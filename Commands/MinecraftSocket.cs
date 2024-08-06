@@ -207,6 +207,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<AttributeFlipCommand>();
             Commands.Add<ForgeCommand>();
             Commands.Add<CraftsCommand>("craft");
+            Commands.Add<UpgradePlanCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

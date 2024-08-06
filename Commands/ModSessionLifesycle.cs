@@ -596,10 +596,18 @@ namespace Coflnet.Sky.Commands.MC
             }
             socket.SessionInfo.SessionTier = tier;
             if (tier != AccountTier.NONE)
+            {
                 SendMessage(
                     COFLNET + messageStart + $"You have {McColorCodes.GREEN}{tier} until {expire.ToString("yyyy-MMM-dd HH:mm")} UTC", null,
                     $"That is in {McColorCodes.GREEN + (expire - DateTime.UtcNow).ToString("d'd 'h'h 'm'm 's's'")}"
                 );
+                _ = socket.TryAsyncTimes(async () =>
+                {
+                    if (tier != AccountTier.PREMIUM || expire > DateTime.UtcNow + TimeSpan.FromDays(33) || expire < DateTime.UtcNow + TimeSpan.FromDays(29.97))
+                        return;
+                    socket.Dialog(db => db.CoflCommand<UpgradePlanCommand>("Seems like you recently bought premium, if you intended to buy prem+ click [here]", "", "Click to switch to prem+"));
+                }, "upgrade Note", 1);
+            }
             else
             {
                 SendMessage(COFLNET + messageStart + $"You use the {McColorCodes.BOLD}FREE{McColorCodes.RESET} version of the flip finder", "/cofl buy", "Click to upgrade tier");
@@ -893,7 +901,7 @@ namespace Coflnet.Sky.Commands.MC
                     AccountInfo.Value.BadActionCount--;
                     await AccountInfo.Update(AccountInfo.Value);
                 }
-                if (SessionInfo.NotPurchaseRate > 2 && socket.Settings?.MinProfit > 1_500_000 && DateTime.UtcNow.Minute % 15 == 0 
+                if (SessionInfo.NotPurchaseRate > 2 && socket.Settings?.MinProfit > 1_500_000 && DateTime.UtcNow.Minute % 15 == 0
                     && summary.LastPurchase < DateTime.UtcNow.AddMinutes(-30))
                 {
                     socket.Dialog(db => db.MsgLine("It seems like you were unable to purchase flips recently. \n"
