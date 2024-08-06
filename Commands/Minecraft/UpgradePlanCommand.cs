@@ -33,7 +33,8 @@ public class UpgradePlanCommand : PurchaseCommand
         }
         await userApi.UserUserIdTransactionIdDeleteAsync(socket.UserId, int.Parse(lastPurchase.Id));
         await Purchase(socket, userApi, "premium_plus", 1, "upgrade premium");
-        socket.Dialog(db => db.MsgLine($"Successfully upgraded your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to {McColorCodes.GOLD}premium+"));
+        socket.Dialog(db => db.MsgLine($"Successfully upgraded your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to {McColorCodes.GOLD}premium+")
+                            .MsgLine("Thanks for supporting our project financially :)"));
 
     }
 }

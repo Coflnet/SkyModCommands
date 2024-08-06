@@ -387,6 +387,16 @@ namespace Coflnet.Sky.Commands.MC
             }
             try
             {
+
+                if (info.ConIds.Contains("logout"))
+                {
+                    SendMessage("You have been logged out");
+                    span.Log("force loggout");
+                    info.ConIds.Remove("logout");
+                    await AccountInfo.Update(info);
+                    socket.Close();
+                    return;
+                }
                 if (info.CaptchaType == "vertical")
                 {
                     if (info.LastMacroConnect < DateTime.Now.AddDays(-1))
@@ -411,16 +421,6 @@ namespace Coflnet.Sky.Commands.MC
                         SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "Another connection was opened, it can also change your settings", null,
                             "Licenses allow you to use premium on multiple minecraft accounts at the same time.\nSee /cofl licenses for more information");
                     }
-                }
-
-                if (info.ConIds.Contains("logout"))
-                {
-                    SendMessage("You have been logged out");
-                    span.Log("force loggout");
-                    info.ConIds.Remove("logout");
-                    await AccountInfo.Update(info);
-                    socket.Close();
-                    return;
                 }
                 var tier = await TierManager.GetCurrentCached();
 
