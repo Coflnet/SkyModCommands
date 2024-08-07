@@ -43,8 +43,9 @@ namespace Coflnet.Sky.Commands.MC
             }
             try
             {
-                //var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();
-                //socket.SendMessage(new ChatPart($"{COFLNET}val is {socket.SettingsTest.Value.Changer}"));
+                var service = socket.GetService<SettingsUpdater>();
+                var value = service.GetCurrentValue(socket, args);
+                socket.SendMessage(new ChatPart($"{COFLNET}{args} is {McColorCodes.AQUA}{value}"));
             }
             catch (CoflnetException e)
             {
