@@ -20,6 +20,8 @@ public class TransferCoinsCommand : McCommand
         {
             throw new CoflnetException("invalid_arguments", "Usage /cofl transfercoins <amount> <user>");
         }
+        if(amount <= 0)
+            throw new CoflnetException("invalid_arguments", "Amount has to be greater than 0");
         string targetUser = await GetUserIdFromMcName(socket, minecraftName);
 
         var userApi = socket.GetService<IUserApi>();
@@ -32,7 +34,7 @@ public class TransferCoinsCommand : McCommand
                 Reference = minecraftName + "-" + socket.SessionInfo.ConnectionId.Truncate(5),
                 TargetUser = targetUser
             });
-            socket.Dialog(db => db.MsgLine($"You sent {amount} coins to {minecraftName}"));
+            socket.Dialog(db => db.MsgLine($"You sent {amount * -1} coins to {minecraftName}"));
         }
         catch (Payments.Client.Client.ApiException ex)
         {
