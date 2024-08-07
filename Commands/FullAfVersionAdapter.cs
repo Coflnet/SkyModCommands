@@ -18,6 +18,7 @@ namespace Coflnet.Sky.Commands.MC;
 public class FullAfVersionAdapter : AfVersionAdapter
 {
     protected DateTime lastListing = DateTime.MinValue;
+    protected DateTime lastInventoryFullMsg = DateTime.MinValue;
 
     public FullAfVersionAdapter(MinecraftSocket socket) : base(socket)
     {
@@ -319,8 +320,12 @@ public class FullAfVersionAdapter : AfVersionAdapter
         // < because menu is always there
             && maxItemsAllowedInInventory < socket.SessionInfo.Inventory?.Skip(10).Where(x => x != null).Count())
         {
-            socket.Dialog(db => db.Msg($"Reached max flip items in inventory, paused buying until items are sold and listed. ")
-                .Msg($"Can be disabled with {McColorCodes.AQUA}/cofl set maxItemsInInventory 0"));
+            if (lastInventoryFullMsg < DateTime.UtcNow.AddMinutes(-5))
+            {
+                socket.Dialog(db => db.Msg($"Reached max flip items in inventory ({maxItemsAllowedInInventory}), paused buying until items are sold and listed. ")
+                    .Msg($"Can be disabled with {McColorCodes.AQUA}/cofl set maxItemsInInventory 0"));
+                lastInventoryFullMsg = DateTime.UtcNow;
+            }
             return (true, false);
         }
         var spaceLeft = socket.SessionInfo.Inventory?.Skip(10).Count(x => x == null);
