@@ -37,16 +37,7 @@ public class AfVersionAdapter : ModVersionAdapter
             await Task.Delay(extraWait);
             Activity.Current.Log($"Waited {extraWait}ms");
         }
-        socket.Send(Response.Create("flip", new
-        {
-            id = flip.Auction.Uuid,
-            startingBid = flip.Auction.StartingBid,
-            purchaseAt = flip.Auction.Start + TimeSpan.FromSeconds(20) - TimeSpan.FromMilliseconds(4),
-            itemName = name,
-            target = flip.Target,
-            finder = flip.Finder,
-            profitPerc = flip.ProfitPercentage
-        }));
+        PrintFlipCommand(flip, name);
         if (flip.IsWhitelisted())
         {
             await Task.Delay(300);
@@ -65,6 +56,21 @@ public class AfVersionAdapter : ModVersionAdapter
         Activity.Current?.SetTag("itemName", name);
 
         return true;
+    }
+
+    protected virtual void PrintFlipCommand(FlipInstance flip, string name)
+    {
+        socket.Send(Response.Create("flip", new
+        {
+            id = flip.Auction.Uuid,
+            startingBid = flip.Auction.StartingBid,
+            purchaseAt = flip.Auction.Start + TimeSpan.FromSeconds(20) - TimeSpan.FromMilliseconds(4),
+            itemName = name,
+            target = flip.Target,
+            finder = flip.Finder,
+            profitPerc = flip.ProfitPercentage,
+            tag = flip.Auction.Tag
+        }));
     }
 
     protected static string GetItemName(SaveAuction auction)
