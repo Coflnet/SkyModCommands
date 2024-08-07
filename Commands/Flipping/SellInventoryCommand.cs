@@ -35,5 +35,10 @@ public class SellInventoryCommand : McCommand
         }
         socket.Dialog(db => db.Msg("Starting to sell all items in your inventory (except your armor). \nPlease make sure there is nothing in your inventory you don't want to sell (see above for list)."));
         await adapter.TryToListAuction();
+        var maxItems = socket.Settings?.ModSettings?.MaxFlipItemsInInventory ?? 0;
+        if(maxItems == 0)
+        {
+            socket.Dialog(db => db.Msg($"You can avoid getting more flips/items by using {McColorCodes.AQUA}/cofl set maxItemsInInventory 1"));
+        }
     }
 }
