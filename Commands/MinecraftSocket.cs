@@ -897,13 +897,13 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     await sessionLifesycle.TierManager.RefreshTier();
                     var updated = await sessionLifesycle.TierManager.GetCurrentTierWithExpire();
-                    if(updated.expiresAt > DateTime.UtcNow.AddMinutes(2))
+                    if (updated.expiresAt > DateTime.UtcNow.AddMinutes(2))
                         return;
                     Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
                     .CoflCommand<PurchaseCommand>($"Your premium tier is about to expire in {(int)(expiresAt - DateTime.UtcNow).TotalMinutes} minutes. {McColorCodes.YELLOW}[CLICK to see options]", "", "show purchase menu")
                     .Break.Msg($"{McColorCodes.RED}-----------------------------"));
                 }, "reloading tier");
-                
+
             }
             if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1)
             {
@@ -922,7 +922,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public bool HasFlippingDisabled()
         {
-            return !SessionInfo.IsMacroBot && (!SessionInfo.FlipsEnabled && Settings != null || SessionInfo.IsNotFlipable) || (Settings?.DisableFlips ?? false) || (Settings?.ModSettings?.AhDataOnlyMode ?? false);
+            return ModAdapter is not AfVersionAdapter && (!SessionInfo.FlipsEnabled && Settings != null || SessionInfo.IsNotFlipable || (Settings?.DisableFlips ?? false) || (Settings?.ModSettings?.AhDataOnlyMode ?? false));
         }
 
         public void ScheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
