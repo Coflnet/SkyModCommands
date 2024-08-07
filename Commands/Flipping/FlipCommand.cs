@@ -59,5 +59,7 @@ public class FlipCommand : McCommand
         if (!socket.SessionInfo.FlipsEnabled)
             state = McColorCodes.RED + "OFF";
         socket.Dialog(db => db.CoflCommand<FlipCommand>("Toggled flips " + state, "", $"Toggle them again\nexecutes {McColorCodes.AQUA}/cofl flip"));
+        if (socket.ModAdapter is AfVersionAdapter)
+            socket.Dialog(db => db.MsgLine("You are using an auto flipper client and thus have flips always enabled. Stop your client to stop receiving flips"));
     }
 }
