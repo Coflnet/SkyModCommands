@@ -922,7 +922,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public bool HasFlippingDisabled()
         {
-            return !SessionInfo.IsMacroBot && (Settings?.DisableFlips ?? false) || !SessionInfo.FlipsEnabled && Settings != null || SessionInfo.IsNotFlipable || (Settings?.ModSettings?.AhDataOnlyMode ?? false);
+            return !SessionInfo.IsMacroBot && (!SessionInfo.FlipsEnabled && Settings != null || SessionInfo.IsNotFlipable) || (Settings?.DisableFlips ?? false) || (Settings?.ModSettings?.AhDataOnlyMode ?? false);
         }
 
         public void ScheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
