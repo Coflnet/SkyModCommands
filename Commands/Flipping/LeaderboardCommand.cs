@@ -13,6 +13,7 @@ namespace Coflnet.Sky.Commands.MC;
 public class LeaderboardCommand : McCommand
 {
     public override bool IsPublic => true;
+    protected virtual string Heading => $"Top players for this week:";
 
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
@@ -27,7 +28,7 @@ public class LeaderboardCommand : McCommand
         var leaderboardData = await api.ScoresLeaderboardSlugGetAsync(boardSlug, page * 10, 10);
         var names = await nameApi.PlayerNameNamesBatchPostAsync(leaderboardData.Select(d => d.UserId).ToList());
         var rank = await ownTask;
-        socket.Dialog(db => db.If(() => isPremPlus, (db) => db.MsgLine($"Top players for this week:").ForEach(leaderboardData, (db, data) =>
+        socket.Dialog(db => db.If(() => isPremPlus, (db) => db.MsgLine(Heading).ForEach(leaderboardData, (db, data) =>
         {
             var displayName = names.Where(n => n.Key == data.UserId).Select(d => d.Value).FirstOrDefault() ?? "unknown";
             PrintLine(socket, db, data, displayName);
