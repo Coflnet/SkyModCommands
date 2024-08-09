@@ -26,14 +26,14 @@ public class UpgradePlanCommand : PurchaseCommand
         var args = Convert<string>(arguments).Split(' ');
         if (args[0] != socket.SessionInfo.SessionId)
         {
-            socket.Dialog(db => db.MsgLine($"Do you want to convert your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to {McColorCodes.GOLD}premium+{McColorCodes.WHITE} for {McColorCodes.AQUA}0 coins")
+            socket.Dialog(db => db.MsgLine($"Do you want to convert your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to one week of {McColorCodes.GOLD}premium+{McColorCodes.WHITE} for {McColorCodes.AQUA}0 coins")
                 .CoflCommand<UpgradePlanCommand>($"  {McColorCodes.GREEN}Yes  ", $"{socket.SessionInfo.SessionId}", $"Confirm upgrade (paying no coins)")
                 .DialogLink<EchoDialog>($"  {McColorCodes.RED}No  ", $"Upgrade Canceled", $"{McColorCodes.RED}Cancel upgrade"));
             return;
         }
         await userApi.UserUserIdTransactionIdDeleteAsync(socket.UserId, int.Parse(lastPurchase.Id));
         await Purchase(socket, userApi, "premium_plus", 1, "upgrade premium");
-        socket.Dialog(db => db.MsgLine($"Successfully upgraded your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to {McColorCodes.GOLD}premium+")
+        socket.Dialog(db => db.MsgLine($"Successfully upgraded your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to one week of {McColorCodes.GOLD}premium+")
                             .MsgLine("Thanks for supporting our project financially :)"));
 
     }
