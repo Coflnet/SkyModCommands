@@ -755,9 +755,10 @@ namespace Coflnet.Sky.Commands.MC
                 { "exception", exception },
                 { "additionalLog", additionalLog },
                 { "session", JsonConvert.SerializeObject(SessionInfo) } })));
-            error.Log(JsonConvert.SerializeObject(sessionLifesycle?.AccountInfo?.Value));
-            error.Log($"Calling stacktrace: {Environment.StackTrace}");
-            error.Log(JsonConvert.SerializeObject(Settings).Truncate(10_000));
+            using var errorContext = CreateActivity("error", error)?.AddTag("message", message).AddTag("error", "true");
+            errorContext.Log(JsonConvert.SerializeObject(sessionLifesycle?.AccountInfo?.Value));
+            errorContext.Log($"Calling stacktrace: {Environment.StackTrace}");
+            errorContext.Log(JsonConvert.SerializeObject(Settings).Truncate(10_000));
             return error?.Context.TraceId.ToString();
         }
 
