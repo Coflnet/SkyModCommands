@@ -167,7 +167,8 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             throw new CoflnetException("not_found", "You don't own any configs");
         }
         var owned = ownedConfigs.Value.Configs
-            .Where(w => w.Name.Equals(configName, System.StringComparison.CurrentCultureIgnoreCase) && (w.OwnerName?.Equals(owner, System.StringComparison.CurrentCultureIgnoreCase) ?? true)).FirstOrDefault();
+            .Where(w => w.Name.Equals(configName, System.StringComparison.CurrentCultureIgnoreCase) 
+                && (w.OwnerId == owner ||( w.OwnerName?.Equals(owner, System.StringComparison.CurrentCultureIgnoreCase) ?? true))).FirstOrDefault();
         if (owned == default)
         {
             throw new CoflnetException("not_found", "You don't own such a config");
