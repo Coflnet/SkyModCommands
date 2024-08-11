@@ -96,7 +96,7 @@ public class AfVersionAdapter : ModVersionAdapter
 
     public override void SendLoginPrompt(string loginLink)
     {
-        socket.Dialog(db => db.MsgLine($"Please §lclick {loginLink} to login").MsgLine("Until you do you are using the free version which will make less profit"));
+        socket.Dialog(db => db.MsgLine($"Please §lclick {loginLink} to login").MsgLine("Until you do you are using the free version which will make less profit and your settings won't be saved"));
     }
 
     private bool ShouldSkipFlip(FlipInstance flip)
