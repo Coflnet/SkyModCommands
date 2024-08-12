@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
+using WebSocketSharp;
 
 namespace Coflnet.Sky.ModCommands.Services
 {
@@ -48,6 +49,19 @@ namespace Coflnet.Sky.ModCommands.Services
             await SubscribeToRedisSnipes(stoppingToken);
             logger.LogInformation("set up fast track flipper");
             await counterService.GetTable().CreateIfNotExistsAsync();
+            await Task.Delay(3000);
+            var client = new WebSocket("ws://localhost:8008/modsocket?SId=123123123123123123&player=test&version=1.5.6-Alpha");
+            client.OnOpen += (s, e) =>
+            {
+                logger.LogInformation("established test connection");
+            };
+            client.OnError += (s, e) =>
+            {
+                logger.LogInformation("Could not establish test connection");
+            };
+            client.Connect();
+            await Task.Delay(3000);
+            client.Close();
             await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
             logger.LogError("Fast track was stopped");
         }
