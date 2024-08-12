@@ -663,7 +663,7 @@ namespace Coflnet.Sky.Commands.MC
         public virtual void Dialog(Func<SocketDialogBuilder, DialogBuilder> creation)
         {
             var dialog = creation.Invoke(new SocketDialogBuilder(this)).Build();
-            if (ModAdapter is not FullAfVersionAdapter && !IsDevMode)
+            if (ModAdapter is not FullAfVersionAdapter && !(IsDevMode || SessionInfo.IsDebug))
             {
                 SendMessage(dialog);
                 return;

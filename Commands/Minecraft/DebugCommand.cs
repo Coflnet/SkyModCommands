@@ -6,6 +6,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            socket.SessionInfo.IsDebug = !socket.SessionInfo.IsDebug;
             var privacySettings = socket.sessionLifesycle.PrivacySettings.Value;
             if (privacySettings.ChatRegex == ".*")
             {
