@@ -73,8 +73,11 @@ public class PriceStorageService : IPriceStorageService
 
     public async Task SetPrice(Guid playerUuid, Guid uuid, long value)
     {
+        var storageTime = 48 * 60 * 60;
+        if(value < 0)
+            storageTime *= 7;
         // insert with ttl 48h
-        await table.Insert(new PriceEstimateValue() { Uuid = uuid, PlayerUuid = playerUuid, Value = value }).SetTTL(48 * 60 * 60).ExecuteAsync();
+        await table.Insert(new PriceEstimateValue() { Uuid = uuid, PlayerUuid = playerUuid, Value = value }).SetTTL(storageTime).ExecuteAsync();
         Activity.Current?.Log($"Set price for {uuid} to {value}");
     }
 }
