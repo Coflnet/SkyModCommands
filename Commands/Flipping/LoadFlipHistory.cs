@@ -39,7 +39,7 @@ public class LoadFlipHistory : McCommand
             playerId = (await socket.GetPlayerUuid(playerId)).Trim('"');
 
         var config = socket.GetService<IConfiguration>();
-        using var producer = socket.GetService<KafkaCreator>().BuildProducer<string, SaveAuction>();
+        using var producer = socket.GetService<Kafka.KafkaCreator>().BuildProducer<string, SaveAuction>();
         var count = 0;
         var maxTime = DateTime.UtcNow; new DateTime(2023, 1, 10);
         var minTime = maxTime.AddDays(-1);
