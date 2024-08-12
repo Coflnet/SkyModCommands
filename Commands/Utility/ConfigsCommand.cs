@@ -179,7 +179,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
     public async Task<ConfigRating> GetRatingOrDefault(Table<ConfigRating> table, string configName, OwnedConfigs.OwnedConfig owned)
     {
         var ownerConfigs = await table.Where(c => c.OwnerId == owned.OwnerId).ExecuteAsync();
-        var targetConfig = ownerConfigs.Where(c => c.ConfigName.Equals(configName, System.StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
+        var targetConfig = ownerConfigs.Where(c => c.ConfigName.Equals(configName, System.StringComparison.CurrentCultureIgnoreCase)).OrderBy(c=>c.Downvotes.Count + c.Upvotes.Count).FirstOrDefault();
         if (targetConfig == default)
         {
             targetConfig = new ConfigRating()
