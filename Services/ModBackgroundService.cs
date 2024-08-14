@@ -71,7 +71,7 @@ namespace Coflnet.Sky.ModCommands.Services
         private async Task LoadDelayExcemptKeys()
         {
             using var scope = scopeFactory.CreateScope();
-            var trackerApi = scope.ServiceProvider.GetRequiredService<TrackerApi>();
+            var trackerApi = scope.ServiceProvider.GetRequiredService<ITrackerApi>();
             var keys = await trackerApi.FlipsExemptGetAsync();
             delayExemptKeys = new(keys.Select(k => (k.ItemTag, k.Key)).ToHashSet());
         }
