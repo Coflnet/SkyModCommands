@@ -45,7 +45,7 @@ namespace Coflnet.Sky.Commands.MC
                 sound = new { name = shouldPlaySound ? "note.pling" : null, pitch = 1 },
                 auction = new
                 {
-                    itemName = flip.Auction.ItemName,
+                    itemName = socket.formatProvider.GetItemName(flip.Auction),
                     enchantments = flip.Auction.Enchantments,
                     count = flip.Auction.Count,
                     startingBid = flip.Auction.StartingBid,
