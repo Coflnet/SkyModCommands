@@ -24,6 +24,7 @@ namespace Coflnet.Sky.Commands.MC
         private FlipSettings Settings => socket.Settings;
         private ISpamController spamController;
         private IDelayHandler delayHandler;
+        private IDelayExemptList delayExemptList;
         private int waitingBedFlips = 0;
         private int _blockedFlipCounter = 0;
         public int BlockedFlipCount => _blockedFlipCounter;
@@ -33,6 +34,7 @@ namespace Coflnet.Sky.Commands.MC
             this.socket = socket;
             this.spamController = spamController;
             this.delayHandler = delayHandler;
+            delayExemptList = socket.GetService<IDelayExemptList>();
         }
 
         public async Task NewFlips(IEnumerable<LowPricedAuction> flips)
@@ -179,7 +181,7 @@ namespace Coflnet.Sky.Commands.MC
             var flipsWithTime = flips.Select(f => (f.instance, f.f.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow, lp: f.f));
             var bedsToWaitFor = flipsWithTime.Where(f => f.Item2 > TimeSpan.FromSeconds(3.1) && !(Settings?.ModSettings.NoBedDelay ?? false));
             var noBed = flipsWithTime.ExceptBy(bedsToWaitFor.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid).Select(f => (f.instance, f.lp));
-            var toSendInstant = noBed.Where(f => delayHandler.IsLikelyBot(f.instance)).ToList();
+            var toSendInstant = noBed.Where(f => delayExemptList.IsExempt(f.lp) || delayHandler.IsLikelyBot(f.instance)).ToList();
             foreach (var item in flips)
             {
                 flipSendTiming.Observe((DateTime.UtcNow - item.f.Auction.FindTime).TotalSeconds);

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
-using fNbt;
+using Coflnet.Sky.FlipTracker.Client.Api;
 using fNbt.Tags;
 using MessagePack;
 using Microsoft.Extensions.Configuration;
@@ -19,13 +19,14 @@ using WebSocketSharp;
 namespace Coflnet.Sky.ModCommands.Services
 {
 
-    public class ModBackgroundService : BackgroundService
+    public class ModBackgroundService : BackgroundService, IDelayExemptList
     {
         private IServiceScopeFactory scopeFactory;
         private IConfiguration config;
         private ILogger<ModBackgroundService> logger;
         private FlipperService flipperService;
         private CounterService counterService;
+        private HashSet<(string tag, string)> delayExemptKeys = new();
 
         private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
 
@@ -49,7 +50,8 @@ namespace Coflnet.Sky.ModCommands.Services
             await SubscribeToRedisSnipes(stoppingToken);
             logger.LogInformation("set up fast track flipper");
             await counterService.GetTable().CreateIfNotExistsAsync();
-            await Task.Delay(3000);
+            await LoadDelayExcemptKeys();
+            await Task.Delay(2000);
             var client = new WebSocket("ws://localhost:8008/modsocket?SId=123123123123123123&player=test&version=1.5.6-Alpha");
             client.OnOpen += (s, e) =>
             {
@@ -64,6 +66,14 @@ namespace Coflnet.Sky.ModCommands.Services
             client.Close();
             await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
             logger.LogError("Fast track was stopped");
+        }
+
+        private async Task LoadDelayExcemptKeys()
+        {
+            using var scope = scopeFactory.CreateScope();
+            var trackerApi = scope.ServiceProvider.GetRequiredService<TrackerApi>();
+            var keys = await trackerApi.FlipsExemptGetAsync();
+            delayExemptKeys = new(keys.Select(k => (k.ItemTag, k.Key)).ToHashSet());
         }
 
         public async Task SubscribeToRedisSnipes(CancellationToken stoppingToken)
@@ -213,6 +223,16 @@ namespace Coflnet.Sky.ModCommands.Services
             {
                 flip.TargetPrice = 0;
             }
+        }
+
+        public bool IsExempt(LowPricedAuction lowPriced)
+        {
+            if(! delayExemptKeys.Contains((lowPriced.Auction.Tag, lowPriced.AdditionalProps.GetValueOrDefault("key"))))
+            {
+                return false;
+            }
+            logger.LogInformation($"Exempted flip {lowPriced.Auction.Uuid} from delay because of {lowPriced.Auction.Tag} {lowPriced.AdditionalProps.GetValueOrDefault("key")}");
+            return true;
         }
     }
 }
