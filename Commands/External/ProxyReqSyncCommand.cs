@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,6 +14,7 @@ namespace Coflnet.Sky.Commands.MC;
 /// </summary>
 public class ProxyReqSyncCommand : McCommand
 {
+    DateTime lastSync = DateTime.MinValue;
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         socket.Dialog(db => db.MsgLine($"Syncing settings..."));
@@ -28,7 +30,7 @@ public class ProxyReqSyncCommand : McCommand
             {
                 await socket.sessionLifesycle.TierManager.RefreshTier();
                 await Task.Delay(1500);
-                if(socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
+                if (socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
                     break;
             }
             if (!socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
@@ -37,8 +39,7 @@ public class ProxyReqSyncCommand : McCommand
                 socket.Dialog(db => db.MsgLine("Main instance could not verify your premium status. Please try again later."));
             }
         }
-        var filterState = socket.GetService<FilterStateService>().State;
-        socket.Send(Response.Create("filterData", filterState));
+        SendGlobalState(socket);
         SendState(socket);
         socket.sessionLifesycle.AccountInfo.OnChange += (a) => SendState(socket);
         socket.sessionLifesycle.FlipSettings.ShouldPreventUpdate += (a) =>
@@ -53,6 +54,17 @@ public class ProxyReqSyncCommand : McCommand
             socket.sessionLifesycle.FlipSettings.OnChange -= (a) => SendState(socket);
             socket.sessionLifesycle.OnDelayChange -= (a) => SendState(socket);
         };
+    }
+
+    private void SendGlobalState(MinecraftSocket socket)
+    {
+        if (lastSync < DateTime.UtcNow.AddMinutes(-1))
+        {
+            lastSync = DateTime.UtcNow;
+            var filterState = socket.GetService<FilterStateService>().State;
+            socket.Send(Response.Create("filterData", filterState));
+            socket.Send(Response.Create("exemptKeys", socket.GetService<IDelayExemptList>().Exemptions));
+        }
     }
 
     private static void SendState(MinecraftSocket socket)

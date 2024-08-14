@@ -18,10 +18,6 @@ public interface IDelayHandler
     Task<DelayHandler.Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime);
 }
 
-public interface IDelayExemptList
-{
-    bool IsExempt(Core.LowPricedAuction flipInstance);
-}
 
 /// <summary>
 /// Handles fairness delays to balance flips amongst all users

@@ -19,25 +19,26 @@ using WebSocketSharp;
 namespace Coflnet.Sky.ModCommands.Services
 {
 
-    public class ModBackgroundService : BackgroundService, IDelayExemptList
+    public class ModBackgroundService : BackgroundService
     {
         private IServiceScopeFactory scopeFactory;
         private IConfiguration config;
         private ILogger<ModBackgroundService> logger;
         private FlipperService flipperService;
         private CounterService counterService;
-        private HashSet<(string tag, string)> delayExemptKeys = new();
+        IDelayExemptList delayExemptList;
 
         private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
 
         public ModBackgroundService(
-            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger, FlipperService flipperService, CounterService counterService)
+            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger, FlipperService flipperService, CounterService counterService, IDelayExemptList iDelayExemptList)
         {
             this.scopeFactory = scopeFactory;
             this.config = config;
             this.logger = logger;
             this.flipperService = flipperService;
             this.counterService = counterService;
+            delayExemptList = iDelayExemptList;
         }
         /// <summary>
         /// Called by asp.net on startup
@@ -73,7 +74,7 @@ namespace Coflnet.Sky.ModCommands.Services
             using var scope = scopeFactory.CreateScope();
             var trackerApi = scope.ServiceProvider.GetRequiredService<ITrackerApi>();
             var keys = await trackerApi.FlipsExemptGetAsync();
-            delayExemptKeys = new(keys.Select(k => (k.ItemTag, k.Key)).ToHashSet());
+            this.delayExemptList.Exemptions = new(keys.Select(k => (k.ItemTag, k.Key)).ToHashSet());
         }
 
         public async Task SubscribeToRedisSnipes(CancellationToken stoppingToken)
@@ -223,16 +224,6 @@ namespace Coflnet.Sky.ModCommands.Services
             {
                 flip.TargetPrice = 0;
             }
-        }
-
-        public bool IsExempt(LowPricedAuction lowPriced)
-        {
-            if(! delayExemptKeys.Contains((lowPriced.Auction.Tag, lowPriced.AdditionalProps.GetValueOrDefault("key"))))
-            {
-                return false;
-            }
-            logger.LogInformation($"Exempted flip {lowPriced.Auction.Uuid} from delay because of {lowPriced.Auction.Tag} {lowPriced.AdditionalProps.GetValueOrDefault("key")}");
-            return true;
         }
     }
 }

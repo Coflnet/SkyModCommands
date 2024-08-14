@@ -79,6 +79,7 @@ public class Startup
         services.AddSingleton<IPriceStorageService, PriceStorageService>();
         services.AddSingleton<DelayService>();
         services.AddSingleton<AltChecker>();
+        services.AddSingleton<IDelayExemptList, DelayExemptionList>();
         services.AddCoflService();
     }
 
