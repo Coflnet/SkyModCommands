@@ -81,6 +81,7 @@ namespace Coflnet.Sky.Commands.MC
             string itemName = GetItemName(flip.Auction);
             var cost = a.HighestBidAmount == 0 ? a.StartingBid : a.HighestBidAmount;
             var formatString = blockedReason == null ? Settings.ModSettings?.Format : Settings.ModSettings?.BlockedFormat;
+            var targetPriceFormatted = targetPrice < 0 ? $"{McColorCodes.DARK_GREEN}NoRelist" : FormatPrice(targetPrice);
             if (!string.IsNullOrWhiteSpace(formatString) && flip.Auction?.Context != null)
             {
                 /*
@@ -107,7 +108,7 @@ namespace Coflnet.Sky.Commands.MC
                     itemName,
                     priceColor,
                     FormatPrice(cost),
-                    FormatPrice(targetPrice), // this is {5}
+                    targetPriceFormatted, // this is {5}
                     FormatPrice(profit),
                     FormatPrice(flip.ProfitPercentage),
                     FormatPrice(flip.MedianPrice),
@@ -121,7 +122,7 @@ namespace Coflnet.Sky.Commands.MC
 
             var builder = new StringBuilder(80);
 
-            builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(cost)} -> {FormatPrice(targetPrice)} ");
+            builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(cost)} -> {targetPriceFormatted} ");
             try
             {
                 if ((Settings?.Visibility?.Profit ?? false) || (Settings?.Visibility?.EstimatedProfit ?? false))
