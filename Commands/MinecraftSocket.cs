@@ -503,20 +503,19 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override void OnMessage(MessageEventArgs e)
         {
-            var parallelAllowed = 2;
-            if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
-                parallelAllowed = 6;
-            else if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
-                parallelAllowed = 4;
-
-            if (waiting > parallelAllowed)
-            {
-                SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
-                return;
-            }
             try
             {
+                var parallelAllowed = 2;
+                if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
+                    parallelAllowed = 6;
+                else if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
+                    parallelAllowed = 4;
 
+                if (waiting > parallelAllowed)
+                {
+                    SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
+                    return;
+                }
                 var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
                 if (e.Data.Contains("dialog") && e.Data.Contains("nobestflip"))
                 {
