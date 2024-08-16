@@ -950,6 +950,7 @@ namespace Coflnet.Sky.Commands.MC
                     Auction = auction,
                     Finder = LowPricedAuction.FinderType.SNIPER,
                     DailyVolume = (float)(1 + Random.Shared.NextDouble() * 10),
+                    AdditionalProps = new (){ { "match", "whitelist shitflip" } },
                     TargetPrice = (long)(auction.StartingBid * (1.1 + Random.Shared.NextDouble()))
                 }));
                 await Task.Delay(Random.Shared.Next(500, 10000));

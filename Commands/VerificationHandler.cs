@@ -158,7 +158,6 @@ namespace Coflnet.Sky.Commands.MC
                         DailyVolume = 1,
                         Finder = LowPricedAuction.FinderType.EXTERNAL
                     });
-                    flip.Context["match"] = "whitelist shitflip";
                     await circumventTracker.SendChallangeFlip(socket, flip);
                     await Task.Delay(5000);
                     socket.Dialog(db => db.MsgLine("It can take up to 1 minute to verify your account. If you are not verified after that, please try again."));
