@@ -18,6 +18,7 @@ public class ProxyReqSyncCommand : McCommand
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         socket.Dialog(db => db.MsgLine($"Syncing settings..."));
+        Activity.Current.Log("Context " + arguments);
         for (int i = 0; i < 50; i++)
         {
             if (socket.Settings.IsCompiled)
