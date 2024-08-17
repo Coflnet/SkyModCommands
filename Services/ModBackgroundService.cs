@@ -71,10 +71,17 @@ namespace Coflnet.Sky.ModCommands.Services
 
         private async Task LoadDelayExcemptKeys()
         {
-            using var scope = scopeFactory.CreateScope();
-            var trackerApi = scope.ServiceProvider.GetRequiredService<ITrackerApi>();
-            var keys = await trackerApi.FlipsExemptGetAsync();
-            this.delayExemptList.Exemptions = new(keys.Select(k => (k.ItemTag, k.Key)).ToHashSet());
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var trackerApi = scope.ServiceProvider.GetRequiredService<ITrackerApi>();
+                var keys = await trackerApi.FlipsExemptGetAsync();
+                this.delayExemptList.Exemptions = new(keys.Select(k => (k.ItemTag, k.Key)).ToHashSet());
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Could not load delay exempt keys");
+            }
         }
 
         public async Task SubscribeToRedisSnipes(CancellationToken stoppingToken)
