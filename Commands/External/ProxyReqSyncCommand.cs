@@ -42,8 +42,8 @@ public class ProxyReqSyncCommand : McCommand
         }
         SendGlobalState(socket);
         SendState(socket);
-        Action<object> updateHandler = (a) => SendState(socket);
-        socket.sessionLifesycle.AccountInfo.OnChange += updateHandler;
+        Action<AccountInfo> accounthandler = (a) => SendState(socket);
+        socket.sessionLifesycle.AccountInfo.OnChange += accounthandler;
         socket.sessionLifesycle.FlipSettings.ShouldPreventUpdate += (a) =>
         {
             SendState(socket);
@@ -52,8 +52,7 @@ public class ProxyReqSyncCommand : McCommand
         socket.sessionLifesycle.OnDelayChange += (a) => SendState(socket);
         socket.OnConClose += () =>
         {
-            socket.sessionLifesycle.AccountInfo.OnChange -= updateHandler;
-            socket.sessionLifesycle.FlipSettings.OnChange -= updateHandler;
+            socket.sessionLifesycle.AccountInfo.OnChange -= accounthandler;
             socket.sessionLifesycle.OnDelayChange -= (a) => SendState(socket);
         };
     }
