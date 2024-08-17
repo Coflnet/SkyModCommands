@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -15,13 +16,20 @@ namespace Coflnet.Sky.Commands.MC
     public class LoreCommand : McCommand
     {
         public override bool IsPublic => true;
+        private ConcurrentDictionary<string, (DescriptionSetting, DateTime)> descriptionCache = new();
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var service = socket.GetService<SettingsService>();
-            var settings = await service.GetCurrentValue<DescriptionSetting>(socket.UserId, "description", () =>
+            if(!descriptionCache.TryGetValue(socket.UserId, out var cache) || cache.Item2.AddMinutes(1) < DateTime.UtcNow)
             {
-                return DescriptionSetting.Default;
-            });
+                cache.Item1 = await service.GetCurrentValue<DescriptionSetting>(socket.UserId, "description", () =>
+                {
+                    return DescriptionSetting.Default;
+                });
+                cache.Item2 = DateTime.UtcNow;
+                descriptionCache[socket.UserId] = cache;
+            }
+            var settings = cache.Item1;
             var args = Convert<string>(arguments).Split(' ');
 
             if (args.Length == 1)
@@ -102,8 +110,8 @@ namespace Coflnet.Sky.Commands.MC
                     settings.Fields[line].Insert(0, field);
                     break;
             }
-            SendCurrentState(socket, settings);
             await service.UpdateSetting(socket.UserId, "description", settings);
+            SendCurrentState(socket, settings);
         }
 
         private static void SendCurrentState(MinecraftSocket socket, DescriptionSetting settings)
@@ -126,7 +134,8 @@ namespace Coflnet.Sky.Commands.MC
                 var elementInLine = 0;
                 d.ForEach(line, (d, f) =>
                 {
-                    d.Msg($" {McColorCodes.GRAY}[{McColorCodes.AQUA}{f.ToString()}{McColorCodes.GRAY}]")
+                    var explanation = GetDescriptionFromEnumValue(f);
+                    d.Msg($" {McColorCodes.GRAY}[{McColorCodes.AQUA}{f}{McColorCodes.GRAY}]", null, explanation)
                     .CoflCommand<LoreCommand>(McColorCodes.RED + "rm", $"rm {lineNum} {f}", $"Remove {f} from line {lineNum + 1}");
 
                     if (lineNum > 0)
@@ -148,7 +157,7 @@ namespace Coflnet.Sky.Commands.MC
                     _ => McColorCodes.YELLOW
                 };
                 var explanation = GetDescriptionFromEnumValue(f);
-                d.CoflCommand<LoreCommand>(color + f.ToString(), $"add {lineNum} {f}", $"Add {f} to the next line\n" + explanation).Msg(" ");
+                d.CoflCommand<LoreCommand>(color + f.ToString(), $"add {lineNum} {f}", $"Add {McColorCodes.AQUA}{f}{McColorCodes.RESET} to the next line\n" + explanation).Msg(" ");
             }).LineBreak());
             socket.SendMessage(d.Build());
         }
