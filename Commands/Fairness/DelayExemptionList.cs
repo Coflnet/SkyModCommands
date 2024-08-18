@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -19,7 +21,7 @@ public class DelayExemptionList : IDelayExemptList
         var exempted = Exemptions.Contains((flipInstance.Auction.Tag, flipInstance.AdditionalProps.GetValueOrDefault("key", "nope")));
         if (exempted)
         {
-            Console.WriteLine($"Exempted {flipInstance.Auction.Tag} {flipInstance.AdditionalProps.GetValueOrDefault("key", "nope")}");
+            Activity.Current.Log($"Exempted {flipInstance.Auction.Tag} {flipInstance.AdditionalProps.GetValueOrDefault("key", "nope")}");
         }
         return exempted;
     }
