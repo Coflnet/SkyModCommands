@@ -18,6 +18,8 @@ namespace Coflnet.Sky.ModCommands.MC
             var server = new HttpServer(port);
             server.KeepClean = false;
             server.AddWebSocketService<MinecraftSocket>("/modsocket");
+            server.Log.Level = WebSocketSharp.LogLevel.Debug;
+            server.Log.Output = (data, s) => Console.WriteLine(data);
             server.OnGet += async (s, e) =>
             {
                 await Task.Delay(1).ConfigureAwait(false);
