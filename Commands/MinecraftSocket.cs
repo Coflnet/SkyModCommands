@@ -567,6 +567,8 @@ namespace Coflnet.Sky.Commands.MC
                 waiting++;
                 if (string.IsNullOrEmpty(SessionInfo?.McUuid))
                     await Task.Delay(1200).ConfigureAwait(false);
+                if (sessionLifesycle?.FlipSettings == null)
+                    await Task.Delay(2200).ConfigureAwait(false);
                 if (e.Data == "nobestflip")
                     await InvokeCommand(a, command!);
                 else
