@@ -442,20 +442,22 @@ namespace Coflnet.Sky.Commands.MC
         }
         public async Task<string> GetPlayerUuid(string name, bool blockError = false)
         {
-            try
-            {
-                if (name.Length == 32)
-                    return name; // already a uuid
-                return await DiHandler.GetService<PlayerName.PlayerNameService>()
-                        .GetUuid(name);
-            }
-            catch (Exception e)
-            {
-                Error(e, $"loading uuid for name '{name}'");
-                if (!blockError)
-                    throw new CoflnetException("name_retrieve", "Could not find the player " + name);
-                return String.Empty;
-            }
+            for (int i = 0; i < 3; i++)
+                try
+                {
+                    if (name.Length == 32)
+                        return name; // already a uuid
+                    return await DiHandler.GetService<PlayerName.PlayerNameService>()
+                            .GetUuid(name);
+                }
+                catch (Exception e)
+                {
+                    Error(e, $"loading uuid for name '{name}'");
+                    await Task.Delay(500 * (i * i + 1));
+                }
+            if (!blockError)
+                throw new CoflnetException("name_retrieve", "Could not find the player " + name);
+            return string.Empty;
         }
 
         /// <summary>
