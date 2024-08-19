@@ -208,6 +208,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<ForgeCommand>();
             Commands.Add<CraftsCommand>("craft");
             Commands.Add<UpgradePlanCommand>();
+            Commands.Add<ConnectCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
