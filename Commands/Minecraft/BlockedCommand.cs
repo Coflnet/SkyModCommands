@@ -142,7 +142,10 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var auction = await AuctionService.Instance.GetAuctionAsync(searchVal);
                 if (auction.End > DateTime.Now.AddDays(-6))
-                    socket.SendMessage(COFLNET + "No blocked reason recorded for this auction. Maybe not found as a flip");
+                    if (socket.LastSent.Where(s => Guid.Parse(s.Auction.Uuid) == auctionUUid).Any())
+                        socket.SendMessage(COFLNET + "Flip wasn't blocked, it was sent to you");
+                    else
+                        socket.SendMessage(COFLNET + "No blocked reason recorded for this auction. Maybe not found as a flip");
                 else
                     socket.SendMessage(COFLNET + "No blocked reason recorded for this auction. It happened too long ago");
                 return;
