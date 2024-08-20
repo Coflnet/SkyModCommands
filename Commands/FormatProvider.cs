@@ -176,7 +176,7 @@ namespace Coflnet.Sky.Commands.MC
                 LowPricedAuction.FinderType.SNIPER_MEDIAN => "MS",
                 LowPricedAuction.FinderType.USER => "USER",
                 LowPricedAuction.FinderType.STONKS => "RISKY",
-                LowPricedAuction.FinderType.TFM => "TFM",
+                LowPricedAuction.FinderType.TFM => "TFM obsolete",
                 LowPricedAuction.FinderType.AI => "AI",
                 LowPricedAuction.FinderType.FLIPPER => "FLIP",
                 LowPricedAuction.FinderType.CraftCost => "Craft",
