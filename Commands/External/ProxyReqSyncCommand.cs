@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Commands.Shared.Test;
 using Coflnet.Sky.Items.Client.Model;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -71,13 +72,24 @@ public class ProxyReqSyncCommand : McCommand
     private static void SendState(MinecraftSocket socket)
     {
         using var sync = socket.CreateActivity("settingsSync");
-        socket.Send(Response.Create("proxySync", new Format()
+        socket.Send(Create("proxySync", new Format()
         {
             Settings = socket.Settings,
             SessionInfo = socket.SessionInfo,
             AccountInfo = socket.AccountInfo,
             ApproxDelay = socket.sessionLifesycle.CurrentDelay.TotalMilliseconds
         }));
+    }
+
+
+    private static JsonSerializerSettings Settings = new JsonSerializerSettings()
+    {
+        Converters = [new Newtonsoft.Json.Converters.StringEnumConverter()]
+    };
+
+    public static Response Create<T>(string type, T data)
+    {
+        return new Response(type, JsonConvert.SerializeObject(data, Formatting.None, Settings));
     }
 
     public class Format
