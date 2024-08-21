@@ -14,10 +14,16 @@ public interface ITutorialService
     Task Trigger<T>(IMinecraftSocket socket) where T : TutorialBase;
 }
 
+public class UserTutorialState
+{
+    public SelfUpdatingValue<HashSet<string>> SolvedTutorials;
+    public DateTime DoNotShowUntil;
+}
+
 public class TutorialService : ITutorialService
 {
     private ConcurrentDictionary<string, TutorialBase> Tutorials = new();
-    private ConcurrentDictionary<string, SelfUpdatingValue<HashSet<string>>> ReadTutorials = new();
+    private ConcurrentDictionary<string, UserTutorialState> ReadTutorials = new();
 
     public async Task Trigger<T>(IMinecraftSocket socket) where T : TutorialBase
     {
@@ -27,8 +33,8 @@ public class TutorialService : ITutorialService
         var userId = socket.AccountInfo?.UserId;
         if (string.IsNullOrEmpty(userId))
             return;
-        var solved = await GetSolved(userId);
-        if (solved.Value.Contains(instance.Name))
+        var state = await GetSolved(userId);
+        if (state.SolvedTutorials.Value.Contains(instance.Name) || state.DoNotShowUntil > DateTime.UtcNow)
             return; // already seen
 
         socket.Dialog(db =>
@@ -39,14 +45,16 @@ public class TutorialService : ITutorialService
                 instance.Name,
                 $"{McColorCodes.GREEN}Please don't show again,\n{McColorCodes.GOLD} I understood it");
         });
+        // to not overwhelm the user tutorials are capped at 1 every 3 minutes
+        state.DoNotShowUntil = DateTime.UtcNow.AddMinutes(3);
     }
 
-    private async Task<SelfUpdatingValue<HashSet<string>>> GetSolved(string userId)
+    private async Task<UserTutorialState> GetSolved(string userId)
     {
         if (!ReadTutorials.TryGetValue(userId.ToString(), out var solved))
         {
-            solved = await SelfUpdatingValue<HashSet<string>>.Create(userId, "solvedTutorials", () => new());
-            ReadTutorials.TryAdd(userId, solved);
+            var solvedList = await SelfUpdatingValue<HashSet<string>>.Create(userId, "solvedTutorials", () => new());
+            ReadTutorials.TryAdd(userId, new (){SolvedTutorials = solvedList});
         }
 
         return solved;
@@ -60,13 +68,13 @@ public class TutorialService : ITutorialService
     public async Task CommandInput(MinecraftSocket socket, string v)
     {
         var id = socket.AccountInfo?.UserId;
-        var solved = await GetSolved(id);
-        if (solved.Value.Contains(v))
+        var state = await GetSolved(id);
+        if (state.SolvedTutorials.Value.Contains(v))
             return;
         if (!Tutorials.ContainsKey(v))
             return; // doesn't exist, can't be completed
-        solved.Value.Add(v);
-        await solved.Update();
+        state.SolvedTutorials.Value.Add(v);
+        await state.SolvedTutorials.Update();
         socket.Dialog(db => db.Msg("not gonna show again"));
     }
 }
