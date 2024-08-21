@@ -44,7 +44,7 @@ namespace Coflnet.Sky.Commands.MC
                     filter = new Dictionary<string, string>(){
                         {"Seller", s}
                     },
-                    DisplayName = (await PlayerService.Instance.GetPlayer(s)).Name
+                    DisplayName = await socket.GetPlayerName(s)
                 },
                 "item" => await ConvertItem(s),
                 "enchant" => new ListEntry()
