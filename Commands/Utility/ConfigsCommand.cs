@@ -120,8 +120,11 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
     {
         socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = null;
         await socket.sessionLifesycle.AccountSettings.Update();
-        socket.sessionLifesycle.LoadedConfig?.Dispose();
-        socket.sessionLifesycle.LoadedConfig = null;
+        var state = socket.sessionLifesycle.FilterState;
+        state.LoadedConfig?.Dispose();
+        state.LoadedConfig = null;
+        state.BaseConfig?.Dispose();
+        state.BaseConfig = null;
     }
 
     private async Task PrintSorted(MinecraftSocket socket, Func<IEnumerable<ConfigRating>, IOrderedEnumerable<ConfigRating>> sorter)
