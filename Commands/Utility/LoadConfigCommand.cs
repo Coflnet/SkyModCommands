@@ -90,7 +90,7 @@ public class LoadConfigCommand : ArgumentsCommand
             socket.Dialog(db => db.MsgLine("The config base config is invalid, ask the creator to correct it."));
             return null;
         }
-        var userId = GetUserIdFromMcName(socket, parts[0]);
+        var userId = await GetUserIdFromMcName(socket, parts[0]);
         var baseKey = SellConfigCommand.GetKeyFromname(parts[1]);
         if(socket.SessionInfo.IsDebug)
         {
