@@ -92,6 +92,10 @@ public class LoadConfigCommand : ArgumentsCommand
         }
         var userId = GetUserIdFromMcName(socket, parts[0]);
         var baseKey = SellConfigCommand.GetKeyFromname(parts[1]);
+        if(socket.SessionInfo.IsDebug)
+        {
+            socket.Dialog(db => db.MsgLine($"Debug: {userId} {baseKey} from {parts[1]}"));
+        }
         return await SelfUpdatingValue<ConfigContainer>.Create(userId.ToString(), baseKey, () => null);
     }
 }
