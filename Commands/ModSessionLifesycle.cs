@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
     /// </summary>
     public class ModSessionLifesycle : IDisposable, IAuthUpdate
     {
-        protected MinecraftSocket socket;
+        public MinecraftSocket socket { get; private set; }
         public SessionInfo SessionInfo => socket.SessionInfo;
         public readonly string COFLNET = MinecraftSocket.COFLNET;
         public SelfUpdatingValue<FlipSettings> FlipSettings;
@@ -32,7 +32,7 @@ namespace Coflnet.Sky.Commands.MC
         public SelfUpdatingValue<AccountInfo> AccountInfo;
         public SelfUpdatingValue<AccountSettings> AccountSettings;
         public SelfUpdatingValue<PrivacySettings> PrivacySettings;
-        public SelfUpdatingValue<ConfigContainer> LoadedConfig;
+        public SessionFilterState FilterState;
         public IAccountTierManager TierManager;
         public Activity ConSpan => socket.ConSpan;
         public Timer PingTimer;
@@ -68,6 +68,7 @@ namespace Coflnet.Sky.Commands.MC
         public ModSessionLifesycle(MinecraftSocket socket)
         {
             this.socket = socket;
+            FilterState = new(this);
             var info = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(socket.AccountInfo);
             SetupFlipProcessor(info);
             VerificationHandler = new VerificationHandler(socket);
@@ -181,46 +182,9 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current.Log("subbed to events");
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
             Activity.Current.Log("applied flip settings");
-            await socket.TryAsyncTimes(SubToConfigChanges, "config subscribe");
+            await socket.TryAsyncTimes(FilterState.SubToConfigChanges, "config subscribe");
         }
 
-        public async Task SubToConfigChanges()
-        {
-            var loadedConfigMetadata = AccountSettings.Value.LoadedConfig;
-            if (loadedConfigMetadata == null)
-                return;
-            using var span = socket.CreateActivity("subToConfigChanges", ConSpan);
-            if (AccountSettings.Value == null)
-                await AccountSettings.Update(new AccountSettings());
-            span.Log("loaded config " + loadedConfigMetadata?.Name);
-            if (loadedConfigMetadata != null)
-            {
-                LoadedConfig = await SelfUpdatingValue<ConfigContainer>.Create(loadedConfigMetadata.OwnerId, SellConfigCommand.GetKeyFromname(loadedConfigMetadata.Name), () => throw new Exception("config not found"));
-                span.Log("got config " + LoadedConfig?.Value?.Name);
-                if (LoadedConfig.Value != null)
-                {
-                    var newConfig = LoadedConfig.Value;
-                    ShowConfigUpdateOption(loadedConfigMetadata, newConfig);
-                    LoadedConfig.OnChange += (config) => ShowConfigUpdateOption(loadedConfigMetadata, config);
-                }
-            }
-
-            void ShowConfigUpdateOption(OwnedConfigs.OwnedConfig loadedConfigMetadata, ConfigContainer newConfig)
-            {
-                span.Log($"new config {newConfig.Name} {newConfig.Version} > {loadedConfigMetadata.Version}");
-                if (newConfig.Version > loadedConfigMetadata.Version)
-                {
-                    socket.Dialog(db => db.MsgLine($"Your config: §6{newConfig.Name} §7v{loadedConfigMetadata.Version} §6updated to v{newConfig.Version}")
-                        .MsgLine($"§7{newConfig.ChangeNotes}")
-                        .If(() => AccountSettings.Value.AutoUpdateConfig, db => db.MsgLine("Loading the updated version automatically.").Msg("To toggle this run /cofl configs autoupdate").AsGray(),
-                        db => db.CoflCommand<LoadConfigCommand>($"[click to load]", $"{newConfig.OwnerId} {newConfig.Name}", "load new version\nWill override your current settings")));
-                    if (AccountSettings.Value.AutoUpdateConfig)
-                    {
-                        socket.ExecuteCommand("/cofl loadconfig " + newConfig.OwnerId + " " + newConfig.Name);
-                    }
-                }
-            }
-        }
 
         /// <summary>
         ///  make sure there is only one connection
@@ -950,7 +914,7 @@ namespace Coflnet.Sky.Commands.MC
                     Auction = auction,
                     Finder = LowPricedAuction.FinderType.SNIPER,
                     DailyVolume = (float)(1 + Random.Shared.NextDouble() * 10),
-                    AdditionalProps = new (){ { "match", "whitelist shitflip" } },
+                    AdditionalProps = new() { { "match", "whitelist shitflip" } },
                     TargetPrice = (long)(auction.StartingBid * (1.1 + Random.Shared.NextDouble()))
                 }));
                 await Task.Delay(Random.Shared.Next(500, 10000));
@@ -1013,8 +977,8 @@ namespace Coflnet.Sky.Commands.MC
             AccountInfo?.Dispose();
             SessionInfo?.Dispose();
             AccountSettings?.Dispose();
-            LoadedConfig?.Dispose();
             PingTimer?.Dispose();
+            FilterState?.Dispose();
             TierManager?.Dispose();
             TierManager.OnTierChange -= TierChangedHandler;
         }
