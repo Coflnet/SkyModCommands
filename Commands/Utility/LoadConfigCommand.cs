@@ -68,6 +68,10 @@ public class LoadConfigCommand : ArgumentsCommand
         {
             foreach (var filter in oldList)
             {
+                if(filter.Tags == null)
+                {
+                    filter.Tags = new List<string>();
+                }
                 filter.Tags.Add("from BaseConfig");
                 newList.Add(filter);
             }
