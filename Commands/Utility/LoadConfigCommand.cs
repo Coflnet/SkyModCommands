@@ -45,7 +45,7 @@ public class LoadConfigCommand : ArgumentsCommand
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
 
         var configId = toLoad.Value.Settings.BasedConfig;
-        if (configId != null)
+        if (configId == null)
             return;
         
         var baseConfig = await GetContainer(socket, configId);
