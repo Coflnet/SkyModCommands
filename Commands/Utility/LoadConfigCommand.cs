@@ -76,8 +76,10 @@ public class LoadConfigCommand : ArgumentsCommand
                 newList.Add(filter);
             }
         }
+        await socket.sessionLifesycle.FlipSettings.Update(toLoad.Value.Settings);
         socket.Dialog(db => db.MsgLine($"§6{baseConfig.Value.Name} §7v{baseConfig.Value.Version} §6loaded (BaseConfig)"));
 
+        await socket.sessionLifesycle.FilterState.SubToConfigChanges();
     }
 
     private static OwnedConfigs.OwnedConfig GetOwnership(string owner, string name, SelfUpdatingValue<OwnedConfigs> ownedConfigs)
