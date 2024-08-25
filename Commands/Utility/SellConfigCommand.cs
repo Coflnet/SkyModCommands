@@ -63,10 +63,13 @@ public class SellConfigCommand : ArgumentsCommand
             return;
         }
         string key = GetKeyFromname(name);
+        var settingsCopy = JsonConvert.DeserializeObject<FlipSettings>(JsonConvert.SerializeObject(socket.Settings));
+        RemoveBaseConfig(settingsCopy.WhiteList);
+        RemoveBaseConfig(settingsCopy.BlackList);
         var config = new ConfigContainer()
         {
             Name = name,
-            Settings = JsonConvert.DeserializeObject<FlipSettings>(JsonConvert.SerializeObject(socket.Settings)),
+            Settings = settingsCopy,
             Version = 1,
             ChangeNotes = text,
             OwnerId = socket.UserId,
@@ -134,6 +137,17 @@ public class SellConfigCommand : ArgumentsCommand
         await ownedConfigs.Update();
         socket.Settings.BlockExport = false;
         await socket.sessionLifesycle.FlipSettings.Update();
+    }
+
+    private void RemoveBaseConfig(List<ListEntry> whiteList)
+    {
+        foreach (var item in whiteList.ToList())
+        {
+            if (item.Tags?.Contains("BaseConfig") ?? false)
+            {
+                whiteList.Remove(item);
+            }
+        }
     }
 
     public static string GetKeyFromname(string name)
