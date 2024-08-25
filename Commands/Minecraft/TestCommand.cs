@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Core;
@@ -9,10 +10,15 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            socket.SendSound("random.orb");
-            socket.SendMessage("The test was successful :)");
-            var profit = await socket.GetService<FlipTrackingService>().GetPreApiProfit();
-            socket.SendMessage($"Profit: {profit.Profit}");
+            socket.Send(Response.Create("runSequence", new Sequence{steps=new(){
+                new (){type="execute", data="/sbmenu"},
+                new (){type="upload", data=""},
+            }}));
+            socket.Dialog(db => db.Msg("Sent sequence, awaiting response"));
+
+            await Task.Delay(5000);
+            socket.ExecuteCommand("/cofl report sequence");
+            socket.Dialog(db => db.Msg("Autocreated a report, thanks"));
         }
 
         private static async Task SendRandomFlip(MinecraftSocket socket)
@@ -41,5 +47,16 @@ namespace Coflnet.Sky.Commands.MC
                 Context = new()
             });
         }
+    }
+
+    public class Sequence
+    {
+        public List<Step> steps { get; set; }
+    }
+
+    public class Step
+    {
+        public string type { get; set; }
+        public string data { get; set; }
     }
 }
