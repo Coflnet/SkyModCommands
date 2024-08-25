@@ -301,8 +301,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 changed = "Settings changed";
             }
-            if (changed != "preventUpdateMsg")
-                SendMessage($"{COFLNET}{changed}");
+            if (changed != "preventUpdateMsg" && settings.Changer != SessionInfo.ConnectionId)
+                SendMessage($"{COFLNET}{changed} updated");
             CreateBackupIfVeryDifferent(settings);
             span?.AddTag("changed", changed);
             ApplyFlipSettings(settings, span).Wait();
