@@ -1,3 +1,4 @@
+using Coflnet.Sky.Commands.Shared;
 using Moq;
 using NUnit.Framework;
 
@@ -18,7 +19,12 @@ public class FormatProviderTests
             MedianPrice = 2500000000,
             Finder = Core.LowPricedAuction.FinderType.FLIPPER
         });
-        Assert.That(output, Is.EqualTo("\nFLIP:  §82,500,000,000 -> 2,500,000,000 (+-87,500,032) "));
+        var profit = "87,500,032";
+        if(FlipInstance.GetFeeRateForStartingBid(100_000_000) > 5)
+        {
+            profit = "162,499,840"; // derpy
+        }
+        Assert.That(output, Is.EqualTo($"\nFLIP:  §82,500,000,000 -> 2,500,000,000 (+-{profit}) "));
     }
 
 
