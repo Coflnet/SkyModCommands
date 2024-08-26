@@ -21,6 +21,7 @@ public class DelayExemptionList : IDelayExemptList
         var exempted = Exemptions.Contains((flipInstance.Auction.Tag, flipInstance.AdditionalProps.GetValueOrDefault("key", "nope")));
         if (exempted)
         {
+            Activity.Current?.AddTag("exempted", "true");
             Activity.Current.Log($"Exempted {flipInstance.Auction.Tag} {flipInstance.AdditionalProps.GetValueOrDefault("key", "nope")}");
         }
         return exempted;
