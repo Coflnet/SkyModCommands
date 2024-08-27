@@ -46,7 +46,7 @@ public class BuyConfigCommand : ArgumentsCommand
         {
             try
             {
-                var userInfo = await socket.GetService<IUserApi>().UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, "config-purchase", reference, toBebought.Value.Price / 300);
+                await socket.GetService<IUserApi>().UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, "config-purchase", reference, toBebought.Value.Price / 300);
             }
             catch (Payments.Client.Client.ApiException e)
             {

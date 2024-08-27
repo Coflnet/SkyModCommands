@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Payments.Client.Model;
@@ -38,7 +39,9 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
 
-            var product = await productApi.ProductsPProductSlugGetAsync(productSlug);
+
+            var adjustedProduct = await userApi.UserUserIdPriceForProductSlugGetAsync(socket.UserId.ToString(), productSlug);
+            var product = adjustedProduct.ModifiedProduct;
             if (product == null)
             {
                 socket.SendMessage(new DialogBuilder().MsgLine($"The product {productSlug} could not be fund"));
@@ -56,19 +59,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var timeString = GetLenghtInWords(product, count);
                 var costSum = socket.FormatPrice((long)product.Cost * count);
-                if (socket.SessionInfo.IsMacroBot)
-                {
-                    socket.SendMessage(new DialogBuilder()
-                        .Msg($"To confirm buying the {McColorCodes.AQUA}{product.Title}{McColorCodes.WHITE} service {McColorCodes.AQUA}{count}x ", null, product.Description)
-                        .Msg($"for a total of {McColorCodes.AQUA}{costSum}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
-                        .CoflCommand<PurchaseCommand>(
-                                $"execute {McColorCodes.AQUA}/cofl buy {productSlug} {count} {socket.SessionInfo.ConnectionId}",
-                                $"{productSlug} {count} {socket.SessionInfo.ConnectionId}",
-                                $"Confirm purchase via click (paying {costSum} cofl coins)"));
-                    return;
-                }
 
-                socket.SendMessage(new DialogBuilder()
+                socket.Dialog(db => db
                         .Msg($"Do you want to buy the {McColorCodes.AQUA}{product.Title}{McColorCodes.WHITE} service {McColorCodes.AQUA}{count}x ", null, product.Description)
                         .Msg($"for a total of {McColorCodes.AQUA}{costSum}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
                         .MsgLine($"lasting {timeString}")
@@ -77,6 +69,12 @@ namespace Coflnet.Sky.Commands.MC
                                 $"{productSlug} {count} {socket.SessionInfo.ConnectionId}",
                                 $"Confirm purchase (paying {costSum} cofl coins)")
                         .DialogLink<EchoDialog>($"  {McColorCodes.RED}No  ", $"Purchase Canceled", $"{McColorCodes.RED}Cancel purchase"));
+                if (adjustedProduct.Rules.Count == 0)
+                    return;
+                var rule = adjustedProduct.Rules.First();
+                var amount = rule.Amount;
+                var append = rule.Flags.Value.HasFlag(RuleFlags.PERCENT) ? "%" : " CoflCoins";
+                socket.Dialog(db => db.MsgLine($"Price was adjusted by {McColorCodes.AQUA}{amount + append}{McColorCodes.RESET} because you own {McColorCodes.GOLD}{adjustedProduct.Rules.First().Requires.Slug}"));
                 return;
             }
 
@@ -93,7 +91,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (reference == null)
                     reference = socket.SessionInfo.ConnectionId.Substring(0, 10) + DateTime.UtcNow.ToString("hh:mm");
-                var userInfo = await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, productSlug, reference, count);
+                await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, productSlug, reference, count);
                 socket.Dialog(db => db.MsgLine($"Successfully started purchase of {productSlug} you should receive a confirmation in a few seconds"));
                 await Task.Delay(TimeSpan.FromSeconds(2));
                 await socket.sessionLifesycle.TierManager.RefreshTier();
@@ -114,7 +112,7 @@ namespace Coflnet.Sky.Commands.MC
             return false;
         }
 
-        private static string GetLenghtInWords(PurchaseableProduct product, int count)
+        private static string GetLenghtInWords(Product product, int count)
         {
             var timeSpan = TimeSpan.FromSeconds(product.OwnershipSeconds * count);
             var timeString = $"{McColorCodes.AQUA}{(int)timeSpan.TotalDays} days";
