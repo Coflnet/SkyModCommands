@@ -43,6 +43,12 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
     {
         var subargs = subArgs.Split(' ');
         var name = subargs[0];
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            var uuids = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+            await PrintLicenseOptions(socket, uuids, "Select the account you want to purchase a license for");
+            return;
+        }
         if (subargs.Length == 3 && subargs[2] == socket.SessionInfo.ConnectionId)
         {
             var uuid = await socket.GetPlayerUuid(name);
@@ -91,8 +97,13 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             socket.Dialog(db => db.MsgLine("You only have one account, you may want to use").CoflCommand<PurchaseCommand>($"{McColorCodes.AQUA} /cofl buy", "", "Get buy menu"));
             return;
         }
+        await PrintLicenseOptions(socket, uuids, "You don't have any licenses yet. You can purchase one for one of your verified accounts");
+    }
+
+    private static async Task PrintLicenseOptions(MinecraftSocket socket, IEnumerable<string> uuids, string heading)
+    {
         var allnames = await GetNames(socket, uuids);
-        socket.Dialog(db => db.MsgLine("You don't have any licenses yet. You can purchase one for one of your verified accounts")
+        socket.Dialog(db => db.MsgLine(heading)
             .ForEach(uuids, (db, id) => db.Msg($"{McColorCodes.GRAY}> {McColorCodes.AQUA}{allnames.GetValueOrDefault(id) ?? id}")
                 .CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}{allnames.GetValueOrDefault(id) ?? id}  ", $"add {allnames.GetValueOrDefault(id) ?? id} premium", $"Purchase/extend premium license for {allnames.GetValueOrDefault(id) ?? id}")
                 .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}{allnames.GetValueOrDefault(id) ?? id}  ", $"add {allnames.GetValueOrDefault(id) ?? id} premium_plus", $"Purchase/extend premium+ license for {allnames.GetValueOrDefault(id) ?? id}").LineBreak()));
@@ -105,7 +116,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
 
     protected override string Format(PublicLicenseWithName elem)
     {
-        if(elem.Expires < DateTime.UtcNow)
+        if (elem.Expires < DateTime.UtcNow)
         {
             return $"{McColorCodes.GRAY}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{McColorCodes.STRIKE}{elem.ProductSlug}{McColorCodes.RED} expired";
         }
@@ -116,7 +127,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
     {
         var displayText = $" {McColorCodes.YELLOW}[EXTEND]{DEFAULT_COLOR}";
         var hoverText = $"Extend {LongFormat(e)}";
-        if(e.Expires < DateTime.UtcNow)
+        if (e.Expires < DateTime.UtcNow)
         {
             displayText = $" {McColorCodes.GREEN}[RENEW]{DEFAULT_COLOR}";
             hoverText = $"Renew {McColorCodes.DARK_GREEN}{e.ProductSlug} {McColorCodes.GRAY}for {McColorCodes.GREEN}{e.TargetName}";
