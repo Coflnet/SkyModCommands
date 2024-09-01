@@ -220,7 +220,6 @@ namespace Coflnet.Sky.ModCommands.Services
             flip.Auction.Context["lore"] = lore;
             if (flip.AdditionalProps.TryGetValue("lbin", out var lbin))
             {
-                Console.WriteLine($"Capping target price from {flip.TargetPrice} to {long.Parse(lbin)}");
                 flip.TargetPrice = (long)Math.Min(long.Parse(lbin), flip.TargetPrice);
             }
             else
