@@ -382,8 +382,7 @@ namespace Coflnet.Sky.Commands.MC
                     var currentId = AccountInfo?.Value?.ActiveConnectionId;
                     if (currentId != SessionInfo.ConnectionId)
                     {
-                        SendMessage("\n\n" + COFLNET + McColorCodes.GREEN + "Another connection was opened, it can also change your settings", null,
-                            "Licenses allow you to use premium on multiple minecraft accounts at the same time.\nSee /cofl licenses for more information");
+                        // multiple connections
                     }
                 }
                 var tier = await TierManager.GetCurrentCached();
