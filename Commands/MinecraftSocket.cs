@@ -898,14 +898,17 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             var expiresAt = sessionLifesycle.TierManager.ExpiresAt;
-            if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM) && expiresAt > DateTime.UtcNow && expiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(2))
+            if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM) && expiresAt > DateTime.UtcNow && expiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(2) 
+                && AccountInfo?.ExpiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(2))
             {
                 TryAsyncTimes(async () =>
                 {
+                    using var tierSpan = CreateActivity("tierExpire", timer);
                     await sessionLifesycle.TierManager.RefreshTier();
                     var updated = await sessionLifesycle.TierManager.GetCurrentTierWithExpire();
                     if (updated.expiresAt > DateTime.UtcNow.AddMinutes(2))
                         return;
+                    tierSpan?.Log($"reloaded tier {JsonConvert.SerializeObject(updated)} userId:{sessionLifesycle?.UserId?.Value}");
                     Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
                     .CoflCommand<PurchaseCommand>($"Your premium tier is about to expire in {(int)(expiresAt - DateTime.UtcNow).TotalMinutes} minutes. {McColorCodes.YELLOW}[CLICK to see options]", "", "show purchase menu")
                     .Break.Msg($"{McColorCodes.RED}-----------------------------"));
