@@ -43,7 +43,10 @@ public class PreApiCommand : McCommand
             $"{McColorCodes.GOLD}You currently don't have {McColorCodes.RED}pre-api\n"
             + $"{McColorCodes.YELLOW}You can click this to purchase it\n",
             "pre_api", $"Click to purchase pre-api")
-            .CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.WHITE}notify me when there are less than {preapiService.PreApiUserCount} users using it{McColorCodes.GREEN}]", "notify", "Click to get notified").Break
+            .If(() => preapiService.PreApiUserCount == 0, 
+                db => db.MsgLine("There are currently nobody using pre-api."), 
+                db => db.CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.WHITE}notify me when there are less than {preapiService.PreApiUserCount} users using it{McColorCodes.GREEN}]", "notify", "Click to get notified"))
+                .Break
             .CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.GRAY}Get last days profit{McColorCodes.GREEN}]", "profit", "Click to see the profit"));
         socket.Dialog(db => db.MsgLine("Note that pre api is currently running in limited capacity and only sees about 1/10th of new auctions created. \nAll your delay is removed every 5 minutes until your next purchase and reduced by 30% until pre api expires"));
     }
