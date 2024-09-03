@@ -148,6 +148,11 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        public async Task LoggedIn(string userId)
+        {
+            await SubToSettings(userId);
+        }
+
         protected virtual async Task SubToSettings(string userId)
         {
             OnLogin?.Invoke(this, userId);
