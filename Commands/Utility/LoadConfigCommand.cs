@@ -47,7 +47,7 @@ public class LoadConfigCommand : ArgumentsCommand
         var configId = toLoad.Value.Settings.BasedConfig;
         if (configId == null)
             return;
-        
+
         var baseConfig = await GetContainer(socket, configId);
         if (baseConfig.Value == null)
         {
@@ -68,7 +68,7 @@ public class LoadConfigCommand : ArgumentsCommand
         {
             foreach (var filter in oldList)
             {
-                if(filter.Tags == null)
+                if (filter.Tags == null)
                 {
                     filter.Tags = new List<string>();
                 }
@@ -98,7 +98,7 @@ public class LoadConfigCommand : ArgumentsCommand
         }
         var userId = await GetUserIdFromMcName(socket, parts[0]);
         var baseKey = SellConfigCommand.GetKeyFromname(parts[1]);
-        if(socket.SessionInfo.IsDebug)
+        if (socket.SessionInfo.IsDebug)
         {
             socket.Dialog(db => db.MsgLine($"Debug: {userId} {baseKey} from {parts[1]}"));
         }

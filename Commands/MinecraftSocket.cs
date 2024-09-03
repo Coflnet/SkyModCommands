@@ -210,6 +210,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<CraftsCommand>("craft");
             Commands.Add<UpgradePlanCommand>();
             Commands.Add<ConnectCommand>();
+            Commands.Add<UpdateCurrentConfigCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
@@ -669,7 +670,7 @@ namespace Coflnet.Sky.Commands.MC
         public virtual void Dialog(Func<SocketDialogBuilder, DialogBuilder> creation)
         {
             var dialog = creation.Invoke(new SocketDialogBuilder(this)).Build();
-            if (ModAdapter is not FullAfVersionAdapter && !(IsDevMode || SessionInfo.IsDebug))
+            if (ModAdapter is not FullAfVersionAdapter && !SessionInfo.IsDebug)
             {
                 SendMessage(dialog);
                 return;

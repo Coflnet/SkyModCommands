@@ -49,13 +49,18 @@ public class SessionFilterState : IDisposable
             span.Log($"new config {newConfig.Name} {newConfig.Version} > {loadedConfigMetadata.Version}");
             if (newConfig.Version > loadedConfigMetadata.Version)
             {
+                var diffSuffix = "";
+                if(newConfig.Diffs?.TryGetValue(newConfig.Version, out var diff) ?? false)
+                {
+                    diffSuffix = $" | {diff.GetDiffCount()} changes";
+                }
                 socket.Dialog(db => db.MsgLine($"Your config: §6{newConfig.Name} §7v{loadedConfigMetadata.Version} §6updated to v{newConfig.Version}")
-                    .MsgLine($"§7{newConfig.ChangeNotes}")
+                    .MsgLine($"§7{newConfig.ChangeNotes} {diffSuffix}")
                     .If(() => AccountSettings.Value.AutoUpdateConfig, db => db.MsgLine("Loading the updated version automatically.").Msg("To toggle this run /cofl configs autoupdate").AsGray(),
-                    db => db.CoflCommand<LoadConfigCommand>($"[click to load]", $"{newConfig.OwnerId} {newConfig.Name}", "load new version\nWill override your current settings")));
+                    db => db.CoflCommand<UpdateCurrentConfigCommand>($"[click to load]", $"", "load new version\nWill override your current settings")));
                 if (AccountSettings.Value.AutoUpdateConfig)
                 {
-                    socket.ExecuteCommand("/cofl loadconfig " + newConfig.OwnerId + " " + newConfig.Name);
+                    socket.ExecuteCommand("/cofl updatecurrentconfig");
                 }
             }
         }

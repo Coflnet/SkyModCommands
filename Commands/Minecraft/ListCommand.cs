@@ -174,12 +174,14 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             var list = await GetList(socket);
-            if (toRemove.Count == 1)
+            if (toRemove.Count == 1 || toRemove.All(t => GetId(t) == GetId(toRemove.First())))
             {
-                var elem = toRemove.First();
-                list.Remove(elem);
+                foreach (var item in toRemove)
+                {
+                    list.Remove(item);
+                }
                 await Update(socket, list);
-                socket.SendMessage(new DialogBuilder().MsgLine($"Removed {Format(elem)}"));
+                socket.SendMessage(new DialogBuilder().MsgLine($"Removed {Format(toRemove.First())}"));
             }
             else
             {

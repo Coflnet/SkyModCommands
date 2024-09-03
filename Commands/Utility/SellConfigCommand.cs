@@ -80,17 +80,7 @@ public class SellConfigCommand : ArgumentsCommand
         using var current = await SelfUpdatingValue<ConfigContainer>.Create(socket.UserId, key, () => config);
         if (current.Value.Version++ > 1)
         {
-            current.Value.Settings = config.Settings;
-            if (!string.IsNullOrEmpty(config.ChangeNotes))
-                current.Value.ChangeNotes = config.ChangeNotes;
-            if (config.Price != 0 || !string.IsNullOrEmpty(config.ChangeNotes))
-                current.Value.Price = config.Price;
-            await current.Update();
-            socket.Dialog(db => db.MsgLine($"§6{config.Name} §7v{current.Value.Version} §6updated")
-                .LineBreak()
-                .MsgLine($"§7{current.Value.ChangeNotes}")
-                .LineBreak()
-                .MsgLine($"§7{current.Value.Price} CoflCoins"));
+            await UpdateConfig(socket, config, current);
         }
         else
         {
@@ -137,6 +127,44 @@ public class SellConfigCommand : ArgumentsCommand
         await ownedConfigs.Update();
         socket.Settings.BlockExport = false;
         await socket.sessionLifesycle.FlipSettings.Update();
+    }
+
+    private static async Task UpdateConfig(IMinecraftSocket socket, ConfigContainer config, SelfUpdatingValue<ConfigContainer> current)
+    {
+        RemoveDupplicates(config.Settings.BlackList);
+        RemoveDupplicates(config.Settings.WhiteList);
+        var diff = SettingsDiffer.GetDifferences(current.Value.Settings, config.Settings);
+        if (diff.GetDiffCount() == 0)
+            throw new CoflnetException("no_changes", "No changes found in the config, aborting update");
+        current.Value.Settings = config.Settings;
+        current.Value.Diffs.Add(current.Value.Version, diff);
+        Console.WriteLine("found Diff: " + JsonConvert.SerializeObject(diff, Formatting.Indented));
+        if (current.Value.Diffs.Count > 5)
+        {
+            current.Value.Diffs.Remove(current.Value.Diffs.Keys.Min());
+        }
+        if (!string.IsNullOrEmpty(config.ChangeNotes))
+            current.Value.ChangeNotes = config.ChangeNotes;
+        if (config.Price != 0 || !string.IsNullOrEmpty(config.ChangeNotes))
+            current.Value.Price = config.Price;
+        await current.Update();
+        socket.Dialog(db => db.MsgLine($"§6{config.Name} §7v{current.Value.Version} §6updated")
+            .LineBreak()
+            .MsgLine($"§7{current.Value.ChangeNotes}")
+            .LineBreak()
+            .MsgLine($"§7{current.Value.Price} CoflCoins"));
+    }
+
+    private static void RemoveDupplicates(List<ListEntry> list)
+    {
+        var dupplicates = list.ToList()
+                        .GroupBy(x => x.ItemTag + (x.filter == null ? "" : string.Join(',', x.filter.Select(f => f.ToString()))))
+                        .Where(g => g.Count() > 1).SelectMany(g => g.Skip(1));
+        foreach (var item in dupplicates)
+        {
+            list.Remove(item);
+            Console.WriteLine("Removed dupplicate");
+        }
     }
 
     private void RemoveBaseConfig(List<ListEntry> whiteList)

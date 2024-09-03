@@ -47,13 +47,14 @@ namespace Coflnet.Sky.Commands.MC
 
         public static string FormatId(ListEntry elem)
         {
-            return $"{elem.ItemTag}{(elem.filter == null ? "" : string.Join(',', elem.filter.Select(f => $"{f.Key}={f.Value}")))}{string.Join(',', elem.Tags ?? new List<string>())}";
+            return $"{elem.ItemTag}{(elem.filter == null ? "" : string.Join(',', elem.filter.Select(f => $"{f.Key}={f.Value}")))}{string.Join(',', elem.Tags ?? new List<string>())}{elem.Order}";
         }
 
         protected override Task<List<ListEntry>> GetList(MinecraftSocket socket)
         {
             SelfUpdatingValue<FlipSettings> settings = GetSettings(socket);
-            return Task.FromResult(settings.Value.BlackList);
+            var blacklist = settings.Value.BlackList;
+            return Task.FromResult(blacklist);
         }
 
         protected SelfUpdatingValue<FlipSettings> GetSettings(MinecraftSocket socket)
@@ -145,22 +146,22 @@ namespace Coflnet.Sky.Commands.MC
             var action = args[1];
             var elements = await GetList(socket);
             var element = elements.FirstOrDefault(e => GetId(e) == id);
-            if(element == null)
+            if (element == null)
             {
-                socket.Dialog(db=>db.Msg("The filter could not be found"));
+                socket.Dialog(db => db.Msg("The filter could not be found"));
                 return;
             }
-            if(action == "enable")
+            if (action == "enable")
             {
                 element.Disabled = false;
                 socket.Dialog(db => db.Msg("Enabled the filter"));
             }
-            else if(action == "disable")
+            else if (action == "disable")
             {
                 element.Disabled = true;
                 socket.Dialog(db => db.Msg("Disabled the filter"));
             }
-            else if(action == "remove")
+            else if (action == "remove")
             {
                 elements.Remove(element);
             }
