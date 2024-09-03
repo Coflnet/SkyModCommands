@@ -9,7 +9,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
     public class SocketDialogBuilder : DialogBuilder
     {
         public MinecraftSocket Socket { get; set; }
-        
+
         public SocketDialogBuilder(MinecraftSocket socket)
         {
             Socket = socket;
@@ -34,7 +34,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             LineBreak();
             return this;
         }
-        public DialogBuilder ForEach<T>(IEnumerable<T> collection, Action<DialogBuilder,T> action)
+        public DialogBuilder ForEach<T>(IEnumerable<T> collection, Action<DialogBuilder, T> action)
         {
             foreach (var item in collection)
             {
@@ -42,7 +42,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             }
             return this;
         }
-        public DialogBuilder ForEach<T>(IEnumerable<T> collection, Action<DialogBuilder,T, int> action)
+        public DialogBuilder ForEach<T>(IEnumerable<T> collection, Action<DialogBuilder, T, int> action)
         {
             int i = 0;
             foreach (var item in collection)
@@ -118,13 +118,13 @@ namespace Coflnet.Sky.ModCommands.Dialogs
 
         public DialogBuilder If(Func<bool> condition, Action<DialogBuilder> builder)
         {
-            if(condition())
+            if (condition())
                 builder(this);
             return this;
         }
         public DialogBuilder If(Func<bool> condition, Action<DialogBuilder> builder, Action<DialogBuilder> elseBuilder)
         {
-            if(condition())
+            if (condition())
                 builder(this);
             else
                 elseBuilder(this);
@@ -157,7 +157,17 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             return Parts.ToArray();
         }
 
-
+        /// <summary>
+        /// Add margin above and below the dialog
+        /// </summary>
+        /// <param name="v"></param>
+        /// <returns></returns>
+        internal DialogBuilder AddMargin(string v)
+        {
+            Parts.Insert(0, new ChatPart(v + "\n"));
+            Parts.Add(new ChatPart("\n" + v));
+            return this;
+        }
 
         public static implicit operator ChatPart[](DialogBuilder input)
         {

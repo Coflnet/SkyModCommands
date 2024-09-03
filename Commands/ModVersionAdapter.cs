@@ -138,7 +138,9 @@ namespace Coflnet.Sky.Commands.MC
 
         public virtual void SendLoginPrompt(string loginLink)
         {
-            socket.Dialog(db => db.Msg($"Please {McColorCodes.WHITE}§lclick this [LINK] to login{McColorCodes.GRAY} so we can load your settings §8(do '/cofl help login' to get more info)", loginLink, "Click to login"));
+            socket.Dialog(db => db.Msg($"Please {McColorCodes.WHITE}§lclick this [LINK] to login{McColorCodes.GRAY} so we can load your settings §8(do '/cofl help login' to get more info)", 
+                loginLink, "Click to login")
+                .AddMargin(""));
         }
 
         public virtual void OnAuthorize(AccountInfo accountInfo)
