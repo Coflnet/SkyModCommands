@@ -201,7 +201,7 @@ public class AccountTierManager : IAccountTierManager
         {
             Console.WriteLine($"Licenses for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(thisAccount)}");
             var premPlus = thisAccount.FirstOrDefault(l => l.ProductSlug == "premium_plus");
-            if (premPlus != null)
+            if (premPlus != null && IsNotPreApi(expires))
                 return (AccountTier.PREMIUM_PLUS, premPlus.Expires);
         }
         if ((activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon) && expires.Item1 > AccountTier.NONE)
@@ -215,6 +215,11 @@ public class AccountTierManager : IAccountTierManager
         }
         span.Log("none");
         return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
+    }
+
+    private static bool IsNotPreApi((AccountTier, DateTime) expires)
+    {
+        return expires.Item1 != AccountTier.SUPER_PREMIUM;
     }
 
     private async Task SyncState(ActiveSessions? startValue)
