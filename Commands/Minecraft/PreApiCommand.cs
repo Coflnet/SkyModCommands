@@ -43,12 +43,17 @@ public class PreApiCommand : McCommand
             $"{McColorCodes.GOLD}You currently don't have {McColorCodes.RED}pre-api\n"
             + $"{McColorCodes.YELLOW}You can click {McColorCodes.AQUA}here{McColorCodes.YELLOW} to purchase it\n",
             "pre_api", $"Click to purchase pre-api")
-            .If(() => preapiService.PreApiUserCount == 0, 
-                db => db.MsgLine("There is nobody using pre-api currently."), 
+            .If(() => preapiService.PreApiUserCount == 0,
+                db => db.MsgLine("There is nobody using pre-api currently."),
                 db => db.CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.WHITE}notify me when there are less than {preapiService.PreApiUserCount} users using it{McColorCodes.GREEN}]", "notify", "Click to get notified"))
                 .Break
             .CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.GRAY}Get last days profit{McColorCodes.GREEN}]", "profit", "Click to see the profit"));
         socket.Dialog(db => db.MsgLine("Pre api is finds about 1/10th of new auctions created. \nAll your delay is removed every 5 minutes until your next purchase and reduced by 30% until pre api expires"));
+        if (socket.AccountInfo.Tier >= Shared.AccountTier.SUPER_PREMIUM)
+        {
+            var licenseCommand = $"/cofl license default {socket.SessionInfo.McName}";
+            socket.Dialog(db => db.MsgLine($"Your account seems to own pre-api, but you didn't select your current ign to use it. Run {McColorCodes.AQUA}{licenseCommand}{McColorCodes.WHITE} to change that", licenseCommand, "Click to set your current ign"));
+        }
     }
 
     private static async Task SendBackLastDaysProfit(MinecraftSocket socket)
