@@ -197,14 +197,15 @@ public class AccountTierManager : IAccountTierManager
         span.Log($"AccountTier {expires.Item1} {expires.Item2}");
         span.Log($"Licenses {JsonConvert.SerializeObject(licenses)}");
         span.Log($"Sessions {JsonConvert.SerializeObject(sessions)}");
+        var useEmailOnThisCon = (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon);
         if (thisAccount.Any())
         {
             Console.WriteLine($"Licenses for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(thisAccount)}");
             var premPlus = thisAccount.FirstOrDefault(l => l.ProductSlug == "premium_plus");
-            if (premPlus != null && IsNotPreApi(expires))
+            if (premPlus != null && (IsNotPreApi(expires) || !useEmailOnThisCon))
                 return (AccountTier.PREMIUM_PLUS, premPlus.Expires);
         }
-        if ((activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon) && expires.Item1 > AccountTier.NONE)
+        if (useEmailOnThisCon && expires.Item1 > AccountTier.NONE)
         {
             return (expires.Item1, expires.Item2);
         }
