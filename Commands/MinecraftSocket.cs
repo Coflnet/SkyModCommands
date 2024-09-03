@@ -557,15 +557,19 @@ namespace Coflnet.Sky.Commands.MC
                 ClickCallback(a);
                 return;
             }
-
-            if (!Commands.TryGetValue(a.type.ToLower(), out var command))
+            var commandType = a.type.ToLower().Trim(' ', '"');
+            if (!Commands.TryGetValue(commandType, out var command))
             {
-                var closest = Commands.Where(c => c.Value is { IsPublic: true }).Select(c => c.Key).MinBy(x => Fastenshtein.Levenshtein.Distance(x.ToLower(), a.type));
-                var altCommand = $"/cofl {closest} {a.data.Trim('"')}";
-                SendMessage($"{COFLNET}The command '{McColorCodes.ITALIC + a.type + McColorCodes.RESET + McCommand.DEFAULT_COLOR}' is not known. Maybe you meant '{closest}\n",
-                            altCommand.Trim('"'),
-                            $"Did you mean '{McColorCodes.ITALIC + closest + McColorCodes.RESET + McCommand.DEFAULT_COLOR}'?\nClick to execute\n{McColorCodes.WHITE + altCommand}");
-                return;
+                var closest = Commands.Where(c => c.Value is { IsPublic: true }).Select(c => (cmd: c.Key, dist: Fastenshtein.Levenshtein.Distance(c.Key.ToLower(), commandType))).MinBy(x => x.dist);
+                if (closest.dist > 1)
+                {
+                    var altCommand = $"/cofl {closest.cmd} {a.data.Trim('"')}";
+                    SendMessage($"{COFLNET}The command '{McColorCodes.ITALIC + commandType + McColorCodes.RESET + McCommand.DEFAULT_COLOR}' is not known. Maybe you meant '{closest}\n",
+                                altCommand.Trim('"'),
+                                $"Did you mean '{McColorCodes.ITALIC + closest + McColorCodes.RESET + McCommand.DEFAULT_COLOR}'?\nClick to execute\n{McColorCodes.WHITE + altCommand}");
+                    return;
+                }
+                command = Commands[closest.cmd];
             }
 
             Task.Run(async () =>
@@ -899,7 +903,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             var expiresAt = sessionLifesycle.TierManager.ExpiresAt;
-            if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM) && expiresAt > DateTime.UtcNow && expiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(2) 
+            if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM) && expiresAt > DateTime.UtcNow && expiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(2)
                 && AccountInfo?.ExpiresAt < DateTime.UtcNow + TimeSpan.FromMinutes(2))
             {
                 TryAsyncTimes(async () =>
