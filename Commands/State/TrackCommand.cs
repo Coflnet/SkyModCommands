@@ -29,14 +29,16 @@ public class TrackCommand : McCommand
                 Console.WriteLine("aborting because purchased " + purchseCount);
                 return;
             }
-            socket.Dialog(db => db.MsgLine("It seems like you are struggling to purchase flips.")
-                .MsgLine($"Would you like to only get flips with less competition?{McColorCodes.GRAY}(hover for info)", null,
+            socket.Dialog(db => db.MsgLine($"{McColorCodes.YELLOW}It seems like you are struggling to purchase flips.")
+                .MsgLine($"Would you like to only get flips with less competition?\n{McColorCodes.GRAY}(hover for info)", null,
                     "This will hide flips with high competition, making it easier to get flips.\n"
                     + "This is done by analyzing what gets bought quickly possibly by bots.\n"
                     + "Anything that is regulary bought quickly will be hidden.\n"
                     + "You can always all flips again."
                 )
-                .CoflCommand<SetCommand>("[click to enable] ", "blockHighCompetition true", "Hide high competition flips").DialogLink<EchoDialog>("[no thanks]", "Alright, good luck", "Don't enable"));
+                .CoflCommand<SetCommand>($"{McColorCodes.GREEN} [click to enable] ", "blockHighCompetition true", "Hide high competition flips")
+                .DialogLink<EchoDialog>("[no thanks]", "Alright, good luck then :)", "Don't enable")
+                .AddMargin("-----------------------------------"));
             return;
         }
     }

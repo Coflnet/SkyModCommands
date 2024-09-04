@@ -46,7 +46,7 @@ namespace Coflnet.Sky.Commands.MC
             var prefiltered = flips.Where(f => !SentFlips.ContainsKey(f.UId)
                 && FinderEnabled(f)
                 && NotSold(f)
-                && (!Settings.BlockHighCompetitionFlips || !delayExemptList.IsExempt(f))
+                && CheckHighCompetition(f)
                 && (f.Auction.StartingBid < maxCostFromPurse || socket.SessionInfo.Purse == 0 || f.Finder == LowPricedAuction.FinderType.USER))
                 .Select(f => (f, instance: FlipperService.LowPriceToFlip(f)))
                 .ToList();
@@ -92,6 +92,16 @@ namespace Coflnet.Sky.Commands.MC
             }
             while (socket.LastSent.Count > 30)
                 socket.LastSent.TryDequeue(out _);
+        }
+
+        private bool CheckHighCompetition(LowPricedAuction f)
+        {
+            if (!Settings.BlockHighCompetitionFlips)
+                return true;
+            var profit = f.TargetPrice - f.Auction.StartingBid;
+            if (!delayExemptList.IsExempt(f) && profit < 8_000_000 && (f.DailyVolume < 20 || profit < 1_500_000))
+                return true;
+            return BlockedFlip(f, "high competition");
         }
 
         private async Task LoadAdditionalInfo(List<(LowPricedAuction f, FlipInstance instance)> prefiltered)
