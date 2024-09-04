@@ -13,21 +13,24 @@ public class TrackCommand : McCommand
         if (!arguments.Contains("besthotkey"))
             return;
         socket.SessionInfo.BestHotkeyUsageCount++;
-        Console.WriteLine($"Best hotkey usage count: {socket.SessionInfo.BestHotkeyUsageCount}");
+        Console.WriteLine($"Best hotkey usage count: {socket.SessionInfo.BestHotkeyUsageCount} {socket.sessionLifesycle.CurrentDelay}");
         if (socket.SessionInfo.BestHotkeyUsageCount > 5
             && socket.SessionInfo.BestHotkeyUsageCount % 10 == 0
             && socket.sessionLifesycle.CurrentDelay == TimeSpan.Zero
             && !socket.Settings.BlockHighCompetitionFlips)
         {
+            Console.WriteLine($"Prompting to block high competition flips {socket.SessionInfo.BestHotkeyUsageCount} {socket.SessionInfo.McUuid} ({socket.SessionInfo.McName})");
             using var context = new HypixelContext();
             var profile = await context.Players.FindAsync(socket.SessionInfo.McUuid);
             var minBidTime = DateTime.UtcNow.AddMinutes(-10);
             var purchseCount = await context.Bids.Where(a => a.BidderId == profile.Id && a.Timestamp > minBidTime).CountAsync();
             if (purchseCount > 0)
+            {
+                Console.WriteLine("aborting because purchased " + purchseCount);
                 return;
-
+            }
             socket.Dialog(db => db.MsgLine("It seems like you are struggling to purchase flips.")
-                .MsgLine($"Would you like to only get flips with less competition?{McColorCodes.GRAY}(hover for info)",null,
+                .MsgLine($"Would you like to only get flips with less competition?{McColorCodes.GRAY}(hover for info)", null,
                     "This will hide flips with high competition, making it easier to get flips.\n"
                     + "This is done by analyzing what gets bought quickly possibly by bots.\n"
                     + "Anything that is regulary bought quickly will be hidden.\n"
