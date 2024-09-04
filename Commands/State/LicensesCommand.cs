@@ -21,8 +21,11 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             if (args.Length == 1)
                 throw new CoflnetException("no_username", "Please provide the username you want your account license to default to");
             var uuid = await socket.GetPlayerUuid(args[1]);
-            await socket.sessionLifesycle.TierManager.ChangeDefaultTo(uuid);
+            var tierManager = socket.sessionLifesycle.TierManager;
+            await tierManager.ChangeDefaultTo(uuid);
             socket.Dialog(db => db.MsgLine($"Changed default account you use your account premium on to {McColorCodes.AQUA}{args[1]}"));
+            var newTier = await tierManager.GetCurrentTierWithExpire();
+            socket.Dialog(db => db.MsgLine($"This connection is now {McColorCodes.AQUA}{newTier}"));
             return;
         }
         await Help(socket, stringArgs);
