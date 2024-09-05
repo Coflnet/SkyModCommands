@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -258,6 +259,8 @@ public class AccountTierManager : IAccountTierManager
     {
         if (activeSessions == null)
             return;
+        if(activeSessions.Value == null)
+            throw new CoflnetException("unavailable","Your account could not be changed, please try again in a few seconds");
         activeSessions.Value.UseAccountTierOn = mcUuid;
         await SyncState(activeSessions.Value);
     }

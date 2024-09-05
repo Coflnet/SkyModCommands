@@ -13,7 +13,6 @@ public class TrackCommand : McCommand
         if (!arguments.Contains("besthotkey"))
             return;
         socket.SessionInfo.BestHotkeyUsageCount++;
-        Console.WriteLine($"Best hotkey usage count: {socket.SessionInfo.BestHotkeyUsageCount} {socket.sessionLifesycle.CurrentDelay}");
         if (socket.SessionInfo.BestHotkeyUsageCount > 5
             && socket.SessionInfo.BestHotkeyUsageCount % 10 == 0
             && socket.sessionLifesycle.CurrentDelay == TimeSpan.Zero

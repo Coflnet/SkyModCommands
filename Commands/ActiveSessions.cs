@@ -9,14 +9,14 @@ namespace Coflnet.Sky.Commands.MC;
 [DataContract]
 public class ActiveSessions
 {
-    [DataMember(Name = "sessions")]
-    public List<ActiveSession?> Sessions = new List<ActiveSession?>();
-    [DataMember(Name = "licenses")]
-    public List<License> Licenses = new List<License>();
     [DataMember(Name = "useAccountTierOn")]
     public string? UseAccountTierOn;
     [DataMember(Name = "userAccountTier")]
     public AccountTier UserAccountTier;
+    [DataMember(Name = "sessions")]
+    public List<ActiveSession?> Sessions = new List<ActiveSession?>();
+    [DataMember(Name = "licenses")]
+    public List<License> Licenses = new List<License>();
 }
 
 [DataContract]
