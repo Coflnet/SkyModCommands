@@ -412,7 +412,7 @@ namespace Coflnet.Sky.Commands.MC
                     }
                     catch (CoflnetException e)
                     {
-                        Error(e, errorMessage);
+                        Error(e, errorMessage + $" | run {i}");
                         if (i >= times - 1) // last fail
                             Dialog(db => db.MsgLine(e.Message));
                     }
