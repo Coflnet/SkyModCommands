@@ -414,7 +414,7 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         Error(e, errorMessage + $" | run {i}");
                         if (i >= times - 1) // last fail
-                            Dialog(db => db.MsgLine(e.Message));
+                            Dialog(db => db.MsgLine(e.Message).AsRed());
                     }
                     catch (Exception e)
                     {

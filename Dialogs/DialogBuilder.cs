@@ -169,6 +169,13 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             return this;
         }
 
+        internal DialogBuilder AsRed()
+        {
+            var last = GetLastPart();
+            last.text = McColorCodes.RED + last.text;
+            return this;
+        }
+
         public static implicit operator ChatPart[](DialogBuilder input)
         {
             return input.Build();
