@@ -15,6 +15,11 @@ public class SellInventoryCommand : McCommand
         if (socket.ModAdapter is not AfVersionAdapter adapter || socket.Version.Contains("afclient"))
             throw new CoflnetException("forbidden", "This command is only available with an autoflipper client like BAF");
         socket.SessionInfo.SellAll = true;
+        if(socket.SessionInfo.McUuid == null)
+        {
+            socket.Dialog(db => db.Msg($"You didn't connect with a valid minecraft name, please correct `{socket.SessionInfo.McName}`"));
+            return;
+        }
         if (socket.SessionInfo.Inventory == null)
         {
             socket.Send(Response.Create("getInventory", new
