@@ -45,6 +45,10 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         {
             await UnloadAndResetConfig(socket);
         }
+        else if (command == "reset")
+        {
+            await Reset(socket);
+        }
         else if (sorters.TryGetValue(command, out var sorter))
         {
             await PrintSorted(socket, sorter);
@@ -55,6 +59,13 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             await base.List(socket, stringArgs);
             socket.SendMessage($"See {McColorCodes.AQUA}/cofl configs help{McColorCodes.GRAY} to see options.");
         }
+    }
+
+    private async Task Reset(MinecraftSocket socket)
+    {
+        await Unloadconfig(socket);
+        await socket.sessionLifesycle.FlipSettings.Update(ModSessionLifesycle.DefaultSettings);
+        socket.Dialog(db => db.MsgLine("Reset config to default."));
     }
 
     private async Task GiveRep(MinecraftSocket socket, string[] args)
@@ -114,6 +125,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         await Unloadconfig(socket);
         await socket.sessionLifesycle.FlipSettings.Update(ModSessionLifesycle.DefaultSettings);
         socket.SendMessage("Unloaded config you won't get updates anymore.");
+        socket.Dialog(db => db.MsgLine($"If you want to reset it to the default do {McColorCodes.AQUA}/cofl configs reset", "/cofl configs reset", "reset config"));
     }
 
     public static async Task Unloadconfig(MinecraftSocket socket)
@@ -170,8 +182,8 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             throw new CoflnetException("not_found", "You don't own any configs");
         }
         var owned = ownedConfigs.Value.Configs
-            .Where(w => w.Name.Equals(configName, System.StringComparison.CurrentCultureIgnoreCase) 
-                && (w.OwnerId == owner ||( w.OwnerName?.Equals(owner, System.StringComparison.CurrentCultureIgnoreCase) ?? true))).FirstOrDefault();
+            .Where(w => w.Name.Equals(configName, System.StringComparison.CurrentCultureIgnoreCase)
+                && (w.OwnerId == owner || (w.OwnerName?.Equals(owner, System.StringComparison.CurrentCultureIgnoreCase) ?? true))).FirstOrDefault();
         if (owned == default)
         {
             throw new CoflnetException("not_found", "You don't own such a config");
@@ -182,7 +194,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
     public async Task<ConfigRating> GetRatingOrDefault(Table<ConfigRating> table, string configName, OwnedConfigs.OwnedConfig owned)
     {
         var ownerConfigs = await table.Where(c => c.OwnerId == owned.OwnerId).ExecuteAsync();
-        var targetConfig = ownerConfigs.Where(c => c.ConfigName.Equals(configName, System.StringComparison.CurrentCultureIgnoreCase)).OrderBy(c=>c.Downvotes.Count + c.Upvotes.Count).FirstOrDefault();
+        var targetConfig = ownerConfigs.Where(c => c.ConfigName.Equals(configName, System.StringComparison.CurrentCultureIgnoreCase)).OrderBy(c => c.Downvotes.Count + c.Upvotes.Count).FirstOrDefault();
         if (targetConfig == default)
         {
             targetConfig = new ConfigRating()
@@ -226,6 +238,8 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} +rep <ign> <config>{DEFAULT_COLOR} upvotes config")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} -rep <ign> <config>{DEFAULT_COLOR} downvotes config")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} list{DEFAULT_COLOR} lists available configs")
+            .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} autoupdate{DEFAULT_COLOR} toggles autoupdate")
+            .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} reset{DEFAULT_COLOR} resets config to default")
             .MsgLine($"{McColorCodes.AQUA}/cofl ownconfigs{DEFAULT_COLOR} lists bought configs")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} help{DEFAULT_COLOR} display this help"));
 
