@@ -37,7 +37,8 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage("You have premium but you haven't verified your account yet.");
                 await Task.Delay(500).ConfigureAwait(false);
                 SendMessage(
-                    $"{McColorCodes.YELLOW}You have to verify your account before you receive flips at max speed.\nRun {McColorCodes.AQUA}/cofl verify{McColorCodes.YELLOW} for instructions.", null,
+                    $"{McColorCodes.YELLOW}You have to verify your account before you receive flips at max speed.\n"
+                    + $"Run {McColorCodes.AQUA}/cofl verify{McColorCodes.YELLOW} for instructions.", "/cofl verify",
                     "This is part of our anti macro system and required to make sure you are not connecting from a cracked account");
             }
         }
