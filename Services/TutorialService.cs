@@ -34,7 +34,7 @@ public class TutorialService : ITutorialService
         if (string.IsNullOrEmpty(userId))
             return;
         var state = await GetSolved(userId);
-        if (state.SolvedTutorials.Value.Contains(instance.Name) || state.DoNotShowUntil > DateTime.UtcNow)
+        if ((state?.SolvedTutorials?.Value == default) || state.SolvedTutorials.Value.Contains(instance.Name) || state.DoNotShowUntil > DateTime.UtcNow)
             return; // already seen
 
         socket.Dialog(db =>
