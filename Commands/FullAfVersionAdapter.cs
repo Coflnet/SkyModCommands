@@ -377,7 +377,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             ItemName = auction.ItemName,
             Id = id
         }));
-        await Task.Delay(3000);
+        await Task.Delay(5500);
         if (socket.SessionInfo.ToLowListingAttempt == null)
             return;
         await RetryListingWithMinimum(span, auction, index, sellPrice, id, listTime);
