@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
+using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -17,7 +18,7 @@ public class UpgradePlanCommand : PurchaseCommand
         {
             timeAllowed = TimeSpan.FromDays(3);
         }
-        var lastPurchase = recentTransactions.FirstOrDefault(t => t.ProductId == "premium" && t.TimeStamp > DateTime.UtcNow - timeAllowed);
+        var lastPurchase = recentTransactions.FirstOrDefault(t => t.ProductId == "premium" && t.TimeStamp > DateTime.UtcNow - timeAllowed && IsNotLicense(t));
         if (lastPurchase == null)
         {
             socket.Dialog(db => db.MsgLine($"Your premium purchase was too long ago to upgrade it. \nPlease buy prem+ directly instead, your premium will be extended by the time of prem+ you buy."));
@@ -36,6 +37,11 @@ public class UpgradePlanCommand : PurchaseCommand
         socket.Dialog(db => db.MsgLine($"Successfully upgraded your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to one week of {McColorCodes.GOLD}premium+")
                             .MsgLine("Thanks for supporting our project financially :)"));
 
+    }
+
+    private static bool IsNotLicense(ExternalTransaction t)
+    {
+        return t.Reference.Length < "f11b78e7147a41dca4e64ac986da38a5.4eb9a5eb-8f69-425b-a9c6".Length;
     }
 }
 
