@@ -28,7 +28,6 @@ namespace Coflnet.Sky.ModCommands.MC
             server.Start();
             System.Threading.ThreadPool.SetMinThreads(10, 10);
 
-            RunIsolatedForever(async () => { await SnapShotService.Instance.Run(System.Threading.CancellationToken.None); }, "state snapshots", 2);
             _ = Core.ItemDetails.Instance.LoadLookup();
 
             CreateHostBuilder(args).Build().Run();

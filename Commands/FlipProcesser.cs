@@ -301,10 +301,6 @@ namespace Coflnet.Sky.Commands.MC
                     using var slowSpan = socket.CreateActivity("slowFlip", socket.ConSpan).AddTag("error", true);
                     slowSpan.Log(JsonConvert.SerializeObject(flip.Auction.Context));
                     slowSpan.Log(JsonConvert.SerializeObject(flip.AdditionalProps));
-                    foreach (var snapshot in SnapShotService.Instance.SnapShots)
-                    {
-                        slowSpan.Log(snapshot.Time + " " + snapshot.State);
-                    }
                     ReportCommand.TryAddingAllSettings(socket, slowSpan);
                 }
 
