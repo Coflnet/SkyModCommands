@@ -16,6 +16,7 @@ public interface IAccountTierManager : IDisposable
     Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire();
     Task<AccountTier> GetCurrentCached();
     DateTime ExpiresAt { get; }
+    string? DefaultAccount { get; }
     string GetSessionInfo();
     Task RefreshTier();
     bool IsConnectedFromOtherAccount(out string otherAccount, out AccountTier tier);
@@ -33,6 +34,8 @@ public class AccountTierManager : IAccountTierManager
     private string userId;
     IAuthUpdate loginNotification;
     public DateTime ExpiresAt => expiresAt;
+
+    public string? DefaultAccount => activeSessions?.Value.UseAccountTierOn;
 
     public AccountTierManager(IMinecraftSocket socket, IAuthUpdate loginNotification)
     {
@@ -259,8 +262,8 @@ public class AccountTierManager : IAccountTierManager
     {
         if (activeSessions == null)
             return;
-        if(activeSessions.Value == null)
-            throw new CoflnetException("unavailable","Your account could not be changed, please try again in a few seconds");
+        if (activeSessions.Value == null)
+            throw new CoflnetException("unavailable", "Your account could not be changed, please try again in a few seconds");
         activeSessions.Value.UseAccountTierOn = mcUuid;
         await SyncState(activeSessions.Value);
     }

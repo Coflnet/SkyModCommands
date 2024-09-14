@@ -157,6 +157,28 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         });
     }
 
+    protected override async Task List(MinecraftSocket socket, string subArgs)
+    {
+        var nameTask = NewMethod(socket);
+        await base.List(socket, subArgs);
+        var name = await nameTask;
+        if (name != null)
+        {
+            var message = $"The default ign is the minecraft account\n"
+                + $"you want to use your (email)account tier on.\n"
+                + $"That is the tier you buy with /cofl buy or on\n"
+                + $"the website. Different to licenses you can switch";
+            if (name != socket.SessionInfo.McName)
+                message += $"\n{McColorCodes.GRAY}Click to change to your current account";
+            socket.Dialog(db => db.CoflCommand<LicensesCommand>($"Your default account is {McColorCodes.AQUA}{name}", "default " + name, message));
+        }
+
+        static async Task<string> NewMethod(MinecraftSocket socket)
+        {
+            return await socket.GetPlayerName(socket.sessionLifesycle.TierManager.DefaultAccount);
+        }
+    }
+
     private static async Task<Dictionary<string, string>> GetNames(MinecraftSocket socket, IEnumerable<string> uuids)
     {
         var nameApi = socket.GetService<PlayerName.PlayerNameService>();
