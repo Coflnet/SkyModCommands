@@ -71,6 +71,11 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "Seems like you accientially sent a command in chat. If that was intentional, add a . in front to send it as message");
                 return;
             }
+            if(message == "disable")
+            {
+                socket.SendMessage(COFLNET + $"To turn the chat off just do {McColorCodes.Aqua}/cofl chat");
+                return;
+            }
             if (string.IsNullOrEmpty(socket.SessionInfo.McName))
                 throw new CoflnetException("no_username", "Sorry we couldn't load your chat profile. Please try again in a few seconds.");
             var tier = socket.SessionInfo.SessionTier;
