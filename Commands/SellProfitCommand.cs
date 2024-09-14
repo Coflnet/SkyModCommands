@@ -36,7 +36,7 @@ public class SellProfitCommand : McCommand
         foreach (var item in lookup)
         {
             var auction = item.Value;
-            if (!previous.TryGetValue(item.Key, out var sold))
+            if (!previous.TryGetValue(item.Key, out var sold) || sold.Count == 0)
             {
                 all.Add((auction, 0));
                 continue;
