@@ -211,6 +211,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<UpgradePlanCommand>();
             Commands.Add<ConnectCommand>();
             Commands.Add<UpdateCurrentConfigCommand>();
+            Commands.Add<SellProfitCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
