@@ -47,7 +47,8 @@ public class SellProfitCommand : McCommand
         var profit = all.Sum(a => FlipInstance.ProfitAfterFees(a.auction.StartingBid, a.listPrice));
         var unkown = all.Count(a => a.listPrice == 0);
         var top = all.OrderByDescending(a => FlipInstance.ProfitAfterFees(a.auction.StartingBid, a.listPrice)).Take(3)
-            .Select(a => $"{a.auction.ItemName} {a.listPrice} -> {a.auction.StartingBid} = {FlipInstance.ProfitAfterFees(a.auction.StartingBid, a.listPrice)}").ToList();
+            .Select(a => $"{a.auction.ItemName} {McColorCodes.AQUA}{socket.FormatPrice(a.listPrice)} -> {socket.FormatPrice(a.auction.StartingBid)} "
+                       + $"{McColorCodes.GRAY}= {McColorCodes.GOLD}{socket.FormatPrice(FlipInstance.ProfitAfterFees(a.auction.StartingBid, a.listPrice))}").ToList();
 
         var hover = "Top 3 items:\n" + string.Join("\n", top)
             + $"\nUnknown auctions: {McColorCodes.AQUA}{unkown} {McColorCodes.GRAY}(no uuid/no purchase)";
