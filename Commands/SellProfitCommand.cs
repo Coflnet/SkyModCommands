@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -24,10 +26,12 @@ public class SellProfitCommand : McCommand
         {
             var profile = await context.Players.FindAsync(socket.SessionInfo.McUuid);
             auctions = await context.Auctions.Where(a => a.SellerId == profile.Id && a.End > DateTime.UtcNow).Include(a => a.NbtData).ToListAsync();
+            Activity.Current.Log($"Found {JsonConvert.SerializeObject(auctions)}");
         }
         var lookup = auctions.Select(a => (a, a.FlatenedNBT.Where(n => n.Key == "uid" || n.Key == "uuid").FirstOrDefault())).Where(s => s.Item2.Value != default).ToDictionary(s => s.Item2.Value, s => s.a);
         var itemUids = lookup.Keys.Distinct().ToList();
         var previous = await auctionApi.ApiAuctionsUidsSoldPostAsync(new() { Uuids = itemUids });
+        Activity.Current.Log($"Found {lookup.Count} auctions and {previous.Count} sold auctions");
         var all = new List<(SaveAuction auction, long listPrice)>();
         foreach (var item in lookup)
         {
@@ -43,7 +47,7 @@ public class SellProfitCommand : McCommand
         var profit = all.Sum(a => FlipInstance.ProfitAfterFees(a.auction.StartingBid, a.listPrice));
         var unkown = all.Count(a => a.listPrice == 0);
         var top = all.OrderByDescending(a => FlipInstance.ProfitAfterFees(a.auction.StartingBid, a.listPrice)).Take(3)
-            .Select(a => $"{a.auction.ItemName} {a.auction.StartingBid} -> {a.listPrice} = {FlipInstance.ProfitAfterFees(a.auction.StartingBid, a.listPrice)}").ToList();
+            .Select(a => $"{a.auction.ItemName} {a.listPrice} -> {a.auction.StartingBid} = {FlipInstance.ProfitAfterFees(a.auction.StartingBid, a.listPrice)}").ToList();
 
         var hover = "Top 3 items:\n" + string.Join("\n", top)
             + $"\nUnknown auctions: {McColorCodes.AQUA}{unkown} {McColorCodes.GRAY}(no uuid/no purchase)";
