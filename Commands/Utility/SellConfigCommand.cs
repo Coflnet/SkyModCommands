@@ -111,8 +111,11 @@ public class SellConfigCommand : ArgumentsCommand
         createdConfigs.Value.Configs.Add(name);
         await createdConfigs.Update();
         using var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
-        if (ownedConfigs.Value.Configs.Any(c => c.Name == name && c.OwnerId == socket.UserId))
+        var owned = ownedConfigs.Value.Configs.FirstOrDefault(c => c.Name == name && c.OwnerId == socket.UserId);
+        if (owned != null)
         {
+            owned.Version = current.Value.Version;
+            await ownedConfigs.Update();
             return;
         }
         ownedConfigs.Value.Configs.Add(new OwnedConfigs.OwnedConfig()

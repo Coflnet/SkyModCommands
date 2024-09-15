@@ -73,7 +73,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if(message == "disable")
             {
-                socket.SendMessage(COFLNET + $"To turn the chat off just do {McColorCodes.Aqua}/cofl chat");
+                socket.SendMessage(COFLNET + $"To turn the chat off just do {McColorCodes.AQUA}/cofl chat");
                 return;
             }
             if (string.IsNullOrEmpty(socket.SessionInfo.McName))
