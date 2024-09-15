@@ -68,7 +68,7 @@ public class SessionFilterState : IDisposable
 
     private async Task SubBaseConfig(ConfigContainer childConfig)
     {
-        if (childConfig.Settings.BasedConfig == null)
+        if (string.IsNullOrWhiteSpace(childConfig.Settings.BasedConfig))
             return;
         var baseConfig = await LoadConfigCommand.GetContainer(lifesycle.socket, childConfig.Settings.BasedConfig);
         baseConfig.OnChange += (newBaseConfig) =>
