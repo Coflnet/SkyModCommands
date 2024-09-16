@@ -192,7 +192,7 @@ namespace Coflnet.Sky.Commands.MC
             var flipsWithTime = flips.Select(f => (f.instance, f.f.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow, lp: f.f));
             var bedsToWaitFor = flipsWithTime.Where(f => f.Item2 > TimeSpan.FromSeconds(3.1) && !(Settings?.ModSettings.NoBedDelay ?? false));
             var noBed = flipsWithTime.ExceptBy(bedsToWaitFor.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid).Select(f => (f.instance, f.lp));
-            var toSendInstant = noBed.Where(f => delayExemptList.IsExempt(f.lp) && Random.Shared.NextDouble() < 0.33  || delayHandler.IsLikelyBot(f.instance)).ToList();
+            var toSendInstant = noBed.Where(f => delayExemptList.IsExempt(f.lp) && Random.Shared.NextDouble() < 0.33 || delayHandler.IsLikelyBot(f.instance)).ToList();
             foreach (var item in flips)
             {
                 flipSendTiming.Observe((DateTime.UtcNow - item.f.Auction.FindTime).TotalSeconds);
@@ -273,12 +273,13 @@ namespace Coflnet.Sky.Commands.MC
             if (flip.Finder == LowPricedAuction.FinderType.SNIPER_MEDIAN && flip.Auction.FlatenedNBT.Count >= 3)
                 await socket.TriggerTutorial<Flipping>().ConfigureAwait(false);
 
+            if (isSold)
+                return; // no need to track sold flips
             _ = socket.TryAsyncTimes(async () =>
             {
-                if (isSold)
-                    return; // no need to track sold flips
                 if (socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.SUPER_PREMIUM))
                     preApiFlipSent.Inc();
+                await Task.Delay(500);
 
                 // this is actually syncronous
                 await socket.GetService<IFlipReceiveTracker>()
