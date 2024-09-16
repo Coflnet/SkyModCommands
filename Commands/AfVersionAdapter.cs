@@ -56,6 +56,12 @@ public class AfVersionAdapter : ModVersionAdapter
     private async Task FindMatchingWhitelist(FlipInstance flip, string name)
     {
         await Task.Delay(300);
+        if (socket.Settings.WhiteList.Count > 30)
+        {
+            socket.Dialog(db => db.CoflCommand<WhichBLEntryCommand>($"{name} for {McColorCodes.AQUA}{flip.Auction.StartingBid} matched your Whitelist , click to see which",
+                             JsonConvert.SerializeObject(new WhichBLEntryCommand.Args() { Uuid = flip.Auction.Uuid, WL = true })));
+            return;
+        }
         foreach (var item in socket.Settings.WhiteList)
         {
             if (!item.MatchesSettings(flip, socket.SessionInfo))
