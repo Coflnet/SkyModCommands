@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
@@ -40,22 +41,30 @@ public class AfVersionAdapter : ModVersionAdapter
         PrintFlipCommand(flip, name);
         if (flip.IsWhitelisted())
         {
-            await Task.Delay(300);
-            foreach (var item in socket.Settings.WhiteList)
+            _ = socket.TryAsyncTimes(async () =>
             {
-                if (!item.MatchesSettings(flip, socket.SessionInfo))
-                    continue;
-                socket.Dialog(db => db.Msg($"{name} for {flip.Auction.StartingBid} matched your Whitelist entry: {BlacklistCommand.FormatEntry(item)}\n" +
-                    $"Found by {flip.Finder} finder"));
-                Activity.Current.Log("Whitelisted by " + JsonConvert.SerializeObject(item));
-                break;
-            }
+                await FindMatchingWhitelist(flip, name);
+            }, "whitelist find", 1);
         }
         Activity.Current?.SetTag("finder", flip.Finder);
         Activity.Current?.SetTag("target", flip.MedianPrice);
         Activity.Current?.SetTag("itemName", name);
 
         return true;
+    }
+
+    private async Task FindMatchingWhitelist(FlipInstance flip, string name)
+    {
+        await Task.Delay(300);
+        foreach (var item in socket.Settings.WhiteList)
+        {
+            if (!item.MatchesSettings(flip, socket.SessionInfo))
+                continue;
+            socket.Dialog(db => db.Msg($"{name} for {flip.Auction.StartingBid} matched your Whitelist entry: {BlacklistCommand.FormatEntry(item)}\n" +
+                $"Found by {flip.Finder} finder"));
+            Activity.Current.Log("Whitelisted by " + JsonConvert.SerializeObject(item));
+            break;
+        }
     }
 
     protected virtual void PrintFlipCommand(FlipInstance flip, string name)
