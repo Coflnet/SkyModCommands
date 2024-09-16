@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC
                 flip = socket.GetFlip(arguments.Trim('"'));
             if (flip == null)
             {
-                if (string.IsNullOrEmpty(socket.SessionInfo.ConnectionType))
+                if (socket.CurrentRegion == "eu")
                 {
                     socket.SendMessage(new DialogBuilder().MsgLine("Can't get timings, flip not found on connection", null, "sorry :("));
                     return Task.CompletedTask;
