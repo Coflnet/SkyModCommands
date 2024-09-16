@@ -70,8 +70,11 @@ namespace Coflnet.Sky.Commands.MC
 
             if (flip.Profit > 2_000_000)
             {
-                await Task.Delay(300);
-                socket.ExecuteCommand($"/cofl fresponse {uuid} {flip.Auction.StartingBid}");
+                _ = socket.TryAsyncTimes(async () =>
+                {
+                    await Task.Delay(300);
+                    socket.ExecuteCommand($"/cofl fresponse {uuid} {flip.Auction.StartingBid}");
+                }, "fresponse", 1);
             }
             return true;
         }
