@@ -23,7 +23,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             Dictionary<string, string> context = flip?.Auction.Context;
             var msg = new DialogBuilder()
-                .MsgLine("These are the relatives times to the api update")
+                .MsgLine("These are the relatives times to the api update", null, "count on page: " + context?.GetValueOrDefault("ucount", "§onotavailable§r"))
                 .AddTime(context, "FindTime", "fT", "When the auction was first found and parsed")
                 .AddTime(context, "Flipper Receive", "frec", "When the flip finder algorithm received the auction")
                 .AddTime(context, "Flipper Send", "fsend", "When the flip finder was done calulating and sent the auction queue")
