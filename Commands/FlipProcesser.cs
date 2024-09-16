@@ -273,6 +273,7 @@ namespace Coflnet.Sky.Commands.MC
             if (flip.Finder == LowPricedAuction.FinderType.SNIPER_MEDIAN && flip.Auction.FlatenedNBT.Count >= 3)
                 await socket.TriggerTutorial<Flipping>().ConfigureAwait(false);
 
+            var timeToSend = DateTime.UtcNow - item.Auction.FindTime;
             if (isSold)
                 return; // no need to track sold flips
             _ = socket.TryAsyncTimes(async () =>
@@ -285,7 +286,6 @@ namespace Coflnet.Sky.Commands.MC
                 await socket.GetService<IFlipReceiveTracker>()
                     .ReceiveFlip(item.Auction.Uuid, socket.sessionLifesycle.SessionInfo.McUuid, sendTime);
 
-                var timeToSend = DateTime.UtcNow - item.Auction.FindTime;
                 flip.AdditionalProps["csend"] = (timeToSend).ToString();
 
                 socket.LastSent.Enqueue(flip);
