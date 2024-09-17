@@ -29,7 +29,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (socket.SessionInfo.IsNotFlipable)
             {
-                socket.SendMessage(COFLNET + "You are not in a gamemode that does not have access to the auction house. \n"
+                socket.SendMessage(COFLNET + "You are not in a gamemode that does have access to the auction house. \n"
                     + "Switch your gamemode/leave dungeons to flip");
                 return;
             }

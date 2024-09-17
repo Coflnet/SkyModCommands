@@ -16,7 +16,22 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (typeof(T) == typeof(string))
                 return JsonConvert.DeserializeObject<T>(arguments);
-            return JsonConvert.DeserializeObject<T>(JsonConvert.DeserializeObject<string>(arguments));
+            try
+            {
+                return JsonConvert.DeserializeObject<T>(JsonConvert.DeserializeObject<string>(arguments));
+            }
+            catch (System.Exception)
+            {
+                // try again with the raw string
+                try
+                {
+                    return JsonConvert.DeserializeObject<T>(arguments.Trim('"'));
+                }
+                catch (System.Exception)
+                {
+                    throw new CoflnetException("invalid_arguments", $"Could not parse the arguments for {Slug} please check your input/ create a report.");
+                }
+            }
         }
         /// <summary>
         /// Should this command be shown in the help menu

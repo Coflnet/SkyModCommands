@@ -664,7 +664,7 @@ namespace Coflnet.Sky.Commands.MC
                     });
                     socket.Dialog(db => db.CoflCommand<BlacklistCommand>(
                         $"Temporarily blacklisted {item.First().Auction.ItemName} from {item.First().Auction.AuctioneerId} for baiting",
-                        $"rm {item.First().Auction.Tag}",
+                        $"rm {item.First().Auction.Tag} Seller={item.First().Auction.AuctioneerId}",
                         "click to remove again"));
                 }
                 await FlipSettings.Update();
