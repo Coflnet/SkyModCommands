@@ -197,7 +197,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 flipSendTiming.Observe((DateTime.UtcNow - item.f.Auction.FindTime).TotalSeconds);
             }
-            Activity.Current.Log("Sending instant flips");
+            if (toSendInstant.Count > 0)
+                Activity.Current.Log("Sending instant flips");
             foreach (var item in toSendInstant)
             {
                 await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow, true).ConfigureAwait(false);
@@ -321,6 +322,7 @@ namespace Coflnet.Sky.Commands.MC
                 Flip = flip,
                 Reason = reason
             });
+            Activity.Current?.SetTag("blocked", reason);
             Interlocked.Increment(ref _blockedFlipCounter);
             return false;
         }
