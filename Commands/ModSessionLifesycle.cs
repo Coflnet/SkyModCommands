@@ -663,15 +663,27 @@ namespace Coflnet.Sky.Commands.MC
             {
                 foreach (var item in badSellers)
                 {
+                    var matchType = FlipSettings.Value.MatchesSettings(FlipperService.LowPriceToFlip(item.First()));
                     if (FlipSettings.Value?.BlackList?.Any(b => b.ItemTag == item.First().Auction.Tag) ?? true)
                         continue;
+                    if (matchType.Item2.StartsWith("white") && !FlipSettings.Value.ModSettings.TempBlacklistSpam)
+                    {
+                        socket.Dialog(db => db.CoflCommand<SetCommand>(
+                            $"Would have blacklisted {item.First().Auction.ItemName} from {item.First().Auction.AuctioneerId} for baiting if TempBlacklistSpam was enabled, or it wasn't whitelisted",
+                            $"modtempBlacklistSpam true",
+                            "click to enable"));
+                        continue;
+                    }
+                    Dictionary<string, string> filter = new()
+                            { { "Seller", item.First().Auction.AuctioneerId }
+                            };
+                    if (matchType.Item2.StartsWith("white"))
+                        filter.Add("ForceBlacklist", "true");
                     FlipSettings.Value.BlackList.Add(new()
                     {
                         DisplayName = "Automatic blacklist of " + item.First().Auction.ItemName,
                         ItemTag = item.First().Auction.Tag,
-                        filter = new()
-                            { { "Seller", item.First().Auction.AuctioneerId }
-                            },
+                        filter = filter,
                         Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(48).ToString("s") }
                     });
                     socket.Dialog(db => db.CoflCommand<BlacklistCommand>(
