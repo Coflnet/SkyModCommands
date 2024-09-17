@@ -42,6 +42,7 @@ public class ProxyReqSyncCommand : McCommand
             }
         }
         SendGlobalState(socket);
+        await Task.Delay(200);
         SendState(socket);
         Action<AccountInfo> accounthandler = (a) => SendState(socket);
         socket.sessionLifesycle.AccountInfo.OnChange += accounthandler;
@@ -60,7 +61,7 @@ public class ProxyReqSyncCommand : McCommand
 
     private void SendGlobalState(MinecraftSocket socket)
     {
-        if (lastSync < DateTime.UtcNow.AddMinutes(-1))
+        if (lastSync < DateTime.UtcNow.AddSeconds(-10))
         {
             lastSync = DateTime.UtcNow;
             var filterState = socket.GetService<FilterStateService>().State;
