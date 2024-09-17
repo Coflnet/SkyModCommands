@@ -566,7 +566,7 @@ namespace Coflnet.Sky.Commands.MC
             if (tier != AccountTier.NONE)
             {
                 SendMessage(
-                    COFLNET + messageStart + $"You have {McColorCodes.GREEN}{tier} until {expire.ToString("yyyy-MMM-dd HH:mm")} UTC", null,
+                    COFLNET + messageStart + $"You have {FormatTier(tier)} until {expire.ToString("yyyy-MMM-dd HH:mm")} UTC", null,
                     $"That is in {McColorCodes.GREEN + (expire - DateTime.UtcNow).ToString("d'd 'h'h 'm'm 's's'")}"
                 );
                 _ = socket.TryAsyncTimes(async () =>
@@ -588,6 +588,18 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }
             socket.ModAdapter.OnAuthorize(accountInfo);
+        }
+
+        private string FormatTier(AccountTier tier)
+        {
+            return tier switch
+            {
+                AccountTier.PREMIUM => McColorCodes.GREEN + "premium",
+                AccountTier.PREMIUM_PLUS => McColorCodes.GOLD + "PREMIUM PLUS",
+                AccountTier.STARTER_PREMIUM => $"{McColorCodes.BOLD}starter {McColorCodes.RESET}premium",
+                AccountTier.SUPER_PREMIUM => $"{McColorCodes.RED}{McColorCodes.OBFUSCATED}!!{McColorCodes.RESET + McColorCodes.RED} PreApi",
+                _ => McColorCodes.GRAY + tier
+            };
         }
 
         /// <summary>
