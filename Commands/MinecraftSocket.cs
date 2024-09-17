@@ -763,13 +763,11 @@ namespace Coflnet.Sky.Commands.MC
             if (IsDevMode || SessionInfo?.McUuid == "384a029294fc445e863f2c42fe9709cb")
                 dev.Logger.Instance.Error(exception, message);
 
-            error?.AddEvent(new ActivityEvent(message ?? "error", DateTimeOffset.Now, new(new Dictionary<string, object?> {
-                { "exception", exception },
-                { "additionalLog", additionalLog },
-                { "session", JsonConvert.SerializeObject(SessionInfo) } })));
+            error?.Log(exception.ToString());
+            error?.Log(additionalLog?.Truncate(10_000) ?? "");
             using var errorContext = CreateActivity("error", error)?.AddTag("message", message).AddTag("error", "true");
             errorContext.Log(JsonConvert.SerializeObject(sessionLifesycle?.AccountInfo?.Value));
-            errorContext.Log($"Calling stacktrace: {Environment.StackTrace}");
+            errorContext.Log($"session: {JsonConvert.SerializeObject(SessionInfo)}");
             errorContext.Log(JsonConvert.SerializeObject(Settings).Truncate(10_000));
             return error?.Context.TraceId.ToString();
         }
