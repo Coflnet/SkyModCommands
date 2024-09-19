@@ -17,9 +17,9 @@ namespace Coflnet.Sky.Commands.MC
                 if (socket.CurrentRegion == "eu")
                 {
                     if (socket.LastSent.Count == 0)
-                        socket.Dialog(db=>db.MsgLine("Can't get timings, no flips found on connection", null, "sorry :("));
+                        socket.Dialog(db => db.MsgLine("Can't get timings, no flips found on connection", null, "sorry :("));
                     else
-                        socket.Dialog(db=>db.MsgLine("Can't get timings, flip not found on connection", null, "sorry :("));
+                        socket.Dialog(db => db.MsgLine("Can't get timings, flip not found on connection", null, "sorry :("));
                     return Task.CompletedTask;
                 }
                 throw new System.Exception("Flip not found on connection");

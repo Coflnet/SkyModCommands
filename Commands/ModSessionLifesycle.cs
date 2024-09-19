@@ -555,7 +555,6 @@ namespace Coflnet.Sky.Commands.MC
             if (SessionInfo.McName == null)
                 await Task.Delay(800).ConfigureAwait(false); // allow another half second for the playername to be loaded
             var messageStart = $"Hello {SessionInfo.McName} ({anonymisedEmail}) \n";
-            Console.WriteLine("getting tier cached");
             (var tier, var expire) = await TierManager.GetCurrentTierWithExpire();
             if (tier == AccountTier.NONE)
             {
@@ -565,8 +564,14 @@ namespace Coflnet.Sky.Commands.MC
             socket.SessionInfo.SessionTier = tier;
             if (tier != AccountTier.NONE)
             {
+                var timeZoneDifference = accountInfo.TimeZoneOffset;
+                if (timeZoneDifference != 0)
+                {
+                    var timeDifference = TimeSpan.FromHours(timeZoneDifference);
+                    expire = expire.Add(timeDifference);
+                }
                 SendMessage(
-                    COFLNET + messageStart + $"You have {FormatTier(tier)} until {expire.ToString("yyyy-MMM-dd HH:mm")} UTC", null,
+                    COFLNET + messageStart + $"You have {FormatTier(tier)} until {expire:yyyy-MMM-dd HH:mm} " + (timeZoneDifference == 0 ? "UTC" : ""), null,
                     $"That is in {McColorCodes.GREEN + (expire - DateTime.UtcNow).ToString("d'd 'h'h 'm'm 's's'")}"
                 );
                 _ = socket.TryAsyncTimes(async () =>
