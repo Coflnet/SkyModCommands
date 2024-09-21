@@ -124,7 +124,10 @@ public class CaptchaGenerator
         for (int i = 0; i < bigger; i++)
         {
             if (i != 0)
+            {
                 parts.Add(new() { Text = McColorCodes.GREEN + "|\n", Hover = "config" });
+                solutions.Add(new Option { Text = "", Code = "lbm+" + Random.Shared.NextDouble() });
+            }
             foreach (var item in chars)
             {
                 AddLineOrEmpty(item, parts, i, lines, solutions, info);
@@ -143,6 +146,7 @@ public class CaptchaGenerator
                 AddLineOrEmpty(letterAsci, parts, i, lines, solutions, info);
                 parts.AddRange(AddParts("".PadLeft(random.Next(2, 8))));
                 parts.Add(new() { Text = "\n" });
+                solutions.Add(new Option { Text = "", Code = "lbm+" + Random.Shared.NextDouble() });
             }
         }
     }
