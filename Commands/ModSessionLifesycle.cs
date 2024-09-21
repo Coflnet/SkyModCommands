@@ -599,7 +599,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             return tier switch
             {
-                AccountTier.PREMIUM => McColorCodes.GREEN + "premium",
+                AccountTier.PREMIUM => McColorCodes.GREEN + "Premium",
                 AccountTier.PREMIUM_PLUS => McColorCodes.GOLD + "PREMIUM PLUS",
                 AccountTier.STARTER_PREMIUM => $"{McColorCodes.BOLD}starter {McColorCodes.RESET}premium",
                 AccountTier.SUPER_PREMIUM => $"{McColorCodes.RED}{McColorCodes.OBFUSCATED}!!{McColorCodes.RESET + McColorCodes.RED} PreApi",
