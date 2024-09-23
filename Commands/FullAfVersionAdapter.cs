@@ -141,7 +141,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         try
         {
             // get member count
-            var res = await socket.GetService<Proxy.Client.Api.IProxyApi>().ProxyHypixelGetAsync($"/skyblock/profiles?uuid={socket.SessionInfo.McUuid}");
+            var res = await socket.GetService<Proxy.Client.Api.IProxyApi>().ProxyHypixelGetAsync($"/v2/skyblock/profiles?uuid={socket.SessionInfo.McUuid}");
             if (res == null)
                 throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
             var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(JsonConvert.DeserializeObject<string>(res));
