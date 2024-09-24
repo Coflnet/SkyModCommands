@@ -144,15 +144,17 @@ namespace Coflnet.Sky.Commands.MC
 
         private bool FlipMatchesSetting(LowPricedAuction flip, FlipInstance flipInstance)
         {
-            if (Settings == null)
+            if (flip == null || Settings == null)
                 return false;
             var isMatch = (false, "");
             try
             {
                 isMatch = Settings.MatchesSettings(flipInstance);
                 if (flip.AdditionalProps == null)
-                    flip.AdditionalProps = new Dictionary<string, string>();
+                    flip.AdditionalProps = [];
                 flip.AdditionalProps["match"] = isMatch.Item2;
+                if(flipInstance.Context == null)
+                    flipInstance.Context = [];
                 flipInstance.Context["match"] = isMatch.Item2;
             }
             catch (Exception e)
