@@ -574,12 +574,11 @@ namespace Coflnet.Sky.Commands.MC
                     COFLNET + messageStart + $"You have {FormatTier(tier)} until {expire:yyyy-MMM-dd HH:mm} " + (timeZoneDifference == 0 ? "UTC" : ""), null,
                     $"That is in {McColorCodes.GREEN + (expire - DateTime.UtcNow).ToString("d'd 'h'h 'm'm 's's'")}"
                 );
-                _ = socket.TryAsyncTimes(async () =>
+                if (tier == AccountTier.PREMIUM && expire <= DateTime.UtcNow + TimeSpan.FromDays(33) && expire >= DateTime.UtcNow + TimeSpan.FromDays(29.97))
                 {
-                    if (tier != AccountTier.PREMIUM || expire > DateTime.UtcNow + TimeSpan.FromDays(33) || expire < DateTime.UtcNow + TimeSpan.FromDays(29.97))
-                        return;
-                    socket.Dialog(db => db.CoflCommand<UpgradePlanCommand>("Seems like you recently bought premium, if you intended to buy prem+ click [here]", "", "Click to switch to prem+"));
-                }, "upgrade Note", 1);
+                    socket.Dialog(db => db.CoflCommand<UpgradePlanCommand>(
+                        "Seems like you recently bought premium, if you intended to buy prem+ click [here]", "", "Click to switch to prem+"));
+                }
             }
             else
             {
