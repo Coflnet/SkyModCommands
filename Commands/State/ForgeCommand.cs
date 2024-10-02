@@ -39,7 +39,7 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
     {
         var forgeApi = socket.GetService<IForgeApi>();
         var profileApi = socket.GetService<IProfileClient>();
-        var forgeUnlockedTask = profileApi.GetForgeData(socket.UserId, "current");
+        var forgeUnlockedTask = profileApi.GetForgeData(socket.SessionInfo.McUuid, "current");
         var forgeFlips = await forgeApi.ForgeAllGetAsync();
         var unlocked = await forgeUnlockedTask;
         var result = new List<ForgeFlip>();
@@ -47,7 +47,7 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
         {
             if (unlocked.HotMLevel < item.RequiredHotMLevel)
                 continue;
-            if(item.ProfitPerHour <= 0)
+            if (item.ProfitPerHour <= 0)
                 continue;
             if (unlocked.QuickForgeSpeed != 0)
             {
