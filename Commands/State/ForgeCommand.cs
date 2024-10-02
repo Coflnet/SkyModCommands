@@ -60,7 +60,7 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
 
     protected override string GetId(ForgeFlip elem)
     {
-        throw new System.NotImplementedException();
+        return elem.CraftData.ItemId + elem.CraftData.ItemName;
     }
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<ForgeFlip> elements)
