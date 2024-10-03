@@ -33,7 +33,7 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
         var profit = $"{McColorCodes.GRAY}({McColorCodes.AQUA}+{socket.FormatPrice(estimatedProfit)} {McColorCodes.GRAY})";
         db.MsgLine($"{elem.CraftData.ItemName} {purchaseText}{McColorCodes.GRAY}->{McColorCodes.GREEN}{socket.FormatPrice(elem.CraftData.SellPrice)} {profit}", null, hover)
             .MsgLine($"{McColorCodes.GRAY}Profit: {McColorCodes.GOLD}{socket.FormatPrice(elem.ProfitPerHour)} {McColorCodes.GRAY}per hour ({elem.CraftData.Volume} volume)")
-            .MsgLine($"{McColorCodes.GRAY}Duration: {McColorCodes.AQUA}{socket.FormatPrice(TimeSpan.FromSeconds(elem.Duration).TotalHours)} hours");
+            .MsgLine($"{McColorCodes.GRAY}Duration: {McColorCodes.AQUA}{socket.formatProvider.FormatTime(TimeSpan.FromSeconds(elem.Duration))}");
     }
 
     protected override async Task<IEnumerable<ForgeFlip>> GetElements(MinecraftSocket socket, string val)

@@ -142,13 +142,6 @@ public class DelayHandler : IDelayHandler
 
         var summary = new Summary();
 
-        if (currentDelay > TimeSpan.Zero || !sessionInfo.VerifiedMc)
-        {
-            //span = tracer.BuildSpan("nerv").AsChildOf(ConSpan).StartActive();
-            //span.Span.SetTag("time", currentDelay.ToString());
-            //span.Span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
-        }
-
         if (!sessionInfo.VerifiedMc)
             currentDelay += TimeSpan.FromSeconds(3);
         else
@@ -187,7 +180,7 @@ public class DelayHandler : IDelayHandler
                 currentDelay = TimeSpan.Zero;
             if (random.NextDouble() < dropoutChance)
             {
-                currentDelay += TimeSpan.FromSeconds(0.001);
+                currentDelay += TimeSpan.FromSeconds(0.0001);
                 dropoutChance *= 5;
             }
             summary.nonpurchaseRate = nonpurchaseRate;
@@ -227,6 +220,11 @@ public class DelayHandler : IDelayHandler
             currentDelay *= Math.Pow(0.945, sessionInfo.LicensePoints);
             currentDelay -= TimeSpan.FromSeconds(0.01 * sessionInfo.LicensePoints);
         }
+        if(accountInfo.Value.Tricks.PenalizeUntil > timeProvider.Now)
+        {
+            currentDelay *= 1.8;
+        }
+
         if (currentDelay != lastDelay)
             OnDelayChange?.Invoke(currentDelay);
         summary.Penalty = currentDelay;
