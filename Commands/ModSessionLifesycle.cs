@@ -981,6 +981,12 @@ namespace Coflnet.Sky.Commands.MC
                     SendMessage("Hello there, you acted suspiciously like a macro bot (flipped consistently for multiple hours and/or fast). \nPlease select the correct answer to prove that you are not.", null, "You are delayed until you do");
                     SendMessage(new CaptchaGenerator().SetupChallenge(socket, SessionInfo.captchaInfo));
                     await socket.TriggerTutorial<CaptchaTutorial>();
+                    await Task.Delay(2000);
+                    if (SessionInfo.ModsFound == null)
+                    {
+                        AccountInfo.Value.Tricks.TickFound("noMods");
+                        await AccountInfo.Update();
+                    }
                 }
                 else if (SessionInfo.captchaInfo.LastGenerated.Minute % 4 == 1)
                 {

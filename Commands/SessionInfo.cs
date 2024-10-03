@@ -83,6 +83,7 @@ namespace Coflnet.Sky.Commands.MC
         public string ToLowListingAttempt { get; set; }
         public long AhSlotsOpen { get; set; } = -1;
         public int BestHotkeyUsageCount { get; set; }
+        public string[] ModsFound { get; set; }
 
         public bool SellAll;
 
