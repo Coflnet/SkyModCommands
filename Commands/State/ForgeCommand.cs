@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Crafts.Client.Api;
@@ -53,9 +54,11 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
             {
                 item.Duration = (int)((float)item.Duration * unlocked.QuickForgeSpeed);
             }
+            if (item.ProfitPerHour > 1_000_000_000) // probably a calculation error, use daily volume instead
+                item.ProfitPerHour = (item.CraftData.SellPrice - item.CraftData.CraftCost) * item.CraftData.Volume;
             result.Add(item);
         }
-        return result;
+        return result.OrderByDescending(r => r.ProfitPerHour);
     }
 
     protected override string GetId(ForgeFlip elem)
