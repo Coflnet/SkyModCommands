@@ -21,44 +21,12 @@ namespace Coflnet.Sky.Commands.MC
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            int maxDays = await GetMaxDaysPossible(socket);
             var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
-            if (!double.TryParse(args.Last(), out var days) && args.First() != "")
-            {
-                socket.SendMessage(COFLNET + $"usage /cofl profit [ign] {{0.5-{maxDays}}}");
-                return;
-            }
-            else if (arguments.Length <= 2)
-            {
-                days = 7;
-                socket.Dialog(db => db.MsgLine($"Using the default of {days} days because you didn't specify a number"));
-            }
-            var time = TimeSpan.FromDays(days);
-            if (time > TimeSpan.FromDays(maxDays))
-            {
-                socket.Dialog(db => db.MsgLine($"sorry the maximum is a {maxDays} days currently. Setting time to {maxDays} days"));
-                if (maxDays < MaxDaysHighestTier)
-                    socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
-                        $"you can upgrade to premium plus to get {MaxDaysHighestTier} days", "premium_plus", "upgrade"));
-                time = TimeSpan.FromDays(maxDays);
-            }
-            else
-            {
-                socket.SendMessage(COFLNET + "Crunching the latest numbers for you :)", null, "this might take a few seconds");
-            }
+            TimeSpan time = await GetTimeSpan(socket, arguments, args);
             // replace this call with stored socket.sessionLifesycle.AccountInfo.Value.McIds
 
-            IEnumerable<string> accounts;
-            if (args.Length > 1)
-                accounts = new string[] { await socket.GetPlayerUuid(args.First()) };
-            else
-                accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
-            Task<Dictionary<string, string>> namesTask = null;
-            if (accounts.Count() > 1)
-            {
-                var nameService = socket.GetService<IPlayerNameApi>();
-                namesTask = nameService.PlayerNameNamesBatchPostAsync(accounts.ToList());
-            }
+            IEnumerable<string> accounts = await GetAccounts(socket, args);
+            Task<Dictionary<string, string>> namesTask = GetNames(socket, accounts);
             var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, time);
             var who = "you";
             if (args.Length > 1) // except last arg
@@ -81,15 +49,72 @@ namespace Coflnet.Sky.Commands.MC
             var worst = sorted.LastOrDefault();
             if (best == null)
                 return;
-            socket.SendMessage(COFLNET + $"The best flip was a {socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier.Replace("VERYSPECIAL", "VERY_SPECIAL")))}{best.ItemName}" +
+            socket.SendMessage($"{COFLNET} The best flip was a {FormatFlipName(socket, best)}" +
                             FormatFlip(socket, best),
                 "https://sky.coflnet.com/auction/" + best.OriginAuction,
                 $"Click to open best flip purchase\n{McColorCodes.GRAY}The worst flip was \n" + FormatFlip(socket, worst));
 
-            string FormatFlip(MinecraftSocket socket, FlipDetails best)
+
+        }
+        protected string FormatFlip(MinecraftSocket socket, FlipDetails best)
+        {
+            return $" {FormatPrice(socket, best.PricePaid)} -> {FormatPrice(socket, best.SoldFor)} (+{FormatPrice(socket, best.Profit)})";
+        }
+
+        protected static string FormatFlipName(MinecraftSocket socket, FlipDetails best)
+        {
+            return $"{socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier.Replace("VERYSPECIAL", "VERY_SPECIAL")))}{best.ItemName}";
+        }
+
+        protected static Task<Dictionary<string, string>> GetNames(MinecraftSocket socket, IEnumerable<string> accounts)
+        {
+            Task<Dictionary<string, string>> namesTask = null;
+            if (accounts.Count() > 1)
             {
-                return $" {FormatPrice(socket, best.PricePaid)} -> {FormatPrice(socket, best.SoldFor)} (+{FormatPrice(socket, best.Profit)})";
+                var nameService = socket.GetService<IPlayerNameApi>();
+                namesTask = nameService.PlayerNameNamesBatchPostAsync(accounts.ToList());
             }
+
+            return namesTask;
+        }
+
+        protected static async Task<IEnumerable<string>> GetAccounts(MinecraftSocket socket, string[] args)
+        {
+            IEnumerable<string> accounts;
+            if (args.Length > 1)
+                accounts = new string[] { await socket.GetPlayerUuid(args.First()) };
+            else
+                accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+            return accounts;
+        }
+
+        protected async Task<TimeSpan> GetTimeSpan(MinecraftSocket socket, string arguments, string[] args)
+        {
+            int maxDays = await GetMaxDaysPossible(socket);
+            if (!double.TryParse(args.Last(), out var days) && args.First() != "")
+            {
+                var className = GetType().Name.Replace("Command", "").ToLower();
+                throw new CoflnetException("invalid_usage", $"usage /cofl {className} [ign] {{0.5-{maxDays}}}");
+            }
+            else if (arguments.Length <= 2)
+            {
+                days = 7;
+                socket.Dialog(db => db.MsgLine($"Using the default of {days} days because you didn't specify a number"));
+            }
+            var time = TimeSpan.FromDays(days);
+            if (time > TimeSpan.FromDays(maxDays))
+            {
+                socket.Dialog(db => db.MsgLine($"sorry the maximum is a {maxDays} days currently. Setting time to {maxDays} days"));
+                if (maxDays < MaxDaysHighestTier)
+                    socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
+                        $"you can upgrade to premium plus to get {MaxDaysHighestTier} days", "premium_plus", "upgrade"));
+                time = TimeSpan.FromDays(maxDays);
+            }
+            else
+            {
+                socket.SendMessage(COFLNET + "Crunching the latest numbers for you :)", null, "this might take a few seconds");
+            }
+            return time;
         }
 
         private static async Task<int> GetMaxDaysPossible(MinecraftSocket socket)
@@ -132,6 +157,5 @@ namespace Coflnet.Sky.Commands.MC
         {
             return $"{McColorCodes.AQUA}{socket.FormatPrice(number)}{McColorCodes.GRAY}";
         }
-
     }
 }

@@ -129,6 +129,8 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<TimeCommand>();
             Commands.Add<DialogCommand>();
             Commands.Add<ProfitCommand>();
+            Commands.Add<WorstFlipsCommand>();
+            Commands.Add<BestFlipsCommand>();
             Commands.Add<LoadFlipHistory>();
             Commands.Add<LeaderboardCommand>("lb");
             Commands.Add<LoserboardCommand>();
