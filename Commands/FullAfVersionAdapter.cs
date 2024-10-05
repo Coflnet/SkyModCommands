@@ -175,7 +175,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 var getDetails = await itemsApi.ItemItemTagGetAsync(item.First.Tag);
                 if (getDetails.NpcSellPrice >= 1)
                 {
-                    if(!socket.SessionInfo.SellAll)
+                    if (!socket.SessionInfo.SellAll)
                         continue;
                     socket.Dialog(db => db.Msg($"Found a `common` item in inventory: {item.First.ItemName} {item.First.Tag} it probably has to be auctioned, please manually create an auction for it. Or report if it can be bin auctioned"));
                     continue;
@@ -342,7 +342,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         if (isFull)
         {
             if (Random.Shared.NextDouble() < 0.1)
-                socket.SendMessage("§cAuction house and inventory full, paused buying");
+                socket.Dialog(db => db.MsgLine("§cAuction house and inventory full, paused buying"));
             if (Random.Shared.NextDouble() < 0.3)
                 RequestInventory();
         }
