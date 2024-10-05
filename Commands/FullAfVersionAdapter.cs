@@ -332,7 +332,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         }
         var spaceLeft = socket.SessionInfo.Inventory?.Skip(10).Count(x => x == null);
         var isFull = spaceLeft < 3;
-        if (maxItemsAllowedInInventory > 100)
+        if (maxItemsAllowedInInventory >= 100)
         {
             // special case user wants to not stop buying
             if (Random.Shared.NextDouble() < 0.3)
