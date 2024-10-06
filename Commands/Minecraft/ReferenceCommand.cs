@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Sniper.Client.Api;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -57,6 +58,11 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(d => d.MsgLine("TFM flips have no references"));
                 return;
             }
+            if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.CraftCost) ?? false)
+            {
+                CraftCostFinderReferences(socket, flip);
+                return;
+            }
             if (flip?.Finder.HasFlag(LowPricedAuction.FinderType.AI) ?? false)
             {
                 if (!flip.AdditionalProps.TryGetValue("breakdown", out var breakdown))
@@ -94,6 +100,14 @@ namespace Coflnet.Sky.Commands.MC
 
             await Task.Delay(200).ConfigureAwait(false);
             socket.ModAdapter.SendMessage(new ChatPart(MinecraftSocket.COFLNET + "click this to open the auction on the website (in case you want to report an error or share it)", "https://sky.coflnet.com/auction/" + uuid, "please give it a second"));
+        }
+
+        private static void CraftCostFinderReferences(MinecraftSocket socket, LowPricedAuction flip)
+        {
+            var breakdown = JsonConvert.DeserializeObject<Dictionary<string, float>>(flip.AdditionalProps["breakdown"]);
+            socket.Dialog(d => d.MsgLine("Estimate based on craft cost sum")
+                .MsgLine($"Clean item cost: {McColorCodes.AQUA}{flip.AdditionalProps["cleanCost"]}{McColorCodes.GRAY}")
+                .ForEach(breakdown, (d, kv) => d.MsgLine($"{kv.Key}: {McColorCodes.AQUA}{socket.FormatPrice(kv.Value)}{McColorCodes.GRAY}")));
         }
 
         private static Func<BasedOnCommandResponse, ChatPart> ToMessage(MinecraftSocket socket)
