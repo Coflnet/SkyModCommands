@@ -27,11 +27,12 @@ namespace Coflnet.Sky.ModCommands.Services
         private FlipperService flipperService;
         private CounterService counterService;
         IDelayExemptList delayExemptList;
+        FilterStateService filterStateService;
 
         private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
 
         public ModBackgroundService(
-            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger, FlipperService flipperService, CounterService counterService, IDelayExemptList iDelayExemptList)
+            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger, FlipperService flipperService, CounterService counterService, IDelayExemptList iDelayExemptList, FilterStateService filterStateService)
         {
             this.scopeFactory = scopeFactory;
             this.config = config;
@@ -39,6 +40,7 @@ namespace Coflnet.Sky.ModCommands.Services
             this.flipperService = flipperService;
             this.counterService = counterService;
             delayExemptList = iDelayExemptList;
+            this.filterStateService = filterStateService;
         }
         /// <summary>
         /// Called by asp.net on startup
@@ -47,7 +49,8 @@ namespace Coflnet.Sky.ModCommands.Services
         /// <returns></returns>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await Task.Yield();
+            await filterStateService.UpdateState();
+            logger.LogInformation("Loaded flip filter data");
             await SubscribeToRedisSnipes(stoppingToken);
             logger.LogInformation("set up fast track flipper");
             await counterService.GetTable().CreateIfNotExistsAsync();
