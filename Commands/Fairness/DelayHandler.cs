@@ -220,9 +220,14 @@ public class DelayHandler : IDelayHandler
             currentDelay *= Math.Pow(0.945, sessionInfo.LicensePoints);
             currentDelay -= TimeSpan.FromSeconds(0.01 * sessionInfo.LicensePoints);
         }
-        if(accountInfo.Value.Tricks.PenalizeUntil > timeProvider.Now)
+        if (accountInfo.Value.Tricks.PenalizeUntil > timeProvider.Now)
         {
             currentDelay *= 1.8;
+        }
+        if (currentDelay < TimeSpan.FromMilliseconds(20) && currentDelay > TimeSpan.Zero)
+        {
+            Console.WriteLine("Delay too low, setting to 20ms for " + string.Join(", ", ids));
+            currentDelay = TimeSpan.Zero;
         }
 
         if (currentDelay != lastDelay)
