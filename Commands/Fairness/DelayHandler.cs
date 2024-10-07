@@ -147,7 +147,7 @@ public class DelayHandler : IDelayHandler
         else
             summary.VerifiedMc = true;
 
-        summary.LastPurchase = breakdown.Buys?.Values?.Select(v => v.Value).DefaultIfEmpty(default).Max() ?? default;
+        summary.LastPurchase = breakdown.Buys?.Values?.DefaultIfEmpty(default).Max() ?? default;
 
         if (HasFlippedForLong(lastCaptchaSolveTime, hourCount) && breakdown.BoughtWorth > 80_000_000)
         {
