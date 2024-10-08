@@ -98,11 +98,11 @@ public class DelayHandlerTests
                 TotalSeconds = 3.5
             }
         };
-        result.Penalty = 0.01;
+        result.Penalty = 0.05;
         sessionInfo.VerifiedMc = true;
         var summary = await delayHandler.Update(ids, timeProvider.Now);
         var delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
-        timeProvider.TickForward(TimeSpan.FromSeconds(0.02));
+        timeProvider.TickForward(TimeSpan.FromSeconds(0.05));
         Assert.That(delayTask.IsCompleted);
         flipInstance.Auction.StartingBid = 5_000_000;
         flipInstance.MedianPrice = 10_100_100;
