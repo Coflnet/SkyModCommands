@@ -143,7 +143,7 @@ namespace Coflnet.Sky.Commands.MC
                 $"{socket.sessionLifesycle.COFLNET}You connected from an unknown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. ", "/ah"));
             if (targetAuction != null)
             {
-                if (socket.SessionInfo.IsMacroBot)
+                if (socket.ModAdapter is AfVersionAdapter)
                 {
                     await Task.Delay(5000);
                     SaveAuction cheapBin;
