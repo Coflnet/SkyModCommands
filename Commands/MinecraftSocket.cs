@@ -28,7 +28,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public long Id { get; private set; }
 
-        public SessionInfo SessionInfo { get; protected set; } = new SessionInfo();
+        public SessionInfo SessionInfo { get;  } = new SessionInfo();
 
         public FlipSettings Settings => sessionLifesycle?.FlipSettings;
         public AccountInfo AccountInfo => sessionLifesycle?.AccountInfo;

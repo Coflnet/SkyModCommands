@@ -275,7 +275,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 try
                 {
-                    var expression = item.GetExpression();
+                    var expression = item.GetExpression(socket.SessionInfo);
                     expression.Compile()(testFlip);
                 }
                 catch (Exception e)

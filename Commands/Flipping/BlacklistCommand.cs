@@ -172,7 +172,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             try
             {
-                entry.GetExpression().Compile().Invoke(GetTestFlip(r.Tag));
+                entry.GetExpression(socket.SessionInfo).Compile().Invoke(GetTestFlip(r.Tag));
             }
             catch (Exception)
             {
