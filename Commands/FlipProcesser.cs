@@ -215,6 +215,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (socket.sessionLifesycle.CurrentDelay > DelayHandler.MaxSuperPremiumDelay && Random.Shared.NextDouble() < 0.5)
                 {
                     await Task.Delay(item.Item2).ConfigureAwait(false);
+                    Activity.Current.Log("Bed await");
                     await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow).ConfigureAwait(false);
                     continue;
                 }
