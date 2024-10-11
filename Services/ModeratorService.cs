@@ -18,6 +18,7 @@ public class ModeratorService
         "6da36b38ef0149f1bfd00873d7ce5210", // Aistoze     
         "e7246661de77474f94627fabf9880f60", // IcyHenryT  
         "cfc37fbedfab4498893ea7799deedde5", // Flooored
+        "dcc434c06bf9463188a1c5ca09c3431d", // Thompie
     };
     public bool IsModerator(IMinecraftSocket socket)
     {
