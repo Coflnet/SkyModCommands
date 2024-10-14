@@ -140,7 +140,10 @@ namespace Coflnet.Sky.Commands.MC
             verification.Log(JSON.Stringify(targetAuction));
 
             socket.SendMessage(new ChatPart(
-                $"{socket.sessionLifesycle.COFLNET}You connected from an unknown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. ", "/ah"));
+                $"{socket.sessionLifesycle.COFLNET}You connected from an unknown account. Please verify that you are indeed {SessionInfo.McName} by bidding {McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR} on a random auction. Alternative create one ending in {bid}", "/ah",
+                $"You can create an auction like 123,{McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR}\n"
+                + $"Verification generally works faster with\n"
+                + "creating an auction but is less convenient"));
             if (targetAuction != null)
             {
                 if (socket.ModAdapter is AfVersionAdapter)
