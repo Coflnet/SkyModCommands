@@ -10,6 +10,8 @@ namespace Coflnet.Sky.Commands.MC;
 
 public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
 {
+    public override bool IsPublic => true;
+    
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var args = arguments.Trim('"').Split(' ');
