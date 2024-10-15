@@ -27,17 +27,18 @@ public class BuyConfigCommand : ArgumentsCommand
         if (configs.Value.Configs.Any(c => c.Name == name && c.OwnerId == sellerUserId))
         {
             socket.Dialog(db => db.CoflCommand<LoadConfigCommand>(
-                    $"You already own this config. {McColorCodes.YELLOW}[CLICK to load]", 
-                    $"{sellerUserId} {name}", 
+                    $"You already own this config. {McColorCodes.YELLOW}[CLICK to load]",
+                    $"{sellerUserId} {name}",
                     $"Click here to load the config\n{McColorCodes.AQUA}/cofl loadconfig {sellerUserId} {name}"));
             return;
         }
         if (args["confirmId"] != socket.SessionInfo.SessionId)
         {
-            var summary = $"This config has {toBebought.Value.Settings.WhiteList.Count} whitelist entries and {toBebought.Value.Settings.BlackList.Count} blacklist entries.";
+            var summary = $"This config has {toBebought.Value.Settings.WhiteList.Count} whitelist entries and {toBebought.Value.Settings.BlackList.Count} blacklist entries.\n"
+                + $"It was last updated {toBebought.Value.Version} times and has the following change notes:\n{McColorCodes.GRAY}{toBebought.Value.ChangeNotes}";
             socket.Dialog(db => db.CoflCommand<BuyConfigCommand>($"Confirm buying §6{toBebought.Value.Name} §7v{toBebought.Value.Version} for §6{toBebought.Value.Price} CoflCoins {McColorCodes.YELLOW}[CLICK]",
                 $"{seller} {name} {socket.SessionInfo.SessionId}",
-                $"§aBuy {toBebought.Value.Name} from {seller} for {toBebought.Value.Price} CoflCoins?"
+                $"§aBuy {toBebought.Value.Name} for {toBebought.Value.Price} CoflCoins?"
                 + $"\n{summary}"));
             // check if it is already bought
             await CheckIncompletePurchase(socket, seller, name, configs, sellerUserId, toBebought, reference);

@@ -74,7 +74,8 @@ public class SellConfigCommand : ArgumentsCommand
             Version = 1,
             ChangeNotes = text,
             OwnerId = socket.UserId,
-            Price = priceInt
+            Price = priceInt,
+            LastUpdated = DateTime.UtcNow
         };
         socket.Settings.PublishedAs = name;
         _ = socket.TryAsyncTimes(socket.sessionLifesycle.FlipSettings.Update, "update published as");
@@ -141,6 +142,7 @@ public class SellConfigCommand : ArgumentsCommand
         if (diff.GetDiffCount() == 0)
             throw new CoflnetException("no_changes", "No changes found in the config, aborting update");
         current.Value.Settings = config.Settings;
+        current.Value.LastUpdated = DateTime.UtcNow;
         current.Value.Diffs.Add(current.Value.Version, diff);
         Console.WriteLine("found Diff: " + JsonConvert.SerializeObject(diff, Formatting.Indented));
         if (current.Value.Diffs.Count > 5)
