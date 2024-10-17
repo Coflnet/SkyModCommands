@@ -55,7 +55,7 @@ namespace Coflnet.Sky.Commands.MC
                     socket.SendMessage(new DialogBuilder().MsgLine($"The count argument after {productSlug} has to be a number from 1-12"));
                     return;
                 }
-            if (parts.Length < 3 || parts[2] != socket.SessionInfo.ConnectionId)
+            if (parts.Length < 4 || parts[2] != socket.SessionInfo.ConnectionId)
             {
                 var timeString = GetLenghtInWords(product, count);
                 var costSum = socket.FormatPrice((long)product.Cost * count);
@@ -66,7 +66,7 @@ namespace Coflnet.Sky.Commands.MC
                         .MsgLine($"lasting {timeString}")
                         .CoflCommand<PurchaseCommand>(
                                 $"  {McColorCodes.GREEN}Yes  ",
-                                $"{productSlug} {count} {socket.SessionInfo.ConnectionId}",
+                                $"{productSlug} {count} {socket.SessionInfo.ConnectionId} {DateTime.UtcNow:hh:mm}",
                                 $"Confirm purchase (paying {costSum} cofl coins)")
                         .DialogLink<EchoDialog>($"  {McColorCodes.RED}No  ", $"Purchase Canceled", $"{McColorCodes.RED}Cancel purchase"));
                 if (adjustedProduct.Rules.Count == 0)
@@ -81,8 +81,7 @@ namespace Coflnet.Sky.Commands.MC
             var targetConId = parts[2];
             if (targetConId != socket.SessionInfo.ConnectionId)
                 throw new Core.CoflnetException("no_conid_match", "The purchase was started on a different connection. To prevent loss of coins please start again.");
-            await Purchase(socket, userApi, productSlug, count);
-
+            await Purchase(socket, userApi, productSlug, count, targetConId + parts[3]);
         }
 
         public static async Task<bool> Purchase(IMinecraftSocket socket, IUserApi userApi, string productSlug, int count, string reference = null)
