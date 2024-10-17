@@ -215,6 +215,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<UpdateCurrentConfigCommand>();
             Commands.Add<SellProfitCommand>();
             Commands.Add<SetTimezoneCommand>();
+            Commands.Add<CheapMuseumCommand>("cm");
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
