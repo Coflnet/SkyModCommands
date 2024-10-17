@@ -23,6 +23,7 @@ using System.Linq;
 using System.Collections.Generic;
 using Coflnet.Sky.Bazaar.Flipper.Client.Api;
 using Coflnet.Sky.Commands.MC;
+using Coflnet.Sky.Core.Services;
 
 namespace Coflnet.Sky.ModCommands;
 public class Startup
@@ -76,6 +77,9 @@ public class Startup
         services.AddSingleton<IAhActive, AhActiveService>();
         services.AddSingleton<CircumventTracker>();
         services.AddSingleton<IBlockedService, BlockedService>();
+        services.AddSingleton<Sniper.Client.Api.IAuctionApi, Sniper.Client.Api.AuctionApi>(s => new Sniper.Client.Api.AuctionApi(Configuration["SNIPER_BASE_URL"]));
+        services.AddSingleton<HypixelItemService>();
+        services.AddSingleton<System.Net.Http.HttpClient>();
         services.AddSingleton<IPriceStorageService, PriceStorageService>();
         services.AddSingleton<DelayService>();
         services.AddSingleton<AltChecker>();
