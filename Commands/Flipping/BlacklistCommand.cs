@@ -189,7 +189,7 @@ namespace Coflnet.Sky.Commands.MC
                 Auction = new SaveAuction()
                 {
                     ItemName = "test",
-                    Tag = tag,
+                    Tag = tag ?? "test",
                     Bin = true,
                     StartingBid = 2,
                     NBTLookup = Array.Empty<NBTLookup>(),
