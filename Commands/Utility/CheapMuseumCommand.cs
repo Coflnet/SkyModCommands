@@ -30,11 +30,13 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
         };
         var age = tier switch
         {
-             > AccountTier.STARTER_PREMIUM => DateTime.UtcNow - TimeSpan.FromMinutes(10),
+            > AccountTier.STARTER_PREMIUM => DateTime.UtcNow - TimeSpan.FromMinutes(5),
             _ => DateTime.UtcNow - TimeSpan.FromHours(4)
         };
+        socket.Dialog(db => db.MsgLine("Fetching what you already donated...", null, "This updates every 5 minutes on premium or higher, otherwise every 4 hours"));
         var alreadDonated = await profileClient.GetAlreadyDonatedToMuseum(socket.SessionInfo.McUuid, "current", age);
-        return await service.GetBestMuseumPrices(alreadDonated,amount);
+        socket.Dialog(db => db.MsgLine($"Skipping {alreadDonated.Count} items you already donated"));
+        return await service.GetBestMuseumPrices(alreadDonated, amount);
     }
 
     protected override DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<MuseumService.Cheapest> toDisplay, int totalPages)
