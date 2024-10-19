@@ -12,7 +12,7 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, MuseumService.Cheapest item)
     {
-        if (item.Uuids == null)
+        if (item.Options == null)
         {
             db.MsgLine($" {item.ItemName} for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
                         "/viewauction " + item.AuctuinUuid, "Click to view the auction");
@@ -21,7 +21,7 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
         // armor sets
         db.MsgLine($" {item.ItemName} Set {McColorCodes.GRAY}for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
                     null, "Buy all of the ones below to donate")
-            .ForEach(item.Uuids, (db, uuid, i) => db.MsgLine($" {McColorCodes.AQUA}Item {i + 1}", "/viewauction " + uuid, "Click to view the auction"));
+            .ForEach(item.Options, (db, option, i) => db.MsgLine($" {McColorCodes.AQUA}Item {i + 1}{McColorCodes.GRAY}: {McColorCodes.RESET}{option.name}", "/viewauction " + option.uuid, "Click to view the auction"));
 
     }
 
