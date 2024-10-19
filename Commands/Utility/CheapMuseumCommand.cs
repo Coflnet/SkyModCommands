@@ -18,7 +18,22 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
     protected override async Task<IEnumerable<MuseumService.Cheapest>> GetElements(MinecraftSocket socket, string val)
     {
         var service = socket.GetService<MuseumService>();
-        return await service.GetBestMuseumPrices();
+        var tier = socket.SessionInfo.SessionTier;
+        var amount = tier switch
+        {
+            AccountTier.PREMIUM_PLUS => 1000,
+            AccountTier.PREMIUM => 500,
+            AccountTier.STARTER_PREMIUM => 100,
+            _ => 30
+        };
+        return await service.GetBestMuseumPrices(amount);
+    }
+
+    protected override DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<MuseumService.Cheapest> toDisplay, int totalPages)
+    {
+        return base.PrintResult(socket, title, page, toDisplay, totalPages)
+            .If(() => socket.SessionInfo.SessionTier < AccountTier.PREMIUM_PLUS && page > 1,
+                db => db.MsgLine($"With {McColorCodes.GOLD}prem+{McColorCodes.RESET} you can see the {McColorCodes.AQUA}top 1000"));
     }
 
     protected override string GetId(MuseumService.Cheapest elem)
