@@ -31,7 +31,7 @@ namespace Coflnet.Sky.Commands.MC
             var config = socket.GetService<IConfiguration>();
             var playerId = socket.SessionInfo?.McName;
             if (playerId == "Ekwav")
-                Console.WriteLine("produced chat batch " + batch[0]);
+                Console.WriteLine("produced chat batch " + string.Join(',',batch));
             try
             {
                 socket.GetService<IStateUpdateService>().Produce(playerId, new()
@@ -69,6 +69,11 @@ namespace Coflnet.Sky.Commands.MC
                 await CheckBid(socket, item);
             if (item.StartsWith("You must set it to at least"))
                 socket.SessionInfo.ToLowListingAttempt = item;
+            if (item.StartsWith("Profile ID: "))
+            {
+                Console.WriteLine("found profile id " + item);
+                socket.SessionInfo.ProfileId = item.Substring("Profile ID: ".Length);
+            }
             if (item.StartsWith("\nClick th"))
             {
                 Console.WriteLine("found reward link");

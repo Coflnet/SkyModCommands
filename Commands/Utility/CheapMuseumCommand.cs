@@ -21,7 +21,7 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
         // armor sets
         db.MsgLine($" {item.ItemName} Set {McColorCodes.GRAY}for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
                     null, "Buy all of the ones below to donate")
-            .ForEach(item.Uuids, (db, uuid, i) => db.MsgLine($" {McColorCodes.AQUA}Item {i +1}", "/viewauction " + uuid, "Click to view the auction"));
+            .ForEach(item.Uuids, (db, uuid, i) => db.MsgLine($" {McColorCodes.AQUA}Item {i + 1}", "/viewauction " + uuid, "Click to view the auction"));
 
     }
 
@@ -43,8 +43,14 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
             _ => DateTime.UtcNow - TimeSpan.FromHours(4)
         };
         socket.Dialog(db => db.MsgLine("Fetching what you already donated...", null, "This updates every 5 minutes on premium or higher, otherwise every 4 hours"));
-        var alreadDonated = await profileClient.GetAlreadyDonatedToMuseum(socket.SessionInfo.McUuid, "current", age);
-        socket.Dialog(db => db.MsgLine($"Skipping {alreadDonated.Count} items you already donated"));
+        var alreadDonated = await profileClient.GetAlreadyDonatedToMuseum(socket.SessionInfo.McUuid, socket.SessionInfo.ProfileId, age);
+        if (alreadDonated.Count > 0)
+            socket.Dialog(db => db.MsgLine($"Skipping {alreadDonated.Count} items you already donated"));
+        else
+        {
+            socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}No donated items found, do you have museum api on?"));
+            await Task.Delay(2000);
+        }
         return await service.GetBestMuseumPrices(alreadDonated, amount);
     }
 
