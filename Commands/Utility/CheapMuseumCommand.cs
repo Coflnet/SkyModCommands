@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
@@ -18,6 +19,7 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
     protected override async Task<IEnumerable<MuseumService.Cheapest>> GetElements(MinecraftSocket socket, string val)
     {
         var service = socket.GetService<MuseumService>();
+        var profileClient = socket.GetService<IProfileClient>();
         var tier = socket.SessionInfo.SessionTier;
         var amount = tier switch
         {
@@ -26,7 +28,13 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
             AccountTier.STARTER_PREMIUM => 100,
             _ => 30
         };
-        return await service.GetBestMuseumPrices(amount);
+        var age = tier switch
+        {
+             > AccountTier.STARTER_PREMIUM => DateTime.UtcNow - TimeSpan.FromMinutes(10),
+            _ => DateTime.UtcNow - TimeSpan.FromHours(4)
+        };
+        var alreadDonated = await profileClient.GetAlreadyDonatedToMuseum(socket.SessionInfo.McUuid, "current", age);
+        return await service.GetBestMuseumPrices(alreadDonated,amount);
     }
 
     protected override DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<MuseumService.Cheapest> toDisplay, int totalPages)
