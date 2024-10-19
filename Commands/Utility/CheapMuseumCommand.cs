@@ -33,7 +33,7 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
     {
         return base.PrintResult(socket, title, page, toDisplay, totalPages)
             .If(() => socket.SessionInfo.SessionTier < AccountTier.PREMIUM_PLUS && page > 1,
-                db => db.MsgLine($"With {McColorCodes.GOLD}prem+{McColorCodes.RESET} you can see the {McColorCodes.AQUA}top 1000"));
+                db => db.CoflCommand<PurchaseCommand>($"With {McColorCodes.GOLD}prem+{McColorCodes.RESET} you can see the {McColorCodes.AQUA}top 1000", "premium_plus", "Click to upgrade"));
     }
 
     protected override string GetId(MuseumService.Cheapest elem)
