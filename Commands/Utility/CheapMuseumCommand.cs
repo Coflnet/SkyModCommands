@@ -43,7 +43,7 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
             _ => DateTime.UtcNow - TimeSpan.FromHours(4)
         };
         socket.Dialog(db => db.MsgLine("Fetching what you already donated...", null, "This updates every 5 minutes on premium or higher, otherwise every 4 hours"));
-        var alreadDonated = await profileClient.GetAlreadyDonatedToMuseum(socket.SessionInfo.McUuid, socket.SessionInfo.ProfileId, age);
+        var alreadDonated = await profileClient.GetAlreadyDonatedToMuseum(socket.SessionInfo.McUuid, socket.SessionInfo.ProfileId ?? "current", age);
         if (alreadDonated.Count > 0)
             socket.Dialog(db => db.MsgLine($"Skipping {alreadDonated.Count} items you already donated"));
         else
