@@ -35,21 +35,24 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
         {
             AccountTier.PREMIUM_PLUS => 1000,
             AccountTier.PREMIUM => 500,
-            AccountTier.STARTER_PREMIUM => 100,
-            _ => 30
+            _ => 100
         };
         var age = tier switch
         {
             > AccountTier.STARTER_PREMIUM => DateTime.UtcNow - TimeSpan.FromMinutes(2),
-            _ => DateTime.UtcNow - TimeSpan.FromHours(4)
+            AccountTier.STARTER_PREMIUM => DateTime.UtcNow - TimeSpan.FromMinutes(5),
+            _ => DateTime.UtcNow - TimeSpan.FromHours(2)
         };
-        socket.Dialog(db => db.MsgLine("Fetching what you already donated...", null, "This updates every 5 minutes on premium or higher, otherwise every 4 hours"));
-        if(socket.SessionInfo.ProfileId != null && socket.SessionInfo.ProfileId.Length < 32)
+        socket.Dialog(db => db.MsgLine("Fetching what you already donated...", null, "This updates every 5 minutes on premium or higher, otherwise every ~3 hours")
+            .If(() => tier == AccountTier.NONE, db => db.CoflCommand<PurchaseCommand>(
+                    $"\nThese are cached for 2 hours because you don't use a paid tier. "
+                + $"\n{McColorCodes.GRAY}For financial supporters the cache time is reduced to 2-5 minutes.", "", "Click to upgrade")));
+        if (socket.SessionInfo.ProfileId != null && socket.SessionInfo.ProfileId.Length < 32)
         {
             var name = socket.SessionInfo.ProfileId;
             // get the profile id from name
             var profile = await profileClient.GetProfiles(socket.SessionInfo.McUuid);
-            if(profile.TryGetValue(name, out var profileId))
+            if (profile.TryGetValue(name, out var profileId))
             {
                 socket.SessionInfo.ProfileId = profileId;
                 socket.SendMessage($"Profile id found: {profileId} for {name}");
