@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
@@ -39,7 +40,7 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
         };
         var age = tier switch
         {
-            > AccountTier.STARTER_PREMIUM => DateTime.UtcNow - TimeSpan.FromMinutes(5),
+            > AccountTier.STARTER_PREMIUM => DateTime.UtcNow - TimeSpan.FromMinutes(3),
             _ => DateTime.UtcNow - TimeSpan.FromHours(4)
         };
         socket.Dialog(db => db.MsgLine("Fetching what you already donated...", null, "This updates every 5 minutes on premium or higher, otherwise every 4 hours"));
@@ -62,6 +63,10 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
             socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}No donated items found, do you have museum api on?"));
             await Task.Delay(2000);
         }
+        Activity.Current.Log("Already donated: " + alreadDonated.Count)
+            .Log($"Age: {age}")
+            .Log($"Amount: {amount}");
+
         return await service.GetBestMuseumPrices(alreadDonated, amount);
     }
 
