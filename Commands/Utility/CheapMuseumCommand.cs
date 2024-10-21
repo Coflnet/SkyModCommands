@@ -65,7 +65,8 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
         }
         Activity.Current.Log("Already donated: " + alreadDonated.Count)
             .Log($"Age: {age}")
-            .Log($"Amount: {amount}");
+            .Log($"Amount: {amount}")
+            .Log(string.Join(", ", alreadDonated));
 
         return await service.GetBestMuseumPrices(alreadDonated, amount);
     }
