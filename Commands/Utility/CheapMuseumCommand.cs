@@ -40,7 +40,7 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
         };
         var age = tier switch
         {
-            > AccountTier.STARTER_PREMIUM => DateTime.UtcNow - TimeSpan.FromMinutes(3),
+            > AccountTier.STARTER_PREMIUM => DateTime.UtcNow - TimeSpan.FromMinutes(2),
             _ => DateTime.UtcNow - TimeSpan.FromHours(4)
         };
         socket.Dialog(db => db.MsgLine("Fetching what you already donated...", null, "This updates every 5 minutes on premium or higher, otherwise every 4 hours"));

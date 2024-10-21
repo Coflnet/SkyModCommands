@@ -79,6 +79,7 @@ public class Startup
         services.AddSingleton<IBlockedService, BlockedService>();
         services.AddSingleton<Sniper.Client.Api.IAuctionApi, Sniper.Client.Api.AuctionApi>(s => new Sniper.Client.Api.AuctionApi(Configuration["SNIPER_BASE_URL"]));
         services.AddSingleton<HypixelItemService>();
+        services.AddSingleton<IHypixelItemStore, HypixelItemService>(di=>di.GetRequiredService<HypixelItemService>());
         services.AddSingleton<System.Net.Http.HttpClient>();
         services.AddSingleton<IPriceStorageService, PriceStorageService>();
         services.AddSingleton<DelayService>();
