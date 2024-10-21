@@ -14,6 +14,7 @@ public class TrackCommand : McCommand
             return;
         socket.SessionInfo.BestHotkeyUsageCount++;
         if (socket.SessionInfo.BestHotkeyUsageCount > 5
+            && socket.SessionInfo.BestHotkeyUsageCount < 22
             && socket.SessionInfo.BestHotkeyUsageCount % 10 == 0
             && socket.sessionLifesycle.CurrentDelay == TimeSpan.Zero
             && !socket.Settings.BlockHighCompetitionFlips)
@@ -21,7 +22,7 @@ public class TrackCommand : McCommand
             Console.WriteLine($"Prompting to block high competition flips {socket.SessionInfo.BestHotkeyUsageCount} {socket.SessionInfo.McUuid} ({socket.SessionInfo.McName})");
             using var context = new HypixelContext();
             var profile = await context.Players.FindAsync(socket.SessionInfo.McUuid);
-            var minBidTime = DateTime.UtcNow.AddMinutes(-10);
+            var minBidTime = DateTime.UtcNow.AddMinutes(-20);
             var purchseCount = await context.Bids.Where(a => a.BidderId == profile.Id && a.Timestamp > minBidTime).CountAsync();
             if (purchseCount > 0)
             {
