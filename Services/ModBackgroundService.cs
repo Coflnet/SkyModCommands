@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.Core.Services;
 using Coflnet.Sky.FlipTracker.Client.Api;
 using fNbt.Tags;
 using MessagePack;
@@ -28,11 +29,12 @@ namespace Coflnet.Sky.ModCommands.Services
         private CounterService counterService;
         IDelayExemptList delayExemptList;
         FilterStateService filterStateService;
+        HypixelItemService hypixelItemService;
 
         private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
 
         public ModBackgroundService(
-            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger, FlipperService flipperService, CounterService counterService, IDelayExemptList iDelayExemptList, FilterStateService filterStateService)
+            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger, FlipperService flipperService, CounterService counterService, IDelayExemptList iDelayExemptList, FilterStateService filterStateService, HypixelItemService hypixelItemService)
         {
             this.scopeFactory = scopeFactory;
             this.config = config;
@@ -41,6 +43,7 @@ namespace Coflnet.Sky.ModCommands.Services
             this.counterService = counterService;
             delayExemptList = iDelayExemptList;
             this.filterStateService = filterStateService;
+            this.hypixelItemService = hypixelItemService;
         }
         /// <summary>
         /// Called by asp.net on startup
@@ -55,7 +58,8 @@ namespace Coflnet.Sky.ModCommands.Services
             logger.LogInformation("set up fast track flipper");
             await counterService.GetTable().CreateIfNotExistsAsync();
             await LoadDelayExcemptKeys();
-            await Task.Delay(2000);
+            await hypixelItemService.GetItemsAsync();
+            await Task.Delay(1000);
             var client = new WebSocket("ws://localhost:8008/modsocket?SId=123123123123123123&player=test&version=1.5.6-Alpha");
             client.OnOpen += (s, e) =>
             {
