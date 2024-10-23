@@ -16,6 +16,8 @@ namespace Coflnet.Sky.Commands.MC
     public class FlipProcesser
     {
         private static Prometheus.Counter sentFlipsCount = Prometheus.Metrics.CreateCounter("sky_mod_sent_flips", "How many flip messages were sent");
+        private static Prometheus.Counter sentFlipProfit = Prometheus.Metrics.CreateCounter("sky_mod_flip_profit", "Adds up the estimated profit of flips sent");
+        private static Prometheus.Counter sentFlipValue = Prometheus.Metrics.CreateCounter("sky_mod_flip_value", "Adds up the estimated value of flips sent");
         private static Prometheus.Histogram flipSendTiming = Prometheus.Metrics.CreateHistogram("sky_mod_send_time", "Full run through time of flips");
         private static Prometheus.Counter preApiFlipSent = Prometheus.Metrics.CreateCounter("sky_mod_flips_sent_preapi", "Flips sent to a preapi user");
 
@@ -294,6 +296,8 @@ namespace Coflnet.Sky.Commands.MC
 
                 socket.LastSent.Enqueue(flip);
                 sentFlipsCount.Inc();
+                sentFlipProfit.Inc(item.Profit);
+                sentFlipValue.Inc(item.Target);
                 if (Settings.DebugMode)
                     socket.SendMessage($"Sent flip {flip.Auction.ItemName} {flip.Auction.StartingBid}->{flip.TargetPrice}", $"https://sky.coflnet.com/auction/{flip.Auction.Uuid}", "Open in browser");
 
