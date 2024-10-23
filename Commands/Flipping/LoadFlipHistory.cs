@@ -60,7 +60,8 @@ public class LoadFlipHistory : McCommand
                 maxTime = minTime;
                 minTime = maxTime.AddDays(-1);
             }
-        producer.Flush(TimeSpan.FromSeconds(10));
-        socket.SendMessage(COFLNET + $"Potential {count} flips for {playerId} found, submitted for processing", null, "this might take a few minutes to complete");
+        var result = producer.Flush(TimeSpan.FromSeconds(10));
+        socket.SendMessage(COFLNET + $"Potential {count} flips for {playerId} found, submitted for processing", null, 
+            $"this might take a few minutes to complete\n{McColorCodes.GRAY}Flush Result: {result}");
     }
 }
