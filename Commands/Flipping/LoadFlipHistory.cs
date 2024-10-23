@@ -39,7 +39,9 @@ public class LoadFlipHistory : McCommand
             playerId = (await socket.GetPlayerUuid(playerId)).Trim('"');
 
         var config = socket.GetService<IConfiguration>();
-        using var producer = socket.GetService<Kafka.KafkaCreator>().BuildProducer<string, SaveAuction>();
+        var creator = socket.GetService<Kafka.KafkaCreator>();
+        await creator.CreateTopicIfNotExist(config["TOPICS:LOAD_FLIPS"], 2);
+        using var producer = creator.BuildProducer<string, SaveAuction>();
         var count = 0;
         var maxTime = DateTime.UtcNow; new DateTime(2023, 1, 10);
         var minTime = maxTime.AddDays(-1);
@@ -61,7 +63,7 @@ public class LoadFlipHistory : McCommand
                 minTime = maxTime.AddDays(-1);
             }
         var result = producer.Flush(TimeSpan.FromSeconds(10));
-        socket.SendMessage(COFLNET + $"Potential {count} flips for {playerId} found, submitted for processing", null, 
+        socket.SendMessage(COFLNET + $"Potential {count} flips for {playerId} found, submitted for processing", null,
             $"this might take a few minutes to complete\n{McColorCodes.GRAY}Flush Result: {result}");
     }
 }
