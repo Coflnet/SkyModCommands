@@ -155,7 +155,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (flip.AdditionalProps == null)
                     flip.AdditionalProps = [];
                 flip.AdditionalProps["match"] = isMatch.Item2;
-                if(flipInstance.Context == null)
+                if (flipInstance.Context == null)
                     flipInstance.Context = [];
                 flipInstance.Context["match"] = isMatch.Item2;
             }
@@ -296,7 +296,8 @@ namespace Coflnet.Sky.Commands.MC
 
                 socket.LastSent.Enqueue(flip);
                 sentFlipsCount.Inc();
-                sentFlipProfit.Inc(item.Profit);
+                if (item.Profit > 0)
+                    sentFlipProfit.Inc(item.Profit);
                 sentFlipValue.Inc(item.Target);
                 if (Settings.DebugMode)
                     socket.SendMessage($"Sent flip {flip.Auction.ItemName} {flip.Auction.StartingBid}->{flip.TargetPrice}", $"https://sky.coflnet.com/auction/{flip.Auction.Uuid}", "Open in browser");
