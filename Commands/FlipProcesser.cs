@@ -232,6 +232,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             var beforeWait = DateTime.UtcNow;
             var sendTime = await delayHandler.AwaitDelayForFlip(bestFlip);
+            Activity.Current.Log($"Sending flip delayed {sendTime}");
             foreach (var item in toSendDelayed)
             {
                 await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow, true).ConfigureAwait(false);
