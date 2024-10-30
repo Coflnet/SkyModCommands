@@ -129,7 +129,7 @@ public class AfVersionAdapter : ModVersionAdapter
             minProfitPercent = Math.Max(9, minProfitPercent);
         if (flip.Finder != LowPricedAuction.FinderType.USER && flip.ProfitPercentage < minProfitPercent)
         {
-            Activity.Current?.SetTag("blocked", "profitpercent too low < " + minProfitPercent);
+            Activity.Current?.SetTag("blocked", $"profitpercent too low {flip.ProfitPercentage} < {minProfitPercent}");
             return true;
         }
         var preService = socket.GetService<IIsSold>();
