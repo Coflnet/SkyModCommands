@@ -260,7 +260,7 @@ namespace Coflnet.Sky.Commands.MC
             flip.Interesting = Helper.PropertiesSelector.GetProperties(flip.Auction)
                             .OrderByDescending(a => a.Rating).Select(a => a.Value).ToList();
 
-            await SendAndTrackFlip(flip, item.lp, flip.Auction.Start + TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+            await SendAndTrackFlip(flip, item.lp, flip.Auction.Start + TimeSpan.FromSeconds(19.9)).ConfigureAwait(false);
         }
 
         private async Task SendAndTrackFlip(FlipInstance item, LowPricedAuction flip, DateTime sendTime, bool blockSold = false)
