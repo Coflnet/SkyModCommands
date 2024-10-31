@@ -18,13 +18,13 @@
   <ItemGroup>
     <PackageReference Include="CassandraCSharpDriver" Version="3.22.0" />
     <PackageReference Include="Figgle" Version="0.5.1" />
-    <PackageReference Include="Coflnet.Sky.Chat.Client" Version="0.2.1" />
+    <PackageReference Include="Coflnet.Sky.Chat.Client" Version="1.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
-    <PackageReference Include="Coflnet.Sky.Proxy.Client" Version="0.1.2" />
+    <PackageReference Include="Coflnet.Sky.Proxy.Client" Version="1.0.0" />
   </ItemGroup>
 
   <PropertyGroup>
