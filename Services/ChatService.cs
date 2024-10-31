@@ -25,7 +25,12 @@ public class ChatService
     private ModeratorService moderatorService;
     public ChatService(IConfiguration config, SettingsService settingsService, ModeratorService moderatorService)
     {
-        api = new(config["CHAT_BASE_URL"]);
+        api = new(new Configuration(){
+            BasePath = config["CHAT_BASE_URL"],
+            ApiKey = new Dictionary<string, string>(){
+                {"Authorization", config["CHAT_API_KEY"]}
+            }
+        });
         chatAuthKey = config["CHAT_API_KEY"];
         RefreshMutedUsers();
         this.settingsService = settingsService;
@@ -69,7 +74,7 @@ public class ChatService
 
     public async Task<List<string>> GetMuteUuids()
     {
-        return (await api.ApiChatMutesGetAsync(chatAuthKey)).Select(m => m.Uuid).ToList();
+        return (await api.ApiChatMutesGetAsync()).Select(m => m.Uuid).ToList();
     }
 
     private void RefreshMutedUsers()
@@ -113,7 +118,7 @@ public class ChatService
                 prefix,
                 message.Message);
             Activity.Current?.Log("sending to service");
-            await api.ApiChatSendPostAsync(chatAuthKey, chatMsg);
+            await api.ApiChatSendPostAsync(chatMsg);
         }
         catch (ApiException e)
         {
@@ -124,7 +129,7 @@ public class ChatService
 
     public async Task Mute(Mute mute)
     {
-        await api.ApiChatMutePostAsync(chatAuthKey, mute);
+        await api.ApiChatMutePostAsync(mute);
         RefreshMutedUsers();
     }
 

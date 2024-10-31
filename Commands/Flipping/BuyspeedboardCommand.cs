@@ -46,7 +46,7 @@ public class BuyspeedboardCommand : LeaderboardCommand
     {
         try
         {
-            await socket.GetService<ISettingsApi>().SettingsUserIdSettingKeyPostAsync(socket.SessionInfo.McUuid, "disable-buy-speed-board", JsonConvert.SerializeObject(setting));
+            await socket.GetService<ISettingsApi>().SettingsUpdateSettingAsync(socket.SessionInfo.McUuid, "disable-buy-speed-board", JsonConvert.SerializeObject(setting));
         }
         catch (Exception e)
         {
