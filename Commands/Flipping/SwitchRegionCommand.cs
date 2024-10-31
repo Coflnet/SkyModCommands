@@ -72,7 +72,7 @@ public class SwitchRegionCommand : McCommand
         var restClient = new RestSharp.RestClient("http://sky-us.coflnet.com");
         var request = new RestSharp.RestRequest("/modsocket")
         {
-            Timeout = 5000
+            Timeout = TimeSpan.FromSeconds(5)
         };
         var response = await restClient.ExecuteAsync(request);
         var reachable = response.StatusCode != 0 && response.StatusCode != System.Net.HttpStatusCode.NotFound;
