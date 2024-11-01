@@ -154,8 +154,11 @@ public class AccountTierManager : IAccountTierManager
             if (session.Outdated)
             {
                 activeSessions.Dispose();
-                Console.WriteLine("connected from somewhere else with the same minecraft account");
-                socket.Dialog(db => db.MsgLine($"You connected from somewhere else with the same minecraft account this connection is being downgraded"));
+                var sameClient = sessions.Where(s => s?.ClientSessionId == socket.SessionInfo.clientSessionId && !s.Outdated).Any();
+                if (sameClient)
+                    socket.Dialog(db => db.MsgLine($"You client opened another connection, this connection is being downgraded. Your tier is used on the new connection"));
+                else
+                    socket.Dialog(db => db.MsgLine($"You connected from somewhere else with the same minecraft account, this connection is being downgraded. You can try to avoid this by using /cofl logout"));
                 socket.sessionLifesycle.UpdateConnectionTier(AccountTier.NONE);
                 span.Log(JsonConvert.SerializeObject(sessions));
                 return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
