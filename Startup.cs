@@ -78,6 +78,7 @@ public class Startup
         services.AddSingleton<CircumventTracker>();
         services.AddSingleton<IBlockedService, BlockedService>();
         services.AddSingleton<Sniper.Client.Api.IAuctionApi, Sniper.Client.Api.AuctionApi>(s => new Sniper.Client.Api.AuctionApi(Configuration["SNIPER_BASE_URL"]));
+        services.AddSingleton<McConnect.Api.IConnectApi, McConnect.Api.ConnectApi>(s => new McConnect.Api.ConnectApi(Configuration["MCCONNECT_BASE_URL"]));
         services.AddSingleton<HypixelItemService>();
         services.AddSingleton<IHypixelItemStore, HypixelItemService>(di=>di.GetRequiredService<HypixelItemService>());
         services.AddSingleton<System.Net.Http.HttpClient>();
