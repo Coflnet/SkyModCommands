@@ -13,7 +13,7 @@ public class UnVerifyCommand : McCommand
     {
         var accountsTask = socket.sessionLifesycle.GetMinecraftAccountUuids();
         var passedName = arguments.Trim('"');
-        var uuid = await GetUserIdFromMcName(socket, passedName);
+        var uuid = await socket.GetPlayerUuid(passedName);
         var accounts = (await accountsTask).ToHashSet();
         if (!accounts.Contains(uuid))
         {
