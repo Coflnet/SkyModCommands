@@ -31,14 +31,14 @@ public class UnVerifyCommand : McCommand
         var user = await connectApi.ConnectMinecraftMcUuidGetAsync(uuid);
         if (user.ExternalId == socket.AccountInfo.UserId)
         {
-            socket.Dialog(db => db.MsgLine("You can't unverify your own account."));
+            socket.Dialog(db => db.MsgLine("The account needs to be most recently used with another gmail."));
             return;
         }
         var premiumService = socket.GetService<PremiumService>();
         var isPremium = await premiumService.ExpiresWhen(user.ExternalId);
         if (isPremium > DateTime.UtcNow + TimeSpan.FromDays(7))
         {
-            socket.Dialog(db => db.MsgLine("The new account doesn't have more than 7 days of premium left, thats required to proof its not a throwaway account."));
+            socket.Dialog(db => db.MsgLine("The gmail account the account was most recently used on doesn't have more than 7 days of premium left. Thats required to proof its not a throwaway account."));
             return;
         }
         await connectApi.ConnectUserUserIdMcUuidDeleteAsync(user.ExternalId, uuid);
