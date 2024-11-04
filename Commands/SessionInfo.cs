@@ -18,8 +18,8 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public string SessionId = "";
         public bool ListeningToChat;
-        public string McName;
-        public string McUuid = string.Empty;
+        public string McName { get; set; }
+        public string McUuid { get; set; } = string.Empty;
         /// <summary>
         /// List of all minecraft uuids the user has verified
         /// </summary>

@@ -14,6 +14,7 @@ using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.ModCommands.Tutorials;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using NUnit.Framework;
 using RestSharp;
 using WebSocketSharp;
 
@@ -340,6 +341,16 @@ namespace Coflnet.Sky.Commands.MC
                     backups.Add(new BackupEntry() { Name = name, settings = current });
                     await BackupCommand.SaveBackupList(socket, backups);
                     await ConfigsCommand.Unloadconfig(socket);
+
+                    if (AccountSettings.Value.LoadedConfig?.Name == null)
+                        return;
+                    var loaded = AccountSettings.Value.LoadedConfig;
+                    if (!string.IsNullOrEmpty(loaded.Name) && loaded.Name == settings.PublishedAs)
+                        return; // updated config
+                    using var activity = socket.CreateActivity("backup", ConSpan).Log("created backup");
+                    activity.Log($"previous config was {loaded.Name}, new one is {settings.PublishedAs}");
+                    await ConfigsCommand.Unloadconfig(socket);
+                    socket.SendMessage("Unloaded previous config you won't get automatic updates anymore.");
                 }, "multiple settings warning");
             }
         }
@@ -661,7 +672,7 @@ namespace Coflnet.Sky.Commands.MC
             var badSellers =
                 socket.LastSent.Where(s => s.TargetPrice > s.Auction.StartingBid * 9
                             && !preApiService.IsSold(s.Auction.Uuid))
-                .GroupBy(s => s.Auction.AuctioneerId + s.Auction.Tag).Where(g => g.Count() >= 3 && g.Max(a=>a.Auction.Start) > DateTime.UtcNow - TimeSpan.FromMinutes(2))
+                .GroupBy(s => s.Auction.AuctioneerId + s.Auction.Tag).Where(g => g.Count() >= 3 && g.Max(a => a.Auction.Start) > DateTime.UtcNow - TimeSpan.FromMinutes(2))
                 .ToList();
             if (badSellers.Any())
             {
