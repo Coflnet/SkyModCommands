@@ -20,7 +20,7 @@ namespace Coflnet.Sky.Commands.MC
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            var searchVal = JsonConvert.DeserializeObject<string>(arguments).ToLower();
+            var searchVal = JsonConvert.DeserializeObject<string>(arguments)?.ToLower();
 
             if (Guid.TryParse(searchVal, out var auctionUUid))
             {
