@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -38,6 +39,10 @@ public class LoadConfigCommand : ArgumentsCommand
         socket.Dialog(db => db.MsgLine($"§6{toLoad.Value.Name} §7v{toLoad.Value.Version} §6loaded"));
         inOwnerShip.ChangeNotes = toLoad.Value.ChangeNotes;
         inOwnerShip.Version = toLoad.Value.Version;
+        if(socket.sessionLifesycle.AccountSettings.Value == null)
+        {
+            throw new CoflnetException("missing_account_settings", "Account settings not loaded, please try reconnecting");
+        }
 
         socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = inOwnerShip;
         await socket.sessionLifesycle.AccountSettings.Update();

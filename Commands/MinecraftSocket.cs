@@ -28,7 +28,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public long Id { get; private set; }
 
-        public SessionInfo SessionInfo { get;  } = new SessionInfo();
+        public SessionInfo SessionInfo { get; } = new SessionInfo();
 
         public FlipSettings Settings => sessionLifesycle?.FlipSettings;
         public AccountInfo AccountInfo => sessionLifesycle?.AccountInfo;
@@ -376,6 +376,7 @@ namespace Coflnet.Sky.Commands.MC
 
             ModAdapter = Version switch
             {
+                "1.6.0" => new BinGuiVersionAdapter(this),
                 "1.5.6-Alpha" => new BinGuiVersionAdapter(this),
                 "1.5.5-Alpha" => new BinGuiVersionAdapter(this),
                 "1.5.4-Alpha" => new BinGuiVersionAdapter(this),
@@ -670,6 +671,11 @@ namespace Coflnet.Sky.Commands.MC
             }
             try
             {
+                if (ModAdapter is BinGuiVersionAdapter && Version.StartsWith("1.6"))
+                {
+                    ModAdapter.SendMessage(new ChatPart(text, clickAction, hoverText));
+                    return;
+                }
                 Send(Response.Create("writeToChat", new { text, onClick = clickAction, hover = hoverText }));
             }
             catch (Exception e)
