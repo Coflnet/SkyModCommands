@@ -38,8 +38,11 @@ namespace Coflnet.Sky.Commands.MC
             await Task.Delay(2000).ConfigureAwait(false);
             // repost 
             CreateReport(socket, arguments, singleReportSpan, out string generalspanId);
-            var inventory = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
-            using var x = socket.CreateActivity("inventory", singleReportSpan).Log(JsonConvert.SerializeObject(inventory));
+            if (socket.ModAdapter is not AfVersionAdapter)
+            {
+                var inventory = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
+                using var x = socket.CreateActivity("inventory", singleReportSpan).Log(JsonConvert.SerializeObject(inventory));
+            }
         }
 
         private static void CreateReport(MinecraftSocket socket, string arguments, Activity parentSpan, out string spanId)
@@ -76,7 +79,8 @@ namespace Coflnet.Sky.Commands.MC
                     blockedSpan.Log(JsonConvert.SerializeObject(socket.TopBlocked?.OrderByDescending(b => b.Now).Select(b => $"{b.Flip.Auction.Uuid} {b.Now} {b.Reason}\n").Skip(i * 25).Take(25), Formatting.Indented));
             using (var lastSentSpan = socket.CreateActivity("lastSent", reportSpan))
             {
-                var toBeLogged = socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20).Select(f => {
+                var toBeLogged = socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(20).Select(f =>
+                {
                     f.Auction.CoopMembers?.Clear();
                     f.Auction.NbtData = null;
                     f.Auction.Enchantments = null;
