@@ -12,6 +12,14 @@ public class UpgradePlanCommand : PurchaseCommand
     {
         var transactionsApi = socket.GetService<ITransactionApi>();
         var userApi = socket.GetService<UserApi>();
+        if(socket.sessionLifesycle.TierManager.IsLicense)
+        {
+            socket.Dialog(db => db.MsgLine("Your connection is using a license. Licenses can't be upgraded. If you want a higher tier you will have to buy a new one.")
+                .CoflCommand<LicensesCommand>("Buy a prem+", 
+                    $"add {socket.SessionInfo.McName} premium_plus {socket.SessionInfo.ConnectionId}", 
+                    $"Click to buy a new license for {socket.SessionInfo.McName}"));
+            return;
+        }
         var recentTransactions = await transactionsApi.TransactionUUserIdGetAsync(socket.UserId, 0, 10);
         var timeAllowed = TimeSpan.FromHours(1);
         if (recentTransactions.Any(t => t.ProductId == "test-premium" && t.TimeStamp > DateTime.UtcNow.AddDays(-3)))

@@ -17,6 +17,8 @@ public interface IAccountTierManager : IDisposable
     Task<AccountTier> GetCurrentCached();
     DateTime ExpiresAt { get; }
     string? DefaultAccount { get; }
+    bool IsLicense { get; }
+
     string GetSessionInfo();
     Task RefreshTier();
     bool IsConnectedFromOtherAccount(out string otherAccount, out AccountTier tier);
@@ -36,6 +38,8 @@ public class AccountTierManager : IAccountTierManager
     public DateTime ExpiresAt => expiresAt;
 
     public string? DefaultAccount => activeSessions?.Value.UseAccountTierOn;
+
+    public bool IsLicense { get; private set; }
 
     public AccountTierManager(IMinecraftSocket socket, IAuthUpdate loginNotification)
     {
@@ -205,12 +209,16 @@ public class AccountTierManager : IAccountTierManager
         span.Log($"Licenses {JsonConvert.SerializeObject(licenses)}");
         span.Log($"Sessions {JsonConvert.SerializeObject(sessions)}");
         var useEmailOnThisCon = (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon);
+        IsLicense = false;
         if (thisAccount.Any())
         {
             Console.WriteLine($"Licenses for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(thisAccount)}");
             var premPlus = thisAccount.FirstOrDefault(l => l.ProductSlug == "premium_plus");
             if (premPlus != null && (IsNotPreApi(expires) || !useEmailOnThisCon))
+            {
+                IsLicense = true;
                 return (AccountTier.PREMIUM_PLUS, premPlus.Expires);
+            }
         }
         if (useEmailOnThisCon && expires.Item1 > AccountTier.NONE)
         {
@@ -218,6 +226,7 @@ public class AccountTierManager : IAccountTierManager
         }
         if (thisAccount.Any())
         {
+            IsLicense = true;
             // active account may be prem+ which takes priority
             return (AccountTier.PREMIUM, thisAccount.First().Expires);
         }
