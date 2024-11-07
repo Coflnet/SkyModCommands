@@ -11,12 +11,13 @@ namespace Coflnet.Sky.Commands.MC
     }
     public class SpamController : ISpamController
     {
-        private int SentSinceReset = 0;
+        private int _sinceReset = 0;
+        public int SentSinceReset => _sinceReset;
         private long HighestValue = 0;
 
         public void Reset()
         {
-            SentSinceReset = 0;
+            _sinceReset = 0;
             HighestValue = 0;
         }
 
@@ -27,7 +28,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (HighestValue > auction.Profit && auction.Finder != Core.LowPricedAuction.FinderType.USER)
                     return false;
             }
-            Interlocked.Increment(ref SentSinceReset);
+            Interlocked.Increment(ref _sinceReset);
             HighestValue = Math.Max(auction.Profit, HighestValue);
             return true;
         }

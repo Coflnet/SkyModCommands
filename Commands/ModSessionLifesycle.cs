@@ -37,7 +37,7 @@ namespace Coflnet.Sky.Commands.MC
         public IAccountTierManager TierManager;
         public Activity ConSpan => socket.ConSpan;
         public Timer PingTimer;
-        private SpamController spamController = new SpamController();
+        public SpamController spamController { get; private set; } = new SpamController();
         public IDelayHandler DelayHandler { get; set; }
         public VerificationHandler VerificationHandler;
         public FlipProcesser FlipProcessor;
