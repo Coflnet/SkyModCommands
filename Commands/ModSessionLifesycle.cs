@@ -279,6 +279,10 @@ namespace Coflnet.Sky.Commands.MC
                     var expression = item.GetExpression(socket.SessionInfo);
                     expression.Compile()(testFlip);
                 }
+                catch (CoflnetException e)
+                {
+                    WhichBLEntryCommand.SendRemoveMessage(socket, item, e.Message, whiteList);
+                }
                 catch (Exception e)
                 {
                     if (item.filter.Any(f => f.Key.ToLower() == "seller"))
