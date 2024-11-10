@@ -491,7 +491,7 @@ namespace Coflnet.Sky.Commands.MC
                 SessionInfo.McName = await GetPlayerName(passedId);
             else
                 uuid = await GetPlayerUuid(passedId, true);
-            if (SessionInfo.McName == null || uuid == null)
+            if (SessionInfo.McName == null || string.IsNullOrEmpty(uuid))
             {
                 loadSpan?.SetTag("loading", "externally");
                 try
