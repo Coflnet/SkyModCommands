@@ -41,7 +41,16 @@ public class UnVerifyCommand : McCommand
             socket.Dialog(db => db.MsgLine("The gmail account the account was most recently used on doesn't have more than 7 days of premium left. Thats required to proof its not a throwaway account."));
             return;
         }
-        await connectApi.ConnectUserUserIdMcUuidDeleteAsync(user.ExternalId, uuid);
+        try
+        {
+            await connectApi.ConnectUserUserIdMcUuidDeleteAsync(user.ExternalId, uuid);
+        }
+        catch (McConnect.Client.ApiException e)
+        {
+            socket.Dialog(db => db.MsgLine("An error occured while unverifying the account.")
+                    .MsgLine(e.Message));
+            return;
+        }
         socket.Dialog(db => db.MsgLine("Account unverified, have a nice day."));
     }
 }

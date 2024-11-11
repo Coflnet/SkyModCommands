@@ -496,7 +496,6 @@ namespace Coflnet.Sky.Commands.MC
                 loadSpan?.SetTag("loading", "externally");
                 try
                 {
-
                     var profile = await PlayerSearch.Instance.GetMcProfile(passedId);
                     uuid = profile.Id;
                     SessionInfo.McName = profile.Name;
