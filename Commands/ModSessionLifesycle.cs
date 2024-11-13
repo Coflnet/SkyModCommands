@@ -632,6 +632,10 @@ namespace Coflnet.Sky.Commands.MC
             while (socket.TopBlocked.Count > max)
                 socket.TopBlocked.TryDequeue(out _);
             spamController.Reset();
+            if(socket.ConSpan.Duration > TimeSpan.FromHours(1))
+            {
+                socket.StartNewConnectionSpan();
+            }
         }
 
         private void SendPing()

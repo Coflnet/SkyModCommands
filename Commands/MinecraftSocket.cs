@@ -284,7 +284,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override void OnOpen()
         {
-            ConSpan = CreateActivity("connection") ?? new Activity("connection");
+            StartNewConnectionSpan();
             SendMessage(COFLNET + "§7Established connection, loading settings...",
                         $"https://discord.gg/wvKXfTgCfb",
                         "Attempting to load your settings on " + System.Net.Dns.GetHostName() + " conId: " + ConSpan.Context.TraceId);
@@ -300,12 +300,28 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     Error(e, "starting connection");
                 }
-            }, new CancellationTokenSource(TimeSpan.FromHours(1)).Token).ConfigureAwait(false);
+            }, new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token).ConfigureAwait(false);
 
             Console.CancelKeyPress += OnApplicationStop;
 
             NextUpdateStart -= TenSecBeforeUpdate;
             NextUpdateStart += TenSecBeforeUpdate;
+        }
+
+        public void StartNewConnectionSpan()
+        {
+            var previous = ConSpan;
+            ConSpan = CreateActivity("connection") ?? new Activity("connection");
+            if(previous != null)
+            {
+                using var span = CreateActivity("previous", ConSpan);
+                span?.SetTag("previous", previous.Context.TraceId);
+                using(var previousSpan = CreateActivity("previous", previous))
+                {
+                    previousSpan?.SetTag("next", ConSpan.Context.TraceId);
+                }
+                previous.Dispose();
+            }
         }
 
         protected override void OnError(ErrorEventArgs e)
