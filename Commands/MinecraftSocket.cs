@@ -260,7 +260,7 @@ namespace Coflnet.Sky.Commands.MC
                 using var updateSpan = DiHandler.ServiceProvider.GetRequiredService<ActivitySource>().StartActivity();
                 DateTime next = await GetNext10SecTime();
                 updateSpan?.SetTag("time", next.ToString(CultureInfo.InvariantCulture));
-                tenSecTimer.Change(next - DateTime.UtcNow, TimeSpan.FromMinutes(1));
+                tenSecTimer?.Change(next - DateTime.UtcNow, TimeSpan.FromMinutes(1));
             }, new CancellationTokenSource(15000).Token);
         }
 
@@ -641,7 +641,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             TryAsyncTimes(async () =>
             {
-                var auctionUuid = JsonConvert.DeserializeObject<string>(a.data)?.Trim('"').Replace("/viewauction ", "");
+                var auctionUuid = JsonConvert.DeserializeObject<string>(a!.data)?.Trim('"').Replace("/viewauction ", "");
                 var flip = LastSent.Where(f => f.Auction.Uuid == auctionUuid).FirstOrDefault();
                 if (flip != null && flip.Auction.Context != null && !flip.AdditionalProps.ContainsKey("clickT"))
                     flip.AdditionalProps["clickT"] = (DateTime.UtcNow - flip.Auction.FindTime).ToString();
@@ -946,7 +946,7 @@ namespace Coflnet.Sky.Commands.MC
                 }, "reloading tier");
 
             }
-            if (AccountInfo.BadActionCount > 0 || AccountInfo.Region == "us" && Random.Shared.NextDouble() < 0.1)
+            if (AccountInfo?.BadActionCount > 0 || AccountInfo?.Region == "us" && Random.Shared.NextDouble() < 0.1)
             {
                 using var track = CreateActivity("skipCheck", timer)?.AddTag("actioncount", AccountInfo.BadActionCount);
                 if (sessionLifesycle.UserId.Value == default)
