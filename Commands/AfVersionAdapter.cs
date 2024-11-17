@@ -127,9 +127,9 @@ public class AfVersionAdapter : ModVersionAdapter
         var minProfitPercent = socket.Settings?.MinProfitPercent ?? 0;
         if (socket.SessionInfo.AhSlotsOpen < 2)
             minProfitPercent = Math.Max(9, minProfitPercent);
-        if (flip.Finder != LowPricedAuction.FinderType.USER && flip.ProfitPercentage < minProfitPercent)
+        if (flip.Finder != LowPricedAuction.FinderType.USER && flip.ProfitPercentage < minProfitPercent && flip.Target < 10_000_000)
         {
-            Activity.Current?.SetTag("blocked", $"profitpercent too low {flip.ProfitPercentage} < {minProfitPercent}");
+            Activity.Current?.SetTag("blocked", $"profitpercent too low {flip.ProfitPercentage} < {minProfitPercent} | {flip.Finder} {flip.Auction.StartingBid} -> {flip.Target}");
             return true;
         }
         var preService = socket.GetService<IIsSold>();
