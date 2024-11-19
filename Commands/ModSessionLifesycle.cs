@@ -233,6 +233,10 @@ namespace Coflnet.Sky.Commands.MC
             if (settings == null)
                 return;
             var testFlip = BlacklistCommand.GetTestFlip("test");
+            if(settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.CraftCost))
+                testFlip.Finder = LowPricedAuction.FinderType.CraftCost;
+            if(settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.SNIPER_MEDIAN))
+                testFlip.Finder = LowPricedAuction.FinderType.SNIPER_MEDIAN;
             try
             {
                 if (settings.BasedOnLBin && settings.AllowedFinders != LowPricedAuction.FinderType.SNIPER)
