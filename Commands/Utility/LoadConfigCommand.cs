@@ -14,32 +14,17 @@ public class LoadConfigCommand : ArgumentsCommand
     {
         var owner = args["ownerId"];
         var name = args["configName"];
-        var key = SellConfigCommand.GetKeyFromname(name);
         var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
-        OwnedConfigs.OwnedConfig inOwnerShip = GetOwnership(owner, name, ownedConfigs);
-        if (inOwnerShip == default)
-        {
-            socket.SendMessage("You don't own this config.");
-            return;
-        }
-        if (!int.TryParse(owner, out _))
-        {
-            owner = inOwnerShip.OwnerId;
-        }
-        var toLoad = await SelfUpdatingValue<ConfigContainer>.Create(owner, key, () => null);
-        if (toLoad.Value == null)
-        {
-            socket.SendMessage("The config doesn't exist.");
-            return;
-        }
-        toLoad.Value.Settings.BlockExport = toLoad.Value.OwnerId != socket.UserId;
+        OwnedConfigs.OwnedConfig inOwnerShip = GetOwnership(ref owner, name, ownedConfigs);
+        ConfigContainer settings = await GetConfig(owner, name);
+        settings.Settings.BlockExport = settings.OwnerId != socket.UserId;
 
-        FlipFilter.CopyRelevantToNew(toLoad.Value.Settings, socket.sessionLifesycle.FlipSettings);
-        await socket.sessionLifesycle.FlipSettings.Update(toLoad.Value.Settings);
-        socket.Dialog(db => db.MsgLine($"§6{toLoad.Value.Name} §7v{toLoad.Value.Version} §6loaded"));
-        inOwnerShip.ChangeNotes = toLoad.Value.ChangeNotes;
-        inOwnerShip.Version = toLoad.Value.Version;
-        if(socket.sessionLifesycle.AccountSettings.Value == null)
+        FlipFilter.CopyRelevantToNew(settings.Settings, socket.sessionLifesycle.FlipSettings);
+        await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
+        socket.Dialog(db => db.MsgLine($"§6{settings.Name} §7v{settings.Version} §6loaded"));
+        inOwnerShip.ChangeNotes = settings.ChangeNotes;
+        inOwnerShip.Version = settings.Version;
+        if (socket.sessionLifesycle.AccountSettings.Value == null)
         {
             throw new CoflnetException("missing_account_settings", "Account settings not loaded, please try reconnecting");
         }
@@ -49,7 +34,7 @@ public class LoadConfigCommand : ArgumentsCommand
         await ownedConfigs.Update(); // update used version
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
 
-        var configId = toLoad.Value.Settings.BasedConfig;
+        var configId = settings.Settings.BasedConfig;
         if (string.IsNullOrWhiteSpace(configId))
             return;
 
@@ -67,8 +52,8 @@ public class LoadConfigCommand : ArgumentsCommand
             return;
         }
 
-        CopyIfFlagged(baseConfig.Value.Settings.BlackList, toLoad.Value.Settings.BlackList);
-        CopyIfFlagged(baseConfig.Value.Settings.WhiteList, toLoad.Value.Settings.WhiteList);
+        CopyIfFlagged(baseConfig.Value.Settings.BlackList, settings.Settings.BlackList);
+        CopyIfFlagged(baseConfig.Value.Settings.WhiteList, settings.Settings.WhiteList);
         void CopyIfFlagged(List<ListEntry> oldList, List<ListEntry> newList)
         {
             foreach (var filter in oldList)
@@ -81,10 +66,37 @@ public class LoadConfigCommand : ArgumentsCommand
                 newList.Add(filter);
             }
         }
-        await socket.sessionLifesycle.FlipSettings.Update(toLoad.Value.Settings);
+        await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
         socket.Dialog(db => db.MsgLine($"§6{baseConfig.Value.Name} §7v{baseConfig.Value.Version} §6loaded (BaseConfig)"));
 
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
+    }
+
+    private static OwnedConfigs.OwnedConfig GetOwnership(ref string owner, string name, SelfUpdatingValue<OwnedConfigs> ownedConfigs)
+    {
+        OwnedConfigs.OwnedConfig inOwnerShip = GetOwnership(owner, name, ownedConfigs);
+        if (inOwnerShip == default)
+        {
+            throw new CoflnetException("not_owned", "You don't own this config.");
+        }
+        if (!int.TryParse(owner, out _))
+        {
+            owner = inOwnerShip.OwnerId;
+        }
+
+        return inOwnerShip;
+    }
+
+    private static async Task<ConfigContainer> GetConfig(string owner, string name)
+    {
+        var key = SellConfigCommand.GetKeyFromname(name);
+        var toLoad = await SelfUpdatingValue<ConfigContainer>.Create(owner, key, () => null);
+        if (toLoad.Value == null)
+        {
+            throw new CoflnetException("not_found", "The config doesn't exist.");
+        }
+        var settings = toLoad.Value;
+        return settings;
     }
 
     private static OwnedConfigs.OwnedConfig GetOwnership(string owner, string name, SelfUpdatingValue<OwnedConfigs> ownedConfigs)
