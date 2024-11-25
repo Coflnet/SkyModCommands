@@ -19,7 +19,12 @@ public class LoadConfigCommand : ArgumentsCommand
         OwnedConfigs.OwnedConfig inOwnerShip = GetOwnership(owner, name, ownedConfigs);
         if (!int.TryParse(owner, out _))
         {
-            owner = inOwnerShip.OwnerId;
+            if (inOwnerShip == default)
+            {
+                owner = await GetUserIdFromMcName(socket, owner);
+            }
+            else
+                owner = inOwnerShip.OwnerId;
         }
         ConfigContainer settings = await GetConfig(owner, name);
         if (inOwnerShip == default)
