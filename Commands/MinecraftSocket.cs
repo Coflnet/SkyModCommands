@@ -320,7 +320,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     previousSpan?.SetTag("next", ConSpan.Context.TraceId);
                 }
-                previous.Dispose();
+                previous?.Dispose();
             }
         }
 

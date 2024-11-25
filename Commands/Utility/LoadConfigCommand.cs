@@ -15,8 +15,24 @@ public class LoadConfigCommand : ArgumentsCommand
         var owner = args["ownerId"];
         var name = args["configName"];
         var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
-        OwnedConfigs.OwnedConfig inOwnerShip = GetOwnership(ref owner, name, ownedConfigs);
+        OwnedConfigs.OwnedConfig inOwnerShip = GetOwnership(owner, name, ownedConfigs);
         ConfigContainer settings = await GetConfig(owner, name);
+        if (inOwnerShip == default)
+        {
+            if (settings.Price == 0)
+            {
+                inOwnerShip = MakeConfigOwned(owner, ownedConfigs, settings);
+            }
+            else
+            {
+                socket.Dialog(db => db.CoflCommand<BuyConfigCommand>($"You don't own this config. {McColorCodes.GOLD}[buy it]", $"{owner} {name}", "Buy the config to use it"));
+                return;
+            }
+        }
+        if (!int.TryParse(owner, out _))
+        {
+            owner = inOwnerShip.OwnerId;
+        }
         settings.Settings.BlockExport = settings.OwnerId != socket.UserId;
 
         FlipFilter.CopyRelevantToNew(settings.Settings, socket.sessionLifesycle.FlipSettings);
@@ -72,18 +88,20 @@ public class LoadConfigCommand : ArgumentsCommand
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
     }
 
-    private static OwnedConfigs.OwnedConfig GetOwnership(ref string owner, string name, SelfUpdatingValue<OwnedConfigs> ownedConfigs)
+    private static OwnedConfigs.OwnedConfig MakeConfigOwned(string owner, SelfUpdatingValue<OwnedConfigs> ownedConfigs, ConfigContainer settings)
     {
-        OwnedConfigs.OwnedConfig inOwnerShip = GetOwnership(owner, name, ownedConfigs);
-        if (inOwnerShip == default)
+        // implicitly buy the config
+        OwnedConfigs.OwnedConfig inOwnerShip = new OwnedConfigs.OwnedConfig
         {
-            throw new CoflnetException("not_owned", "You don't own this config.");
-        }
-        if (!int.TryParse(owner, out _))
-        {
-            owner = inOwnerShip.OwnerId;
-        }
-
+            Name = settings.Name,
+            OwnerId = settings.OwnerId,
+            Version = settings.Version,
+            ChangeNotes = settings.ChangeNotes,
+            BoughtAt = System.DateTime.UtcNow,
+            OwnerName = owner,
+            PricePaid = 0
+        };
+        ownedConfigs.Value.Configs.Add(inOwnerShip);
         return inOwnerShip;
     }
 
