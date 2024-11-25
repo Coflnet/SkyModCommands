@@ -67,19 +67,31 @@ public class LoadConfigCommand : ArgumentsCommand
                 .CoflCommand<BuyConfigCommand>($"[click to buy]", $"{baseConfig.Value.OwnerId} {baseConfig.Value.Name}", "Buy the base config to use this config\nLoad it afterwards"));
             return;
         }
-
         CopyIfFlagged(baseConfig.Value.Settings.BlackList, settings.Settings.BlackList);
         CopyIfFlagged(baseConfig.Value.Settings.WhiteList, settings.Settings.WhiteList);
         void CopyIfFlagged(List<ListEntry> oldList, List<ListEntry> newList)
         {
+            var loadConfigLookup = newList.ToLookup(e => GetFilterKey(e));
             foreach (var filter in oldList)
             {
+                if (loadConfigLookup.Contains(GetFilterKey(filter)))
+                {
+                    continue;
+                }
                 if (filter.Tags == null)
                 {
                     filter.Tags = new List<string>();
                 }
                 filter.Tags.Add("from BaseConfig");
                 newList.Add(filter);
+            }
+
+            static string GetFilterKey(ListEntry e)
+            {
+                var minProfit = CamelCaseNameDictionary<DetailedFlipFilter>.GetCleardName<MinProfitDetailedFlipFilter>();
+                var profitPercentage = CamelCaseNameDictionary<DetailedFlipFilter>.GetCleardName<ProfitPercentageDetailedFlipFilter>();
+                var relevantFilters = e.filter.Where(f => !f.Key.Equals(minProfit, System.StringComparison.OrdinalIgnoreCase) && !f.Key.Equals(profitPercentage, System.StringComparison.OrdinalIgnoreCase));
+                return e.ItemTag + string.Join(',', e.Tags) + string.Join(',', relevantFilters.Select(f => $"{f.Key}={f.Value}"));
             }
         }
         await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
