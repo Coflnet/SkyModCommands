@@ -96,8 +96,8 @@ public class LoadConfigCommand : ArgumentsCommand
             {
                 var minProfit = CamelCaseNameDictionary<DetailedFlipFilter>.GetCleardName<MinProfitDetailedFlipFilter>();
                 var profitPercentage = CamelCaseNameDictionary<DetailedFlipFilter>.GetCleardName<ProfitPercentageDetailedFlipFilter>();
-                var relevantFilters = e.filter.Where(f => !f.Key.Equals(minProfit, System.StringComparison.OrdinalIgnoreCase) && !f.Key.Equals(profitPercentage, System.StringComparison.OrdinalIgnoreCase));
-                return e.ItemTag + string.Join(',', e.Tags) + string.Join(',', relevantFilters.Select(f => $"{f.Key}={f.Value}"));
+                var relevantFilters = e.filter?.Where(f => !f.Key.Equals(minProfit, System.StringComparison.OrdinalIgnoreCase) && !f.Key.Equals(profitPercentage, System.StringComparison.OrdinalIgnoreCase));
+                return e.ItemTag + string.Join(',', e.Tags ?? []) + string.Join(',', relevantFilters?.Select(f => $"{f.Key}={f.Value}") ?? []);
             }
         }
         await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
