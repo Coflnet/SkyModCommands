@@ -13,25 +13,26 @@ public class LoadConfigCommand : ArgumentsCommand
     protected override async Task Execute(IMinecraftSocket socket, Arguments args)
     {
         var owner = args["ownerId"];
+        var ownerName = owner;
         var name = args["configName"];
         var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
         OwnedConfigs.OwnedConfig inOwnerShip = GetOwnership(owner, name, ownedConfigs);
+        if (!int.TryParse(owner, out _))
+        {
+            owner = inOwnerShip.OwnerId;
+        }
         ConfigContainer settings = await GetConfig(owner, name);
         if (inOwnerShip == default)
         {
             if (settings.Price == 0)
             {
-                inOwnerShip = MakeConfigOwned(owner, ownedConfigs, settings);
+                inOwnerShip = MakeConfigOwned(ownerName, ownedConfigs, settings);
             }
             else
             {
                 socket.Dialog(db => db.CoflCommand<BuyConfigCommand>($"You don't own this config. {McColorCodes.GOLD}[buy it]", $"{owner} {name}", "Buy the config to use it"));
                 return;
             }
-        }
-        if (!int.TryParse(owner, out _))
-        {
-            owner = inOwnerShip.OwnerId;
         }
         settings.Settings.BlockExport = settings.OwnerId != socket.UserId;
 
@@ -100,7 +101,7 @@ public class LoadConfigCommand : ArgumentsCommand
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
     }
 
-    private static OwnedConfigs.OwnedConfig MakeConfigOwned(string owner, SelfUpdatingValue<OwnedConfigs> ownedConfigs, ConfigContainer settings)
+    private static OwnedConfigs.OwnedConfig MakeConfigOwned(string ownerName, SelfUpdatingValue<OwnedConfigs> ownedConfigs, ConfigContainer settings)
     {
         // implicitly buy the config
         OwnedConfigs.OwnedConfig inOwnerShip = new OwnedConfigs.OwnedConfig
@@ -110,7 +111,7 @@ public class LoadConfigCommand : ArgumentsCommand
             Version = settings.Version,
             ChangeNotes = settings.ChangeNotes,
             BoughtAt = System.DateTime.UtcNow,
-            OwnerName = owner,
+            OwnerName = ownerName,
             PricePaid = 0
         };
         ownedConfigs.Value.Configs.Add(inOwnerShip);
