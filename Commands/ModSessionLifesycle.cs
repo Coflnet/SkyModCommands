@@ -636,7 +636,7 @@ namespace Coflnet.Sky.Commands.MC
             while (socket.TopBlocked.Count > max)
                 socket.TopBlocked.TryDequeue(out _);
             spamController.Reset();
-            if(socket.ConSpan.Duration > TimeSpan.FromHours(1))
+            if(socket.ConSpan.Duration > TimeSpan.FromHours(0.1))
             {
                 socket.StartNewConnectionSpan();
             }
