@@ -19,12 +19,19 @@ public class LoadFlipHistory : McCommand
             throw new CoflnetException("not_verified", "You need to verify your minecraft account before executing this command.");
         var args = JsonConvert.DeserializeObject<string>(arguments);
         var playerId = args.Split(' ')[0];
+        var allowedAccounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+        if (playerId.Length > 3 && playerId.Length < 30)
+            playerId = (await socket.GetPlayerUuid(playerId)).Trim('"');
         if (int.TryParse(args.Split(' ').Last(), out var days) && !args.Contains(' ') || args.Length < 3)
         {
             playerId = socket.SessionInfo.McUuid;
         }
+        else if (allowedAccounts.Contains(playerId))
+        {
+            // nothing more todo
+        }
         else if (!socket.GetService<ModeratorService>().IsModerator(socket))
-            throw new CoflnetException("forbidden", "You are not allowed to do this");
+            throw new CoflnetException("forbidden", "You are not allowed to do update accounts you didn't verify");
         if (days == 0)
             days = 7;
         var redis = socket.GetService<ConnectionMultiplexer>();
@@ -35,8 +42,6 @@ public class LoadFlipHistory : McCommand
         }
         await redis.GetDatabase().StringSetAsync("flipreload" + playerId, "true", TimeSpan.FromMinutes(10));
         socket.SendMessage(COFLNET + $"Started refreshing flips of {playerId} for {days} days", null, "this might take a while");
-        if (playerId.Length < 30)
-            playerId = (await socket.GetPlayerUuid(playerId)).Trim('"');
 
         var config = socket.GetService<IConfiguration>();
         var creator = socket.GetService<Kafka.KafkaCreator>();
