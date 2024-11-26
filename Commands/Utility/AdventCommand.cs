@@ -18,20 +18,13 @@ public class AdventCommand : McCommand
 
     public AdventCommand()
     {
-        var mapping = new MappingConfiguration().Define(
-                new Map<AdventAnswer>()
-                    .PartitionKey(f => f.Day)
-                    .ClusteringKey(f => f.UserId)
-            );
-        answers = new Table<AdventAnswer>(DiHandler.GetService<ISession>(), mapping);
     }
 
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         if (!InitRan)
         {
-            InitRan = true;
-            await answers.CreateIfNotExistsAsync();
+            await RunInit();
         }
         var currentDay = 1;// DateTime.UtcNow.Day;
         var registeredAnswer = await answers.Where(a => a.UserId == socket.UserId && a.Day == currentDay).FirstOrDefault().ExecuteAsync();
@@ -67,7 +60,7 @@ public class AdventCommand : McCommand
             var userApi = DiHandler.GetService<IUserApi>();
             var ownsCalendar = await userApi.UserUserIdOwnsProductSlugUntilGetAsync(socket.UserId, "advent-calendar");
             var reward = 5;
-            if(ownsCalendar > DateTime.UtcNow)
+            if (ownsCalendar > DateTime.UtcNow)
             {
                 reward = 50;
             }
@@ -81,15 +74,26 @@ public class AdventCommand : McCommand
             return;
         }
         var allAnswers = wrongAnswers.Append(correctAnswer).OrderBy(a => Guid.NewGuid()).ToArray();
-        socket.Dialog(db => db.MsgLine(today.QuestionText).ForEach(allAnswers, (db, a, i) => db.CoflCommand<AdventCommand>($" {McColorCodes.GRAY}{i+1} {McColorCodes.AQUA}{a}\n", a, $"Click to answer\n{a}"))
-            .Break.ForEach(allAnswers, (db, a, i) => db.CoflCommand<AdventCommand>($"{McColorCodes.GRAY}Take {McColorCodes.AQUA}{i+1} ", a, $"Click to answer\n{McColorCodes.AQUA}{a}\nand not risk chat scrolling")));
-        if(currentDay <= 2)
+        socket.Dialog(db => db.MsgLine(today.QuestionText).ForEach(allAnswers, (db, a, i) => db.CoflCommand<AdventCommand>($" {McColorCodes.GRAY}{i + 1} {McColorCodes.AQUA}{a}\n", a, $"Click to answer\n{a}"))
+            .Break.ForEach(allAnswers, (db, a, i) => db.CoflCommand<AdventCommand>($"{McColorCodes.GRAY}Take {McColorCodes.AQUA}{i + 1} ", a, $"Click to answer\n{McColorCodes.AQUA}{a}\nand not risk chat scrolling")));
+        if (currentDay <= 2)
         {
             socket.Dialog(db => db.MsgLine($"Before you answer! Would you be interested in {McColorCodes.AQUA}10x {McColorCodes.RESET}the reward for {McColorCodes.GOLD}1k CoflCoins{McColorCodes.RESET}? Thats {McColorCodes.GOLD}50 {McColorCodes.RESET}instead of {McColorCodes.AQUA}5{McColorCodes.RESET} each day")
                 .CoflCommand<PurchaseCommand>("Yes", "advent-calendar", "Click to buy 10x reward for 10x price advent calendar"));
         }
     }
 
+    private async Task RunInit()
+    {
+        InitRan = true;
+        var mapping = new MappingConfiguration().Define(
+                new Map<AdventAnswer>()
+                    .PartitionKey(f => f.Day)
+                    .ClusteringKey(f => f.UserId)
+            );
+        answers = new Table<AdventAnswer>(DiHandler.GetService<ISession>(), mapping);
+        await answers.CreateIfNotExistsAsync();
+    }
 
     public Question[] questions = [
         new() { QuestionText = "Whats the biggest GameMode on hypixel?", CorrectAnswer = "Skyblock", WrongAnswers = ["Bedwars", "Skywars"] },
