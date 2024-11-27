@@ -298,8 +298,10 @@ namespace Coflnet.Sky.Commands.MC
                 socket.LastSent.Enqueue(flip);
                 sentFlipsCount.Inc();
                 if (item.Profit > 0)
+                {
                     sentFlipProfit.Inc(item.Profit);
-                sentFlipValue.Inc(item.Target);
+                    sentFlipValue.Inc(item.Target);
+                }
                 if (Settings.DebugMode)
                     socket.SendMessage($"Sent flip {flip.Auction.ItemName} {flip.Auction.StartingBid}->{flip.TargetPrice}", $"https://sky.coflnet.com/auction/{flip.Auction.Uuid}", "Open in browser");
 
