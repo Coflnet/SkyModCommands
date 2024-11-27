@@ -180,7 +180,7 @@ public class SellConfigCommand : ArgumentsCommand
     {
         foreach (var item in whiteList.ToList())
         {
-            if (item.Tags?.Contains("BaseConfig") ?? false)
+            if (item.Tags?.Contains("from BaseConfig") ?? false)
             {
                 whiteList.Remove(item);
             }

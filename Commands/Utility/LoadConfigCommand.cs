@@ -78,6 +78,14 @@ public class LoadConfigCommand : ArgumentsCommand
         void CopyIfFlagged(List<ListEntry> oldList, List<ListEntry> newList)
         {
             var loadConfigLookup = newList.ToLookup(e => GetFilterKey(e));
+            foreach (var item in newList.ToList())
+            {
+                if(item.Tags == null || !item.Tags.Contains("from BaseConfig"))
+                {
+                    continue;
+                }
+                newList.Remove(item);
+            }
             foreach (var filter in oldList)
             {
                 if (loadConfigLookup.Contains(GetFilterKey(filter)))
