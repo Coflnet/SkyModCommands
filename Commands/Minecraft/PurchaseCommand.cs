@@ -39,14 +39,23 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
 
-
-            var adjustedProduct = await userApi.UserUserIdPriceForProductSlugGetAsync(socket.UserId.ToString(), productSlug);
-            var product = adjustedProduct.ModifiedProduct;
-            if (product == null)
+            Product product = null;
+            try
             {
-                socket.SendMessage(new DialogBuilder().MsgLine($"The product {productSlug} could not be fund"));
+                var adjustedProduct = await userApi.UserUserIdPriceForProductSlugGetAsync(socket.UserId.ToString(), productSlug);
+                product = adjustedProduct.ModifiedProduct;
+                if (product == null)
+                {
+                    socket.SendMessage(new DialogBuilder().MsgLine($"The product {productSlug} could not be fund"));
+                    return;
+                }
+            }
+            catch (Payments.Client.Client.ApiException e)
+            {
+                socket.SendMessage(new DialogBuilder().MsgLine(e.Message.Substring("Error calling UserUserIdPriceForProductSlugGet: {\"Message\":\"".Length).TrimEnd('"', '}')));
                 return;
             }
+
 
             var count = 1;
             if (parts.Length > 1)
