@@ -6,6 +6,7 @@ using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.ModCommands.Tutorials;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -35,12 +36,12 @@ public class AdventCommand : McCommand
         }
         if (DateTime.UtcNow.Month != 12)
         {
-            socket.Dialog(db => db.MsgLine("This command is only available in December"));
+            socket.Dialog(db => db.MsgLine("The adventcalendar is only available in December, try on December 1st"));
             return;
         }
         if (currentDay > questions.Length)
         {
-            socket.Dialog(db => db.MsgLine("Advent is over, Merry Christmas!"));
+            socket.Dialog(db => db.MsgLine("Advent is over, Merry Christmas!", null, "Come back next year!"));
             return;
         }
         var today = questions[currentDay - 1];
@@ -81,6 +82,7 @@ public class AdventCommand : McCommand
             socket.Dialog(db => db.MsgLine($"Before you answer! Would you be interested in {McColorCodes.AQUA}10x {McColorCodes.RESET}the reward for {McColorCodes.GOLD}1k CoflCoins{McColorCodes.RESET}? Thats {McColorCodes.GOLD}50 {McColorCodes.RESET}instead of {McColorCodes.AQUA}5{McColorCodes.RESET} each day")
                 .CoflCommand<PurchaseCommand>("Yes", "advent-calendar", "Click to buy 10x reward for 10x price advent calendar"));
         }
+        await socket.TriggerTutorial<AdventCalendarTutorial>();
     }
 
     private async Task RunInit()
