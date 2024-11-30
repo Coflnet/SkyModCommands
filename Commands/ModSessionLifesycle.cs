@@ -215,7 +215,7 @@ namespace Coflnet.Sky.Commands.MC
             Console.WriteLine("subbing to events for" + val + " from " + SessionInfo.McName);
             targetSub = socket.GetService<EventBrokerClient>().SubEvents(val, onchange =>
             {
-                SendMessage(COFLNET + onchange.Message, onchange.Link, $"Will click on\n{onchange.Link}");
+                SendMessage(COFLNET + onchange.Message, onchange.Link, string.IsNullOrEmpty(onchange.Link) ? "Has no clickable link" : $"Will click on\n{onchange.Link}");
             });
             if (val.Length != 32)
                 SessionInfo.EventBrokerUserSub = targetSub;
@@ -233,9 +233,9 @@ namespace Coflnet.Sky.Commands.MC
             if (settings == null)
                 return;
             var testFlip = BlacklistCommand.GetTestFlip("test");
-            if(settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.CraftCost))
+            if (settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.CraftCost))
                 testFlip.Finder = LowPricedAuction.FinderType.CraftCost;
-            if(settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.SNIPER_MEDIAN))
+            if (settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.SNIPER_MEDIAN))
                 testFlip.Finder = LowPricedAuction.FinderType.SNIPER_MEDIAN;
             try
             {
@@ -636,7 +636,7 @@ namespace Coflnet.Sky.Commands.MC
             while (socket.TopBlocked.Count > max)
                 socket.TopBlocked.TryDequeue(out _);
             spamController.Reset();
-            if(socket.ConSpan.Duration > TimeSpan.FromHours(0.1))
+            if (socket.ConSpan.Duration > TimeSpan.FromHours(0.1))
             {
                 socket.StartNewConnectionSpan();
             }

@@ -40,9 +40,10 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             Product product = null;
+            RuleResult adjustedProduct = null;
             try
             {
-                var adjustedProduct = await userApi.UserUserIdPriceForProductSlugGetAsync(socket.UserId.ToString(), productSlug);
+                adjustedProduct = await userApi.UserUserIdPriceForProductSlugGetAsync(socket.UserId.ToString(), productSlug);
                 product = adjustedProduct.ModifiedProduct;
                 if (product == null)
                 {
