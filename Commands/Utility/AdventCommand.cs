@@ -35,7 +35,14 @@ public class AdventCommand : McCommand
             if (registeredAnswer.Correct)
             {
                 // redo in case it didn't work
-                await HandOutReward(socket, currentDay);
+                try
+                {
+                    await HandOutReward(socket, currentDay);
+                }
+                catch (Exception)
+                {
+                    // swollow dupplicate exception
+                }
             }
             return;
         }
