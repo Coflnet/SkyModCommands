@@ -27,7 +27,7 @@ public class AdventCommand : McCommand
         {
             await RunInit();
         }
-        var currentDay = 1;// DateTime.UtcNow.Day;
+        var currentDay = DateTime.UtcNow.Day;
         var registeredAnswer = await answers.Where(a => a.UserId == socket.UserId && a.Day == currentDay).FirstOrDefault().ExecuteAsync();
         if (registeredAnswer != null)
         {
