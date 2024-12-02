@@ -32,6 +32,11 @@ public class AdventCommand : McCommand
         if (registeredAnswer != null)
         {
             socket.Dialog(db => db.MsgLine("You already answered todays question with " + registeredAnswer.Answer));
+            if (registeredAnswer.Correct)
+            {
+                // redo in case it didn't work
+                await HandOutReward(socket, currentDay);
+            }
             return;
         }
         if (DateTime.UtcNow.Month != 12)
@@ -58,20 +63,7 @@ public class AdventCommand : McCommand
                 return;
             }
             socket.Dialog(db => db.MsgLine("Correct!"));
-            var userApi = DiHandler.GetService<IUserApi>();
-            var ownsCalendar = await userApi.UserUserIdOwnsProductSlugUntilGetAsync(socket.UserId, "advent-calendar");
-            var reward = 5;
-            if (ownsCalendar > DateTime.UtcNow)
-            {
-                reward = 50;
-            }
-            var topupApi = DiHandler.GetService<ITopUpApi>();
-            await topupApi.TopUpCustomPostAsync(socket.UserId, new()
-            {
-                Amount = reward,
-                ProductId = "advent-reward",
-                Reference = $"{DateTime.UtcNow.Year}-{today}"
-            });
+            await HandOutReward(socket, currentDay);
             return;
         }
         var allAnswers = wrongAnswers.Append(correctAnswer).OrderBy(a => Guid.NewGuid()).ToArray();
@@ -83,6 +75,24 @@ public class AdventCommand : McCommand
                 .CoflCommand<PurchaseCommand>("Yes", "advent-calendar", "Click to buy 10x reward for 10x price advent calendar"));
         }
         await socket.TriggerTutorial<AdventCalendarTutorial>();
+    }
+
+    private static async Task HandOutReward(MinecraftSocket socket, int currentDay)
+    {
+        var userApi = DiHandler.GetService<IUserApi>();
+        var ownsCalendar = await userApi.UserUserIdOwnsProductSlugUntilGetAsync(socket.UserId, "advent-calendar");
+        var reward = 5;
+        if (ownsCalendar > DateTime.UtcNow)
+        {
+            reward = 50;
+        }
+        var topupApi = DiHandler.GetService<ITopUpApi>();
+        await topupApi.TopUpCustomPostAsync(socket.UserId, new()
+        {
+            Amount = reward,
+            ProductId = "advent-reward",
+            Reference = $"{DateTime.UtcNow.Year}-{currentDay}"
+        });
     }
 
     private async Task RunInit()
