@@ -61,7 +61,7 @@ public class ProxyReqSyncCommand : McCommand
 
     private void SendGlobalState(MinecraftSocket socket)
     {
-        if (lastSync < DateTime.UtcNow.AddSeconds(-10))
+        if (lastSync < DateTime.UtcNow.AddSeconds(-1))
         {
             lastSync = DateTime.UtcNow;
             var filterState = socket.GetService<FilterStateService>().State;
