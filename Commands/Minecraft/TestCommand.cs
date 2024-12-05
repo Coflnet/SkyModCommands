@@ -10,6 +10,8 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            socket.Send(Response.Create("proxy", new ProxyRequest[] { new() { uploadTo = "https://sky.coflnet.com/api/data/proxy", id = "guploadTest", url = "https://google.com" } }));
+            return;
             socket.Send(Response.Create("runSequence", new Sequence{steps=new(){
                 new (){type="execute", data="/sbmenu"},
                 new (){type="upload", data=""},
@@ -47,6 +49,13 @@ namespace Coflnet.Sky.Commands.MC
                 Context = new()
             });
         }
+    }
+
+    public class ProxyRequest
+    {
+        public string uploadTo { get; set; }
+        public string id { get; set; }
+        public string url { get; set; }
     }
 
     public class Sequence
