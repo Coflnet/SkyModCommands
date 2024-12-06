@@ -192,6 +192,7 @@ public class AccountTierManager : IAccountTierManager
                     {
                         session.Outdated = true;
                     }
+                    await Task.Delay(others.Count * 1000);
                     Console.WriteLine($"Removed {others.Count} other connections for {socket.SessionInfo.McUuid} from {socket.SessionInfo.ConnectionId}");
                     await SyncState(startValue);
                 }
