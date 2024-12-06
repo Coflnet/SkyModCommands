@@ -150,6 +150,7 @@ public class AccountTierManager : IAccountTierManager
                 MinecraftUuid = socket.SessionInfo.McUuid
             });
             Console.WriteLine($"Added session {socket.SessionInfo.ConnectionId} for {socket.SessionInfo.McUuid}");
+            await Task.Delay(sessions.Count * 500);
             await SyncState(startValue);
         }
         else
