@@ -10,6 +10,10 @@ using Coflnet.Sky.ModCommands.Tutorials;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription("Daily advent calendar",
+    "Run to get a trivia question",
+    "Answer the question to get a reward"
+)]
 public class AdventCommand : McCommand
 {
     public override bool IsPublic => DateTime.UtcNow.Month >= 11;
