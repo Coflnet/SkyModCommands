@@ -246,9 +246,11 @@ public class AccountTierManager : IAccountTierManager
         _ = socket.TryAsyncTimes(async () =>
         {
             await Task.Delay(1000);
-            Console.WriteLine("Syncing state");
-            if (startValue == activeSessions.Value)
+            Console.WriteLine("Syncing state"); // do not skip if new state does not contain current session
+            if (startValue == activeSessions.Value || activeSessions.Value?.Sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId) != true)
                 await activeSessions.Update();
+            else 
+                Activity.Current?.Log("syncState skipped");
         }, "sync state", 1);
     }
 
