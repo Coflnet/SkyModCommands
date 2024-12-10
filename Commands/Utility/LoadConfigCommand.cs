@@ -53,8 +53,12 @@ public class LoadConfigCommand : ArgumentsCommand
 
         await ownedConfigs.Update(); // update used version
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
-        socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = inOwnerShip;
-        await socket.sessionLifesycle.AccountSettings.Update();
+        _ = socket.TryAsyncTimes(async () =>
+        {
+            await Task.Delay(2000);
+            await UpdateConfig(socket, inOwnerShip);
+        }, "updateConfig", 1);
+        await UpdateConfig(socket, inOwnerShip);
 
         var configId = settings.Settings.BasedConfig;
         if (string.IsNullOrWhiteSpace(configId))
@@ -80,7 +84,7 @@ public class LoadConfigCommand : ArgumentsCommand
             var loadConfigLookup = newList.ToLookup(e => GetFilterKey(e));
             foreach (var item in newList.ToList())
             {
-                if(item.Tags == null || !item.Tags.Contains("from BaseConfig"))
+                if (item.Tags == null || !item.Tags.Contains("from BaseConfig"))
                 {
                     continue;
                 }
@@ -112,6 +116,13 @@ public class LoadConfigCommand : ArgumentsCommand
         socket.Dialog(db => db.MsgLine($"also §6{baseConfig.Value.Name} §7v{baseConfig.Value.Version} §6loaded (BaseConfig)"));
 
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
+        await UpdateConfig(socket, inOwnerShip);
+    }
+
+    private static async Task UpdateConfig(IMinecraftSocket socket, OwnedConfigs.OwnedConfig inOwnerShip)
+    {
+        socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = inOwnerShip;
+        await socket.sessionLifesycle.AccountSettings.Update();
     }
 
     private static OwnedConfigs.OwnedConfig MakeConfigOwned(string ownerName, SelfUpdatingValue<OwnedConfigs> ownedConfigs, ConfigContainer settings)

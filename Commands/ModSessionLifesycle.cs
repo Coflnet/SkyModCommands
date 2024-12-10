@@ -352,7 +352,7 @@ namespace Coflnet.Sky.Commands.MC
                     if (AccountSettings.Value.LoadedConfig?.Name == null)
                         return;
                     var loaded = AccountSettings.Value.LoadedConfig;
-                    if (!string.IsNullOrEmpty(loaded.Name) && loaded.Name == settings.PublishedAs)
+                    if (!string.IsNullOrEmpty(loaded.Name) && loaded.Name.Equals(settings.PublishedAs, StringComparison.OrdinalIgnoreCase))
                         return; // updated config
                     using var activity = socket.CreateActivity("backup", ConSpan).Log("created backup");
                     activity.Log($"previous config was {loaded.Name}, new one is {settings.PublishedAs}");
