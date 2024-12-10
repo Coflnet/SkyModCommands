@@ -348,7 +348,6 @@ namespace Coflnet.Sky.Commands.MC
                     backups.RemoveAll(b => b.Name == name);
                     backups.Add(new BackupEntry() { Name = name, settings = current });
                     await BackupCommand.SaveBackupList(socket, backups);
-                    await ConfigsCommand.Unloadconfig(socket);
 
                     if (AccountSettings.Value.LoadedConfig?.Name == null)
                         return;

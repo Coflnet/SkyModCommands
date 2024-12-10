@@ -51,10 +51,10 @@ public class LoadConfigCommand : ArgumentsCommand
             throw new CoflnetException("missing_account_settings", "Account settings not loaded, please try reconnecting");
         }
 
-        socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = inOwnerShip;
-        await socket.sessionLifesycle.AccountSettings.Update();
         await ownedConfigs.Update(); // update used version
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
+        socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = inOwnerShip;
+        await socket.sessionLifesycle.AccountSettings.Update();
 
         var configId = settings.Settings.BasedConfig;
         if (string.IsNullOrWhiteSpace(configId))
@@ -109,7 +109,7 @@ public class LoadConfigCommand : ArgumentsCommand
             }
         }
         await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
-        socket.Dialog(db => db.MsgLine($"§6{baseConfig.Value.Name} §7v{baseConfig.Value.Version} §6loaded (BaseConfig)"));
+        socket.Dialog(db => db.MsgLine($"also §6{baseConfig.Value.Name} §7v{baseConfig.Value.Version} §6loaded (BaseConfig)"));
 
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
     }
