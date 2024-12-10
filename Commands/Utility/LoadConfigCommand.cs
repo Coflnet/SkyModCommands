@@ -42,7 +42,6 @@ public class LoadConfigCommand : ArgumentsCommand
         settings.Settings.BlockExport = settings.OwnerId != socket.UserId;
 
         FlipFilter.CopyRelevantToNew(settings.Settings, socket.sessionLifesycle.FlipSettings);
-        await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
         socket.Dialog(db => db.MsgLine($"§6{settings.Name} §7v{settings.Version} §6loaded"));
         inOwnerShip.ChangeNotes = settings.ChangeNotes;
         inOwnerShip.Version = settings.Version;
@@ -55,14 +54,17 @@ public class LoadConfigCommand : ArgumentsCommand
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
         _ = socket.TryAsyncTimes(async () =>
         {
-            await Task.Delay(10000);
+            await Task.Delay(12000);
             await UpdateConfig(socket, inOwnerShip);
         }, "updateConfig", 1);
         await UpdateConfig(socket, inOwnerShip);
 
         var configId = settings.Settings.BasedConfig;
         if (string.IsNullOrWhiteSpace(configId))
+        {
+            await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
             return;
+        }
 
         var baseConfig = await GetContainer(socket, configId);
         if (baseConfig.Value == null)
