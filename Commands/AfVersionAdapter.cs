@@ -84,7 +84,8 @@ public class AfVersionAdapter : ModVersionAdapter
             target = flip.Target,
             finder = flip.Finder,
             profitPerc = flip.ProfitPercentage,
-            tag = flip.Auction.Tag
+            tag = flip.Auction.Tag,
+            vol = flip.Volume,
         }));
     }
 
