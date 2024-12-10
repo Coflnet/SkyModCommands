@@ -55,7 +55,7 @@ public class LoadConfigCommand : ArgumentsCommand
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
         _ = socket.TryAsyncTimes(async () =>
         {
-            await Task.Delay(2000);
+            await Task.Delay(10000);
             await UpdateConfig(socket, inOwnerShip);
         }, "updateConfig", 1);
         await UpdateConfig(socket, inOwnerShip);
