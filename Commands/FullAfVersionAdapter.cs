@@ -289,7 +289,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
     private async Task<long> GetEstimateViaLastPurchasedNoUid(Activity span, IPlayerApi apiService, (SaveAuction First, Sniper.Client.Model.PriceEstimate Second) item)
     {
         // find via history 
-        var history = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, new Dictionary<string, string>() { { "tag", item.First.Tag } });
+        var history = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, new Dictionary<string, string>() { { "tag", item.First.Tag }, { "EndAfter", (DateTime.UtcNow - TimeSpan.FromDays(14)).ToUnix().ToString() } });
         var matching = history.OrderByDescending(x => (x.ItemName == item.First.ItemName) ? 1 : 0).ThenByDescending(x => x.End).Where(x => x.End > DateTime.UtcNow.AddDays(-2));
         var count = matching.Count();
         var historyItem = matching.FirstOrDefault();
