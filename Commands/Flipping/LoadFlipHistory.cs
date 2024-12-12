@@ -40,7 +40,7 @@ public class LoadFlipHistory : McCommand
             socket.Dialog(db => db.MsgLine("Flips have already being reloaded recently, this can take multiple hours. \nLots of number crunching :)"));
             return;
         }
-        await redis.GetDatabase().StringSetAsync("flipreload" + playerId, "true", TimeSpan.FromMinutes(10));
+        await redis.GetDatabase().StringSetAsync("flipreload" + playerId, "true", TimeSpan.FromMinutes(1));
         socket.SendMessage(COFLNET + $"Started refreshing flips of {playerId} for {days} days", null, "this might take a while");
 
         var config = socket.GetService<IConfiguration>();
@@ -48,15 +48,16 @@ public class LoadFlipHistory : McCommand
         await creator.CreateTopicIfNotExist(config["TOPICS:LOAD_FLIPS"], 2);
         using var producer = creator.BuildProducer<string, SaveAuction>();
         var count = 0;
-        var maxTime = DateTime.UtcNow; new DateTime(2023, 1, 10);
+        var maxTime = DateTime.UtcNow;
         var minTime = maxTime.AddDays(-1);
         for (int i = 0; i < days; i++)
             using (var context = new HypixelContext())
             {
                 var numericId = await context.Players.Where(p => p.UuId == playerId).Select(p => p.Id).FirstAsync();
+                var highestAuction = (await context.Auctions.MaxAsync(a => a.Id)) - 500_000 * (days + 6);
                 Console.WriteLine($"Loading flips for {playerId} ({numericId})");
                 var auctions = context.Auctions
-                    .Where(a => a.SellerId == numericId && a.End < maxTime && a.End > minTime && a.HighestBidAmount > 0)
+                    .Where(a => a.SellerId == numericId && a.End < maxTime && a.End > minTime && a.HighestBidAmount > 0 && a.Id > highestAuction)
                     .Include(a => a.NbtData)
                     .Include(a => a.Enchantments);
                 foreach (var auction in auctions)
@@ -70,5 +71,7 @@ public class LoadFlipHistory : McCommand
         var result = producer.Flush(TimeSpan.FromSeconds(10));
         socket.SendMessage(COFLNET + $"Potential {count} flips for {playerId} found, submitted for processing", null,
             $"this might take a few minutes to complete\n{McColorCodes.GRAY}Flush Result: {result}");
+
+        await redis.GetDatabase().StringSetAsync("flipreload" + playerId, "true", TimeSpan.FromMinutes(10));
     }
 }
