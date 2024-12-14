@@ -736,7 +736,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var span = CreateActivity("removing", ConSpan);
             GetService<FlipperService>().RemoveConnection(this);
-            sessionLifesycle.Dispose();
+            sessionLifesycle?.Dispose();
             Task.Run(async () =>
             {
                 await Task.Delay(1000).ConfigureAwait(false);

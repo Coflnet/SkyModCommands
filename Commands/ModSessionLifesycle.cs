@@ -887,7 +887,7 @@ namespace Coflnet.Sky.Commands.MC
                 await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
                 if (socket.HasFlippingDisabled())
                     return;
-                if (AccountInfo.Value.ShadinessLevel == -1 && SessionInfo.VerifiedMc && TierManager.HasAtLeast(AccountTier.PREMIUM))
+                if (AccountInfo?.Value?.ShadinessLevel == -1 && SessionInfo.VerifiedMc && TierManager.HasAtLeast(AccountTier.PREMIUM))
                 {
                     try
                     {
