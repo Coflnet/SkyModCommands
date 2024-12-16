@@ -110,6 +110,12 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (UserId.Value == default)
             {
+                UserId = await SelfUpdatingValue<string>.Create(stringId, "userId");
+                if(UserId.Value != default)
+                    Console.WriteLine("UserId was recovered");
+            }
+            if (UserId.Value == default)
+            {
                 using var waitLogin = socket.CreateActivity("waitLogin", ConSpan);
                 waitLogin.Log(GetAuthLink(stringId));
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
@@ -156,6 +162,7 @@ namespace Coflnet.Sky.Commands.MC
 
         protected virtual async Task SubToSettings(string userId)
         {
+            using var span = socket.CreateActivity("subToSettings", ConSpan);
             OnLogin?.Invoke(this, userId);
             ConSpan.Log("subbing to settings of " + userId);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DefaultSettings);
