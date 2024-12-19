@@ -9,6 +9,7 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.Commands.Shared;
 using Newtonsoft.Json;
+using Coflnet.Sky.Api.Models.Mod;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -171,15 +172,11 @@ namespace Coflnet.Sky.Commands.MC
                     var optionsCmd = $"/cofl dialog chatoptions {m.Name} {m.ClientName} {m.Message} {m.Uuid}";
                     if (message.Contains("物"))
                     {
-                        var parts = message.Split('物');
-                        var itemJson = parts[1];
-                        var item = JsonConvert.DeserializeObject<Coflnet.Sky.PlayerState.Client.Model.Item>(itemJson);
-                        var displayDescription = item.Description;
-                        if (item.Color != null)
-                            displayDescription += $"\nHex Color: {item.Color.Value.ToString("X").PadLeft(6, '0')}";
-                        return socket.SendMessage(new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {parts[0]}", optionsCmd, $"click for more options"),
-                        new ChatPart(item.ItemName, "", displayDescription),
-                            new ChatPart("", "/cofl void"));
+                        return Shareitem(socket, m, color, message, optionsCmd);
+                    }
+                    if(message.Contains('傳'))
+                    {
+                        return ShareLore(socket, m, color, message, optionsCmd);
                     }
                     var chatparts = new List<ChatPart>
                     {
@@ -200,6 +197,29 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 return false;
             };
+        }
+
+        private static bool ShareLore(MinecraftSocket socket, ChatMessage m, string color, string message, string optionsCmd)
+        {
+            Console.WriteLine("Sharing lore");
+            var parts = message.Split('傳');
+            var loreJson = parts[1];
+            var lore = JsonConvert.DeserializeObject<DescriptionSetting>(loreJson);
+            socket.Dialog(db=>db.CoflCommand<LoreCommand>($"{m.Name} shared his lore settings with you, {McColorCodes.YELLOW}[click to use them]", loreJson, "Import the lore settings"));
+            return false;
+        }
+
+        private static bool Shareitem(MinecraftSocket socket, ChatMessage m, string color, string message, string optionsCmd)
+        {
+            var parts = message.Split('物');
+            var itemJson = parts[1];
+            var item = JsonConvert.DeserializeObject<Coflnet.Sky.PlayerState.Client.Model.Item>(itemJson);
+            var displayDescription = item.Description;
+            if (item.Color != null)
+                displayDescription += $"\nHex Color: {item.Color.Value.ToString("X").PadLeft(6, '0')}";
+            return socket.SendMessage(new ChatPart($"{CHAT_PREFIX} {color}{m.Name}{McColorCodes.WHITE}: {parts[0]}", optionsCmd, $"click for more options"),
+            new ChatPart(item.ItemName, "", displayDescription),
+                new ChatPart("", "/cofl void"));
         }
 
         private static string InsertChatLink(string message, List<ChatPart> chatparts)

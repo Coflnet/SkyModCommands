@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Models.Mod;
 using Coflnet.Sky.Commands.Shared;
@@ -20,7 +19,7 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var service = socket.GetService<SettingsService>();
-            if(!descriptionCache.TryGetValue(socket.UserId, out var cache) || cache.Item2.AddMinutes(1) < DateTime.UtcNow)
+            if (!descriptionCache.TryGetValue(socket.UserId, out var cache) || cache.Item2.AddMinutes(1) < DateTime.UtcNow)
             {
                 cache.Item1 = await service.GetCurrentValue<DescriptionSetting>(socket.UserId, "description", () =>
                 {
@@ -30,6 +29,15 @@ namespace Coflnet.Sky.Commands.MC
                 descriptionCache[socket.UserId] = cache;
             }
             var settings = cache.Item1;
+            if (arguments.StartsWith("\"{"))
+            {
+                // assume this is a full json settings object
+                settings = Convert<DescriptionSetting>(arguments);
+                await service.UpdateSetting(socket.UserId, "description", settings);
+                SendCurrentState(socket, settings);
+                socket.Dialog(db => db.MsgLine("Imported settings (check above)"));
+                return;
+            }
             var args = Convert<string>(arguments).Split(' ');
 
             if (args.Length == 1)
