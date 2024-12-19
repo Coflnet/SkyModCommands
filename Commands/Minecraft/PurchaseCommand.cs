@@ -36,7 +36,7 @@ namespace Coflnet.Sky.Commands.MC
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (hour)", "premium_plus-hour 1", $"Purchase {McColorCodes.GOLD}prem+{McColorCodes.WHITE} for 60 minutes")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.GREEN}premium(derpy)", "premium-derpy 1", $"purchase {McColorCodes.GREEN}premium{McColorCodes.WHITE} for the time derpy was mayor (5 days)")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter (a day)", "starter_premium-day 1", $"purchase starter premium for a {McColorCodes.AQUA}single day").LineBreak()
-                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (4 weeks) {McColorCodes.BOLD}30% cheaper", "premium_plus-weeks", $"Purchase {McColorCodes.GOLD}prem+{McColorCodes.WHITE} for 4 weeks"));
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (4 weeks) {McColorCodes.BOLD}33% cheaper than 1 week", "premium_plus-weeks", $"Purchase {McColorCodes.GOLD}prem+{McColorCodes.WHITE} for 4 weeks"));
                 return;
             }
 
