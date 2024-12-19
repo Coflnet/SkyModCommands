@@ -89,7 +89,8 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         }
         socket.Dialog(db => db.MsgLine("Which tier do you want to purchase/extend")
             .CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}Premium  ", $"add {name} premium {socket.SessionInfo.ConnectionId}", "Purchase/extend premium license")
-            .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+  ", $"add {name} premium_plus {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license"));
+            .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 1 ", $"add {name} premium_plus {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 1 week")
+            .CoflCommand<LicensesCommand>($" / 4 weeks  ", $"add {name} premium_plus-weeks {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 4 weeks"));
     }
 
     protected override async Task NoEntriesFound(MinecraftSocket socket, string subArgs)
