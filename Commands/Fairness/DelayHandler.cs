@@ -94,6 +94,8 @@ public class DelayHandler : IDelayHandler
 
         if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
             await timeProvider.Delay(macroPenalty).ConfigureAwait(false);
+        else if (profit <= 0)
+            await timeProvider.Delay(macroPenalty / 2).ConfigureAwait(false);
         return time;
     }
 
