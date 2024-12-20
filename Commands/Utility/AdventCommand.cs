@@ -136,7 +136,7 @@ public class AdventCommand : McCommand
         new() { QuestionText = "How do you see the flipper with the most profit?", CorrectAnswer = "/cofl leaderboard", WrongAnswers = ["/cofl mostprofit", "/cofl topflipper"] },
         new() { QuestionText = "What year did Skyblock release", CorrectAnswer = "2019", WrongAnswers = ["2020", "2018", "2021"] },
         new() { QuestionText = "How can you see available emojis?", CorrectAnswer = "/cofl emoji", WrongAnswers = ["/cofl emotes", "/cofl smileys"] },
-        new() { QuestionText = "How can you shedule a reminder?", CorrectAnswer = "/cofl addreminder", WrongAnswers = ["/cofl reminder", "/cofl remind"] },
+        new() { QuestionText = "How can you shedule a reminder?", CorrectAnswer = "/cofl reminder add", WrongAnswers = ["/cofl addreminder", "/cofl remind"] },
         new() { QuestionText = "How can you toggle flips on or of?", CorrectAnswer = "/cofl flip", WrongAnswers = ["/cofl toggle", "/cofl flips"] },
         new() { QuestionText = "Where can you join kuudra", CorrectAnswer = "crimson isle", WrongAnswers = ["forest isle", "desert isle"] },
         new() { QuestionText = "What command allows you to see bazaar flips?", CorrectAnswer = "/cofl bazaar", WrongAnswers = ["/cofl bazaarflips", "/cofl bazaarflip"] },
