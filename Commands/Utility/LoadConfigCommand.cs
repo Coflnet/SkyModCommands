@@ -116,6 +116,7 @@ public class LoadConfigCommand : ArgumentsCommand
         }
         await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
         socket.Dialog(db => db.MsgLine($"also §6{baseConfig.Value.Name} §7v{baseConfig.Value.Version} §6loaded (BaseConfig)"));
+        socket.sessionLifesycle.AccountSettings.Value.BaseConfigVersion = baseConfig.Value.Version;
 
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
         await UpdateConfig(socket, inOwnerShip);

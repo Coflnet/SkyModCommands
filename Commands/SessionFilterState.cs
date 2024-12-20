@@ -50,7 +50,7 @@ public class SessionFilterState : IDisposable
             if (newConfig.Version > loadedConfigMetadata.Version)
             {
                 var diffSuffix = "";
-                if(newConfig.Diffs?.TryGetValue(newConfig.Version, out var diff) ?? false)
+                if (newConfig.Diffs?.TryGetValue(newConfig.Version, out var diff) ?? false)
                 {
                     diffSuffix = $" | {diff.GetDiffCount()} changes";
                 }
@@ -71,17 +71,26 @@ public class SessionFilterState : IDisposable
         if (string.IsNullOrWhiteSpace(childConfig.Settings.BasedConfig))
             return;
         var baseConfig = await LoadConfigCommand.GetContainer(lifesycle.socket, childConfig.Settings.BasedConfig);
+        if (baseConfig.Value.Version > lifesycle.AccountSettings.Value.BaseConfigVersion && baseConfig.Value.Version > 0)
+        {
+            BaseConfigUpdate(childConfig, baseConfig);
+        }
         baseConfig.OnChange += (newBaseConfig) =>
         {
-            var autoUpdate = lifesycle.AccountSettings.Value.AutoUpdateConfig;
-            lifesycle.socket.Dialog(db => db.MsgLine($"Your base config: §6{newBaseConfig.Name} §6updated to v{newBaseConfig.Version}")
-                    .MsgLine($"§7{childConfig.ChangeNotes}")
-                    .If(() => autoUpdate, db => db.MsgLine("Loading the updated version automatically.").Msg("To toggle this run /cofl configs autoupdate").AsGray(),
-                    db => db.CoflCommand<LoadConfigCommand>($"[click to load]", $"{childConfig.OwnerId} {childConfig.Name}", "load new version\nWill override your current settings")));
-            if (autoUpdate)
-            {
-                lifesycle.socket.ExecuteCommand("/cofl loadconfig " + childConfig.OwnerId + " " + childConfig.Name);
-            }
+            BaseConfigUpdate(childConfig, newBaseConfig);
         };
+    }
+
+    private void BaseConfigUpdate(ConfigContainer childConfig, ConfigContainer newBaseConfig)
+    {
+        var autoUpdate = lifesycle.AccountSettings.Value.AutoUpdateConfig;
+        lifesycle.socket.Dialog(db => db.MsgLine($"Your base config: §6{newBaseConfig.Name} §6updated to v{newBaseConfig.Version}")
+                .MsgLine($"§7{childConfig.ChangeNotes}")
+                .If(() => autoUpdate, db => db.MsgLine("Loading the updated version automatically.").Msg("To toggle this run /cofl configs autoupdate").AsGray(),
+                db => db.CoflCommand<LoadConfigCommand>($"[click to load]", $"{childConfig.OwnerId} {childConfig.Name}", "load new version\nWill override your current settings")));
+        if (autoUpdate)
+        {
+            lifesycle.socket.ExecuteCommand("/cofl loadconfig " + childConfig.OwnerId + " " + childConfig.Name);
+        }
     }
 }
