@@ -213,11 +213,19 @@ public class AccountTierManager : IAccountTierManager
         span.Log($"Sessions {JsonConvert.SerializeObject(sessions)}");
         var licenseSettings = await licenseSettingsTask;
         var useEmailOnThisCon = (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon);
-        var matchingNewLicense = licenseSettings.Licenses.OrderByDescending(l=>l.Tier).FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid && l.Expires > DateTime.UtcNow);
+        var matchingNewLicense = licenseSettings.Licenses.OrderByDescending(l => l.Tier).FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid);
         IsLicense = false;
-        if(matchingNewLicense?.Tier >= expires.Item1)
+        if (matchingNewLicense?.Tier >= expires.Item1)
         {
             Console.WriteLine($"New license for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(matchingNewLicense)}");
+            if (matchingNewLicense.Expires < DateTime.UtcNow)
+            {
+                var tierFor = await userApi.GetCurrentTier($"{userId}#{matchingNewLicense.VirtualId}");
+                matchingNewLicense.Expires = tierFor.Item2;
+                matchingNewLicense.Tier = tierFor.Item1;
+                if (ExpiresAt > DateTime.UtcNow)
+                    await socket.GetService<SettingsService>().UpdateSetting(userId, "licenses", licenseSettings);
+            }
             IsLicense = true;
             return (matchingNewLicense.Tier, matchingNewLicense.Expires);
         }
@@ -258,7 +266,7 @@ public class AccountTierManager : IAccountTierManager
             Console.WriteLine("Syncing state"); // do not skip if new state does not contain current session
             if (startValue == activeSessions.Value || activeSessions.Value?.Sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId) != true)
                 await activeSessions.Update();
-            else 
+            else
                 Activity.Current?.Log("syncState skipped");
         }, "sync state", 1);
     }
