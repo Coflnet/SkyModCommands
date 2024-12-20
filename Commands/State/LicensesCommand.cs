@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Payments.Client.Model;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -56,9 +58,42 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         {
             var uuid = await socket.GetPlayerUuid(name);
             var licenseApi = socket.GetService<ILicenseApi>();
+            var userApi = socket.GetService<IUserApi>();
+            var productApi = socket.GetService<IProductsApi>();
+            var settings = await socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
+            var usedLicense = settings.Licenses.FirstOrDefault(l => l.UseOnAccount == uuid);
+            if (settings.Licenses.Any(l => l.UseOnAccount == uuid))
+            {
+                socket.Dialog(db => db.MsgLine($"Extending license for {name}"));
+            }
+            else
+            {
+                socket.Dialog(db => db.MsgLine($"Adding license for {name}"));
+                usedLicense = new LicenseInfo
+                {
+                    UseOnAccount = uuid,
+                    VirtualId = settings.Licenses.Count + 1
+                };
+                settings.Licenses.Add(usedLicense);
+
+                await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", settings);
+            }
+            var product = await productApi.ProductsPProductSlugGetAsync(subargs[1]);
             try
             {
-                await licenseApi.ApiLicenseUUserIdPProductSlugTTargetIdPostAsync(socket.UserId, subargs[1], uuid, subargs[2]);
+                var virtualuser = $"{socket.UserId}#{usedLicense.VirtualId}";
+                var reference = $"license-{usedLicense.VirtualId}-{subargs[1]}-{socket.SessionInfo.ConnectionId.Truncate(4)}";
+                await userApi.UserUserIdTransferPostAsync(socket.UserId, new TransferRequest
+                {
+                    Amount = product.Cost,
+                    Reference = reference,
+                    TargetUser = $"{socket.UserId}#{usedLicense.VirtualId}"
+                });
+                await userApi.UserUserIdServicePurchaseProductSlugPostAsync(virtualuser, subargs[1], reference);
+                var userTier = await socket.GetService<PremiumService>().GetCurrentTier(virtualuser);
+                usedLicense.Tier = userTier.Item1;
+                usedLicense.Expires = userTier.Item2;
+                await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", settings);
             }
             catch (Payments.Client.Client.ApiException e)
             {
@@ -73,9 +108,10 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             socket.Dialog(db => db.MsgLine($"Successfully requested a license for {name}"));
             if (name == socket.SessionInfo.McName)
             {
+                await Task.Delay(5000); // cache refresh
                 await socket.sessionLifesycle.TierManager.RefreshTier();
                 var tiername = await socket.sessionLifesycle.TierManager.GetCurrentCached();
-                socket.Dialog(db => db.MsgLine($"This connection is now {McColorCodes.AQUA}{tiername}"));
+                socket.Dialog(db => db.MsgLine($"This connection is now {McColorCodes.AQUA}{tiername} {McColorCodes.RESET} until {usedLicense.Expires}"));
             }
 
             return;
@@ -150,15 +186,23 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
     protected override async Task<List<PublicLicenseWithName>> GetList(MinecraftSocket socket)
     {
         var licenseApi = socket.GetService<ILicenseApi>();
+        var settingsTask = socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
         var licenses = await licenseApi.ApiLicenseUUserIdGetAsync(socket.UserId);
-        Dictionary<string, string> allnames = await GetNames(socket, licenses.Select(l => l.TargetId));
+        var settings = await settingsTask;
+        Dictionary<string, string> allnames = await GetNames(socket, licenses.Select(l => l.TargetId).Concat(settings.Licenses.Select(l => l.UseOnAccount)));
         return licenses.ConvertAll(l => new PublicLicenseWithName
         {
             Expires = l.Expires,
             ProductSlug = l.ProductSlug,
             TargetId = l.TargetId,
             TargetName = allnames?.GetValueOrDefault(l.TargetId) ?? l.TargetId.Truncate(5) + "..."
-        });
+        }).Concat(settings.Licenses.Select(l => new PublicLicenseWithName
+        {
+            Expires = l.Expires,
+            ProductSlug = l.Tier.ToString(),
+            TargetId = l.UseOnAccount,
+            TargetName = allnames?.GetValueOrDefault(l.UseOnAccount) ?? l.UseOnAccount.Truncate(5) + "..."
+        })).ToList();
     }
 
     protected override async Task List(MinecraftSocket socket, string subArgs)
@@ -200,4 +244,21 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
 public class PublicLicenseWithName : PublicLicense
 {
     public string TargetName { get; set; }
+}
+
+public class LicenseInfo
+{
+    public string UseOnAccount { get; set; }
+    public DateTime Expires { get; set; }
+    public int VirtualId { get; set; }
+    public AccountTier Tier { get; set; }
+}
+
+public class LicenseSetting
+{
+    public List<LicenseInfo> Licenses { get; set; }
+    public LicenseSetting()
+    {
+        Licenses = new List<LicenseInfo>();
+    }
 }

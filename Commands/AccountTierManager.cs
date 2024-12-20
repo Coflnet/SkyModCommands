@@ -115,6 +115,7 @@ public class AccountTierManager : IAccountTierManager
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
         using var span = socket.CreateActivity("tierCalc", socket.ConSpan);
         var userApi = socket.GetService<PremiumService>();
+        var licenseSettingsTask = socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(userId, "licenses", () => new LicenseSetting());
         (AccountTier, DateTime) expires;
         if (expiresAt < DateTime.UtcNow.AddMinutes(5))
             expires = await userApi.GetCurrentTier(userId);
@@ -210,7 +211,14 @@ public class AccountTierManager : IAccountTierManager
         span.Log($"AccountTier {expires.Item1} {expires.Item2}");
         span.Log($"Licenses {JsonConvert.SerializeObject(licenses)}");
         span.Log($"Sessions {JsonConvert.SerializeObject(sessions)}");
+        var licenseSettings = await licenseSettingsTask;
         var useEmailOnThisCon = (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon);
+        var matchingNewLicense = licenseSettings.Licenses.OrderByDescending(l=>l.Tier).FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid && l.Expires > DateTime.UtcNow);
+        if(matchingNewLicense?.Tier > expires.Item1)
+        {
+            Console.WriteLine($"New license for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(matchingNewLicense)}");
+            return (matchingNewLicense.Tier, matchingNewLicense.Expires);
+        }
         IsLicense = false;
         if (thisAccount.Any())
         {
