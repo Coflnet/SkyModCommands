@@ -214,12 +214,13 @@ public class AccountTierManager : IAccountTierManager
         var licenseSettings = await licenseSettingsTask;
         var useEmailOnThisCon = (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon);
         var matchingNewLicense = licenseSettings.Licenses.OrderByDescending(l=>l.Tier).FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid && l.Expires > DateTime.UtcNow);
+        IsLicense = false;
         if(matchingNewLicense?.Tier > expires.Item1)
         {
             Console.WriteLine($"New license for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(matchingNewLicense)}");
+            IsLicense = true;
             return (matchingNewLicense.Tier, matchingNewLicense.Expires);
         }
-        IsLicense = false;
         if (thisAccount.Any())
         {
             Console.WriteLine($"Licenses for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(thisAccount)}");

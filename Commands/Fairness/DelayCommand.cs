@@ -83,6 +83,10 @@ namespace Coflnet.Sky.Commands.MC
                 var delayReducedBy = delayAmount - adjustedDelay;
                 socket.Dialog(db => db.MsgLine($"Because of your license(s) your delay is reduced by {McColorCodes.AQUA}{delayReducedBy.TotalSeconds}s{DEFAULT_COLOR} from {McColorCodes.RED}{adjustedDelay.TotalSeconds}s{DEFAULT_COLOR}."));
             }
+            if(socket.SessionInfo.NoSharedDelay)
+            {
+                socket.Dialog(db => db.MsgLine("Your license granted you no shared delay for this connection"));
+            }
 
             await socket.TriggerTutorial<DelayTutorial>();
             if (delayAmount >= TimeSpan.FromSeconds(1))

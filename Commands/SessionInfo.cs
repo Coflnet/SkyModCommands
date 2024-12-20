@@ -80,6 +80,7 @@ namespace Coflnet.Sky.Commands.MC
         /// counts up for 100 not purchased flips
         /// </summary>
         public int NotPurchaseRate { get; set; }
+        public bool NoSharedDelay { get; set; }
         public string ToLowListingAttempt { get; set; }
         public long AhSlotsOpen { get; set; } = -1;
         public int BestHotkeyUsageCount { get; set; }

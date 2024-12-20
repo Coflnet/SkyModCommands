@@ -111,7 +111,7 @@ namespace Coflnet.Sky.Commands.MC
             if (UserId.Value == default)
             {
                 UserId = await SelfUpdatingValue<string>.Create(stringId, "userId");
-                if(UserId.Value != default)
+                if (UserId.Value != default)
                     Console.WriteLine("UserId was recovered");
             }
             if (UserId.Value == default)
@@ -500,6 +500,11 @@ namespace Coflnet.Sky.Commands.MC
         }
 
         public async Task<IEnumerable<string>> GetMinecraftAccountUuids()
+        {
+            return (await GetAccountsHashSet()).OrderByDescending(o => o == SessionInfo.McUuid ? 1 : 0).ToList();
+        }
+
+        private async Task<HashSet<string>> GetAccountsHashSet()
         {
             if (SessionInfo.MinecraftUuids.Count() > 0)
                 if (AccountInfo.Value != null)
@@ -908,9 +913,11 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var ids = await GetMinecraftAccountUuids();
                 var isBot = socket.ModAdapter is AfVersionAdapter;
+                var hasLicense = TierManager.IsLicense;
 
-                var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime);
+                var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, TierManager.IsLicense);
                 SessionInfo.NotPurchaseRate = summary.nonpurchaseRate;
+                SessionInfo.NoSharedDelay = summary.SingleAccountDelay;
 
                 if (summary.Penalty > TimeSpan.Zero)
                 {

@@ -166,7 +166,7 @@ namespace Coflnet.Sky.Commands.MC
                 await socket.sessionLifesycle.AccountInfo.Update();
                 Activity.Current.Log("solved captcha");
                 await Task.Delay(2000).ConfigureAwait(false);
-                await socket.sessionLifesycle.DelayHandler.Update(await socket.sessionLifesycle.GetMinecraftAccountUuids(), DateTime.Now);
+                await socket.sessionLifesycle.DelayHandler.Update(await socket.sessionLifesycle.GetMinecraftAccountUuids(), DateTime.Now, socket.sessionLifesycle.TierManager.IsLicense);
                 socket.SendMessage(COFLNET + McColorCodes.GREEN + "Your afk delay was updated\n");
 
                 return;

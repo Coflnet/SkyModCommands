@@ -15,7 +15,7 @@ public interface IDelayHandler
     TimeSpan MacroDelay { get; }
     Task<DateTime> AwaitDelayForFlip(FlipInstance flipInstance);
     bool IsLikelyBot(FlipInstance flipInstance);
-    Task<DelayHandler.Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime);
+    Task<DelayHandler.Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime, bool hasLicense = false);
 }
 
 
@@ -131,18 +131,31 @@ public class DelayHandler : IDelayHandler
                     || flipInstance.Volume > 42;
     }
 
-    public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime)
+    public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime, bool hasLicense = false)
     {
         var lastDelay = currentDelay;
         var filteredIds = ids.Where(i => !string.IsNullOrEmpty(i)).ToArray();
         if (filteredIds.Length == 0)
             return new Summary() { Penalty = TimeSpan.FromSeconds(2.5) };
+        string[] primaryId = [filteredIds.First()];
         var breakdown = await flipTrackingService.GetSpeedComp(filteredIds);
+        var summary = new Summary();
+        if (filteredIds.Length > 1 && hasLicense)
+        {
+            var singleBreakdown = await flipTrackingService.GetSpeedComp(filteredIds);
+            var rate = (singleBreakdown?.ReceivedCount ?? 1) / 100 - (singleBreakdown.Times?.Count ?? 0); 
+            if (singleBreakdown != null && (singleBreakdown.Buys.Count > 0 || singleBreakdown.Penalty > 0.01) && rate < 2)
+            {
+                singleBreakdown.BadIds = breakdown.BadIds;
+                singleBreakdown.MacroedFlips = breakdown.MacroedFlips;
+                breakdown = singleBreakdown;
+                summary.SingleAccountDelay = true;
+            }
+        }
         var hourCount = breakdown?.Times?.Where(t => t.TotalSeconds > 1).GroupBy(t => TimeSpan.Parse(t.Age).Hours).Count() ?? 0;
         var recommendedPenalty = breakdown?.Penalty ?? 2;
         currentDelay = TimeSpan.FromSeconds(recommendedPenalty);
 
-        var summary = new Summary();
 
         if (!sessionInfo.VerifiedMc)
             currentDelay += TimeSpan.FromSeconds(3);
@@ -253,6 +266,7 @@ public class DelayHandler : IDelayHandler
         public bool HasBadPlayer;
         public bool ReduceBadActions;
         public DateTime LastPurchase;
+        public bool SingleAccountDelay;
     }
 
     private TimeSpan GetCorrectDelay(int myIndex)
