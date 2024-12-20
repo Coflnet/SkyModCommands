@@ -7,7 +7,6 @@ using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
-using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -33,7 +32,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         if(command == "refund")
         {
             var licenses = await socket.GetService<ITransactionApi>().TransactionUUserIdGetAsync(socket.UserId);
-            var refund = licenses.FirstOrDefault(l => l.ProductId == "premium_plus-weeks");
+            var refund = licenses.FirstOrDefault(l => l.ProductId == "premium_plus-weeks" && l.TimeStamp > DateTime.UtcNow.AddDays(-10));
             if (refund == null)
             {
                 socket.Dialog(db => db.MsgLine("You don't have a refundable license"));
