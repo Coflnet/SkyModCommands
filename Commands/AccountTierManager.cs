@@ -215,7 +215,7 @@ public class AccountTierManager : IAccountTierManager
         var useEmailOnThisCon = (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon);
         var matchingNewLicense = licenseSettings.Licenses.OrderByDescending(l => l.Tier).FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid);
         IsLicense = false;
-        if (matchingNewLicense?.Tier >= expires.Item1)
+        if (matchingNewLicense != default)
         {
             Console.WriteLine($"New license for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(matchingNewLicense)}");
             if (matchingNewLicense.Expires < DateTime.UtcNow)
