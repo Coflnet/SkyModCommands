@@ -30,6 +30,20 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             socket.Dialog(db => db.MsgLine($"This connection is now {McColorCodes.AQUA}{newTier}"));
             return;
         }
+        if(command == "refund")
+        {
+            var licenses = await socket.GetService<ITransactionApi>().TransactionUUserIdGetAsync(socket.UserId);
+            var refund = licenses.FirstOrDefault(l => l.ProductId == "premium_plus-weeks");
+            if (refund == null)
+            {
+                socket.Dialog(db => db.MsgLine("You don't have a refundable license"));
+                return;
+            }
+            var userApi = socket.GetService<IUserApi>();
+            var reference = $"refund-{refund.ProductId}-{socket.SessionInfo.ConnectionId.Truncate(4)}";
+            var refundevent = await userApi.UserUserIdTransactionIdDeleteAsync(socket.UserId, int.Parse(refund.Id));
+            socket.Dialog(db => db.MsgLine($"Refunded {McColorCodes.AQUA}{refundevent.Amount} coins"));
+        }
         await Help(socket, stringArgs);
     }
 
