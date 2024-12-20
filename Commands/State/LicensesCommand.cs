@@ -166,7 +166,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         {
             socket.Dialog(db => db.MsgLine($"Click to confirm purchase/extend a license for {McColorCodes.AQUA}{name}", null, "click on the tier name below")
                 .If(() => !subargs[1].Contains("plus"), db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}Premium  ", $"add {name} premium {socket.SessionInfo.ConnectionId}", "Purchase premium license"))
-                .If(() => subargs[1].Contains("plus") && !subArgs.Contains("weeks"), db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+  ", $"add {name} premium_plus-week{socket.SessionInfo.ConnectionId}", "Purchase premium+ license"))
+                .If(() => subargs[1].Contains("plus") && !subArgs.Contains("weeks"), db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+  ", $"add {name} premium_plus-week {socket.SessionInfo.ConnectionId}", "Purchase premium+ license"))
                 .If(() => subargs[1].Contains("plus") && subArgs.Contains("weeks"), db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 4 weeks ", $"add {name} premium_plus-weeks {socket.SessionInfo.ConnectionId}", "Purchase premium+ license for 4 weeks")));
             return;
         }
