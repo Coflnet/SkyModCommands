@@ -9,7 +9,7 @@ public class VerifyCommand : McCommand
     {
         if (socket.AccountInfo == null)
         {
-            socket.SendLoginPrompt();
+            await socket.SendLoginPrompt();
             return;
         }
         var verifcationHandler = socket.sessionLifesycle.VerificationHandler;
