@@ -43,7 +43,39 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             var refundevent = await userApi.UserUserIdTransactionIdDeleteAsync(socket.UserId, int.Parse(refund.Id));
             socket.Dialog(db => db.MsgLine($"Refunded {McColorCodes.AQUA}{refundevent.Amount} coins"));
         }
+        if(command == "use")
+        {
+            await SwitchAccountInUse(socket, args);
+            return;
+        }
         await Help(socket, stringArgs);
+    }
+
+    private static async Task SwitchAccountInUse(MinecraftSocket socket, string[] args)
+    {
+        var id = args[1];
+        var userName = args[2];
+        if (!int.TryParse(id, out var virtualId))
+        {
+            socket.Dialog(db => db.MsgLine("Use requires the license id (first character of /cofl licenses list) and the username"));
+            return;
+        }
+        var settings = await socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
+        var license = settings.Licenses.FirstOrDefault(l => l.VirtualId == virtualId);
+        if (license == null)
+        {
+            socket.Dialog(db => db.MsgLine($"No license with id {id} found"));
+            return;
+        }
+        var uuid = await socket.GetPlayerUuid(userName);
+        if (uuid == null)
+        {
+            socket.Dialog(db => db.MsgLine($"No player with name {userName} found"));
+            return;
+        }
+        license.UseOnAccount = uuid;
+        await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", settings);
+        socket.Dialog(db => db.MsgLine($"Switched license {id} to {userName}"));
     }
 
     protected virtual Task Help(MinecraftSocket socket, string subArgs)
@@ -51,6 +83,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         socket.Dialog(db => db
             .MsgLine($"usage of {McColorCodes.AQUA}/cofl {Slug}{DEFAULT_COLOR}")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} add <userName>{DEFAULT_COLOR} request a new license")
+            .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} use <id> <userName>{DEFAULT_COLOR} switch the user of a license")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} list{DEFAULT_COLOR} lists all licenses")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} default <userName>{DEFAULT_COLOR} switch mcName using account premium")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} help{DEFAULT_COLOR} display this help"));
@@ -176,7 +209,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         {
             return $"{McColorCodes.GRAY}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{McColorCodes.STRIKE}{elem.ProductSlug}{McColorCodes.RED} expired";
         }
-        return $"{McColorCodes.GRAY}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{elem.ProductSlug} {McColorCodes.AQUA}{elem.Expires - DateTime.UtcNow:dd}{McColorCodes.GRAY}days";
+        return $"{McColorCodes.GRAY}{elem.VirtualId}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{elem.ProductSlug} {McColorCodes.AQUA}{elem.Expires - DateTime.UtcNow:dd}{McColorCodes.GRAY}days";
     }
 
     protected override void ListResponse(DialogBuilder d, PublicLicenseWithName e)
@@ -214,6 +247,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             Expires = l.Expires,
             ProductSlug = l.Tier.ToString(),
             TargetId = l.UseOnAccount,
+            VirtualId = l.VirtualId,
             TargetName = allnames?.GetValueOrDefault(l.UseOnAccount) ?? l.UseOnAccount.Truncate(5) + "..."
         })).ToList();
     }
@@ -257,6 +291,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
 public class PublicLicenseWithName : PublicLicense
 {
     public string TargetName { get; set; }
+    public int VirtualId { get; set; }
 }
 
 public class LicenseInfo
