@@ -147,6 +147,7 @@ public class SellConfigCommand : ArgumentsCommand
         current.Value.Settings = config.Settings;
         current.Value.LastUpdated = DateTime.UtcNow;
         current.Value.Diffs.Add(current.Value.Version, diff);
+        current.Value.Settings.UsedVersion = current.Value.Version;
         Console.WriteLine("found Diff: " + JsonConvert.SerializeObject(diff, Formatting.Indented));
         if (current.Value.Diffs.Count > 5)
         {
