@@ -38,7 +38,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (num >= 1000000000)
                 return Format(1000000000, "B");
-            if (num > 1000000 -1)
+            if (num > 1000000 - 1)
                 return Format(1000000, "M");
             if (num >= 1000)
                 return Format(1000, "K");
@@ -238,10 +238,6 @@ namespace Coflnet.Sky.Commands.MC
 
         public ChatPart[] WelcomeMessage()
         {
-            if((con is MinecraftSocket socket) && socket.GetService<IAhActive>().IsAhDisabledDerpy)
-            {
-                return new DialogBuilder().MsgLine("Derpy is mayor, We are using the time to update things. Service might be slower/unavailable for a few hours.", "https://sky.coflnet.com/flipper", "Click to enable the AH");
-            }
             var text = $"§fFound and loaded settings for your connection\n"
                                                 + FormatSettingsSummary(Settings)
                                     + "\n§8: nothing else to do have a nice day :)";
@@ -258,9 +254,13 @@ namespace Coflnet.Sky.Commands.MC
 
         public string FormatSettingsSummary(FlipSettings s)
         {
-            return  $"{McColorCodes.GRAY} MinProfit: {McColorCodes.AQUA}{FormatPrice(s.MinProfit)}  "
-                                                + $"{McColorCodes.GRAY} Whitelist: {McColorCodes.AQUA}{s?.WhiteList?.Count ?? 0}"
-                                                + $"{McColorCodes.GRAY} Blacklist: {McColorCodes.AQUA}{s?.BlackList?.Count ?? 0} ";
+            var full = $"{McColorCodes.GRAY} MinProfit: {McColorCodes.AQUA}{FormatPrice(s.MinProfit)}  ";
+            if (s.UsedVersion == 0)
+                full += $"{McColorCodes.GRAY} Whitelist: {McColorCodes.AQUA}{s?.WhiteList?.Count ?? 0}"
+                    + $"{McColorCodes.GRAY} Blacklist: {McColorCodes.AQUA}{s?.BlackList?.Count ?? 0} ";
+            else
+                full += $"{McColorCodes.GRAY} Using: {McColorCodes.AQUA}{s.PublishedAs} {McColorCodes.GRAY}v{McColorCodes.GOLD}{s.UsedVersion} ";
+            return full;
         }
 
         public string GetHoverText(FlipInstance flip)
