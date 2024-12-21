@@ -137,13 +137,13 @@ public class DelayHandler : IDelayHandler
         var filteredIds = ids.Where(i => !string.IsNullOrEmpty(i)).ToArray();
         if (filteredIds.Length == 0)
             return new Summary() { Penalty = TimeSpan.FromSeconds(2.5) };
-        string[] primaryId = [filteredIds.First()];
         var breakdown = await flipTrackingService.GetSpeedComp(filteredIds);
         var summary = new Summary();
         if (filteredIds.Length > 1 && hasLicense)
         {
-            var singleBreakdown = await flipTrackingService.GetSpeedComp(filteredIds);
-            var rate = (singleBreakdown?.ReceivedCount ?? 1) / 100 - (singleBreakdown.Times?.Count ?? 0); 
+            string[] primaryId = [filteredIds.First()];
+            var singleBreakdown = await flipTrackingService.GetSpeedComp(primaryId);
+            var rate = (singleBreakdown?.ReceivedCount ?? 1) / 100 - (singleBreakdown.Times?.Count ?? 0);
             if (singleBreakdown != null && (singleBreakdown.Buys.Count > 0 || singleBreakdown.Penalty > 0.01) && rate < 2)
             {
                 singleBreakdown.BadIds = breakdown.BadIds;
