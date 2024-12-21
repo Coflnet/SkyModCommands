@@ -15,7 +15,7 @@ public interface IDelayHandler
     TimeSpan MacroDelay { get; }
     Task<DateTime> AwaitDelayForFlip(FlipInstance flipInstance);
     bool IsLikelyBot(FlipInstance flipInstance);
-    Task<DelayHandler.Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime, bool hasLicense = false);
+    Task<DelayHandler.Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime, string licenseOn = null);
 }
 
 
@@ -131,7 +131,7 @@ public class DelayHandler : IDelayHandler
                     || flipInstance.Volume > 42;
     }
 
-    public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime, bool hasLicense = false)
+    public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime, string licenseOn = null)
     {
         var lastDelay = currentDelay;
         var filteredIds = ids.Where(i => !string.IsNullOrEmpty(i)).ToArray();
@@ -139,12 +139,12 @@ public class DelayHandler : IDelayHandler
             return new Summary() { Penalty = TimeSpan.FromSeconds(2.5) };
         var breakdown = await flipTrackingService.GetSpeedComp(filteredIds);
         var summary = new Summary();
-        if (filteredIds.Length > 1 && hasLicense)
+        if (filteredIds.Length > 1 && licenseOn != null)
         {
-            string[] primaryId = [filteredIds.First()];
+            string[] primaryId = [licenseOn];
             var singleBreakdown = await flipTrackingService.GetSpeedComp(primaryId);
             var rate = (singleBreakdown?.ReceivedCount ?? 1) / 100 - (singleBreakdown.Times?.Count ?? 0);
-            if (singleBreakdown != null && (singleBreakdown.Buys.Count > 0 || singleBreakdown.Penalty > 0.01) && rate < 2)
+            if (singleBreakdown != null && (singleBreakdown.Buys?.Count > 0 || singleBreakdown?.Penalty > 0.01) && rate < 2)
             {
                 singleBreakdown.BadIds = breakdown.BadIds;
                 singleBreakdown.MacroedFlips = breakdown.MacroedFlips;

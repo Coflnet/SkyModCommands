@@ -913,9 +913,8 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var ids = await GetMinecraftAccountUuids();
                 var isBot = socket.ModAdapter is AfVersionAdapter;
-                var hasLicense = TierManager.IsLicense;
 
-                var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, TierManager.IsLicense);
+                var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, TierManager.IsLicense ? SessionInfo.McUuid : null);
                 SessionInfo.NotPurchaseRate = summary.nonpurchaseRate;
                 SessionInfo.NoSharedDelay = summary.SingleAccountDelay;
 
