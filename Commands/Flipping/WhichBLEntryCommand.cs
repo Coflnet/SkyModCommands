@@ -11,12 +11,17 @@ namespace Coflnet.Sky.Commands.MC
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
             var args = Convert<Args>(arguments);
+            return Execute(socket, args);
+        }
+
+        public static Task Execute(MinecraftSocket socket, Args args)
+        {
             var flip = socket.GetFlip(args.Uuid);
             if (flip == null)
                 flip = socket.TopBlocked.Where(b => b.Flip.Auction.Uuid == args.Uuid).Select(b => b.Flip).FirstOrDefault();
             if (flip == null)
             {
-                socket.SendMessage(COFLNET + "Sorry this flip wasn't found in the recently sent list on your connection, can't determine which filter it matched");
+                socket.Dialog(db=>db.MsgLine("Sorry this flip wasn't found in the recently sent list on your connection, can't determine which filter it matched"));
                 return Task.CompletedTask;
             }
             var targetList = socket.Settings.GetForceBlacklist().Concat(socket.Settings.BlackList);
@@ -36,7 +41,8 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }
             socket.Settings.ClearListMatchers();
-            socket.SendMessage(COFLNET + "This flip didn't match any of your current filters. Most likely it matched an already removed entry or one with a bed filter", null, "Reloaded the filter in an attempt to fix this");
+            socket.Dialog(db=>db.MsgLine("This flip didn't match any of your current filters. Most likely it matched an already removed entry or one with a bed filter", 
+                        null, "Reloaded the filter in an attempt to fix this"));
             return Task.CompletedTask;
         }
 
