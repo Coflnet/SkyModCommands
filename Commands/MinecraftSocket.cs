@@ -14,6 +14,7 @@ using Coflnet.Sky.ModCommands.Dialogs;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Threading;
+using System.Text.RegularExpressions;
 #nullable enable
 namespace Coflnet.Sky.Commands.MC
 {
@@ -314,11 +315,11 @@ namespace Coflnet.Sky.Commands.MC
         {
             var previous = ConSpan;
             ConSpan = CreateActivity("connection") ?? new Activity("connection");
-            if(previous != null)
+            if (previous != null)
             {
                 using var span = CreateActivity("previous", ConSpan);
                 span?.SetTag("previous", previous.Context.TraceId);
-                using(var previousSpan = CreateActivity("previous", previous))
+                using (var previousSpan = CreateActivity("previous", previous))
                 {
                     previousSpan?.SetTag("next", ConSpan.Context.TraceId);
                 }
@@ -598,13 +599,25 @@ namespace Coflnet.Sky.Commands.MC
                 command = Commands[closest.cmd];
             }
 
-            Task.Run(async () =>
+            TryAsyncTimes(async () =>
             {
                 waiting++;
                 if (string.IsNullOrEmpty(SessionInfo?.McUuid))
                     await Task.Delay(1200).ConfigureAwait(false);
                 if (sessionLifesycle?.FlipSettings == null)
                     await Task.Delay(2200).ConfigureAwait(false);
+                try
+                {
+                    if (commandType == "chatbatch" && !Regex.IsMatch(JsonConvert.DeserializeObject<string[]>(a.data)[0], sessionLifesycle?.PrivacySettings?.Value?.ChatRegex ?? "noMatch"))
+                    {
+                        return; // drop unecessary chatbatch
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Error(ex, "chatbatch regex");
+                }
+
                 if (e.Data == "nobestflip")
                     await InvokeCommand(a, command!);
                 else
@@ -612,7 +625,7 @@ namespace Coflnet.Sky.Commands.MC
                     using var commandSpan = CreateActivity(a.type, span);
                     await InvokeCommand(a, command!);
                 }
-            }, new CancellationTokenSource(TimeSpan.FromMinutes(2)).Token).ConfigureAwait(false);
+            }, "run client command");
         }
 
         private async Task InvokeCommand(Response a, McCommand command)
