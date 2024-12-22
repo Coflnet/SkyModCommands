@@ -133,6 +133,11 @@ namespace Coflnet.Sky.Commands.MC
             };
         }
 
+        /// <summary>
+        /// Called when a message is received
+        /// </summary>
+        /// <param name="socket"></param>
+        /// <returns>true if the connection should be kept open</returns>
         private static Func<ChatMessage, bool> OnMessage(MinecraftSocket socket)
         {
             return m =>
@@ -206,7 +211,7 @@ namespace Coflnet.Sky.Commands.MC
             var loreJson = parts[1];
             var lore = JsonConvert.DeserializeObject<DescriptionSetting>(loreJson);
             socket.Dialog(db=>db.CoflCommand<LoreCommand>($"{m.Name} shared his lore settings with you, {McColorCodes.YELLOW}[click to use them]", loreJson, "Import the lore settings"));
-            return false;
+            return true;
         }
 
         private static bool Shareitem(MinecraftSocket socket, ChatMessage m, string color, string message, string optionsCmd)
