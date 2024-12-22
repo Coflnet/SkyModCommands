@@ -167,7 +167,7 @@ namespace Coflnet.Sky.Commands.MC
             var lowPricedMock = new LowPricedAuction()
             {
                 Auction = auctionInstance,
-                TargetPrice = (long)estimates.Where(e => e.FinderType == toTest.Finder).Select(e => e.TargetPrice).DefaultIfEmpty(0).Average(),
+                TargetPrice = (long)(estimates?.Where(e => e.FinderType == toTest.Finder).Select(e => e.TargetPrice).DefaultIfEmpty(0).Average() ?? auctionInstance.StartingBid),
                 DailyVolume = 1,
                 AdditionalProps = toTest.Context,
                 Finder = Enum.Parse<LowPricedAuction.FinderType>(toTest.Finder.ToString())
