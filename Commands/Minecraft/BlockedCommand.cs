@@ -92,7 +92,8 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(flipsToSend.SelectMany(b =>
             {
                 socket.Settings.GetPrice(FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
-                var text = $"{McColorCodes.DARK_GRAY}> {socket.formatProvider.GetItemName(b.Flip.Auction)}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}";
+                var formatedName = socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier) + socket.formatProvider.GetItemName(b.Flip.Auction);
+                var text = $"{McColorCodes.DARK_GRAY}> {formatedName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}";
                 if (!string.IsNullOrEmpty(socket.Settings.ModSettings.BlockedFormat))
                     text = socket.formatProvider.FormatFlip(FlipperService.LowPriceToFlip(b.Flip), b.Reason);
                 return new ChatPart[]
