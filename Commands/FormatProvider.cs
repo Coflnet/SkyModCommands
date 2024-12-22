@@ -156,7 +156,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public string GetItemName(SaveAuction auction)
         {
-            string itemName = auction?.Context?.ContainsKey("cname") ?? false ? auction.Context["cname"] : $"{GetRarityColor(auction.Tier)}{auction.ItemName}";
+            string itemName = auction?.Context?.ContainsKey("cname") ?? false ? auction.Context["cname"].Replace(GetRarityColor(auction.Tier), "") : $"{auction.ItemName}";
             if (Settings.ModSettings.ShortNames)
             {
                 foreach (var item in ItemReferences.reforges)
