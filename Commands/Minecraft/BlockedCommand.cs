@@ -155,25 +155,25 @@ namespace Coflnet.Sky.Commands.MC
             }
             socket.Dialog(db => db.ForEach(blocked, (db, b) => db.MsgLine($"{b.FinderType} {McColorCodes.GRAY}blocked for {McColorCodes.RESET}{b.Reason}", null, $"At {b.BlockedAt}")));
 
-            var auctionInstance = await AuctionService.Instance.GetAuctionAsync(searchVal, au=>au.Include(a=>a.Enchantments).Include(a=>a.NbtData));
+            var auctionInstance = await AuctionService.Instance.GetAuctionAsync(searchVal, au => au.Include(a => a.Enchantments).Include(a => a.NbtData));
             if (auctionInstance == null)
                 return;
-            
+
             var trackApi = socket.GetService<ITrackerApi>();
             var flipData = await trackApi.TrackerFlipAuctionIdGetAsync(auctionInstance.Uuid);
             var estimates = await trackApi.TrackerFlipsAuctionIdGetAsync(auctionInstance.UId);
             var toTest = flipData.FirstOrDefault();
-            
+
             var lowPricedMock = new LowPricedAuction()
             {
                 Auction = auctionInstance,
                 TargetPrice = (long)(estimates?.Where(e => e.FinderType == toTest.Finder).Select(e => e.TargetPrice).DefaultIfEmpty(0).Average() ?? auctionInstance.StartingBid),
                 DailyVolume = 1,
-                AdditionalProps = toTest.Context,
-                Finder = Enum.Parse<LowPricedAuction.FinderType>(toTest.Finder.ToString())
+                AdditionalProps = toTest?.Context ?? new(),
+                Finder = toTest == null ? LowPricedAuction.FinderType.USER : Enum.Parse<LowPricedAuction.FinderType>(toTest.Finder.ToString())
             };
             socket.LastSent.Enqueue(lowPricedMock);
-            
+
             await WhichBLEntryCommand.Execute(socket, new WhichBLEntryCommand.Args()
             {
                 Uuid = auctionInstance.Uuid,
