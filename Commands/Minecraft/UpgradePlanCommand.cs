@@ -12,11 +12,11 @@ public class UpgradePlanCommand : PurchaseCommand
     {
         var transactionsApi = socket.GetService<ITransactionApi>();
         var userApi = socket.GetService<UserApi>();
-        if(socket.sessionLifesycle.TierManager.IsLicense)
+        if (socket.sessionLifesycle.TierManager.IsLicense)
         {
             socket.Dialog(db => db.MsgLine("Your connection is using a license. Licenses can't be upgraded. If you want a higher tier you will have to buy a new one.")
-                .CoflCommand<LicensesCommand>("Buy a prem+", 
-                    $"add {socket.SessionInfo.McName} premium_plus {socket.SessionInfo.ConnectionId}", 
+                .CoflCommand<LicensesCommand>("Buy a prem+",
+                    $"add {socket.SessionInfo.McName} premium_plus {socket.SessionInfo.ConnectionId}",
                     $"Click to buy a new license for {socket.SessionInfo.McName}"));
             return;
         }
@@ -40,10 +40,22 @@ public class UpgradePlanCommand : PurchaseCommand
                 .DialogLink<EchoDialog>($"  {McColorCodes.RED}No  ", $"Upgrade Canceled", $"{McColorCodes.RED}Cancel upgrade"));
             return;
         }
+        var userInfo = await userApi.UserUserIdGetAsync(socket.UserId);
+        if(userInfo.Balance < 900)
+        {
+            socket.Dialog(db => db.MsgLine($"You need at least 900 coins to upgrade your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to one week of {McColorCodes.GOLD}premium+")
+                .MsgLine($"You can buy more CoflCoins with {McColorCodes.AQUA}/cofl topup"));
+            return;
+        }
         await userApi.UserUserIdTransactionIdDeleteAsync(socket.UserId, int.Parse(lastPurchase.Id));
-        await Purchase(socket, userApi, "premium_plus", 1, "upgrade premium");
-        socket.Dialog(db => db.MsgLine($"Successfully upgraded your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to one week of {McColorCodes.GOLD}premium+")
-                            .MsgLine("Thanks for supporting our project financially :)"));
+        if (await Purchase(socket, userApi, "premium_plus", 1, "upgrade premium"))
+
+            socket.Dialog(db => db.MsgLine($"Successfully upgraded your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to one week of {McColorCodes.GOLD}premium+")
+                                .MsgLine("Thanks for supporting our project financially :)"));
+        else
+            socket.Dialog(db => db.MsgLine($"Failed to upgrade your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to one week of {McColorCodes.GOLD}premium+")
+                                .MsgLine("Please ask for support on our discord server."));
+
 
     }
 
