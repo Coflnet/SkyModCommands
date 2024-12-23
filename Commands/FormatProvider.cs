@@ -79,6 +79,7 @@ namespace Coflnet.Sky.Commands.MC
             string finderType = FinderText(flip);
             var a = flip.Auction;
             string itemName = GetItemName(flip.Auction);
+            var rarityColor = GetRarityColor(a.Tier);
             var cost = a.HighestBidAmount == 0 ? a.StartingBid : a.HighestBidAmount;
             var formatString = blockedReason == null ? Settings.ModSettings?.Format : Settings.ModSettings?.BlockedFormat;
             var targetPriceFormatted = targetPrice < 0 ? $"{McColorCodes.DARK_GREEN}NoRelist" : FormatPrice(targetPrice);
@@ -104,8 +105,8 @@ namespace Coflnet.Sky.Commands.MC
                 string source = GetSource(flip);
                 return String.Format(formatString.Replace("\\n", "\n"),
                     finderType,
-                    GetRarityColor(a.Tier),
-                    itemName,
+                    rarityColor,
+                    itemName.Replace(GetRarityColor(a.Tier), "").Replace(McColorCodes.GRAY, ""), // pet level
                     priceColor,
                     FormatPrice(cost),
                     targetPriceFormatted, // this is {5}
@@ -122,7 +123,7 @@ namespace Coflnet.Sky.Commands.MC
 
             var builder = new StringBuilder(80);
 
-            builder.Append($"\n{finderType}: {itemName} {priceColor}{FormatPrice(cost)} -> {targetPriceFormatted} ");
+            builder.Append($"\n{finderType}: {rarityColor}{itemName} {priceColor}{FormatPrice(cost)} -> {targetPriceFormatted} ");
             try
             {
                 if ((Settings?.Visibility?.Profit ?? false) || (Settings?.Visibility?.EstimatedProfit ?? false))
@@ -156,7 +157,9 @@ namespace Coflnet.Sky.Commands.MC
 
         public string GetItemName(SaveAuction auction)
         {
-            string itemName = auction?.Context?.ContainsKey("cname") ?? false ? auction.Context["cname"].Replace(GetRarityColor(auction.Tier), "") : $"{auction.ItemName}";
+            string itemName = auction?.Context?.ContainsKey("cname") ?? false ? 
+                auction.Context["cname"]
+                : $"{auction.ItemName}";
             if (Settings.ModSettings.ShortNames)
             {
                 foreach (var item in ItemReferences.reforges)
