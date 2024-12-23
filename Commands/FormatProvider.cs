@@ -103,10 +103,10 @@ namespace Coflnet.Sky.Commands.MC
                     
                 */
                 string source = GetSource(flip);
-                return String.Format(formatString.Replace("\\n", "\n"),
+                return string.Format(formatString.Replace("\\n", "\n"),
                     finderType,
                     rarityColor,
-                    itemName.Replace(GetRarityColor(a.Tier), "").Replace(McColorCodes.GRAY, ""), // pet level
+                    itemName.Replace(rarityColor == string.Empty ? "ignore" : rarityColor, "").Replace(McColorCodes.GRAY, ""), // pet level
                     priceColor,
                     FormatPrice(cost),
                     targetPriceFormatted, // this is {5}
