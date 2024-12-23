@@ -163,12 +163,17 @@ namespace Coflnet.Sky.Commands.MC
             var flipData = await trackApi.TrackerFlipAuctionIdGetAsync(auctionInstance.Uuid);
             var estimates = await trackApi.TrackerFlipsAuctionIdGetAsync(auctionInstance.UId);
             var toTest = flipData.FirstOrDefault();
+            float volumeEstimate = 1;
+            if(toTest.Context.TryGetValue("oldRef", out var oldRef) && toTest.Context.TryGetValue("refCount", out var refCount))
+            {
+                volumeEstimate = int.Parse(refCount) / float.Parse(oldRef) + 1f;
+            }
 
             var lowPricedMock = new LowPricedAuction()
             {
                 Auction = auctionInstance,
                 TargetPrice = (long)(estimates?.Where(e => e.FinderType == toTest.Finder).Select(e => e.TargetPrice).DefaultIfEmpty(0).Average() ?? auctionInstance.StartingBid),
-                DailyVolume = 1,
+                DailyVolume = volumeEstimate,
                 AdditionalProps = toTest?.Context ?? new(),
                 Finder = toTest == null ? LowPricedAuction.FinderType.USER : Enum.Parse<LowPricedAuction.FinderType>(toTest.Finder.ToString())
             };
