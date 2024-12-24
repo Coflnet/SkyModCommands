@@ -147,7 +147,8 @@ public class DelayHandler : IDelayHandler
             if (singleBreakdown != null && (singleBreakdown.Buys?.Count > 0 || singleBreakdown?.Penalty > 0.01) && rate < 2)
             {
                 singleBreakdown.BadIds = breakdown.BadIds;
-                singleBreakdown.MacroedFlips = breakdown.MacroedFlips;
+                if (Random.Shared.NextDouble() < 0.95)
+                    singleBreakdown.MacroedFlips = breakdown.MacroedFlips;
                 breakdown = singleBreakdown;
                 summary.SingleAccountDelay = true;
             }
