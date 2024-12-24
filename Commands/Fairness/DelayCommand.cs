@@ -83,9 +83,13 @@ namespace Coflnet.Sky.Commands.MC
                 var delayReducedBy = delayAmount - adjustedDelay;
                 socket.Dialog(db => db.MsgLine($"Because of your license(s) your delay is reduced by {McColorCodes.AQUA}{delayReducedBy.TotalSeconds}s{DEFAULT_COLOR} from {McColorCodes.RED}{adjustedDelay.TotalSeconds}s{DEFAULT_COLOR}."));
             }
-            if(socket.SessionInfo.NoSharedDelay)
+            if (socket.SessionInfo.NoSharedDelay)
             {
                 socket.Dialog(db => db.MsgLine("Your license granted you no shared delay for this connection"));
+            }
+            else if (socket.SessionInfo.LicensePoints == 0 && socket.sessionLifesycle.TierManager.IsLicense)
+            {
+                socket.Dialog(db => db.MsgLine("It seems you haven't bought any flips with the connected in user yet. Your delay is combined with all verified accounts to avoid you accidentially bypassing the fairness system and getting blacklisted."));
             }
 
             await socket.TriggerTutorial<DelayTutorial>();
