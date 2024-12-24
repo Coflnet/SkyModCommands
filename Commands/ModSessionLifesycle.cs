@@ -969,7 +969,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (Random.Shared.NextDouble() < 0.3)
                     auction.Context["cname"] = auction.ItemName + McColorCodes.DARK_GRAY + "!";
                 else if (Random.Shared.NextDouble() < 0.3)
-                    auction.Context["cname"] = auction.ItemName + McColorCodes.GRAY + "-us";
+                    auction.Context["cname"] = auction.ItemName + McColorCodes.DARK_GRAY + "-us";
                 var loss = auction.StartingBid - item.Value.Median;
                 using var sendSpan = socket.CreateActivity("shitItem", ConSpan)
                         ?.AddTag("auctionId", auction.Uuid)?.AddTag("ip", socket.ClientIp)

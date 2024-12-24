@@ -91,7 +91,7 @@ public class AfVersionAdapter : ModVersionAdapter
 
     protected static string GetItemName(SaveAuction auction)
     {
-        return (auction?.Context?.GetValueOrDefault("cname") ?? auction.ItemName).Replace("§8.", "").Replace("§7-us", "");
+        return (auction?.Context?.GetValueOrDefault("cname") ?? auction.ItemName).Replace("§8.", "").Replace("§8-us", "");
     }
 
     public virtual Task TryToListAuction()
