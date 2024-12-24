@@ -89,7 +89,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             else if (socket.SessionInfo.LicensePoints == 0 && socket.sessionLifesycle.TierManager.IsLicense)
             {
-                socket.Dialog(db => db.MsgLine("It seems you haven't bought any flips with the connected in user yet. Your delay is combined with all verified accounts to avoid you accidentially bypassing the fairness system and getting blacklisted."));
+                socket.Dialog(db => db.MsgLine("It seems you haven't bought any flips with the connected in user recently. Your delay is combined with all verified accounts to avoid you accidentially bypassing the fairness system and getting blacklisted."));
             }
 
             await socket.TriggerTutorial<DelayTutorial>();
