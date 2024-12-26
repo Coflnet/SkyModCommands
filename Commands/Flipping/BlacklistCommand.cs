@@ -174,9 +174,9 @@ namespace Coflnet.Sky.Commands.MC
             {
                 entry.GetExpression(socket.SessionInfo).Compile().Invoke(GetTestFlip(r.Tag));
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Console.WriteLine(JSON.Stringify(entry));
+                Console.WriteLine(JSON.Stringify(entry) + e);
                 socket.SendMessage("The filter could not be parsed or created, please check your syntax or report this");
                 throw;
             }

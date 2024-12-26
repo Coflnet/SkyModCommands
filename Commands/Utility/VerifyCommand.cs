@@ -19,11 +19,11 @@ public class VerifyCommand : McCommand
         if (isVerified)
         {
             var transactions = await socket.GetService<ITransactionApi>().TransactionUUserIdGetAsync(socket.UserId.ToString(), 0, 50);
-            var canSendCoins = transactions.Count > 10 || transactions.Any(t => t.ProductId == "verify_mc") || transactions.Any(t => t.ProductId == "premium_plus");
+            var canSendCoins = transactions.Count > 10 || transactions.Any(t => t.ProductId == "verify_mc") || transactions.Any(t => t.ProductId.Contains("premium_plus"));
             socket.SendMessage($"You are verified. You can chat with {McColorCodes.AQUA}/fc <message>");
             if (!canSendCoins)
             {
-                socket.SendMessage("You don't qualify for the sending of CoflCoins tho. This happens when you use multiple emails with the same minecraft account which is not allowed.");
+                socket.SendMessage("You don't qualify for the sending of CoflCoins tho. This happens when you use multiple emails with the same minecraft account which is not allowed. This limitation goes away if you buy prem+");
             }
             return;
         }
