@@ -153,7 +153,7 @@ namespace Coflnet.Sky.ModCommands.Services
         private void SubscribeConnection(ConnectionMultiplexer multiplexer, CancellationToken stoppingToken)
         {
             var hostName = System.Net.Dns.GetHostName();
-            multiplexer.GetSubscriber().Subscribe("snipes", (chan, val) =>
+            multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal("snipes"), (chan, val) =>
             {
                 Task.Run(async () =>
                 {
@@ -185,7 +185,7 @@ namespace Coflnet.Sky.ModCommands.Services
                 var server = multiplexer.GetServer(e);
                 return $" {server.EndPoint.AddressFamily}-" + e.ToString();
             }).First());
-            multiplexer.GetSubscriber().Subscribe("beat", (chan, val) =>
+            multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal("beat"), (chan, val) =>
             {
                 if (val == System.Net.Dns.GetHostName())
                     logger.LogInformation("redis heart beat " + val);
@@ -195,7 +195,7 @@ namespace Coflnet.Sky.ModCommands.Services
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
-                    multiplexer.GetSubscriber().Publish("beat", System.Net.Dns.GetHostName());
+                    multiplexer.GetSubscriber().Publish(RedisChannel.Literal("beat"), System.Net.Dns.GetHostName());
                 }
                 logger.LogWarning($"redis heart beat stopped; Cancellation Requested: {stoppingToken.IsCancellationRequested}");
             });
