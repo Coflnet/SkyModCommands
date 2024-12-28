@@ -70,7 +70,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
                     "Open link");
 
             if (context.socket.GetService<Services.ModeratorService>().IsModerator(context.socket))
-                response.Msg(McColorCodes.DARK_GRAY + " . ", null, flip.Auction.Context?.GetValueOrDefault("pre-api", flip.Auction.Context?.GetValueOrDefault("server", "non")) ?? "no context");
+                response.Msg(McColorCodes.DARK_GRAY + " . ", null, flip.Auction.Context?.GetValueOrDefault("pre-api", flip.AdditionalProps?.GetValueOrDefault("server", "non")) ?? "no context");
             return response;
         }
 
