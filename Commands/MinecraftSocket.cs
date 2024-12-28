@@ -1015,7 +1015,10 @@ namespace Coflnet.Sky.Commands.MC
 
         public LowPricedAuction? GetFlip(string uuid)
         {
-            return LastSent.Concat(TopBlocked.Select(b => b.Flip)).Where(s => s.Auction.Uuid == uuid).FirstOrDefault();
+            var fromSent = LastSent.Where(s => s.Auction.Uuid == uuid).FirstOrDefault();
+            if (fromSent != null)
+                return fromSent;
+            return TopBlocked.Select(b => b.Flip).Where(s => s.Auction.Uuid == uuid).FirstOrDefault();
         }
 
         public async Task<bool> SendFlip(FlipInstance flip)
