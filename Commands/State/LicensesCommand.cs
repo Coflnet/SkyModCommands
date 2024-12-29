@@ -270,7 +270,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         var currentId = socket.SessionInfo.McUuid;
         var defaultAccount = socket.sessionLifesycle.TierManager.DefaultAccount;
         var licenses = await GetList(socket);
-        var allIds = licenses.Select(l => l.TargetId).ToList();
+        var allIds = licenses.Where(l => l.Expires > DateTime.UtcNow).Select(l => l.TargetId).ToList();
         if (defaultAccount != null)
             allIds.Add(defaultAccount);
         if (!allIds.Contains(currentId))
