@@ -24,11 +24,11 @@ public class DelayHandlerTests
         timeProvider = new MockTimeProvider();
         ids = new string[] { "hi" };
         var configuration = new Mock<IConfiguration>();
-        var flipTrackingService = new Mock<FlipTrackingService>(null, null, configuration.Object, null, null, null, null,null);
+        var flipTrackingService = new Mock<FlipTrackingService>(null, null, configuration.Object, null, null, null, null, null);
         sessionInfo = new SessionInfo() { };
         accountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(() => new AccountInfo() { }).Result;
         result = new SpeedCompResult() { Penalty = 1, MacroedFlips = new(), BoughtWorth = 50_000_000 };
-        flipTrackingService.Setup(f => f.GetSpeedComp(ids)).Returns(Task.FromResult(result));
+        flipTrackingService.Setup(f => f.GetSpeedComp(ids, 0)).Returns(Task.FromResult(result));
         delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, accountInfo, new Random(5));
         flipInstance = new FlipInstance() { Auction = new() { StartingBid = 5 } };
         DiHandler.OverrideService<DelayService, DelayService>(new DelayService(null));
