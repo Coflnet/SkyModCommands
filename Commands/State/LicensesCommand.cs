@@ -29,7 +29,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             socket.Dialog(db => db.MsgLine($"This connection is now {McColorCodes.AQUA}{newTier}"));
             return;
         }
-        if(command == "refund")
+        if (command == "refund")
         {
             var licenses = await socket.GetService<ITransactionApi>().TransactionUUserIdGetAsync(socket.UserId);
             var refund = licenses.FirstOrDefault(l => l.ProductId == "premium_plus-weeks" && l.TimeStamp > DateTime.UtcNow.AddDays(-10));
@@ -43,7 +43,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             var refundevent = await userApi.UserUserIdTransactionIdDeleteAsync(socket.UserId, int.Parse(refund.Id));
             socket.Dialog(db => db.MsgLine($"Refunded {McColorCodes.AQUA}{refundevent.Amount} coins"));
         }
-        if(command == "use")
+        if (command == "use")
         {
             await SwitchAccountInUse(socket, args);
             return;
@@ -267,6 +267,21 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
                 message += $"\n{McColorCodes.GRAY}Click to change to your current account";
             socket.Dialog(db => db.CoflCommand<LicensesCommand>($"Your default account is {McColorCodes.AQUA}{name}", "default " + name, message));
         }
+        var currentId = socket.SessionInfo.McUuid;
+        var defaultAccount = socket.sessionLifesycle.TierManager.DefaultAccount;
+        var licenses = await GetList(socket);
+        var allIds = licenses.Select(l => l.TargetId).ToList();
+        if (defaultAccount != null)
+            allIds.Add(defaultAccount);
+        if (!allIds.Contains(currentId))
+        {
+            socket.Dialog(db => db.MsgLine($"You don't have a license for {McColorCodes.AQUA}{socket.SessionInfo.McName}")
+                .MsgLine($"You can buy one with {McColorCodes.AQUA}/cofl license add {socket.SessionInfo.McName}", $"/cofl license add {socket.SessionInfo.McName}", "Click to buy a license")
+                .MsgLine($"Use your account tier {McColorCodes.AQUA}/cofl license default {socket.SessionInfo.McName}", $"/cofl license default {socket.SessionInfo.McName}", "Click to set default account")
+                .If(() => licenses.Count >= 1, db => db.MsgLine($"Switch license 1 with {McColorCodes.AQUA}/cl license use 1 {socket.SessionInfo.McName}", $"/cofl license use 1 {socket.SessionInfo.McName}", "Click to switch license 1")));
+            return;
+        }
+
 
         static async Task<string> NewMethod(MinecraftSocket socket)
         {
