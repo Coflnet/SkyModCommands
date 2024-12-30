@@ -27,7 +27,8 @@ public class AttributeFlipCommand : ReadOnlyListCommand<Sniper.Client.Model.Attr
     {
         db.MsgLine($"{McColorCodes.GREEN}{elem.Tag} {McColorCodes.RESET}to {McColorCodes.AQUA}{socket.FormatPrice(elem.Target)} {McColorCodes.RESET}apply:",
                 $"/viewauction {elem.AuctionToBuy}",
-                $"click to open the auction in question\n{McColorCodes.GRAY}do that before you buy the things to upgrade")
+                $"click to open the auction in question\n{McColorCodes.GRAY}do that before you buy the things to upgrade"
+                + $"\n{McColorCodes.GRAY}Volume: {elem.Volume}")
             .ForEach(elem.Ingredients, (db, ing) => db.MsgLine($"{McColorCodes.GRAY}- {McColorCodes.RESET}{ing.AttributeName}"));
     }
 
