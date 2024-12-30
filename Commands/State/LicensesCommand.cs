@@ -53,7 +53,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
 
     private static async Task SwitchAccountInUse(MinecraftSocket socket, string[] args)
     {
-        if(args.Length < 2)
+        if (args.Length < 2)
         {
             socket.Dialog(db => db.MsgLine("Please provide the license id (first character of /cofl licenses list) and the username to switch to"));
             return;
@@ -247,7 +247,8 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             ProductSlug = l.ProductSlug,
             TargetId = l.TargetId,
             TargetName = allnames?.GetValueOrDefault(l.TargetId) ?? l.TargetId.Truncate(5) + "..."
-        }).Concat(settings.Licenses.Select(l => new PublicLicenseWithName
+        }).Where(l => l.Expires > DateTime.UtcNow - TimeSpan.FromDays(20))
+        .Concat(settings.Licenses.Select(l => new PublicLicenseWithName
         {
             Expires = l.Expires,
             ProductSlug = l.Tier.ToString(),
