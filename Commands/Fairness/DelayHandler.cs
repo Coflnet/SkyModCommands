@@ -144,7 +144,8 @@ public class DelayHandler : IDelayHandler
             string[] primaryId = [licenseOn];
             var singleBreakdown = await flipTrackingService.GetSpeedComp(primaryId, 25);
             var rate = (singleBreakdown?.ReceivedCount ?? 1) / 100 - (singleBreakdown.Times?.Count ?? 0);
-            if (singleBreakdown != null && (singleBreakdown.Buys?.Count > 0 || singleBreakdown?.Penalty > 0.01) && rate < 2)
+            var dropOut = random.NextDouble() <  0.04;
+            if (singleBreakdown != null && (singleBreakdown.Buys?.Count > 0 || singleBreakdown?.Penalty > 0.01) && rate < 2 || dropOut)
             {
                 singleBreakdown.BadIds = breakdown.BadIds;
                 if (Random.Shared.NextDouble() < 0.95)
