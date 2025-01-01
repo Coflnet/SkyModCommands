@@ -86,6 +86,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         var flipCount = flips.Flips.Length;
         var flipProfit = flips.Flips.Sum(f => f.Profit);
         var flipPaid = flips.Flips.Sum(f => f.PricePaid);
+        Console.WriteLine($"Flips: {flipCount} Profit: {flipProfit} Paid: {flipPaid} - count {uuids.Count()} - {timeSpan}");
         var avgProfitPerDay = flipProfit / uuids.Count() + 1 / timeSpan.TotalDays;
         var flipsPerDay = flipCount / timeSpan.TotalDays;
         var mostCommonItem = flips.Flips.GroupBy(f => f.ItemTag).OrderByDescending(g => g.Count()).FirstOrDefault()?.First().ItemName ?? "none";
