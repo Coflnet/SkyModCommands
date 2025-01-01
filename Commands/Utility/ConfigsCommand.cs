@@ -79,8 +79,14 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
 
         var service = socket.GetService<ConfigStatsService>();
         var loads = (await service.GetLoads(owner, configName)).ToList();
+        if (loads.Count == 0)
+        {
+            socket.Dialog(db => db.MsgLine($"Nobody used {McColorCodes.GOLD}{configName}{McColorCodes.GRAY} in the last 2 days")
+                .MsgLine($"{McColorCodes.DARK_GRAY}Stats are computed on the last 2 days only"));
+            return;
+        }
         var differentUsers = loads.Select(l => l.UserId).Distinct().Count();
-        var uuids = loads.Select(l => l.McUuid).Distinct();
+        var uuids = loads.Select(l => l.McUuid).Distinct().ToList();
         var timeSpan = TimeSpan.FromDays(2);
         var flips = await socket.GetService<FlipTrackingService>().GetPlayerFlips(uuids, timeSpan);
         var flipCount = flips.Flips.Length;
