@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra;
@@ -8,6 +9,7 @@ using Cassandra.Mapping;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -37,6 +39,10 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         {
             await RemoveRep(socket, args);
         }
+        else if (command == "stats")
+        {
+            await GetStats(socket, args);
+        }
         else if (command == "autoupdate")
         {
             await ToggleAutoupdate(socket);
@@ -59,6 +65,41 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             await base.List(socket, stringArgs);
             socket.SendMessage($"See {McColorCodes.AQUA}/cofl configs help{McColorCodes.GRAY} to see options.");
         }
+    }
+
+    private async Task GetStats(MinecraftSocket socket, string[] args)
+    {
+        var configName = args[2];
+        var owner = args[1];
+
+        if (!int.TryParse(owner, out _))
+        {
+            owner = await GetUserIdFromMcName(socket, owner);
+        }
+
+        var service = socket.GetService<ConfigStatsService>();
+        var loads = (await service.GetLoads(owner, configName)).ToList();
+        var differentUsers = loads.Select(l => l.UserId).Distinct().Count();
+        var uuids = loads.Select(l => l.McUuid).Distinct();
+        var timeSpan = TimeSpan.FromDays(2);
+        var flips = await socket.GetService<FlipTrackingService>().GetPlayerFlips(uuids, timeSpan);
+        var flipCount = flips.Flips.Length;
+        var flipProfit = flips.Flips.Sum(f => f.Profit);
+        var flipPaid = flips.Flips.Sum(f => f.PricePaid);
+        var avgProfitPerDay = flipProfit / uuids.Count() + 1 / timeSpan.TotalDays;
+        var flipsPerDay = flipCount / timeSpan.TotalDays;
+        var mostCommonItem = flips.Flips.GroupBy(f => f.ItemTag).OrderByDescending(g => g.Count()).FirstOrDefault()?.First().ItemName ?? "none";
+        var mostProfit = flips.Flips.OrderByDescending(f => f.Profit).FirstOrDefault();
+
+        socket.Dialog(db => db
+            .MsgLine($"Stats for {McColorCodes.GOLD}{configName}")
+            .MsgLine($" Loaded {McColorCodes.AQUA}{loads.Count}{McColorCodes.RESET} times by {McColorCodes.AQUA}{differentUsers}{McColorCodes.RESET} different users")
+            .MsgLine($" On average users flipped {McColorCodes.AQUA}{(int)flipsPerDay}{McColorCodes.RESET} items and profited {McColorCodes.GOLD}{socket.FormatPrice(avgProfitPerDay)} per day")
+            .MsgLine($" In total {McColorCodes.AQUA}{socket.FormatPrice(flipPaid)}{McColorCodes.RESET} coins were spent")
+            .MsgLine($" The most common flipped item was {McColorCodes.GOLD}{mostCommonItem}")
+            .If(() => mostProfit != null, db => db.MsgLine($"The most profitable flip was a {ProfitCommand.FormatFlipName(socket, mostProfit)} {ProfitCommand.FormatFlip(socket, mostProfit)}"))
+            .MsgLine($"{McColorCodes.DARK_GRAY} Note that users may have changed config... ", null,
+                "Note that users may have changed config throughout \nthe time period which is not accounted for"));
     }
 
     private async Task Reset(MinecraftSocket socket)
@@ -160,7 +201,9 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
 
     protected override void ListResponse(DialogBuilder d, ConfigRating e)
     {
-        FormatForList(d, e).MsgLine($" {McColorCodes.YELLOW}[BUY]{DEFAULT_COLOR}", $"/cofl buyconfig {e.OwnerId} {e.ConfigName}", $"buy {LongFormat(e)}");
+        FormatForList(d, e)
+            .Msg($" {McColorCodes.GRAY}[{McColorCodes.YELLOW}STATS{McColorCodes.GRAY}]{DEFAULT_COLOR}", $"/cofl {Slug} stats {e.OwnerId} {e.ConfigName}", $"get {McColorCodes.BOLD}stats{McColorCodes.RESET} for {LongFormat(e)}")
+            .MsgLine($" {McColorCodes.GRAY}[{McColorCodes.YELLOW}BUY{McColorCodes.GRAY}]{DEFAULT_COLOR}", $"/cofl buyconfig {e.OwnerId} {e.ConfigName}", $"buy {LongFormat(e)}");
     }
 
     protected override DialogBuilder FormatForList(DialogBuilder d, ConfigRating elem)
@@ -237,6 +280,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             .MsgLine($"usage of {McColorCodes.AQUA}/cofl {Slug}{DEFAULT_COLOR}")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} +rep <ign> <config>{DEFAULT_COLOR} upvotes config")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} -rep <ign> <config>{DEFAULT_COLOR} downvotes config")
+            .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} stats <ign> <config>{DEFAULT_COLOR} get usage stats")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} list{DEFAULT_COLOR} lists available configs")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} autoupdate{DEFAULT_COLOR} toggles autoupdate")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} reset{DEFAULT_COLOR} resets config to default")

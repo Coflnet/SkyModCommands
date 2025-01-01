@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.ModCommands.Services;
 using NUnit.Framework;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -43,6 +44,13 @@ public class SessionFilterState : IDisposable
                 await SubBaseConfig(newConfig);
             }
         }
+        await lifesycle.socket.GetService<ConfigStatsService>().AddLoad(
+            loadedConfigMetadata.OwnerId,
+            loadedConfigMetadata.Name,
+            lifesycle.SessionInfo.McUuid,
+            lifesycle.AccountInfo.Value.UserId,
+            loadedConfigMetadata.Version
+        );
 
         void ShowConfigUpdateOption(OwnedConfigs.OwnedConfig loadedConfigMetadata, ConfigContainer newConfig)
         {

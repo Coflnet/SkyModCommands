@@ -76,6 +76,7 @@ public class Startup
         services.AddHostedService(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IAhActive, AhActiveService>();
         services.AddSingleton<CircumventTracker>();
+        services.AddSingleton<ConfigStatsService>();
         services.AddSingleton<IBlockedService, BlockedService>();
         services.AddSingleton<Sniper.Client.Api.IAuctionApi, Sniper.Client.Api.AuctionApi>(s => new Sniper.Client.Api.AuctionApi(Configuration["SNIPER_BASE_URL"]));
         services.AddSingleton<McConnect.Api.IConnectApi, McConnect.Api.ConnectApi>(s => new McConnect.Api.ConnectApi(Configuration["MCCONNECT_BASE_URL"]));

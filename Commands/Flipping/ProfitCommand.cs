@@ -56,12 +56,12 @@ namespace Coflnet.Sky.Commands.MC
 
 
         }
-        protected string FormatFlip(MinecraftSocket socket, FlipDetails best)
+        public static string FormatFlip(MinecraftSocket socket, FlipDetails best)
         {
             return $" {FormatPrice(socket, best.PricePaid)} -> {FormatPrice(socket, best.SoldFor)} (+{FormatPrice(socket, best.Profit)})";
         }
 
-        protected static string FormatFlipName(MinecraftSocket socket, FlipDetails best)
+        public static string FormatFlipName(MinecraftSocket socket, FlipDetails best)
         {
             return $"{socket.formatProvider.GetRarityColor(Enum.Parse<Tier>(best.Tier.Replace("VERYSPECIAL", "VERY_SPECIAL")))}{best.ItemName}";
         }
@@ -153,7 +153,7 @@ namespace Coflnet.Sky.Commands.MC
             return response.Flips.Where(f => f.Finder == type).Sum(f => f.Profit);
         }
 
-        private string FormatPrice(MinecraftSocket socket, long number)
+        private static string FormatPrice(MinecraftSocket socket, long number)
         {
             return $"{McColorCodes.AQUA}{socket.FormatPrice(number)}{McColorCodes.GRAY}";
         }
