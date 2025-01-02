@@ -41,6 +41,10 @@ public class ConfigStatsService
 
     public async Task AddLoad(string owner, string configName, string mcUuid, string userId, int version)
     {
+        if(!Guid.TryParse(mcUuid, out _))
+        {
+            return; // ignore invalid entries to not break fliptracking request
+        }
         await Table.Insert(new ConfigLoad()
         {
             ConfigName = configName,
