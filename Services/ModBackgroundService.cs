@@ -82,7 +82,7 @@ namespace Coflnet.Sky.ModCommands.Services
             {
                 using var scope = scopeFactory.CreateScope();
                 var trackerApi = scope.ServiceProvider.GetRequiredService<ITrackerApi>();
-                var keys = await trackerApi.FlipsExemptGetAsync();
+                var keys = await trackerApi.GetExemptFlipsAsync();
                 this.delayExemptList.Exemptions = new(keys.Select(k => (k.ItemTag, k.Key)).ToHashSet());
             }
             catch (Exception e)

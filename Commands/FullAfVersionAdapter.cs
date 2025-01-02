@@ -301,7 +301,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         }
         var auctionId = socket.GetService<AuctionService>().GetId(historyItem.AuctionId);
         // get price from fliptracker
-        var flipData = await socket.GetService<ITrackerApi>().TrackerFlipsAuctionIdGetAsync(auctionId);
+        var flipData = await socket.GetService<ITrackerApi>().GetFlipsOfAuctionAsync(auctionId);
         var estimate = (long)flipData.Select(f => f.TargetPrice).Average();
         span.Log($"Found {item.First.ItemName} in inventory with count {item.First.Count} using price {estimate}");
         return estimate;
@@ -469,7 +469,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         if (purchase == null)
             return new List<FlipTracker.Client.Model.Flip>();
         var longId = socket.GetService<AuctionService>().GetId(purchase.AuctionId);
-        return await socket.GetService<ITrackerApi>().TrackerFlipsAuctionIdGetAsync(longId);
+        return await socket.GetService<ITrackerApi>().GetFlipsOfAuctionAsync(longId);
     }
     private async Task<List<Api.Client.Model.BidResult>> GetItemPurchases(IPlayerApi apiService, string uid)
     {

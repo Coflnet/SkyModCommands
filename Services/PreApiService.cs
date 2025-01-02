@@ -416,7 +416,7 @@ public class PreApiService : BackgroundService, IPreApiService
             var connectedFrom = connection.SessionInfo.McUuid;
             try
             {
-                var sim = await connection.GetService<FlipTracker.Client.Api.IAnalyseApi>().PlayerPlayerIdAlternativeGetAsync(buyer, 1);
+                var sim = await connection.GetService<FlipTracker.Client.Api.IAnalyseApi>().GetAltAsync(buyer, 1);
                 var simPlayerId = long.Parse(sim.PlayerId);
                 var connectedUid = AuctionService.Instance.GetId(connectedFrom);
                 var buyerUid = AuctionService.Instance.GetId(buyer);

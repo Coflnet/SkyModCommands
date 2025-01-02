@@ -160,8 +160,8 @@ namespace Coflnet.Sky.Commands.MC
                 return;
 
             var trackApi = socket.GetService<ITrackerApi>();
-            var flipData = await trackApi.TrackerFlipAuctionIdGetAsync(auctionInstance.Uuid);
-            var estimates = await trackApi.TrackerFlipsAuctionIdGetAsync(auctionInstance.UId);
+            var flipData = await trackApi.GetFlipAsync(auctionInstance.Uuid);
+            var estimates = await trackApi.GetFlipsOfAuctionAsync(auctionInstance.UId);
             var toTest = flipData.FirstOrDefault();
             float volumeEstimate = 1;
             if(toTest.Context.TryGetValue("oldRef", out var oldRef) && toTest.Context.TryGetValue("refCount", out var refCount))
