@@ -86,7 +86,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             return;
         }
         var differentUsers = loads.Select(l => l.UserId).Distinct().Count();
-        var uuids = loads.Select(l => l.McUuid).Distinct().ToList();
+        var uuids = loads.Select(l => l.McUuid).Where(l => l != null).Distinct().ToList();
         var timeSpan = TimeSpan.FromDays(2);
         var flips = await socket.GetService<FlipTrackingService>().GetPlayerFlips(uuids, timeSpan);
         var flipCount = flips.Flips.Length;
