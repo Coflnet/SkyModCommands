@@ -24,7 +24,11 @@ public class ReplayFlips : ArgumentsCommand
             socket.Dialog(db => db.MsgLine("You seem to have a config loaded you don't own/made. This feature is only available for config creators"));
             return;
         }
-        var hours = int.Parse(args["hours"]);
+        if (!double.TryParse(args["hours"], out var hours))
+        {
+            SendUsage(socket, "Hours have to be a number");
+            return;
+        }
         if (hours > 100)
         {
             socket.Dialog(db => db.MsgLine("You can only replay the last 100 hours"));
@@ -32,7 +36,8 @@ public class ReplayFlips : ArgumentsCommand
         }
         if ((socket is MinecraftSocket s) && s.HasFlippingDisabled())
         {
-            socket.Dialog(db => db.MsgLine("You have flips displayed, make sure to be within skyblock"));
+            socket.Dialog(db => db.MsgLine($"You currently can't receive flips, Check {McColorCodes.AQUA}/cofl blocked{McColorCodes.RESET} for why",
+                    "/cofl blocked", $"Click to run {McColorCodes.AQUA}/cofl blocked"));
             return;
         }
         var iConfig = socket.GetService<IConfiguration>();
@@ -68,6 +73,6 @@ public class ReplayFlips : ArgumentsCommand
                 throw;
             }
         }
-        socket.Dialog(db => db.MsgLine($"Replaying {McColorCodes.AQUA}{count}{McColorCodes.RESET} auctions finished{McColorCodes.GRAY}, \nwana replay active auctions against user finder? Try /cofl replayactive"));
+        socket.Dialog(db => db.MsgLine($"Replaying {McColorCodes.AQUA}{count}{McColorCodes.RESET} auctions finished, \n{McColorCodes.GRAY}wana replay active auctions against user finder? Try /cofl replayactive"));
     }
 }
