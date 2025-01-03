@@ -63,6 +63,8 @@ public class ReplayFlips : ArgumentsCommand
                 if (cr == null) break;
                 await socket.SendFlip(cr.Message.Value);
                 count++;
+                if (count % 50 == 0)
+                    socket.sessionLifesycle.spamController.Reset();
             }
             catch (OperationCanceledException)
             {
