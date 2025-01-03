@@ -29,9 +29,9 @@ public class ReplayFlips : ArgumentsCommand
             SendUsage(socket, "Hours have to be a number");
             return;
         }
-        if (hours > 100)
+        if (hours > 48)
         {
-            socket.Dialog(db => db.MsgLine("You can only replay the last 100 hours"));
+            socket.Dialog(db => db.MsgLine("You can only replay the last 48 hours"));
             return;
         }
         if ((socket is MinecraftSocket s) && s.HasFlippingDisabled())
@@ -63,8 +63,11 @@ public class ReplayFlips : ArgumentsCommand
                 if (cr == null) break;
                 await socket.SendFlip(cr.Message.Value);
                 count++;
-                if (count % 50 == 0)
+                if (count % 40 == 0)
+                {
                     socket.sessionLifesycle.spamController.Reset();
+                    await Task.Delay(20);
+                }
             }
             catch (OperationCanceledException)
             {
