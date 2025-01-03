@@ -44,14 +44,15 @@ public class ReplayFlips : ArgumentsCommand
 
         consumer.Assign(offsets);
         socket.Dialog(db => db.MsgLine($"Replaying flips of the last {hours} hours..."));
+        var count = 0;
         while (true)
         {
             try
             {
-
                 var cr = consumer.Consume(new CancellationTokenSource(1000).Token);
                 if (cr == null) break;
                 await socket.SendFlip(cr.Message.Value);
+                count++;
             }
             catch (OperationCanceledException)
             {
@@ -62,6 +63,6 @@ public class ReplayFlips : ArgumentsCommand
                 throw;
             }
         }
-        socket.Dialog(db => db.MsgLine($"Replay finished{McColorCodes.GRAY}, wana replay active auctions against user finder? Try /cofl replayactive"));
+        socket.Dialog(db => db.MsgLine($"Replaying {McColorCodes.AQUA}{count}{McColorCodes.RESET} auctions finished{McColorCodes.GRAY}, \nwana replay active auctions against user finder? Try /cofl replayactive"));
     }
 }
