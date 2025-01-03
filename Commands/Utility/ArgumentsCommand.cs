@@ -38,21 +38,21 @@ public abstract class ArgumentsCommand : McCommand
         var parts = argOrder.Trim('"').Split(' ').Select(p => p.Split('=').First().Trim('<', '>', '[', ']')).ToArray();
         parsed = new Arguments();
         var argParts = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
-        if (argParts.Length < argOrder.Count(c=>c=='<'))
+        if (argParts.Length < argOrder.Count(c => c == '<'))
         {
             return "The amount of arguments doesn't match";
         }
         var defaultValueLookup = defaultValues.Select(m => (m.Groups[1].Value, m.Groups[2].Value)).ToDictionary(v => v.Item1, v => v.Item2);
         for (int i = 0; i < parts.Length; i++)
         {
-            if (argParts.Length <= i)
+            if (argParts.Length <= i || string.IsNullOrWhiteSpace(argParts[0]))
             {
                 if (defaultValueLookup.TryGetValue(parts[i], out var defaultValue))
                 {
                     parsed[parts[i]] = defaultValue;
                     continue;
                 }
-                return "The amount of arguments doesn't match";
+                return "The amount of (default) arguments doesn't match";
             }
             parsed[parts[i]] = argParts[i];
         }

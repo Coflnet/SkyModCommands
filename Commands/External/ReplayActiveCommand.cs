@@ -2,13 +2,14 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Core;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using Castle.Components.DictionaryAdapter.Xml;
 
 namespace Coflnet.Sky.Commands.MC;
 
-[CommandDescription("Replay all active auctions against your filter", 
+[CommandDescription("Replay all active auctions against your filter",
     "Useful to recheck auctions that have been listed",
     "while you were offline",
-    "This will take a while", 
+    "This will take a while",
     "to dearchive all active auctions")]
 public class ReplayActiveCommand : McCommand
 {

@@ -221,6 +221,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<LimitsCommand>();
             Commands.Add<AdventCommand>();
             Commands.Add<ShareLoreCommand>();
+            Commands.Add<ReplayFlips>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
