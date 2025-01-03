@@ -34,7 +34,7 @@ public class ReplayFlips : ArgumentsCommand
         var kafkaTopic = iConfig.GetValue<string>("TOPICS:LOW_PRICED");
         var conf = new ConsumerConfig(KafkaCreator.GetClientConfig(iConfig))
         {
-            GroupId = "replay-flips",
+            GroupId = "sky-replay-flips",
         };
         using var consumer = new ConsumerBuilder<Ignore, LowPricedAuction>(conf).SetValueDeserializer(Coflnet.Kafka.SerializerFactory.GetDeserializer<LowPricedAuction>()).Build();
         // seek to 10 hours ago
