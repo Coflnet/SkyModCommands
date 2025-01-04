@@ -153,6 +153,7 @@ namespace Coflnet.Sky.ModCommands.Services
         private void SubscribeConnection(ConnectionMultiplexer multiplexer, CancellationToken stoppingToken)
         {
             var hostName = System.Net.Dns.GetHostName();
+            var lastFastest = DateTime.UtcNow;
             multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal("snipes"), (chan, val) =>
             {
                 Task.Run(async () =>
@@ -163,7 +164,10 @@ namespace Coflnet.Sky.ModCommands.Services
                         if (flip.AdditionalProps.GetValueOrDefault("server") == hostName)
                             return; // already processed
                         if (flip.Finder == LowPricedAuction.FinderType.TFM)
+                        {
                             FixTfmMetadata(flip);
+                            logger.LogInformation($"scheduled tfm {flip.Auction.Uuid}");
+                        }
                         if (flip.TargetPrice < flip.Auction.StartingBid + 100_000)
                             return; // not actually flipable abort
                         if (flip.Auction.Context.ContainsKey("cname"))
@@ -172,6 +176,15 @@ namespace Coflnet.Sky.ModCommands.Services
                         await DistributeFlipOnServer(flip).ConfigureAwait(false);
                         if (flip.TargetPrice - flip.Auction.StartingBid > 2000000)
                             logger.LogInformation($"scheduled bfcs {flip.Auction.Uuid} from {flip.AdditionalProps.GetValueOrDefault("server")} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond}");
+                        var time = DateTime.UtcNow - flip.Auction.FindTime;
+                        if (time < TimeSpan.FromSeconds(10))
+                        {
+                            if (lastFastest < DateTime.UtcNow - TimeSpan.FromSeconds(10))
+                            {
+                                logger.LogInformation($"fastest flip {flip.Auction.Uuid} {time.TotalSeconds:0.00} from {flip.AdditionalProps.GetValueOrDefault("server")}");
+                                lastFastest = DateTime.UtcNow;
+                            }
+                        }
                         fastTrackSnipes.Inc();
                     }
                     catch (Exception e)
