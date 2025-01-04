@@ -118,7 +118,7 @@ namespace Coflnet.Sky.Commands.MC
                         .ForEach(spaceLength, (db, ignore) => db.Msg(" ")).MsgLine(McColorCodes.GREEN + "|")
                         .ForEach(length, (db, ignore) => db.Msg(GetCharacter(accountInfo.CaptchaSlimChar ?? "´´")))
                             .CoflCommand<CaptchaCommand>(McColorCodes.YELLOW + "| <-- needs to be below green line\n", "config part", "Does not line up")
-                        .CoflCommand<CaptchaCommand>("[Both yellow lines above and below the green align]", "",
+                        .CoflCommand<CaptchaCommand>("[Both yellow lines above and below the green align]", "another",
                             "If not BOTH yellow lines align press the one that does not\nIf they do press this to\nRequest a better formated captcha").Break);
                     return;
                 }
