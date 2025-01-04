@@ -154,7 +154,7 @@ namespace Coflnet.Sky.ModCommands.Services
         {
             var hostName = System.Net.Dns.GetHostName();
             var lastFastest = DateTime.UtcNow;
-            var compareLock = "fastest-compare";
+            var compareLock = new object();
             multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal("snipes"), (chan, val) =>
             {
                 Task.Run(async () =>
