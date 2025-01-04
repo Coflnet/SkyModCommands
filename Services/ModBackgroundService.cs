@@ -154,6 +154,7 @@ namespace Coflnet.Sky.ModCommands.Services
         {
             var hostName = System.Net.Dns.GetHostName();
             var lastFastest = DateTime.UtcNow;
+            var compareLock = "fastest-compare";
             multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal("snipes"), (chan, val) =>
             {
                 Task.Run(async () =>
@@ -179,7 +180,7 @@ namespace Coflnet.Sky.ModCommands.Services
                         var time = DateTime.UtcNow - flip.Auction.FindTime;
                         if (time < TimeSpan.FromSeconds(10))
                         {
-                            lock ("fastest-compare")
+                            lock (compareLock)
                                 if (lastFastest < DateTime.UtcNow - TimeSpan.FromSeconds(10))
                                 {
                                     logger.LogInformation($"fastest flip {flip.Auction.Uuid} {time.TotalSeconds:0.00} from {flip.AdditionalProps.GetValueOrDefault("server")}");
