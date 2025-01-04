@@ -157,7 +157,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public string GetItemName(SaveAuction auction)
         {
-            string itemName = auction?.Context?.ContainsKey("cname") ?? false ? 
+            string itemName = auction?.Context?.ContainsKey("cname") ?? false ?
                 auction.Context["cname"]
                 : $"{auction.ItemName}";
             if (Settings.ModSettings.ShortNames)
@@ -226,17 +226,22 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <param name="timeSpan"></param>
         /// <returns></returns>
-        public string FormatTime(TimeSpan timeSpan)
+        public static string FormatTimeGlobal(TimeSpan timeSpan)
         {
             var prefix = timeSpan.TotalSeconds < 0 ? "-" : "";
             timeSpan = timeSpan.Duration();
             if (timeSpan.TotalDays > 1.05)
-                return $"{timeSpan.TotalDays.ToString("0.#")}d";
+                return $"{timeSpan.TotalDays:0.#}d";
             if (timeSpan.TotalHours > 1)
-                return $"{timeSpan.TotalHours.ToString("0.#")}h";
+                return $"{timeSpan.TotalHours:0.#}h";
             if (timeSpan.TotalMinutes > 1)
-                return $"{timeSpan.TotalMinutes.ToString("0.#")}m";
-            return $"{prefix}{timeSpan.TotalSeconds.ToString("0.#")}s";
+                return $"{timeSpan.TotalMinutes:0.#}m";
+            return $"{prefix}{timeSpan.TotalSeconds:0.#}s";
+        }
+
+        public string FormatTime(TimeSpan time)
+        {
+            return FormatTimeGlobal(time);
         }
 
         public ChatPart[] WelcomeMessage()
