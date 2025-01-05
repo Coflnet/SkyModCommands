@@ -30,6 +30,8 @@ namespace Coflnet.Sky.ModCommands.Services
         IDelayExemptList delayExemptList;
         FilterStateService filterStateService;
         HypixelItemService hypixelItemService;
+        DateTime lastFastest = DateTime.UtcNow;
+        object compareLock = new object();
 
         private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
 
@@ -153,8 +155,6 @@ namespace Coflnet.Sky.ModCommands.Services
         private void SubscribeConnection(ConnectionMultiplexer multiplexer, CancellationToken stoppingToken)
         {
             var hostName = System.Net.Dns.GetHostName();
-            var lastFastest = DateTime.UtcNow;
-            var compareLock = new object();
             multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal("snipes"), (chan, val) =>
             {
                 Task.Run(async () =>
