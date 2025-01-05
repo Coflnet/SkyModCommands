@@ -214,7 +214,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         {
             return $"{McColorCodes.GRAY}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{McColorCodes.STRIKE}{elem.ProductSlug}{McColorCodes.RED} expired";
         }
-        return $"{McColorCodes.GRAY}{elem.VirtualId}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{elem.ProductSlug} {McColorCodes.AQUA}{FormatTime(elem)}{McColorCodes.GRAY}days";
+        return $"{McColorCodes.GRAY}{elem.VirtualId}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{elem.ProductSlug} {McColorCodes.AQUA}{FormatTime(elem)}{McColorCodes.GRAY}";
     }
 
     private static string FormatTime(PublicLicenseWithName elem)
