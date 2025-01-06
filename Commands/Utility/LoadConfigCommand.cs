@@ -108,10 +108,17 @@ public class LoadConfigCommand : ArgumentsCommand
 
             static string GetFilterKey(ListEntry e)
             {
-                var minProfit = CamelCaseNameDictionary<DetailedFlipFilter>.GetCleardName<MinProfitDetailedFlipFilter>();
-                var profitPercentage = CamelCaseNameDictionary<DetailedFlipFilter>.GetCleardName<ProfitPercentageDetailedFlipFilter>();
-                var relevantFilters = e.filter?.Where(f => !f.Key.Equals(minProfit, System.StringComparison.OrdinalIgnoreCase) && !f.Key.Equals(profitPercentage, System.StringComparison.OrdinalIgnoreCase));
+                string[] ignore = [
+                    StringName<MinProfitDetailedFlipFilter>(),
+                    StringName<ProfitPercentageDetailedFlipFilter>(),
+                    StringName<ProfitDetailedFlipFilter>(),
+                    StringName<MinProfitPercentageDetailedFlipFilter>()];
+                var relevantFilters = e.filter?.Where(f => ignore.All(v => !f.Key.Equals(v, System.StringComparison.OrdinalIgnoreCase)));
                 return e.ItemTag + string.Join(',', e.Tags ?? []) + string.Join(',', relevantFilters?.Select(f => $"{f.Key}={f.Value}") ?? []);
+            }
+            static string StringName<T>() where T : DetailedFlipFilter
+            {
+                return CamelCaseNameDictionary<DetailedFlipFilter>.GetCleardName<T>();
             }
         }
         await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
@@ -121,6 +128,7 @@ public class LoadConfigCommand : ArgumentsCommand
         await socket.sessionLifesycle.FilterState.SubToConfigChanges();
         await UpdateConfig(socket, inOwnerShip);
     }
+
 
     private static async Task UpdateConfig(IMinecraftSocket socket, OwnedConfigs.OwnedConfig inOwnerShip)
     {
