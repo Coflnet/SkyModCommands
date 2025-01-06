@@ -238,6 +238,21 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         {
             throw new CoflnetException("not_found", "You don't own such a config");
         }
+        if (owned.PricePaid == 0)
+        {
+            var key = SellConfigCommand.GetKeyFromname(configName);
+            using var toLoad = await SelfUpdatingValue<ConfigContainer>.Create(owner, key, () => null);
+            if (toLoad.Value.Price > 0)
+            {
+                var rating = await GetRatingOrDefault(table, configName, owned);
+                if (rating.Upvotes.Remove(socket.UserId))
+                {
+                    rating.Rating--;
+                    await table.Insert(rating).ExecuteAsync();
+                }
+                throw new CoflnetException("not_found", "You didn't buy the config so you can't vote on it");
+            }
+        }
         return await GetRatingOrDefault(table, configName, owned);
     }
 
