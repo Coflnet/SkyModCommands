@@ -31,6 +31,7 @@ public class UploadScoreboardCommand : McCommand
         var isBingo = false;
         var isStranded = false;
         var isRift = false;
+        var isDarkAuction = false;
         var isInSkyblock = args.FirstOrDefault()?.Contains("SKYBLOCK") ?? false;
         foreach (var item in args)
         {
@@ -44,6 +45,8 @@ public class UploadScoreboardCommand : McCommand
                 isStranded = true;
             if (item.Contains("the catacombs"))
                 isDungeon = true;
+            if(item.Contains("Dark Auction"))
+                isDarkAuction = true;
             if (item.Contains("Motes:") || item.Contains("The Rift"))
             {
                 System.Console.WriteLine("Rift detected");
@@ -61,6 +64,7 @@ public class UploadScoreboardCommand : McCommand
         socket.SessionInfo.IsStranded = isStranded;
         socket.SessionInfo.IsDungeon = isDungeon;
         socket.SessionInfo.IsRift = isRift;
+        socket.SessionInfo.IsDarkAuction = isDarkAuction;
         if(!isInSkyblock)
             socket.SessionInfo.Purse = -1;
         if (wasNotFlippable && !socket.SessionInfo.IsNotFlipable && !socket.HasFlippingDisabled())

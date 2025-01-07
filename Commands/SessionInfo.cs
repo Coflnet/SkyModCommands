@@ -62,12 +62,13 @@ namespace Coflnet.Sky.Commands.MC
         public bool IsDungeon { get; internal set; }
         public bool IsRift { get; internal set; }
         public bool IsMacroBot { get; set; }
+        public bool IsDarkAuction { get; set; }
         public string VerificationBidAuctioneer { get; set; }
         public int VerificationBidAmount { get; set; }
         [JsonIgnore]
         public CaptchaInfo captchaInfo = new();
 
-        public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon || IsRift || Purse == -1;
+        public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon || IsRift || IsDarkAuction || Purse == -1;
         public string ConnectionType { get; set; }
 
         public List<SaveAuction> Inventory { get; set; }
