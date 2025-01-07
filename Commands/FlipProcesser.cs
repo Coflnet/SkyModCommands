@@ -214,7 +214,7 @@ namespace Coflnet.Sky.Commands.MC
             foreach (var item in bedsToWaitFor.OrderBy(b => b.Item2))
             {
                 item.lp.AdditionalProps["bed"] = item.Item2.ToString();
-                if (socket.sessionLifesycle.CurrentDelay > DelayHandler.MaxSuperPremiumDelay && Random.Shared.NextDouble() < 0.5)
+                if (socket.sessionLifesycle.CurrentDelay > DelayHandler.MaxSuperPremiumDelay && Random.Shared.NextDouble() < 0.8)
                 {
                     await Task.Delay(item.Item2).ConfigureAwait(false);
                     Activity.Current.Log("Bed await");
