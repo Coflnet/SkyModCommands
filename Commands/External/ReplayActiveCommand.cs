@@ -41,20 +41,27 @@ public class ReplayActiveCommand : McCommand
             return;
         }
         using var db = new HypixelContext();
-        var select = db.Auctions.Where(a =>
-            a.Id > db.Auctions.Max(a => a.Id) - 1_000_000
-            && a.End > System.DateTime.UtcNow
-            && a.HighestBidAmount == 0)
-            .Include(a => a.NbtData).Include(a => a.NBTLookup).Include(a => a.Enchantments);
-        foreach (var item in select)
+        var maxId = db.Auctions.Max(a => a.Id);
+        for (int i = 0; i < 10; i++)
         {
-            await socket.SendFlip(new LowPricedAuction()
+            var offset = i * 100_000;
+            var select = db.Auctions.Where(a =>
+                a.Id > maxId - offset - 100_000
+                && a.Id <= maxId - offset
+                && a.End > System.DateTime.UtcNow
+                && a.HighestBidAmount == 0)
+                .Include(a => a.NbtData).Include(a => a.NBTLookup).Include(a => a.Enchantments);
+            foreach (var item in select)
             {
-                Auction = item,
-                Finder = LowPricedAuction.FinderType.USER,
-                AdditionalProps = new() { { "replay", "" } },
-                TargetPrice = item.StartingBid
-            });
+                await socket.SendFlip(new LowPricedAuction()
+                {
+                    Auction = item,
+                    Finder = LowPricedAuction.FinderType.USER,
+                    AdditionalProps = new() { { "replay", "" } },
+                    TargetPrice = item.StartingBid
+                });
+            }
+            socket.Dialog(db => db.MsgLine($"Replayed progress {i + 1}0% auctions"));
         }
         socket.Dialog(db => db
             .SeparatorLine()
