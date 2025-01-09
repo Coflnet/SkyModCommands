@@ -226,8 +226,11 @@ public class AccountTierManager : IAccountTierManager
                 if (ExpiresAt > DateTime.UtcNow)
                     await socket.GetService<SettingsService>().UpdateSetting(userId, "licenses", licenseSettings);
             }
-            IsLicense = true;
-            return (matchingNewLicense.Tier, matchingNewLicense.Expires);
+            if (matchingNewLicense.Tier > AccountTier.NONE)
+            {
+                IsLicense = true;
+                return (matchingNewLicense.Tier, matchingNewLicense.Expires);
+            }
         }
         if (thisAccount.Any())
         {
