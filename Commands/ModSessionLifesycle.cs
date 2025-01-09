@@ -913,8 +913,8 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var ids = await GetMinecraftAccountUuids();
                 var isBot = socket.ModAdapter is AfVersionAdapter;
-
-                var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, TierManager.IsLicense ? SessionInfo.McUuid : null);
+                var useSingleAccountDelay = TierManager.DefaultAccount == SessionInfo.McUuid || TierManager.IsLicense;
+                var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, useSingleAccountDelay ? SessionInfo.McUuid : null);
                 SessionInfo.NotPurchaseRate = summary.nonpurchaseRate;
                 SessionInfo.NoSharedDelay = summary.SingleAccountDelay;
 
@@ -923,7 +923,7 @@ namespace Coflnet.Sky.Commands.MC
                     using var span = socket.CreateActivity("nerv", ConSpan);
                     span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     span.Log(JsonConvert.SerializeObject(summary, Formatting.Indented));
-                    span.Log("license: " + (TierManager.IsLicense ? SessionInfo.McUuid : null));
+                    span.Log($"license: {(useSingleAccountDelay ? SessionInfo.McUuid : null)}");
                 }
                 if (summary.HasBadPlayer && Random.Shared.NextDouble() < 0.1)
                 {
