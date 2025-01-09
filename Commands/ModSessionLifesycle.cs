@@ -923,6 +923,7 @@ namespace Coflnet.Sky.Commands.MC
                     using var span = socket.CreateActivity("nerv", ConSpan);
                     span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     span.Log(JsonConvert.SerializeObject(summary, Formatting.Indented));
+                    span.Log("license: " + (TierManager.IsLicense ? SessionInfo.McUuid : null));
                 }
                 if (summary.HasBadPlayer && Random.Shared.NextDouble() < 0.1)
                 {

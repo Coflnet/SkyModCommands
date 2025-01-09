@@ -145,10 +145,10 @@ public class DelayHandler : IDelayHandler
             var singleBreakdown = await flipTrackingService.GetSpeedComp(primaryId, 25);
             var rate = (singleBreakdown?.ReceivedCount ?? 1) / 100 - (singleBreakdown.Times?.Count ?? 0);
             var dropOut = random.NextDouble() <  0.04;
-            if (singleBreakdown != null && (singleBreakdown.Buys?.Count > 0 || singleBreakdown?.Penalty > 0.01) && rate < 2 || dropOut)
+            if (singleBreakdown != null && (singleBreakdown.Buys?.Count > 0 || singleBreakdown?.Penalty > 0.01) && rate <= 2 || dropOut)
             {
                 singleBreakdown.BadIds = breakdown.BadIds;
-                if (Random.Shared.NextDouble() < 0.95)
+                if (Random.Shared.NextDouble() < 0.90)
                     singleBreakdown.MacroedFlips = breakdown.MacroedFlips;
                 breakdown = singleBreakdown;
                 summary.SingleAccountDelay = true;
