@@ -207,7 +207,9 @@ namespace Coflnet.Sky.Commands.MC
             {
                 await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow, true).ConfigureAwait(false);
             }
-            var toSendDelayed = noBed.ExceptBy(toSendInstant.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid);
+            var toSendDelayed = noBed.ExceptBy(toSendInstant.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid).ToList();
+            if (toSendDelayed.Count == 0)
+                return;
             await SendDelayed(noBed, toSendDelayed).ConfigureAwait(false);
             Activity.Current.Log("Waiting for beds");
             // beds
