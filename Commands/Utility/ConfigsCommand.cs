@@ -241,8 +241,9 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         if (owned.PricePaid == 0)
         {
             var key = SellConfigCommand.GetKeyFromname(configName);
-            using var toLoad = await SelfUpdatingValue<ConfigContainer>.Create(owner, key, () => null);
-            if (toLoad.Value.Price > 0)
+            var userId = await GetUserIdFromMcName(socket, owner);
+            using var toLoad = await SelfUpdatingValue<ConfigContainer>.Create(userId, key, () => null);
+            if (toLoad?.Value?.Price > 0)
             {
                 var rating = await GetRatingOrDefault(table, configName, owned);
                 if (rating.Upvotes.Remove(socket.UserId))
