@@ -40,8 +40,6 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(msg.Build());
             return Task.CompletedTask;
         }
-
-
     }
 
     public static class TimeCommandOverloads

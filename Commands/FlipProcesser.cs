@@ -197,10 +197,11 @@ namespace Coflnet.Sky.Commands.MC
             var bedsToWaitFor = flipsWithTime.Where(f => f.Item2 > TimeSpan.FromSeconds(3.1) && !(Settings?.ModSettings.NoBedDelay ?? false));
             var noBed = flipsWithTime.ExceptBy(bedsToWaitFor.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid).Select(f => (f.instance, f.lp));
             var toSendInstant = noBed.Where(f => Random.Shared.NextDouble() < 0.33 && delayExemptList.IsExempt(f.lp) || delayHandler.IsLikelyBot(f.instance)).ToList();
-            foreach (var item in flips)
-            {
-                flipSendTiming.Observe((DateTime.UtcNow - item.f.Auction.FindTime).TotalSeconds);
-            }
+            if (socket?.SessionInfo?.SessionTier >= AccountTier.PREMIUM_PLUS)
+                foreach (var item in flips)
+                {
+                    flipSendTiming.Observe((DateTime.UtcNow - item.f.Auction.FindTime).TotalSeconds);
+                }
             if (toSendInstant.Count > 0)
                 Activity.Current.Log("Sending instant flips");
             foreach (var item in toSendInstant)
