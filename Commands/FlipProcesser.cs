@@ -203,7 +203,11 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     var fullTime = DateTime.UtcNow - item.f.Auction.FindTime;
                     if (TimeSpan.TryParse(item.f.Auction.Context?.GetValueOrDefault("ft", "xy"), out var ft))
-                        processingTiming.Observe((fullTime - ft).TotalSeconds);
+                    {
+                        var estimate = (fullTime - ft).TotalSeconds;
+                        if (estimate < 5) // ignore outliers
+                            processingTiming.Observe(estimate);
+                    }
                     flipSendTiming.Observe(fullTime.TotalSeconds);
                 }
             if (toSendInstant.Count > 0)
