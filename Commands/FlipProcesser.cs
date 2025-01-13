@@ -19,6 +19,7 @@ namespace Coflnet.Sky.Commands.MC
         private static Prometheus.Counter sentFlipProfit = Prometheus.Metrics.CreateCounter("sky_mod_flip_profit", "Adds up the estimated profit of flips sent");
         private static Prometheus.Counter sentFlipValue = Prometheus.Metrics.CreateCounter("sky_mod_flip_value", "Adds up the estimated value of flips sent");
         private static Prometheus.Histogram flipSendTiming = Prometheus.Metrics.CreateHistogram("sky_mod_send_time", "Full run through time of flips");
+        private static Prometheus.Histogram processingTiming = Prometheus.Metrics.CreateHistogram("sky_mod_process_time", "Processing time of flips");
         private static Prometheus.Counter preApiFlipSent = Prometheus.Metrics.CreateCounter("sky_mod_flips_sent_preapi", "Flips sent to a preapi user");
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
@@ -200,7 +201,10 @@ namespace Coflnet.Sky.Commands.MC
             if (socket?.SessionInfo?.SessionTier >= AccountTier.PREMIUM_PLUS)
                 foreach (var item in flips)
                 {
-                    flipSendTiming.Observe((DateTime.UtcNow - item.f.Auction.FindTime).TotalSeconds);
+                    var fullTime = DateTime.UtcNow - item.f.Auction.FindTime;
+                    if (TimeSpan.TryParse(item.f.Auction.Context?.GetValueOrDefault("ft", "0"), out var ft))
+                        processingTiming.Observe((fullTime - ft).TotalSeconds);
+                    flipSendTiming.Observe(fullTime.TotalSeconds);
                 }
             if (toSendInstant.Count > 0)
                 Activity.Current.Log("Sending instant flips");
