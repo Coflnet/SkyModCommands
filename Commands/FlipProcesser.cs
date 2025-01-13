@@ -202,7 +202,7 @@ namespace Coflnet.Sky.Commands.MC
                 foreach (var item in flips)
                 {
                     var fullTime = DateTime.UtcNow - item.f.Auction.FindTime;
-                    if (TimeSpan.TryParse(item.f.Auction.Context?.GetValueOrDefault("ft", "0"), out var ft))
+                    if (TimeSpan.TryParse(item.f.Auction.Context?.GetValueOrDefault("ft", "xy"), out var ft))
                         processingTiming.Observe((fullTime - ft).TotalSeconds);
                     flipSendTiming.Observe(fullTime.TotalSeconds);
                 }
