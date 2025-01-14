@@ -202,7 +202,10 @@ public class AccountTierManager : IAccountTierManager
         }
         var isCurrentConOnlyCon = sessions.All(s => s == null || s.ConnectionId == socket.SessionInfo.ConnectionId || s.Outdated || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
         Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {socket.SessionInfo.ConnectionId} {isCurrentConOnlyCon}");
-        activeSessions.Value.UserAccountTier = expires.Item1;
+        if (activeSessions.Value != null)
+            activeSessions.Value.UserAccountTier = expires.Item1;
+        else
+            Console.WriteLine("No active sessions for " + socket.SessionInfo.McUuid);
 
         // check license
         var licenses = (await socket.GetService<ILicenseApi>().ApiLicenseUUserIdGetAsync(userId)).Where(l => l.Expires > DateTime.UtcNow).ToList();
