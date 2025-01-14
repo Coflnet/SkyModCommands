@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Commands.Shared;
 using System;
+using Coflnet.Sky.ModCommands.Services;
+using System.Collections.Generic;
+using static Coflnet.Sky.ModCommands.Services.BlockedService;
 
 namespace Coflnet.Sky.ModCommands.Controllers
 {
@@ -11,10 +14,19 @@ namespace Coflnet.Sky.ModCommands.Controllers
     public class FlipController : ControllerBase
     {
         private FlipperService flipperService;
+        private IBlockedService blockedService;
 
-        public FlipController(FlipperService flipperService)
+        public FlipController(FlipperService flipperService, IBlockedService blockedService)
         {
             this.flipperService = flipperService;
+            this.blockedService = blockedService;
+        }
+
+        [HttpGet]
+        [Route("blocked")]
+        public async Task<IEnumerable<BlockedReason>> GetBlockedReasons(string userId, string auctionUuid)
+        {
+            return await blockedService.GetBlockedReasons(userId, Guid.Parse(auctionUuid));
         }
 
         /// <summary>
