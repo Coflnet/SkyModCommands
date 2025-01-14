@@ -913,7 +913,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var ids = await GetMinecraftAccountUuids();
                 var isBot = socket.ModAdapter is AfVersionAdapter;
-                var useSingleAccountDelay = TierManager.DefaultAccount == SessionInfo.McUuid || TierManager.IsLicense;
+                var useSingleAccountDelay = TierManager != null && (TierManager.DefaultAccount == SessionInfo.McUuid || TierManager.IsLicense);
                 var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, useSingleAccountDelay ? SessionInfo.McUuid : null);
                 SessionInfo.NotPurchaseRate = summary.nonpurchaseRate;
                 SessionInfo.NoSharedDelay = summary.SingleAccountDelay;
