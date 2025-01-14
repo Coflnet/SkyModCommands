@@ -81,7 +81,7 @@ public class DelayHandler : IDelayHandler
         Activity.Current.Log("Applied fairness ");
         if (sessionInfo.IsMacroBot && profit > 1_000_000)
         {
-            await timeProvider.Delay(TimeSpan.FromMilliseconds(profit / 20000)).ConfigureAwait(false);
+            await timeProvider.Delay(TimeSpan.FromMilliseconds(Math.Min(profit / 20000, 4_000))).ConfigureAwait(false);
             var sendableIn = flipInstance.Auction.Start - timeProvider.Now + TimeSpan.FromSeconds(18);
             if (sendableIn > TimeSpan.Zero && !apiBed)
                 await timeProvider.Delay(sendableIn).ConfigureAwait(false);
@@ -144,7 +144,7 @@ public class DelayHandler : IDelayHandler
             string[] primaryId = [licenseOn];
             var singleBreakdown = await flipTrackingService.GetSpeedComp(primaryId, 25);
             var rate = (singleBreakdown?.ReceivedCount ?? 1) / 100 - (singleBreakdown.Times?.Count ?? 0);
-            var dropOut = random.NextDouble() <  0.04;
+            var dropOut = random.NextDouble() < 0.04;
             if (singleBreakdown != null && (singleBreakdown.Buys?.Count > 0 || singleBreakdown?.Penalty > 0.01) && rate <= 2 || dropOut)
             {
                 singleBreakdown.BadIds = breakdown.BadIds;
