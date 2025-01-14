@@ -333,7 +333,7 @@ namespace Coflnet.Sky.Commands.MC
             }, "tracking flip");
         }
 
-        private bool BlockedFlip(LowPricedAuction flip, string reason)
+        public bool BlockedFlip(LowPricedAuction flip, string reason)
         {
             if (socket.TopBlocked.Take(100).Any(b => b.Flip.Auction.Uuid == flip.Auction.Uuid && b.Flip.TargetPrice == flip.TargetPrice))
                 return false; // don't count block twice

@@ -23,10 +23,9 @@ public class AfVersionAdapter : ModVersionAdapter
         (bool stopBuy, bool wait) = ShouldStopBuying();
         if (ShouldSkipFlip(flip) || stopBuy)
         {
-            if (stopBuy)
-                Activity.Current?.Log("blocked by stopBuy");
-            else
-                Activity.Current?.Log("blocked by ShouldSkipFlip");
+            var reason = stopBuy ? "stopBuy" : "ShouldSkipFlip";
+            socket.sessionLifesycle.FlipProcessor.BlockedFlip(flip.ToLowPriced(), reason);
+            Activity.Current?.Log($"blocked by {reason}");
             return true;
         }
         var name = GetItemName(flip.Auction);
