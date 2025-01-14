@@ -15,12 +15,10 @@ namespace Coflnet.Sky.ModCommands.Services
         public static SnapShotService Instance = new SnapShotService();
 
         public IEnumerable<SnapShot> SnapShots => _snapShots;
-        public readonly Prometheus.Gauge PremUserCount = Prometheus.Metrics.CreateGauge("sky_mod_users", "How many premium users are connected");
 
         private void Take()
         {
             var otherUsers = DiHandler.GetService<FlipperService>().Connections;
-            PremUserCount.Set(DiHandler.GetService<FlipperService>().PremiumUserCount);
             var result = otherUsers.Where(c => c?.Connection != null).Select(c => {
                 try
                 {

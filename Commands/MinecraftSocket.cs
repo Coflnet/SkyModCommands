@@ -26,6 +26,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public static string COFLNET = "[§1C§6oflnet§f]§7: ";
         public virtual string CurrentRegion => "eu";
+        private static readonly Prometheus.Gauge PremUserCount = Prometheus.Metrics.CreateGauge("sky_mod_users", "How many premium users are connected");
 
         public long Id { get; private set; }
 
@@ -265,6 +266,7 @@ namespace Coflnet.Sky.Commands.MC
                 DateTime next = await GetNext10SecTime();
                 updateSpan?.SetTag("time", next.ToString(CultureInfo.InvariantCulture));
                 tenSecTimer?.Change(next - DateTime.UtcNow, TimeSpan.FromMinutes(1));
+                PremUserCount.Set(DiHandler.GetService<FlipperService>().PremiumUserCount);
             }, new CancellationTokenSource(15000).Token);
         }
 
