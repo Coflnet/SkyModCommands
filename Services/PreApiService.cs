@@ -52,6 +52,7 @@ public class PreApiService : BackgroundService, IPreApiService
     private IProductsApi productsApi;
     private IBaseApi baseApi;
     private Prometheus.Counter flipsPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased", "Flips purchased");
+    private Prometheus.Counter profitPurchased = Prometheus.Metrics.CreateCounter("sky_mod_profit_purchased", "Profit from flips purchased");
     private Prometheus.Counter preApiFlipPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased_preapi", "Flips bought by a preapi user");
     private ConcurrentDictionary<string, Prometheus.Counter> flipsPurchasedFromSender = new();
     private List<string> preApiUsers = new();
@@ -343,6 +344,8 @@ public class PreApiService : BackgroundService, IPreApiService
         PublishSell(uuid, connection.UserAccountTier().Result);
         CheckHighProfitpurchaser(connection, flip);
         flipsPurchased.Inc();
+        if (flip.TargetPrice > flip.Auction.StartingBid)
+            profitPurchased.Inc(flip.TargetPrice - flip.Auction.StartingBid);
         if (connection.SessionInfo.SessionTier >= AccountTier.SUPER_PREMIUM)
             preApiFlipPurchased.Inc();
         var source = flip.Auction.Context?.GetValueOrDefault("pre-api");
