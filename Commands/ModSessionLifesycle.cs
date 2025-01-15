@@ -1065,8 +1065,8 @@ namespace Coflnet.Sky.Commands.MC
             AccountSettings?.Dispose();
             PingTimer?.Dispose();
             FilterState?.Dispose();
-            TierManager?.Dispose();
             TierManager.OnTierChange -= TierChangedHandler;
+            TierManager?.Dispose();
         }
     }
 

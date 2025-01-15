@@ -38,6 +38,7 @@ public class AccountTierManager : IAccountTierManager
     public DateTime ExpiresAt => expiresAt;
 
     public string? DefaultAccount => activeSessions?.Value.UseAccountTierOn;
+    private bool Disposed { get; set; }
 
     public bool IsLicense { get; private set; }
 
@@ -101,6 +102,8 @@ public class AccountTierManager : IAccountTierManager
 
     public async Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire()
     {
+        if(Disposed)
+            return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
         var currentTier = await CalculateCurrentTierWithExpire();
         if (currentTier.tier != lastTier)
         {
@@ -157,9 +160,9 @@ public class AccountTierManager : IAccountTierManager
         else
         {
             var session = sessions.First(s => s?.ConnectionId == socket.SessionInfo.ConnectionId);
-            if (session.Outdated)
+            if (session?.Outdated ?? true)
             {
-                activeSessions.Dispose();
+                activeSessions?.Dispose();
                 var sameClient = sessions.Where(s => s?.ClientSessionId == socket.SessionInfo.clientSessionId && !s.Outdated).Any();
                 if (sameClient)
                     socket.Dialog(db => db.MsgLine($"You client opened another connection, this connection is being downgraded. Your tier is used on the new connection"));
@@ -269,6 +272,8 @@ public class AccountTierManager : IAccountTierManager
         _ = socket.TryAsyncTimes(async () =>
         {
             await Task.Delay(1000);
+            if (activeSessions == null)
+                return; // session closed and disposed
             Console.WriteLine("Syncing state"); // do not skip if new state does not contain current session
             if (startValue == activeSessions.Value || activeSessions.Value?.Sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId) != true)
                 await activeSessions.Update();
@@ -309,8 +314,9 @@ public class AccountTierManager : IAccountTierManager
 
     public void Dispose()
     {
+        Disposed = true;
         loginNotification.OnLogin -= LoginNotification_OnLogin;
-        activeSessions?.Value.Sessions.RemoveAll(s => s.ConnectionId == socket.SessionInfo.ConnectionId);
+        activeSessions?.Value.Sessions.RemoveAll(s => s?.ConnectionId == socket.SessionInfo.ConnectionId);
         var oldActive = activeSessions;
         activeSessions?.Update().ContinueWith(t => oldActive?.Dispose());
         activeSessions = null;

@@ -576,6 +576,10 @@ namespace Coflnet.Sky.Commands.MC
                 Send(new Response("error", "the payload has to have the property 'type'"));
                 return;
             }
+            if (ReadyState == WebSocketState.Closing || ReadyState == WebSocketState.Closed)
+            {
+                return;
+            }
             span?.SetTag("type", a.type);
             span.Log(a.data);
             if (SessionInfo.clientSessionId.StartsWith("debug"))
