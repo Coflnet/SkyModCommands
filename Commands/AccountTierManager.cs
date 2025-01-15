@@ -102,7 +102,7 @@ public class AccountTierManager : IAccountTierManager
 
     public async Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire()
     {
-        if(Disposed)
+        if (Disposed)
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
         var currentTier = await CalculateCurrentTierWithExpire();
         if (currentTier.tier != lastTier)
@@ -203,6 +203,11 @@ public class AccountTierManager : IAccountTierManager
                 }
             }
         }
+        if (Disposed)
+        {
+            activeSessions?.Dispose();
+            return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
+        }
         var isCurrentConOnlyCon = sessions.All(s => s == null || s.ConnectionId == socket.SessionInfo.ConnectionId || s.Outdated || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
         Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {socket.SessionInfo.ConnectionId} {isCurrentConOnlyCon}");
         if (activeSessions.Value != null)
@@ -218,9 +223,11 @@ public class AccountTierManager : IAccountTierManager
         span.Log($"Licenses {JsonConvert.SerializeObject(licenses)}");
         span.Log($"Sessions {JsonConvert.SerializeObject(sessions)}");
         var licenseSettings = await licenseSettingsTask;
-        var useEmailOnThisCon = (activeSessions.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon);
+        var useEmailOnThisCon = activeSessions?.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon;
         var matchingNewLicense = licenseSettings.Licenses.OrderByDescending(l => l.Tier).FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid);
         IsLicense = false;
+        if (Disposed)
+            activeSessions?.Dispose(); // async functions could have been running while the connection closed
         if (matchingNewLicense != default)
         {
             Console.WriteLine($"New license for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(matchingNewLicense)}");
