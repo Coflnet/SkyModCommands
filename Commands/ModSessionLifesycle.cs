@@ -911,16 +911,16 @@ namespace Coflnet.Sky.Commands.MC
                         socket.Error(e, "getting alt level");
                     }
                 }
+                
+                var ids = await GetMinecraftAccountUuids();
+                var isBot = socket.ModAdapter is AfVersionAdapter;
+                string accountForLicense = null;
                 if (DelayHandler == null)
                     throw new Exception("DelayHandler not set");
                 if(TierManager == null)
                     throw new Exception("TierManager not set");
                 if(SessionInfo == null)
                     throw new Exception("SessionInfo not set");
-                
-                var ids = await GetMinecraftAccountUuids();
-                var isBot = socket.ModAdapter is AfVersionAdapter;
-                string accountForLicense = null;
                 if (TierManager != null && (TierManager.DefaultAccount == SessionInfo.McUuid || TierManager.IsLicense))
                     accountForLicense = SessionInfo.McUuid;
                 var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, accountForLicense);
