@@ -6,6 +6,8 @@ using System;
 using Coflnet.Sky.ModCommands.Services;
 using System.Collections.Generic;
 using static Coflnet.Sky.ModCommands.Services.BlockedService;
+using Coflnet.Sky.Commands.MC;
+using System.Linq;
 
 namespace Coflnet.Sky.ModCommands.Controllers
 {
@@ -15,11 +17,13 @@ namespace Coflnet.Sky.ModCommands.Controllers
     {
         private FlipperService flipperService;
         private IBlockedService blockedService;
+        private NecImportService necImportService;
 
-        public FlipController(FlipperService flipperService, IBlockedService blockedService)
+        public FlipController(FlipperService flipperService, IBlockedService blockedService, NecImportService necImportService)
         {
             this.flipperService = flipperService;
             this.blockedService = blockedService;
+            this.necImportService = necImportService;
         }
 
         [HttpGet]
@@ -27,6 +31,19 @@ namespace Coflnet.Sky.ModCommands.Controllers
         public async Task<IEnumerable<BlockedReason>> GetBlockedReasons(string userId, string auctionUuid)
         {
             return await blockedService.GetBlockedReasons(userId, Guid.Parse(auctionUuid));
+        }
+
+        [HttpPost]
+        [Route("nec")]
+        public async Task AddNecUser([FromBody] NecImportService.NecUser[] users)
+        {
+            var count = 0;
+            foreach (var user in users.GroupBy(u => u.Uuid).Select(g => g.OrderByDescending(u => u.Key == null ? 0 : 1).First()))
+            {
+                await necImportService.AddUser(user);
+                count++;
+            }
+            Console.WriteLine($"Added {count} users");
         }
 
         /// <summary>

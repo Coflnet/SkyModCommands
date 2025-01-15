@@ -31,7 +31,7 @@ namespace Coflnet.Sky.Commands.MC
                 else if (product.StartsWith("pre_api"))
                     product = $"{McColorCodes.RED}pre_api";
                 else if (product.StartsWith("starter"))
-                    product = "starter";
+                    product = "NotEnoughCoins";
                 else if (product.StartsWith("test-premium"))
                     product = "test-premium";
                 db.MsgLine($"{McColorCodes.YELLOW}Purchased {McColorCodes.AQUA}{product}{McColorCodes.YELLOW} on {McColorCodes.AQUA}{elem.TimeStamp}{McColorCodes.YELLOW} for {McColorCodes.RED}{elem.Amount} ");
