@@ -73,6 +73,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
         // set for configs
         socket.SessionInfo.AhSlotsOpen = listSpace - activeAuctionCount;
         List<SaveAuction> inventory = await WaitForInventory();
+        if (inventory.Count == 0)
+            return;
         // retrieve price
         var sniperService = socket.GetService<ISniperClient>();
         var values = await sniperService.GetPrices(inventory);
@@ -129,7 +131,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         if (inventory == null)
         {
             socket.Dialog(db => db.Msg(McColorCodes.RED + "No inventory uploaded, can't list auctions, no clue what client you use but its either outdated or broken. Please contact Äkwav#0421 on discord and include " + socket.ConSpan.TraceId));
-            throw new Exception("no inventory");
+            return [];
         }
 
         return inventory;
