@@ -637,6 +637,8 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task InvokeCommand(Response a, McCommand command)
         {
+            if (IsClosed)
+                return;
             try
             {
                 await command.Execute(this, a.data).ConfigureAwait(false);
