@@ -896,9 +896,9 @@ namespace Coflnet.Sky.Commands.MC
         {
             socket.TryAsyncTimes(async () =>
             {
-                await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
                 if (socket.HasFlippingDisabled())
                     return;
+                await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
                 if (AccountInfo?.Value?.ShadinessLevel == -1 && SessionInfo.VerifiedMc && TierManager.HasAtLeast(AccountTier.PREMIUM))
                 {
                     try
@@ -911,10 +911,21 @@ namespace Coflnet.Sky.Commands.MC
                         socket.Error(e, "getting alt level");
                     }
                 }
+                if (DelayHandler == null)
+                    throw new Exception("DelayHandler not set");
+                if(TierManager == null)
+                    throw new Exception("TierManager not set");
+                if(SessionInfo == null)
+                    throw new Exception("SessionInfo not set");
+                
                 var ids = await GetMinecraftAccountUuids();
                 var isBot = socket.ModAdapter is AfVersionAdapter;
-                var useSingleAccountDelay = TierManager != null && (TierManager.DefaultAccount == SessionInfo.McUuid || TierManager.IsLicense);
-                var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, useSingleAccountDelay ? SessionInfo.McUuid : null);
+                string accountForLicense = null;
+                if (TierManager != null && (TierManager.DefaultAccount == SessionInfo.McUuid || TierManager.IsLicense))
+                    accountForLicense = SessionInfo.McUuid;
+                var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, accountForLicense);
+                if(summary == null)
+                    throw new Exception("DelayHandler.Update returned null");
                 SessionInfo.NotPurchaseRate = summary.nonpurchaseRate;
                 SessionInfo.NoSharedDelay = summary.SingleAccountDelay;
 
@@ -923,7 +934,7 @@ namespace Coflnet.Sky.Commands.MC
                     using var span = socket.CreateActivity("nerv", ConSpan);
                     span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     span.Log(JsonConvert.SerializeObject(summary, Formatting.Indented));
-                    span.Log($"license: {(useSingleAccountDelay ? SessionInfo.McUuid : null)}");
+                    span.Log($"license: {accountForLicense}");
                 }
                 if (summary.HasBadPlayer && Random.Shared.NextDouble() < 0.1)
                 {
