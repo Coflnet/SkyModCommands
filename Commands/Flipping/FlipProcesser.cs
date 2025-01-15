@@ -322,7 +322,7 @@ namespace Coflnet.Sky.Commands.MC
                     && flip.Finder != LowPricedAuction.FinderType.FLIPPER && !(item.Interesting.FirstOrDefault()?.StartsWith("Bed") ?? false))
                 {
                     // very bad, this flip was very slow, create a report
-                    using var slowSpan = socket.CreateActivity("slowFlip", socket.ConSpan).AddTag("error", true);
+                    using var slowSpan = socket.CreateActivity("slowFlip", socket.ConSpan);
                     slowSpan.Log(JsonConvert.SerializeObject(flip.Auction.Context));
                     slowSpan.Log(JsonConvert.SerializeObject(flip.AdditionalProps));
                     ReportCommand.TryAddingAllSettings(socket, slowSpan);
@@ -333,7 +333,7 @@ namespace Coflnet.Sky.Commands.MC
             }, "tracking flip");
         }
 
-        public bool BlockedFlip(LowPricedAuction flip, string reason)
+        private bool BlockedFlip(LowPricedAuction flip, string reason)
         {
             if (socket.TopBlocked.Take(100).Any(b => b.Flip.Auction.Uuid == flip.Auction.Uuid && b.Flip.TargetPrice == flip.TargetPrice))
                 return false; // don't count block twice

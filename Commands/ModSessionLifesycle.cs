@@ -546,7 +546,7 @@ namespace Coflnet.Sky.Commands.MC
         public void UpdateConnectionTier(AccountTier tier, Activity span = null)
         {
             ConSpan.SetTag("tier", tier.ToString());
-            if (socket.HasFlippingDisabled())
+            if (socket.HasFlippingDisabled() || FlipSettings.Value == null)
                 return;
             if (FlipSettings.Value.DisableFlips)
             {

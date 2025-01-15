@@ -22,6 +22,8 @@ public class ProxyReqSyncCommand : McCommand
         Activity.Current.Log("Context " + arguments);
         for (int i = 0; i < 50; i++)
         {
+            if (socket.IsClosed)
+                return;
             if (socket.Settings.IsCompiled)
                 break;
             await Task.Delay(200);

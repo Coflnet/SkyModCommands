@@ -438,6 +438,8 @@ namespace Coflnet.Sky.Commands.MC
                 for (int i = 0; i < times; i++)
                     try
                     {
+                        if (IsClosed)
+                            return;
                         await action().ConfigureAwait(false);
                         return;
                     }
