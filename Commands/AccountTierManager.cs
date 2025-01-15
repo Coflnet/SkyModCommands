@@ -279,7 +279,7 @@ public class AccountTierManager : IAccountTierManager
         _ = socket.TryAsyncTimes(async () =>
         {
             await Task.Delay(1000);
-            if (activeSessions == null)
+            if (activeSessions?.Value == null)
                 return; // session closed and disposed
             Console.WriteLine("Syncing state"); // do not skip if new state does not contain current session
             if (startValue == activeSessions.Value || activeSessions.Value?.Sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId) != true)
