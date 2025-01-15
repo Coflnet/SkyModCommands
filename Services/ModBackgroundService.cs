@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -32,6 +33,7 @@ namespace Coflnet.Sky.ModCommands.Services
         HypixelItemService hypixelItemService;
         DateTime lastFastest = DateTime.UtcNow;
         object compareLock = new object();
+        private ConcurrentDictionary<(string, LowPricedAuction.FinderType, long), DateTime> alreadyProcessed = new();
 
         private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
 
@@ -171,6 +173,12 @@ namespace Coflnet.Sky.ModCommands.Services
                         }
                         if (flip.TargetPrice < flip.Auction.StartingBid + 100_000)
                             return; // not actually flipable abort
+                        if (alreadyProcessed.TryGetValue((flip.Auction.Uuid, flip.Finder, flip.TargetPrice), out var last))
+                        {
+                            if (last > DateTime.UtcNow - TimeSpan.FromMinutes(1))
+                                return; // already processed
+                        }
+                        alreadyProcessed.TryAdd((flip.Auction.Uuid, flip.Finder, flip.TargetPrice), DateTime.UtcNow);
                         if (flip.Auction.Context.ContainsKey("cname"))
                             flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
                         flip.AdditionalProps?.TryAdd("bfcs", "redis");
@@ -211,6 +219,13 @@ namespace Coflnet.Sky.ModCommands.Services
                 {
                     await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
                     multiplexer.GetSubscriber().Publish(RedisChannel.Literal("beat"), System.Net.Dns.GetHostName());
+                    foreach (var item in alreadyProcessed.ToList())
+                    {
+                        if (item.Value < DateTime.UtcNow - TimeSpan.FromMinutes(2))
+                        {
+                            alreadyProcessed.TryRemove(item.Key, out _);
+                        }
+                    }
                 }
                 logger.LogWarning($"redis heart beat stopped; Cancellation Requested: {stoppingToken.IsCancellationRequested}");
             });
