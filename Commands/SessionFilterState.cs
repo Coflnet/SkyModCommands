@@ -44,6 +44,8 @@ public class SessionFilterState : IDisposable
                 await SubBaseConfig(newConfig);
             }
         }
+        if (lifesycle.socket.IsClosed)
+            return;
         await lifesycle.socket.GetService<ConfigStatsService>().AddLoad(
             loadedConfigMetadata.OwnerId,
             loadedConfigMetadata.Name,

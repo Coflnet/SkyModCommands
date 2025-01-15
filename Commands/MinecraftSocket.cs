@@ -765,7 +765,7 @@ namespace Coflnet.Sky.Commands.MC
             });
             return span;
         }
-        public bool IsClosed => ReadyState == WebSocketState.Closed;
+        public bool IsClosed => ReadyState == WebSocketState.Closed || ReadyState == WebSocketState.Closing;
         public bool SendMessage(params ChatPart[] parts)
         {
             if (ReadyState != WebSocketState.Open && ReadyState != WebSocketState.Connecting)

@@ -18,6 +18,8 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override async Task SubToSettings(string val)
         {
+            if (socket.IsClosed)
+                return;
             await base.SubToSettings(val);
             socket.sessionLifesycle.PrivacySettings = await SelfUpdatingValue<PrivacySettings>.Create(val, "privacySettings", () =>
             {

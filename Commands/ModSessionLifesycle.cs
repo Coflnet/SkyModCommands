@@ -622,6 +622,8 @@ namespace Coflnet.Sky.Commands.MC
                             "/cofl licenses default " + SessionInfo.McName, "Click to change use it on this account"));
                 }
             }
+            if (socket.IsClosed)
+                return;
             socket.ModAdapter.OnAuthorize(accountInfo);
         }
 
