@@ -1,11 +1,14 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Coflnet.Core.Tracing;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Sky.Core;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 public class NECCommand : ArgumentsCommand
@@ -21,6 +24,7 @@ public class NECCommand : ArgumentsCommand
             return;
         }
         var necUser = await socket.GetService<NecImportService>().GetUser(socket.SessionInfo.McUuid);
+        Activity.Current.Log(JsonConvert.SerializeObject(necUser));
         if (necUser == null || necUser.Email?.ToLower() != email)
         {
             socket.SendMessage($"No user with email {email} and ign {socket.SessionInfo.McName} found in the NEC database. Please check your email or ask support for help.");
