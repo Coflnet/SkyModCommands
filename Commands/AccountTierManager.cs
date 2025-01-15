@@ -37,7 +37,7 @@ public class AccountTierManager : IAccountTierManager
     IAuthUpdate loginNotification;
     public DateTime ExpiresAt => expiresAt;
 
-    public string? DefaultAccount => activeSessions?.Value.UseAccountTierOn;
+    public string? DefaultAccount => activeSessions?.Value?.UseAccountTierOn;
     private bool Disposed { get; set; }
 
     public bool IsLicense { get; private set; }

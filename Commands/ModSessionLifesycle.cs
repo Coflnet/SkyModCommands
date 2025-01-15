@@ -917,27 +917,8 @@ namespace Coflnet.Sky.Commands.MC
                 var ids = await GetMinecraftAccountUuids();
                 var isBot = socket.ModAdapter is AfVersionAdapter;
                 string accountForLicense = null;
-                if (DelayHandler == null)
-                    throw new Exception("DelayHandler not set");
-                if (TierManager == null)
-                    throw new Exception("TierManager not set");
-                if (SessionInfo == null)
-                    throw new Exception("SessionInfo not set");
-                try
-                {
-                    if (TierManager != null && (TierManager.DefaultAccount != null && TierManager.DefaultAccount == SessionInfo.McUuid || TierManager.IsLicense))
-                        accountForLicense = SessionInfo.McUuid;
-                }
-                catch (Exception e)
-                {
-                    socket.Error(e, "getting license account", $@"{{
-                        ""ids"": {JsonConvert.SerializeObject(ids, Formatting.Indented)},
-                        ""isBot"": {isBot},
-                        ""DelayHandler"": {DelayHandler},
-                        ""TierManager"": {JsonConvert.SerializeObject(TierManager, Formatting.Indented)},
-                        ""SessionInfo"": {SessionInfo}
-                    }}");
-                }
+                if (TierManager.DefaultAccount == SessionInfo.McUuid || TierManager.IsLicense)
+                    accountForLicense = SessionInfo.McUuid;
                 var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, accountForLicense);
                 if (summary == null)
                     throw new Exception("DelayHandler.Update returned null");
