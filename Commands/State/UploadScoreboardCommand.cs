@@ -75,5 +75,6 @@ public class UploadScoreboardCommand : McCommand
         {
             socket.Dialog(db => db.MsgLine("Flips disabled because you are in a gamemode with no auction house"));
         }
+        await Task.Delay(100); // soft ratelimit
     }
 }

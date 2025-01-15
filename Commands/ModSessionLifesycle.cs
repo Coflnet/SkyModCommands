@@ -911,20 +911,27 @@ namespace Coflnet.Sky.Commands.MC
                         socket.Error(e, "getting alt level");
                     }
                 }
-                
+
                 var ids = await GetMinecraftAccountUuids();
                 var isBot = socket.ModAdapter is AfVersionAdapter;
                 string accountForLicense = null;
                 if (DelayHandler == null)
                     throw new Exception("DelayHandler not set");
-                if(TierManager == null)
+                if (TierManager == null)
                     throw new Exception("TierManager not set");
-                if(SessionInfo == null)
+                if (SessionInfo == null)
                     throw new Exception("SessionInfo not set");
-                if (TierManager != null && (TierManager.DefaultAccount == SessionInfo.McUuid || TierManager.IsLicense))
-                    accountForLicense = SessionInfo.McUuid;
+                try
+                {
+                    if (TierManager != null && (TierManager.DefaultAccount == SessionInfo.McUuid || TierManager.IsLicense))
+                        accountForLicense = SessionInfo.McUuid;
+                }
+                catch (Exception e)
+                {
+                    socket.Error(e, "getting license account");
+                }
                 var summary = await DelayHandler.Update(ids, LastCaptchaSolveTime, accountForLicense);
-                if(summary == null)
+                if (summary == null)
                     throw new Exception("DelayHandler.Update returned null");
                 SessionInfo.NotPurchaseRate = summary.nonpurchaseRate;
                 SessionInfo.NoSharedDelay = summary.SingleAccountDelay;
