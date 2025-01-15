@@ -21,7 +21,7 @@ public class NECCommand : ArgumentsCommand
             return;
         }
         var necUser = await socket.GetService<NecImportService>().GetUser(socket.SessionInfo.McUuid);
-        if (necUser == null || necUser.Email.ToLower() != email)
+        if (necUser == null || necUser.Email?.ToLower() != email)
         {
             socket.SendMessage($"No user with email {email} and ign {socket.SessionInfo.McName} found in the NEC database. Please check your email or ask support for help.");
             await Task.Delay(3000);
