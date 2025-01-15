@@ -21,7 +21,7 @@ namespace Coflnet.Sky.Commands.MC
             if (socket.IsClosed)
                 return;
             await base.SubToSettings(val);
-            socket.sessionLifesycle.PrivacySettings = await SelfUpdatingValue<PrivacySettings>.Create(val, "privacySettings", () =>
+            var settings = await SelfUpdatingValue<PrivacySettings>.Create(val, "privacySettings", () =>
             {
                 return new PrivacySettings()
                 {
@@ -40,6 +40,12 @@ namespace Coflnet.Sky.Commands.MC
                     CollectEntities = true
                 };
             });
+            if (socket.IsClosed)
+            {
+                settings.Dispose();
+                return;
+            }
+            socket.sessionLifesycle.PrivacySettings = settings;
             socket.sessionLifesycle.PrivacySettings.AfterChange -= UpdatePrivacySettings;
             socket.sessionLifesycle.PrivacySettings.AfterChange += UpdatePrivacySettings;
             if (socket.sessionLifesycle.PrivacySettings.Value.ChatRegex != DefaultChatRegex)

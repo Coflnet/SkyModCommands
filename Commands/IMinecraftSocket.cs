@@ -28,6 +28,7 @@ namespace Coflnet.Sky.Commands.MC
         ConcurrentQueue<BlockedElement> TopBlocked { get; }
 
         event Action OnConClose;
+        bool IsClosed { get; }
 
         void Close();
         void Dialog(Func<SocketDialogBuilder, DialogBuilder> creation);

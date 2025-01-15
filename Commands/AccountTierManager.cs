@@ -57,7 +57,8 @@ public class AccountTierManager : IAccountTierManager
             activeSessions?.Dispose();
             activeSessions = await SelfUpdatingValue<ActiveSessions>.Create(userId, "activeSessions", () => new ActiveSessions());
             await CheckAccounttier();
-            activeSessions.OnChange += ActiveSessions_OnChange;
+            if (!socket.IsClosed)
+                activeSessions.OnChange += ActiveSessions_OnChange;
         }, "get active sessions", 3);
     }
 
