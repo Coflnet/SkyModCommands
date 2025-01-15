@@ -492,7 +492,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             for (int i = 1; i < 10; i++)
             {
-                if (!string.IsNullOrEmpty(FlipSettings.Value.Changer))
+                if (!string.IsNullOrEmpty(FlipSettings.Value?.Changer))
                     break;
                 await Task.Delay(i * 100);
                 span.Log("waiting for flipsettings");
