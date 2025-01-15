@@ -34,7 +34,7 @@ public class RemoveConfigCommand : ArgumentsCommand
         }
         await ConfigsCommand.Delete(configsCommand.GetTable(socket), rating);
         string key = SellConfigCommand.GetKeyFromname(name);
-        await SelfUpdatingValue<ConfigContainer>.Create(socket.UserId, key);
+        using var container = await SelfUpdatingValue<ConfigContainer>.Create(socket.UserId, key);
         var settingsService = socket.GetService<SettingsService>();
         await settingsService.UpdateSetting(ownerId, key, new ConfigContainer());
         using var createdConfigs = await SelfUpdatingValue<CreatedConfigs>.Create(ownerId, "created_configs", () => new());

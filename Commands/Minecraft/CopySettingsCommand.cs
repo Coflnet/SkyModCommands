@@ -14,6 +14,7 @@ public class CopySettingsCommand : McCommand
             throw new CoflnetException("forbidden", "Whoops, you don't seem to be a moderator. Therefore you can't copy settings");
 
         var id = arguments.Trim('"');
+        socket.sessionLifesycle.FlipSettings?.Dispose();
         socket.sessionLifesycle.FlipSettings = await SelfUpdatingValue<FlipSettings>.Create(id, "flipSettings");
         socket.Dialog(db => db.MsgLine("Loaded settings").AsGray());
     }

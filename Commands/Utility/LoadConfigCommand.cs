@@ -66,7 +66,7 @@ public class LoadConfigCommand : ArgumentsCommand
             return;
         }
 
-        var baseConfig = await GetContainer(socket, configId);
+        using var baseConfig = await GetContainer(socket, configId);
         if (baseConfig.Value == null)
         {
             socket.Dialog(db => db.MsgLine($"The configured base config doesn't exist, ask the creator to correct it."));
@@ -156,7 +156,7 @@ public class LoadConfigCommand : ArgumentsCommand
     private static async Task<ConfigContainer> GetConfig(string owner, string name)
     {
         var key = SellConfigCommand.GetKeyFromname(name);
-        var toLoad = await SelfUpdatingValue<ConfigContainer>.Create(owner, key, () => null);
+        using var toLoad = await SelfUpdatingValue<ConfigContainer>.Create(owner, key, () => null);
         if (toLoad.Value == null)
         {
             throw new CoflnetException("not_found", "The config doesn't exist.");

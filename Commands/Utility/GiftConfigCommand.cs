@@ -23,14 +23,14 @@ public class GiftConfigCommand : ArgumentsCommand
         }
         var key = SellConfigCommand.GetKeyFromname(name);
         // check it exists
-        var toBebought = await SelfUpdatingValue<ConfigContainer>.Create(from, key, () => null);
+        using var toBebought = await SelfUpdatingValue<ConfigContainer>.Create(from, key, () => null);
         if (toBebought.Value == null)
         {
             socket.SendMessage("The config doesn't exist.");
             return;
         }
         var targetUserId = await GetUserIdFromMcName(socket, ign);
-        var configs = await SelfUpdatingValue<OwnedConfigs>.Create(targetUserId, "owned_configs", () => new());
+        using var configs = await SelfUpdatingValue<OwnedConfigs>.Create(targetUserId, "owned_configs", () => new());
         if (configs.Value.Configs.Any(c => c.Name == name && c.OwnerId == targetUserId))
         {
             socket.SendMessage("The user already owns this config.");

@@ -22,14 +22,14 @@ public class TakeConfigCommand : ArgumentsCommand
         }
         var key = SellConfigCommand.GetKeyFromname(name);
         // check it exists
-        var toBebought = await SelfUpdatingValue<ConfigContainer>.Create(from, key, () => null);
+        using var toBebought = await SelfUpdatingValue<ConfigContainer>.Create(from, key, () => null);
         if (toBebought.Value == null)
         {
             socket.SendMessage("The config doesn't exist.");
             return;
         }
         var targetUserId = await GetUserIdFromMcName(socket, ign);
-        var configs = await SelfUpdatingValue<OwnedConfigs>.Create(targetUserId, "owned_configs", () => new());
+        using var configs = await SelfUpdatingValue<OwnedConfigs>.Create(targetUserId, "owned_configs", () => new());
         var toRemove = configs.Value.Configs.Where(c => c.OwnerId == from && c.Name == name && c.PricePaid == 0).ToList();
         foreach (var item in toRemove)
         {

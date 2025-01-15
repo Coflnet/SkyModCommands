@@ -27,7 +27,7 @@ public class OwnConfigsCommand : ListCommand<OwnedConfigs.OwnedConfig, List<Owne
 
     protected override async Task<List<OwnedConfigs.OwnedConfig>> GetList(MinecraftSocket socket)
     {
-        var obj = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
+        using var obj = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
         return obj.Value.Configs;
     }
 

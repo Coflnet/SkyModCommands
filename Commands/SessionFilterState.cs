@@ -19,6 +19,7 @@ public class SessionFilterState : IDisposable
     public void Dispose()
     {
         LoadedConfig?.Dispose();
+        BaseConfig?.Dispose();
     }
 
     public async Task SubToConfigChanges()
@@ -80,12 +81,12 @@ public class SessionFilterState : IDisposable
     {
         if (string.IsNullOrWhiteSpace(childConfig.Settings.BasedConfig))
             return;
-        var baseConfig = await LoadConfigCommand.GetContainer(lifesycle.socket, childConfig.Settings.BasedConfig);
-        if (baseConfig.Value.Version > lifesycle.AccountSettings.Value.BaseConfigVersion && baseConfig.Value.Version > 0)
+        BaseConfig = await LoadConfigCommand.GetContainer(lifesycle.socket, childConfig.Settings.BasedConfig);
+        if (BaseConfig.Value.Version > lifesycle.AccountSettings.Value.BaseConfigVersion && BaseConfig.Value.Version > 0)
         {
-            BaseConfigUpdate(childConfig, baseConfig);
+            BaseConfigUpdate(childConfig, BaseConfig);
         }
-        baseConfig.OnChange += (newBaseConfig) =>
+        BaseConfig.OnChange += (newBaseConfig) =>
         {
             BaseConfigUpdate(childConfig, newBaseConfig);
         };

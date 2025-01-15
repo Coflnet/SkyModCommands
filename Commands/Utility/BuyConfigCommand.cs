@@ -14,10 +14,10 @@ public class BuyConfigCommand : ArgumentsCommand
     {
         var seller = args["sellerIgn"];
         var name = args["configName"];
-        var configs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
+        using var configs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
         var key = SellConfigCommand.GetKeyFromname(name);
         var sellerUserId = await GetUserIdFromMcName(socket, seller);
-        var toBebought = await SelfUpdatingValue<ConfigContainer>.Create(sellerUserId, key, () => null);
+        using var toBebought = await SelfUpdatingValue<ConfigContainer>.Create(sellerUserId, key, () => null);
         var reference = $"{name} config from {seller}";
         if (toBebought.Value == null)
         {

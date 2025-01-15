@@ -20,7 +20,7 @@ public class UpdateCurrentConfigCommand : ArgumentsCommand
             socket.SendMessage("No config loaded, aborting.");
             return;
         }
-        var configData = await SelfUpdatingValue<ConfigContainer>.Create(
+        using var configData = await SelfUpdatingValue<ConfigContainer>.Create(
             loadedConfigMetadata.OwnerId,
             SellConfigCommand.GetKeyFromname(loadedConfigMetadata.Name),
             () => throw new CoflnetException("not_found", "config not found"));
