@@ -263,7 +263,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             Task.Run(async () =>
             {
-                using var updateSpan = DiHandler.ServiceProvider.GetRequiredService<ActivitySource>().StartActivity();
+                using var updateSpan = DiHandler.ServiceProvider.GetRequiredService<ActivitySource>().StartActivity("timeupdate");
                 DateTime next = await GetNext10SecTime();
                 updateSpan?.SetTag("time", next.ToString(CultureInfo.InvariantCulture));
                 tenSecTimer?.Change(next - DateTime.UtcNow, TimeSpan.FromMinutes(1));
