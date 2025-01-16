@@ -164,7 +164,7 @@ namespace Coflnet.Sky.Commands.MC
             var estimates = await trackApi.GetFlipsOfAuctionAsync(auctionInstance.UId);
             var toTest = flipData.FirstOrDefault();
             float volumeEstimate = 1;
-            if(toTest.Context.TryGetValue("oldRef", out var oldRef) && toTest.Context.TryGetValue("refCount", out var refCount))
+            if (toTest.Context.TryGetValue("oldRef", out var oldRef) && toTest.Context.TryGetValue("refCount", out var refCount))
             {
                 volumeEstimate = int.Parse(refCount) / float.Parse(oldRef) + 1f;
             }

@@ -26,7 +26,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public static Response Create<T>(string type, T data)
         {
-            return new Response(type, JsonConvert.SerializeObject(data, Formatting.None, Settings));
+            return new Response(type.Replace("command", "", System.StringComparison.OrdinalIgnoreCase), JsonConvert.SerializeObject(data, Formatting.None, Settings));
         }
 
     }
