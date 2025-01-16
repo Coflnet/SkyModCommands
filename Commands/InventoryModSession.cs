@@ -45,6 +45,7 @@ namespace Coflnet.Sky.Commands.MC
                 settings.Dispose();
                 return;
             }
+            socket.sessionLifesycle.PrivacySettings?.Dispose();
             socket.sessionLifesycle.PrivacySettings = settings;
             socket.sessionLifesycle.PrivacySettings.AfterChange -= UpdatePrivacySettings;
             socket.sessionLifesycle.PrivacySettings.AfterChange += UpdatePrivacySettings;
