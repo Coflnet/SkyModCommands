@@ -931,6 +931,8 @@ namespace Coflnet.Sky.Commands.MC
                     span.Log(JsonConvert.SerializeObject(ids, Formatting.Indented));
                     span.Log(JsonConvert.SerializeObject(summary, Formatting.Indented));
                     span.Log($"license: {accountForLicense}");
+                    if (SessionInfo.McUuid != null)
+                        span.AddTag("uuid", SessionInfo.McUuid);
                 }
                 if (summary.HasBadPlayer && Random.Shared.NextDouble() < 0.1)
                 {
