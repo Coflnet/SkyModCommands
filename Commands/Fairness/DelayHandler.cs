@@ -178,11 +178,12 @@ public class DelayHandler : IDelayHandler
             if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(120))
                 currentDelay = AntiAfkDelay;
         }
-        if (breakdown?.MacroedFlips?.Where(m => m.BuyTime > DateTime.UtcNow - TimeSpan.FromHours(6)).Count() <= 2)
+        var macroed = breakdown?.MacroedFlips?.Where(m => m.BuyTime > DateTime.UtcNow - TimeSpan.FromHours(6)).Count();
+        if (macroed <= 2)
             macroPenalty = TimeSpan.Zero;
         else
         {
-            macroPenalty = TimeSpan.FromSeconds(1);
+            macroPenalty = TimeSpan.FromSeconds(Math.Min(0.15 * macroed.Value, 1));
             if (breakdown?.MacroedFlips != null && breakdown.MacroedFlips.Max(f => f.BuyTime) > DateTime.UtcNow - TimeSpan.FromSeconds(180))
                 summary.MacroWarning = true;
         }
