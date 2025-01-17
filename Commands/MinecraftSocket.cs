@@ -440,8 +440,6 @@ namespace Coflnet.Sky.Commands.MC
                 for (int i = 0; i < times; i++)
                     try
                     {
-                        if (IsClosed)
-                            return;
                         await action().ConfigureAwait(false);
                         return;
                     }
@@ -454,6 +452,8 @@ namespace Coflnet.Sky.Commands.MC
                     catch (Exception e)
                     {
                         Error(e, errorMessage);
+                        if (IsClosed)
+                            return;
                     }
             }, new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token).ConfigureAwait(false);
         }
