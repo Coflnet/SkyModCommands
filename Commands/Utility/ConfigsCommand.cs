@@ -226,7 +226,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         var configName = args[2];
         var owner = args[1];
         await table.CreateIfNotExistsAsync();
-        var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
+        using var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
         if (ownedConfigs.Value.Configs == null)
         {
             throw new CoflnetException("not_found", "You don't own any configs");
