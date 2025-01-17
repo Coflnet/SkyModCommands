@@ -851,6 +851,8 @@ namespace Coflnet.Sky.Commands.MC
         private async Task RemoveTempFilters()
         {
             var update = false;
+            if(FlipSettings.Value == null)
+                return;
             RemoveFilterFromList(FlipSettings.Value.WhiteList);
             RemoveFilterFromList(FlipSettings.Value.BlackList);
             if (update)
