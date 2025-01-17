@@ -77,7 +77,9 @@ namespace Coflnet.Sky.Commands.MC
                 .AddTag("batchSize", matches.Count))
                 try
                 {
+                    span.Log($"Before send {DateTime.UtcNow.TimeOfDay:hh\\:mm\\:ss.fff}");
                     await SendAfterDelay(toSend.ToList()).ConfigureAwait(false);
+                    span.Log($"After send {DateTime.UtcNow.TimeOfDay:hh\\:mm\\:ss.fff}");
                     var sendList = toSend.ToList();
                     span.Log(JsonConvert.SerializeObject(sendList?.Select(a => a.f == null ? null : new Dictionary<string, string>(a.f?.AdditionalProps))));
                 }
