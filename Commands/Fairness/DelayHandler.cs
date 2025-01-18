@@ -183,7 +183,7 @@ public class DelayHandler : IDelayHandler
             macroPenalty = TimeSpan.Zero;
         else
         {
-            macroPenalty = TimeSpan.FromSeconds(Math.Min(0.15 * macroed, 1));
+            macroPenalty = TimeSpan.FromSeconds(Math.Min(0.13 * macroed, 0.9));
             if (breakdown?.MacroedFlips != null && breakdown.MacroedFlips.Max(f => f.BuyTime) > DateTime.UtcNow - TimeSpan.FromSeconds(180))
                 summary.MacroWarning = true;
         }
