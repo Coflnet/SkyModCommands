@@ -52,17 +52,12 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "No blocked flips found, it can take a while after you connected");
                 return;
             }
-            if (socket.Settings.ModSettings.AhDataOnlyMode)
+            if (socket.Settings.ModSettings.AhDataOnlyMode && socket.ModAdapter is not AfVersionAdapter)
             {
                 socket.Dialog(db => db.CoflCommand<FlipCommand>("You are in ah data only mode. Use /cofl flip to enable flips or /cofl flip always to always autostart the flipper", "", "Click to enable flips"));
                 return;
             }
-            if (socket.AhActive.IsAhDisabledDerpy)
-            {
-                socket.Dialog(db => db.MsgLine("Derpy is mayor, the ah is closed"));
-                return;
-            }
-            if (socket.Settings.DisableFlips)
+            if (socket.Settings.DisableFlips && socket.ModAdapter is not AfVersionAdapter)
             {
                 socket.Dialog(db => db.MsgLine("You turned flipping off. To turn it on do /cofl flip always"));
                 return;
