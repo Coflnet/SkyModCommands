@@ -7,6 +7,7 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.McConnect.Api;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.Settings.Client.Api;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -99,6 +100,12 @@ public class SellConfigCommand : ArgumentsCommand
         }
         var configsCommand = MinecraftSocket.Commands.GetBy<ConfigsCommand>();
         var table = configsCommand.GetTable(socket);
+        var all = await table.ToListAsync();
+        if (all.Any(c => c.ConfigName == name && c.OwnerId != socket.UserId && c.OwnerName == socket.SessionInfo.McName))
+        {
+            socket.Dialog(db => db.Msg("This config name was already published by you with another email", null, "Please choose a different name."));
+            return;
+        }
         var rating = await configsCommand.GetRatingOrDefault(table, name, new()
         {
             OwnerId = socket.UserId,
