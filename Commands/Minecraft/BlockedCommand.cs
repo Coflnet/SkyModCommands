@@ -16,7 +16,9 @@ namespace Coflnet.Sky.Commands.MC
         "Usage: /cofl blocked [search]",
         "Use this to find out why you don't get any flips",
         "or didn't get a specific flip",
-        "Example: /cofl blocked Hyperion")]
+        "Example: /cofl blocked Hyperion",
+        "Also supports 'profit' to show sorted by profit",
+        "And /cofl blocked <uuid> for specific auctions")]
     public class BlockedCommand : McCommand
     {
         public override bool IsPublic => true;
@@ -72,7 +74,12 @@ namespace Coflnet.Sky.Commands.MC
             }
             List<MinecraftSocket.BlockedElement> flipsToSend;
 
-            if (arguments.Length > 2)
+            if (searchVal == "profit")
+            {
+                flipsToSend = socket.TopBlocked.OrderByDescending(b => b.Flip.TargetPrice - b.Flip.Auction.StartingBid).Take(10).ToList();
+                socket.Dialog(db => db.MsgLine("Blocked flips sorted by profit"));
+            }
+            else if (arguments.Length > 2)
             {
                 var baseCollection = socket.TopBlocked.AsQueryable();
                 if (searchVal.Contains('='))
