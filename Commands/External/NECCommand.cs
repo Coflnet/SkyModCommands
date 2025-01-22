@@ -53,10 +53,10 @@ public class NECCommand : ArgumentsCommand
             {
                 ProductId = "compensation",
                 Amount = 1800 * count,
-                Reference = "nec"
+                Reference = "nec-" + necUser.Uuid
             });
             var userApi = socket.GetService<UserApi>();
-            await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, "starter_premium", "nec-" + email.ToLower(), count);
+            await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, "starter_premium", "nec-" + necUser.Uuid, count);
         }
         catch (Exception e)
         {
