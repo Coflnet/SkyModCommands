@@ -53,7 +53,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
 
     private static async Task SwitchAccountInUse(MinecraftSocket socket, string[] args)
     {
-        if (args.Length < 2)
+        if (args.Length < 3)
         {
             socket.Dialog(db => db.MsgLine("Please provide the license id (first character of /cofl licenses list) and the username to switch to"));
             return;
