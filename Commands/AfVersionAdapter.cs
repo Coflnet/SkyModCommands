@@ -120,7 +120,7 @@ public class AfVersionAdapter : ModVersionAdapter
         var maxPercent = socket.Settings.ModSettings.MaxPercentOfPurse;
         if (purse != 0 && flip.Auction.StartingBid > purse / 3 * 2 && maxPercent == 0)
         {
-            Activity.Current?.SetTag("blocked", "not enough purse");
+            Activity.Current?.Log("not enough purse");
             socket.Dialog(db => db.Msg($"Skipped buying {flip.Auction.ItemName} for {flip.Auction.StartingBid} because you only have {purse} purse left (max 2/3 used for one flip)"));
             return true;
         }
@@ -129,13 +129,13 @@ public class AfVersionAdapter : ModVersionAdapter
             minProfitPercent = Math.Max(9, minProfitPercent);
         if (flip.Finder != LowPricedAuction.FinderType.USER && flip.ProfitPercentage < minProfitPercent && IsNotSpecialCase(flip))
         {
-            Activity.Current?.SetTag("blocked", $"profitpercent too low {flip.ProfitPercentage} < {minProfitPercent} | {flip.Finder} {flip.Auction.StartingBid} -> {flip.Target}");
+            Activity.Current?.Log($"profitpercent too low {flip.ProfitPercentage} < {minProfitPercent} | {flip.Finder} {flip.Auction.StartingBid} -> {flip.Target}");
             return true;
         }
         var preService = socket.GetService<IIsSold>();
         if (preService.IsSold(flip.Uuid))
         {
-            Activity.Current?.SetTag("blocked", "sold");
+            Activity.Current?.Log("sold");
             if (socket.Settings.DebugMode)
                 socket.Dialog(db => db.Msg($"Skipped buying {flip.Auction.ItemName} for {flip.Auction.StartingBid} because it was likely already sold"));
             return true;
