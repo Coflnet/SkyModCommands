@@ -8,7 +8,7 @@ namespace Coflnet.Sky.Commands.MC;
 
 public class UpdateCurrentConfigCommand : ArgumentsCommand
 {
-    protected override string Usage => "[skipSettings]";
+    protected override string Usage => "[skipSettings=true]";
     public override bool IsPublic => true;
 
     protected override async Task Execute(IMinecraftSocket socket, Arguments args)
