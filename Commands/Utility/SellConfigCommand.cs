@@ -83,6 +83,14 @@ public class SellConfigCommand : ArgumentsCommand
             LastUpdated = DateTime.UtcNow
         };
         socket.Settings.PublishedAs = name;
+        var configsCommand = MinecraftSocket.Commands.GetBy<ConfigsCommand>();
+        var table = configsCommand.GetTable(socket);
+        var all = await table.ToListAsync();
+        if (all.Any(c => c.ConfigName == name && c.OwnerId != socket.UserId && c.OwnerName == socket.SessionInfo.McName))
+        {
+            socket.Dialog(db => db.Msg("This config name was already published by you with another email", null, "Please choose a different name."));
+            return;
+        }
         _ = socket.TryAsyncTimes(socket.sessionLifesycle.FlipSettings.Update, "update published as");
         using var current = await SelfUpdatingValue<ConfigContainer>.Create(socket.UserId, key, () => config);
         if (current.Value.Version++ > 1)
@@ -97,14 +105,6 @@ public class SellConfigCommand : ArgumentsCommand
                 .MsgLine($"§7{config.ChangeNotes}")
                 .LineBreak()
                 .MsgLine($"§7{config.Price} CoflCoins"));
-        }
-        var configsCommand = MinecraftSocket.Commands.GetBy<ConfigsCommand>();
-        var table = configsCommand.GetTable(socket);
-        var all = await table.ToListAsync();
-        if (all.Any(c => c.ConfigName == name && c.OwnerId != socket.UserId && c.OwnerName == socket.SessionInfo.McName))
-        {
-            socket.Dialog(db => db.Msg("This config name was already published by you with another email", null, "Please choose a different name."));
-            return;
         }
         var rating = await configsCommand.GetRatingOrDefault(table, name, new()
         {
