@@ -210,7 +210,6 @@ public class AccountTierManager : IAccountTierManager
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
         }
         var isCurrentConOnlyCon = sessions.All(s => s == null || s.ConnectionId == socket.SessionInfo.ConnectionId || s.Outdated || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
-        Console.WriteLine($"Current tier: {expires.Item1} until {expires.Item2} for {socket.SessionInfo.McUuid} {socket.SessionInfo.ConnectionId} {isCurrentConOnlyCon}");
         if (activeSessions.Value != null)
             activeSessions.Value.UserAccountTier = expires.Item1;
         else
@@ -231,7 +230,6 @@ public class AccountTierManager : IAccountTierManager
             activeSessions?.Dispose(); // async functions could have been running while the connection closed
         if (matchingNewLicense != default)
         {
-            Console.WriteLine($"New license for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(matchingNewLicense)}");
             if (matchingNewLicense.Expires < DateTime.UtcNow)
             {
                 var tierFor = await userApi.GetCurrentTier($"{userId}#{matchingNewLicense.VirtualId}");
@@ -282,7 +280,6 @@ public class AccountTierManager : IAccountTierManager
             await Task.Delay(1000);
             if (activeSessions?.Value == null)
                 return; // session closed and disposed
-            Console.WriteLine("Syncing state"); // do not skip if new state does not contain current session
             if (startValue == activeSessions.Value || activeSessions.Value?.Sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId) != true)
                 await activeSessions.Update();
             else
