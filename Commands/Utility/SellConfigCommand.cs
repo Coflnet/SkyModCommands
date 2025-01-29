@@ -85,7 +85,7 @@ public class SellConfigCommand : ArgumentsCommand
         socket.Settings.PublishedAs = name;
         var configsCommand = MinecraftSocket.Commands.GetBy<ConfigsCommand>();
         var table = configsCommand.GetTable(socket);
-        var all = await table.ToListAsync();
+        var all = (await table.ExecuteAsync()).ToList();
         if (all.Any(c => c.ConfigName == name && c.OwnerId != socket.UserId && c.OwnerName == socket.SessionInfo.McName))
         {
             socket.Dialog(db => db.Msg("This config name was already published by you with another email", null, "Please choose a different name."));
