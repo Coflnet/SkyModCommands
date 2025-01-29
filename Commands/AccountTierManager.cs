@@ -215,12 +215,7 @@ public class AccountTierManager : IAccountTierManager
         else
             Console.WriteLine("No active sessions for " + socket.SessionInfo.McUuid);
 
-        // check license
-        var licenses = (await socket.GetService<ILicenseApi>().ApiLicenseUUserIdGetAsync(userId)).Where(l => l.Expires > DateTime.UtcNow).ToList();
-        socket.SessionInfo.LicensePoints = licenses.Sum(l => l.ProductSlug == "premium_plus" ? 5 : 1);
-        var thisAccount = licenses.Where(l => l.TargetId == socket.SessionInfo.McUuid && l.Expires > DateTime.UtcNow);
         span.Log($"AccountTier {expires.Item1} {expires.Item2}");
-        span.Log($"Licenses {JsonConvert.SerializeObject(licenses)}");
         span.Log($"Sessions {JsonConvert.SerializeObject(sessions)}");
         var licenseSettings = await licenseSettingsTask;
         var useEmailOnThisCon = activeSessions?.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon;
@@ -244,25 +239,9 @@ public class AccountTierManager : IAccountTierManager
                 return (matchingNewLicense.Tier, matchingNewLicense.Expires);
             }
         }
-        if (thisAccount.Any())
-        {
-            Console.WriteLine($"Licenses for {socket.SessionInfo.McUuid} {JsonConvert.SerializeObject(thisAccount)}");
-            var premPlus = thisAccount.FirstOrDefault(l => l.ProductSlug == "premium_plus");
-            if (premPlus != null && (IsNotPreApi(expires) || !useEmailOnThisCon))
-            {
-                IsLicense = true;
-                return (AccountTier.PREMIUM_PLUS, premPlus.Expires);
-            }
-        }
         if (useEmailOnThisCon && expires.Item1 > AccountTier.NONE)
         {
             return (expires.Item1, expires.Item2);
-        }
-        if (thisAccount.Any())
-        {
-            IsLicense = true;
-            // active account may be prem+ which takes priority
-            return (AccountTier.PREMIUM, thisAccount.First().Expires);
         }
         span.Log("none");
         return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));

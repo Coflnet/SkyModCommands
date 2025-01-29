@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Services;
@@ -27,6 +28,31 @@ public class SessionFilterState : IDisposable
         var socket = lifesycle.socket;
         var AccountSettings = lifesycle.AccountSettings;
         var loadedConfigMetadata = AccountSettings.Value.LoadedConfig;
+        if (lifesycle.TierManager.IsLicense)
+        {
+            var licenseInfo = await socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
+            var targetSettings = licenseInfo.Licenses.FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid);
+            if (targetSettings != null && targetSettings.ConfigUsed != null)
+            {
+                if (targetSettings.ConfigUsed.StartsWith("backup:"))
+                {
+                    var backupConfig = await BackupCommand.GetBackupList(socket);
+                    var backup = backupConfig.FirstOrDefault(b => b.Name == targetSettings.ConfigUsed.Substring(7));
+                    if (backup != null)
+                    {
+                        lifesycle.FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => backup.settings);
+                        socket.Dialog(db => db.MsgLine($"Backupconfig with name §6{backup.Name} §6loaded"));
+                        return;
+                    }
+                    socket.Dialog(db => db.MsgLine($"Backupconfig with name §6{targetSettings.ConfigUsed.Substring(7)} §6not found, so default config loaded"));
+                }
+                else
+                {
+                    var ownedConfigs = await OwnConfigsCommand.GetOwnConfigs(socket);
+                    loadedConfigMetadata = ownedConfigs.FirstOrDefault(c => c.Name == targetSettings.ConfigUsed);
+                }
+            }
+        }
         if (loadedConfigMetadata == null)
             return;
         using var span = socket.CreateActivity("subToConfigChanges", lifesycle.ConSpan);

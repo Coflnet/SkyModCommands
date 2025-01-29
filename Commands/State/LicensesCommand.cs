@@ -7,6 +7,7 @@ using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
+using NUnit.Framework;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -48,7 +49,80 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             await SwitchAccountInUse(socket, args);
             return;
         }
+        if (command == "useconfig")
+        {
+            await SwitchConfigInUse(socket, args);
+            return;
+        }
         await Help(socket, stringArgs);
+    }
+
+    private async Task SwitchConfigInUse(MinecraftSocket socket, string[] args)
+    {
+        if (args.Length < 3)
+        {
+            socket.Dialog(db => db.MsgLine($"Usage: {McColorCodes.AQUA}/cofl licenses useconfig {McColorCodes.GREEN}<id> {McColorCodes.GOLD}<configName>")
+                .MsgLine($"Where {McColorCodes.GREEN}<id> {McColorCodes.GRAY}is the first number or user name from {McColorCodes.AQUA}/cofl licenses list{McColorCodes.GRAY}")
+                .MsgLine($"and {McColorCodes.GOLD}<configName> {McColorCodes.GRAY}is the name of the config you want to use from {McColorCodes.AQUA}/cl ownconfigs"));
+            return;
+        }
+        var id = args[1];
+        var configName = args[2];
+        var licenses = await GetList(socket);
+        if (!int.TryParse(id, out var virtualId))
+        {
+            var matchingName = licenses.FirstOrDefault(l => l.TargetName?.Equals(id, StringComparison.InvariantCultureIgnoreCase) ?? false);
+            if (matchingName != null)
+            {
+                virtualId = matchingName.VirtualId;
+            }
+            else
+            {
+                socket.Dialog(db => db.MsgLine("Use requires the license id (first character of /cofl licenses list) and the config name"));
+                return;
+            }
+        }
+        var settings = await socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
+        var targetLicense = settings.Licenses.FirstOrDefault(l => l.VirtualId == virtualId);
+        if (targetLicense == null)
+        {
+            socket.Dialog(db => db.MsgLine($"No license with id {id} found"));
+            return;
+        }
+        var ownConfigs = await OwnConfigsCommand.GetOwnConfigs(socket);
+        if (configName == "reset")
+        {
+            configName = null;
+        }
+        else if (configName.StartsWith("backup:"))
+        {
+            var backupName = configName.Substring(7);
+            var backups = await BackupCommand.GetBackupList(socket);
+            var backup = backups.FirstOrDefault(b => b.Name.Equals(backupName, StringComparison.InvariantCultureIgnoreCase));
+            if (backup == null)
+            {
+                socket.Dialog(db => db.MsgLine($"No backup with name {backupName} found"));
+                return;
+            }
+        }
+        else
+        {
+            var ownConfig = ownConfigs.FirstOrDefault(c => c.Name.Equals(configName, StringComparison.InvariantCultureIgnoreCase));
+            if (ownConfig == null)
+            {
+                socket.Dialog(db => db.MsgLine($"No config with name {configName} found"));
+                return;
+            }
+        }
+        targetLicense.ConfigUsed = configName;
+        await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", settings);
+        await socket.sessionLifesycle.FilterState.SubToConfigChanges(); // request config update
+        if (configName == null)
+        {
+            socket.Dialog(db => db.MsgLine($"Removed custom config settings for license {McColorCodes.AQUA}{id}"));
+            return;
+        }
+        socket.Dialog(db => db.MsgLine($"Switched license {McColorCodes.AQUA}{id}{McColorCodes.RESET} to use config {McColorCodes.GOLD}{configName}"));
     }
 
     private static async Task SwitchAccountInUse(MinecraftSocket socket, string[] args)
@@ -89,6 +163,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             .MsgLine($"usage of {McColorCodes.AQUA}/cofl {Slug}{DEFAULT_COLOR}")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} add <userName>{DEFAULT_COLOR} request a new license")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} use <id> <userName>{DEFAULT_COLOR} switch the user of a license")
+            .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} useconfig <id> <config>{DEFAULT_COLOR} use a certain config", null, "with backup:name you can select configs from your backup")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} list{DEFAULT_COLOR} lists all licenses")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} default <userName>{DEFAULT_COLOR} switch mcName using account premium")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} help{DEFAULT_COLOR} display this help"));
@@ -212,9 +287,9 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
     {
         if (elem.Expires < DateTime.UtcNow)
         {
-            return $"{McColorCodes.GRAY}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{McColorCodes.STRIKE}{elem.ProductSlug}{McColorCodes.RED} expired";
+            return $"{McColorCodes.GRAY}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{McColorCodes.STRIKE}{elem.Tier}{McColorCodes.RED} expired";
         }
-        return $"{McColorCodes.GRAY}{elem.VirtualId}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{elem.ProductSlug} {McColorCodes.AQUA}{FormatTime(elem)}{McColorCodes.GRAY}";
+        return $"{McColorCodes.GRAY}{elem.VirtualId}> {McColorCodes.GREEN}{elem.TargetName} {McColorCodes.DARK_GREEN}{elem.Tier} {McColorCodes.AQUA}{FormatTime(elem)}{McColorCodes.GRAY}";
     }
 
     private static string FormatTime(PublicLicenseWithName elem)
@@ -229,38 +304,29 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         if (e.Expires < DateTime.UtcNow)
         {
             displayText = $" {McColorCodes.GREEN}[RENEW]{DEFAULT_COLOR}";
-            hoverText = $"Renew {McColorCodes.DARK_GREEN}{e.ProductSlug} {McColorCodes.GRAY}for {McColorCodes.GREEN}{e.TargetName}";
+            hoverText = $"Renew {McColorCodes.DARK_GREEN}{e.Tier} {McColorCodes.GRAY}for {McColorCodes.GREEN}{e.TargetName}";
         }
-        FormatForList(d, e).MsgLine(displayText, $"/cofl {Slug} add {e.TargetId} {e.ProductSlug}", hoverText);
+        FormatForList(d, e).MsgLine(displayText, $"/cofl {Slug} add {e.UseOnAccount} {e.Tier}", hoverText);
     }
 
     protected override string GetId(PublicLicenseWithName elem)
     {
-        return elem.TargetId + elem.ProductSlug;
+        return elem.UseOnAccount + elem.Tier;
     }
 
     protected override async Task<List<PublicLicenseWithName>> GetList(MinecraftSocket socket)
     {
-        var licenseApi = socket.GetService<ILicenseApi>();
         var settingsTask = socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
-        var licenses = await licenseApi.ApiLicenseUUserIdGetAsync(socket.UserId);
         var settings = await settingsTask;
-        Dictionary<string, string> allnames = await GetNames(socket, licenses.Select(l => l.TargetId).Concat(settings.Licenses.Select(l => l.UseOnAccount)));
-        return licenses.ConvertAll(l => new PublicLicenseWithName
+        Dictionary<string, string> allnames = await GetNames(socket, settings.Licenses.Select(l => l.UseOnAccount));
+        return settings.Licenses.Select(l => new PublicLicenseWithName
         {
             Expires = l.Expires,
-            ProductSlug = l.ProductSlug,
-            TargetId = l.TargetId,
-            TargetName = allnames?.GetValueOrDefault(l.TargetId) ?? l.TargetId.Truncate(5) + "..."
-        }).Where(l => l.Expires > DateTime.UtcNow - TimeSpan.FromDays(20))
-        .Concat(settings.Licenses.Select(l => new PublicLicenseWithName
-        {
-            Expires = l.Expires,
-            ProductSlug = l.Tier.ToString(),
-            TargetId = l.UseOnAccount,
+            Tier = l.Tier,
+            UseOnAccount = l.UseOnAccount,
             VirtualId = l.VirtualId,
             TargetName = allnames?.GetValueOrDefault(l.UseOnAccount) ?? l.UseOnAccount.Truncate(5) + "..."
-        })).ToList();
+        }).ToList();
     }
 
     protected override async Task List(MinecraftSocket socket, string subArgs)
@@ -281,7 +347,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         var currentId = socket.SessionInfo.McUuid;
         var defaultAccount = socket.sessionLifesycle.TierManager.DefaultAccount;
         var licenses = await GetList(socket);
-        var allIds = licenses.Where(l => l.Expires > DateTime.UtcNow).Select(l => l.TargetId).ToList();
+        var allIds = licenses.Where(l => l.Expires > DateTime.UtcNow).Select(l => l.UseOnAccount).ToList();
         if (defaultAccount != null)
             allIds.Add(defaultAccount);
         if (!allIds.Contains(currentId))
@@ -314,10 +380,9 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
     }
 }
 
-public class PublicLicenseWithName : PublicLicense
+public class PublicLicenseWithName : LicenseInfo
 {
     public string TargetName { get; set; }
-    public int VirtualId { get; set; }
 }
 
 public class LicenseInfo
@@ -326,6 +391,7 @@ public class LicenseInfo
     public DateTime Expires { get; set; }
     public int VirtualId { get; set; }
     public AccountTier Tier { get; set; }
+    public string ConfigUsed { get; set; }
 }
 
 public class LicenseSetting
