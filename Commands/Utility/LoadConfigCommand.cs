@@ -39,6 +39,12 @@ public class LoadConfigCommand : ArgumentsCommand
                 return;
             }
         }
+        if (settings?.Settings == null)
+        {
+            socket.Dialog(db => db.MsgLine("The config is invalid (completely empty), please contact the creator.")
+                .MsgLine($"{McColorCodes.DARK_GRAY}Debug info: {owner} {name}"));
+            return;
+        }
         settings.Settings.BlockExport = settings.OwnerId != socket.UserId;
 
         FlipFilter.CopyRelevantToNew(settings.Settings, socket.sessionLifesycle.FlipSettings);
