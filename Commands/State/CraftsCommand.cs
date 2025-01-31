@@ -28,6 +28,7 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
         sorters.Add("cost", (a) => a.OrderByDescending(f => f.CraftCost));
         sorters.Add("volume", (a) => a.OrderByDescending(f => f.Volume));
         sorters.Add("percent", (a) => a.OrderByDescending(f => (f.SellPrice - f.CraftCost) / f.CraftCost));
+        sorters.Add("median", (a) => a.OrderByDescending(f => f.Median - f.CraftCost);
         sorters.Add("bazaar", (a) => a.Where(a => OnBazaar.Contains(a.ItemId)).OrderByDescending(f => f.SellPrice - f.CraftCost));
     }
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Crafts.Models.ProfitableCraft elem)
