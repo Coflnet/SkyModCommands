@@ -34,7 +34,8 @@ public class TrackCommand : McCommand
                     "This will hide flips with high competition, making it easier to get flips.\n"
                     + "This is done by analyzing what gets bought quickly possibly by bots.\n"
                     + "Anything that is regulary bought quickly will be hidden.\n"
-                    + "You can always all flips again."
+                    + "You can always enable all flips again.\n"
+                    + $"{McColorCodes.GRAY}Maybe also try out /cofl bazaar and /cofl forge"
                 )
                 .CoflCommand<SetCommand>($"{McColorCodes.GREEN} [click to enable] ", "blockHighCompetition true", "Hide high competition flips")
                 .DialogLink<EchoDialog>("[no thanks]", "Alright, good luck then :)", "Don't enable")
