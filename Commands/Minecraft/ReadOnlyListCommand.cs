@@ -16,8 +16,8 @@ public abstract class ReadOnlyListCommand<T> : McCommand
         var title = GetTitle(arguments);
         if (arguments.ToLower() == "help")
         {
-            socket.Dialog(db => db.MsgLine(Title).MsgLine("Usage: /cofl " + Slug + " [sort] [search|page] ")
-                .If(() => sorters.Count > 0, db => db.MsgLine("Sort options: " + string.Join(", ", sorters.Keys))));
+            socket.Dialog(db => db.MsgLine(Title).MsgLine($"Usage: {McColorCodes.AQUA}/cofl {Slug} {McColorCodes.GOLD}[sort] {McColorCodes.AQUA}[search|page] ")
+                .If(() => sorters.Count > 0, db => db.MsgLine($"Sort options: {McColorCodes.GOLD}" + string.Join($"{McColorCodes.GRAY}, {McColorCodes.GOLD}", sorters.Keys))));
             return;
         }
         var elements = (await GetElements(socket, arguments)).ToList();
