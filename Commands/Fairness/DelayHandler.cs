@@ -134,6 +134,7 @@ public class DelayHandler : IDelayHandler
     public async Task<Summary> Update(IEnumerable<string> ids, DateTime lastCaptchaSolveTime, string licenseOn = null)
     {
         var lastDelay = currentDelay;
+        currentDelay += TimeSpan.FromMilliseconds(2); // to prevent 0 delay in case of errors
         var filteredIds = ids.Where(i => !string.IsNullOrEmpty(i)).ToArray();
         if (filteredIds.Length == 0)
             return new Summary() { Penalty = TimeSpan.FromSeconds(2.5) };
