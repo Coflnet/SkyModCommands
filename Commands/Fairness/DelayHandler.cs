@@ -89,7 +89,7 @@ public class DelayHandler : IDelayHandler
                 await timeProvider.Delay(TimeSpan.FromSeconds(4)).ConfigureAwait(false); // reserve preapi for nonbots
             Activity.Current.Log("Applied BAF " + sendableIn);
         }
-        else if (isPreApi && Random.Shared.NextDouble() < 0.98)
+        if (isPreApi && Random.Shared.NextDouble() < 0.98)
             await timeProvider.Delay(delay * 5).ConfigureAwait(false); // reserve preapi for non-macroers
 
         if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
