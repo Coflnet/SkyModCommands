@@ -184,7 +184,7 @@ namespace Coflnet.Sky.ModCommands.Services
                         flip.AdditionalProps?.TryAdd("bfcs", "redis");
                         await DistributeFlipOnServer(flip).ConfigureAwait(false);
                         if (flip.TargetPrice - flip.Auction.StartingBid > 2000000)
-                            logger.LogInformation($"scheduled bfcs {flip.Auction.Uuid} from {flip.AdditionalProps.GetValueOrDefault("server")} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond}");
+                            logger.LogInformation($"scheduled bfcs {flip.Auction.Uuid} from {flip.AdditionalProps.GetValueOrDefault("server")} {DateTime.UtcNow.Second}.{DateTime.UtcNow.Millisecond} >{flip.TargetPrice}");
                         var time = DateTime.UtcNow - flip.Auction.FindTime;
                         if (time < TimeSpan.FromSeconds(10))
                         {
