@@ -63,6 +63,11 @@ public class SellConfigCommand : ArgumentsCommand
             socket.SendMessage("The price has to be a multiple of 600 or 900.");
             return;
         }
+        if (priceInt > 21600)
+        {
+            socket.SendMessage("Since the price can not be more than 21600 it was limited to that.");
+            priceInt = 21600;
+        }
         if (int.TryParse(name, out _))
         {
             socket.SendMessage("Your config name is a number, this is probably an error and you meant to specify the price. Please correct the order of the arguments.");

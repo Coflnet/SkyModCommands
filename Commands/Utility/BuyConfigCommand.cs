@@ -104,6 +104,7 @@ public class BuyConfigCommand : ArgumentsCommand
         catch (Exception e)
         {
             socket.Error(e, "Failed to credit the seller");
+            socket.Dialog(db => db.MsgLine("Failed to credit the seller, please report this"));
         }
         socket.ExecuteCommand($"/cofl loadconfig {sellerUserId} {name}");
     }
