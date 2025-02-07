@@ -44,6 +44,8 @@ public class UnVerifyCommand : McCommand
         try
         {
             await connectApi.ConnectUserUserIdMcUuidDeleteAsync(user.ExternalId, uuid);
+            socket.AccountInfo.McIds.Remove(uuid);
+            await socket.sessionLifesycle.AccountInfo.Update();
         }
         catch (McConnect.Client.ApiException e)
         {
