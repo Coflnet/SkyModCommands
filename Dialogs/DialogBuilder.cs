@@ -145,7 +145,10 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             return Msg(message, $"/cofl {comandName} {context}", hover);
         }
 
-
+        public DialogBuilder CoflCommandButton<TCom>(string message, string context, string hover = null) where TCom : McCommand
+        {
+            return CoflCommand<TCom>($"{McColorCodes.GRAY}[{McColorCodes.GOLD}{message}{McColorCodes.GRAY}]", context, hover);
+        }
 
         protected ChatPart GetLastPart()
         {

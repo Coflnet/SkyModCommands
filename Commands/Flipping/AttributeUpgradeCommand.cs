@@ -51,18 +51,25 @@ public class AttributeUpgradeCommand : McCommand
         socket.Dialog(db => db.MsgLine($"§6{itemType} {attribName} {startLevel}-{endLevel}")
             .ForEach(combined, (db, r) =>
             {
-                var totalBefore = costBelow.GetValueOrDefault(int.Parse(r.Key) - 2);
-                var total = costBelow.GetValueOrDefault(int.Parse(r.Key) - 1);
+                var tier = int.Parse(r.Key);
+                var totalBefore = costBelow.GetValueOrDefault(tier - 2);
+                var total = costBelow.GetValueOrDefault(tier - 1);
                 var tierSum = r.auctions.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
                 db
-                .MsgLine($"§7Lvl: {McColorCodes.AQUA}{int.Parse(r.Key) + 1} {McColorCodes.DARK_GRAY}({McColorCodes.GRAY}total {McColorCodes.YELLOW}{socket.FormatPrice(total)}{McColorCodes.DARK_GRAY})");
+                .MsgLine($"§7Lvl: {McColorCodes.AQUA}{tier + 1} {McColorCodes.DARK_GRAY}({McColorCodes.GRAY}total {McColorCodes.YELLOW}{socket.FormatPrice(total)}{McColorCodes.DARK_GRAY})");
                 if (totalBefore > total - totalBefore && total != totalBefore)
                 {
-                    db.MsgLine($"{McColorCodes.GREEN} directly buy this tier and save {socket.FormatPrice(totalBefore - tierSum)} for tier {int.Parse(r.Key)}");
+                    db.MsgLine($"{McColorCodes.GREEN} directly buy this tier and save {socket.FormatPrice(totalBefore - tierSum)} for tier {tier}");
                 }
                 if (r.auctions.Count() == 0)
                 {
                     db.MsgLine("§cno auctions found");
+                    return;
+                }
+                if (tier > 6 && socket.SessionInfo.SessionTier == Shared.AccountTier.NONE)
+                {
+                    db.MsgLine("Upgrading past tier 6 is only available for premium users, please consider supporting us to keep the service running.", null, "Starter premium is enough which is 1.50€/month")
+                        .CoflCommandButton<PurchaseCommand>("[See options]", "", "See premium options");
                     return;
                 }
 
