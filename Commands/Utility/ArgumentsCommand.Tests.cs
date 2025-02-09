@@ -55,6 +55,15 @@ public class ArgumentsCommandTests
         var args = command.TestArgs;
         Assert.That(args["days"], Is.EqualTo("7"));
     }
+    [Test]
+    public async Task ParseEmptyDefaultValue()
+    {
+        var command = new TestCommand();
+        command.TestUsage = "[days={7}]";
+        await command.Execute(null, "");
+        var args = command.TestArgs;
+        Assert.That(args["days"], Is.EqualTo("7"));
+    }
 
     public class TestCommand : ArgumentsCommand
     {

@@ -37,7 +37,9 @@ public abstract class ArgumentsCommand : McCommand
         var defaultValues = Regex.Matches(argOrder, @"([\w]+)=\{?(\w*)\}?");
         var parts = argOrder.Trim('"').Split(' ').Select(p => p.Split('=').First().Trim('<', '>', '[', ']')).ToArray();
         parsed = new Arguments();
-        var argParts = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
+        var argParts = (arguments ?? "").Split(' ');
+        if (arguments.StartsWith("\""))
+            argParts = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
         if (argParts.Length < argOrder.Count(c => c == '<'))
         {
             return "The amount of arguments doesn't match";
