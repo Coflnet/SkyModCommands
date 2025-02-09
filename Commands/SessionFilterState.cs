@@ -97,7 +97,7 @@ public class SessionFilterState : IDisposable
                     db => db.CoflCommand<UpdateCurrentConfigCommand>($"[click to load]", $"", "load new version\nWill override your current settings")));
                 if (AccountSettings.Value.AutoUpdateConfig)
                 {
-                    socket.ExecuteCommand("/cofl updatecurrentconfig");
+                    MinecraftSocket.Commands["updatecurrentconfig"].Execute(socket, "");
                 }
             }
         }
