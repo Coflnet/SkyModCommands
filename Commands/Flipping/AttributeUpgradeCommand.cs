@@ -44,7 +44,7 @@ public class AttributeUpgradeCommand : McCommand
         for (int i = 0; i < combined.Count; i++)
         {
             var r = combined[i];
-            var cost = r.auctions.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Min();
+            var cost = r.auctions.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
             costBelow[i] = cost + (i > 0 ? costBelow[i - 1] : 0);
             Console.WriteLine($"{r.Key} {cost} {costBelow[i]}");
         }
