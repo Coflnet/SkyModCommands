@@ -46,6 +46,7 @@ public class UpdateCurrentConfigCommand : ArgumentsCommand
             socket.Dialog(db => db.MsgLine($"Applied diff v{i} {McColorCodes.GRAY}with {diffCount} changes"));
         }
         settings.LastChanged = "config from seller";
+        settings.UsedVersion = configData.Value.Version;
         await socket.sessionLifesycle.FlipSettings.Update(settings);
         loadedConfigMetadata.Version = configData.Value.Version;
         socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = loadedConfigMetadata;
