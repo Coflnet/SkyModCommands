@@ -20,6 +20,7 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             return New()
                 .Msg("What do you want to do?")
                 .LineBreak()
+                .If(() => context.Context.Count(c => c == ':') > 1, db => db.CoflCommand<EmojiCommand>("ツ See all supported emojis", null, "List all emojis").LineBreak())
                 .CoflCommand<MuteCommand>("  Mute " + userName, userName, McColorCodes.GRAY + "I don't want to get anymore messages from this user").LineBreak()
                 .CoflCommand<GetMcNameForCommand>("  Get IGN", uuid, $"Get the IGN of this user\n{McColorCodes.GRAY}(player might be nicked)").LineBreak()
                 .If(() => !isModerator, db => db.DialogLink<ChatReportDialog>("  Report this message ", context.Context, McColorCodes.GRAY + "report message to moderator").LineBreak())
