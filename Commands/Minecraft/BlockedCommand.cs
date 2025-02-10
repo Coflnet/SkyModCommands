@@ -22,6 +22,60 @@ namespace Coflnet.Sky.Commands.MC
     public class BlockedCommand : McCommand
     {
         public override bool IsPublic => true;
+        private static Dictionary<string, string[]> ReasonLookup = new Dictionary<string, string[]>()
+        {
+            { "sold", new string[]{
+                "the flip was already sold when",
+                "it was about to be sent to you",
+                "This usually is the case when you don't",
+                "have prem+ or high fairness delay" } },
+            { "profit Perentage", new string[]{
+                "Your minProfitPercent is higher than",
+                "the profit percentage of the flip.",
+                "You could try lowering that setting",
+                $"Eg. {McColorCodes.AQUA}/cofl set minProfitPercent 5" } },
+            { "minProfit", new string[]{
+                "Your minProfit is higher than",
+                "the profit of the flip.",
+                "You could try lowering that setting.",
+                $"Eg. {McColorCodes.AQUA}/cofl set minProfit 1m" } },
+            { "minVolume", new string[]{
+                "Your minVolume setting is higher than",
+                "the volume (sales per day) of the flip.",
+                "You could try lowering that setting.",
+                $"Eg. {McColorCodes.AQUA}/cofl set minVolume 1" } },
+            { "high competition", new string[]{
+                "Your settings state that you want to avoid",
+                "high competition flips to be able to buy ",
+                "more of the flips you see.",
+                "You can disable that setting.",
+                $"Eg. {McColorCodes.AQUA}/cofl set blockhighcompetition false" } },
+            { "forced blacklist matched color filter", [
+                "A force blacklist entrie in your config",
+                "for armor matched this flip",
+                "You can use the flip menu (✥) to find",
+                "which filter matched and remove it" ] },
+            { "forced blacklist matched pet filter", [
+                "A force blacklist entrie in your config",
+                "for pets matched this flip.",
+                "You can use the flip menu (✥) to find",
+                "which filter matched and remove it" ] },
+            { "forced blacklist matched general filter", [
+                "A force blacklist entrie in your config",
+                "matched this flip and blocked it.",
+                "You can use the flip menu (✥) to find",
+                "which filter matched and remove it" ] },
+            { "forced blacklist for", [
+                "A force blacklist entrie in your config",
+                "matched this flip and blocked it.",
+                "You can use the flip menu (✥) to find",
+                "which filter matched and remove it" ] },
+            { "blacklist for", [
+                "A blacklist entrie in your config",
+                "matched this flip and blocked it.",
+                "You can use the flip menu (✥) to find",
+                "which filter matched and remove it" ] }
+            };
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var searchVal = JsonConvert.DeserializeObject<string>(arguments)?.ToLower();
@@ -95,10 +149,23 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.Settings.GetPrice(FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
                 var formatedName = socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier) + socket.formatProvider.GetItemName(b.Flip.Auction);
-                var text = $"{McColorCodes.DARK_GRAY}> {formatedName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)}) {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}";
+                var longReason = "";
+                if (ReasonLookup.TryGetValue(b.Reason, out var reason))
+                {
+                    longReason = string.Join("\n", reason);
+                }
+                else if (b.Reason.StartsWith("finder"))
+                {
+                    longReason = "You don't have the algorithm that found this flip enabled.\nYou can enable it via the website.\nBut be cautious, some finders are experimental"
+                        + "\nand might overvalue estimations.\nCheck the description for each of them.";
+                }
+                var text = $"{McColorCodes.DARK_GRAY}> {formatedName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)})";
+                if (string.IsNullOrEmpty(longReason))
+                    text += $" {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}";
+
                 if (!string.IsNullOrEmpty(socket.Settings.ModSettings.BlockedFormat))
                     text = socket.formatProvider.FormatFlip(FlipperService.LowPriceToFlip(b.Flip), b.Reason);
-                return new ChatPart[]
+                var mainParts = new List<ChatPart>
                 {
                         new ChatPart(
                         text,
@@ -111,6 +178,10 @@ namespace Coflnet.Sky.Commands.MC
                         "Open in game"),
                         new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + b.Flip.Auction.Uuid, "Expand flip options")
                 };
+                if (!string.IsNullOrEmpty(longReason))
+                    mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}hover for info{McColorCodes.GRAY}]", null, longReason));
+
+                return mainParts;
             }).Append(new ChatPart() { text = COFLNET + "These are examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray());
             var sentCount = socket.LastSent.Where(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-10)).Count();
             if (sentCount > 2 && socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(10).All(s => !s.AdditionalProps.ContainsKey("clickT")))
