@@ -40,7 +40,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
     {
         if (socket.Version[0] == '1')
         {
-            socket.Dialog(db => db.Msg("BAF versions older than 2.0.0 don't get relist recommendations anymore"));
+            if (Random.Shared.NextDouble() < 0.03)
+                socket.Dialog(db => db.Msg("BAF versions older than 2.0.0 don't get relist recommendations anymore"));
             return;
         }
         await Task.Delay(5000);
