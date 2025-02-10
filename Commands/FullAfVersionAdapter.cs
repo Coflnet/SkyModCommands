@@ -38,6 +38,11 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     public override async Task TryToListAuction()
     {
+        if (socket.Version[0] == '1')
+        {
+            socket.Dialog(db => db.Msg("BAF versions older than 2.0.0 don't get relist recommendations anymore"));
+            return;
+        }
         await Task.Delay(5000);
         if (DateTime.UtcNow - lastListing < TimeSpan.FromSeconds(15) || socket.CurrentRegion != Region.EU)
             return;
