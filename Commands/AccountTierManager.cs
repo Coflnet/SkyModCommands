@@ -13,7 +13,7 @@ namespace Coflnet.Sky.Commands.MC;
 public interface IAccountTierManager : IDisposable
 {
     bool HasAtLeast(AccountTier tier);
-    Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire();
+    Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire(bool forceUpdate = false);
     Task<AccountTier> GetCurrentCached();
     DateTime ExpiresAt { get; }
     string? DefaultAccount { get; }
@@ -101,11 +101,11 @@ public class AccountTierManager : IAccountTierManager
         return lastTier >= tier;
     }
 
-    public async Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire()
+    public async Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire(bool forceUpdate = false)
     {
         if (Disposed)
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
-        var currentTier = await CalculateCurrentTierWithExpire();
+        var currentTier = await CalculateCurrentTierWithExpire(forceUpdate);
         if (currentTier.tier != lastTier)
         {
             OnTierChange?.Invoke(this, currentTier.tier);
@@ -113,7 +113,7 @@ public class AccountTierManager : IAccountTierManager
         (lastTier, expiresAt) = currentTier;
         return currentTier;
     }
-    private async Task<(AccountTier tier, DateTime expiresAt)> CalculateCurrentTierWithExpire()
+    private async Task<(AccountTier tier, DateTime expiresAt)> CalculateCurrentTierWithExpire(bool force = false)
     {
         if (string.IsNullOrEmpty(userId))
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
@@ -121,7 +121,7 @@ public class AccountTierManager : IAccountTierManager
         var userApi = socket.GetService<PremiumService>();
         var licenseSettingsTask = socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(userId, "licenses", () => new LicenseSetting());
         (AccountTier, DateTime) expires;
-        if (expiresAt < DateTime.UtcNow.AddMinutes(5))
+        if (expiresAt < DateTime.UtcNow.AddMinutes(5) || force)
             expires = await userApi.GetCurrentTier(userId);
         else
         {
