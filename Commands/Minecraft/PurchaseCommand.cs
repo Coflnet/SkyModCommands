@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Payments.Client.Model;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
@@ -104,8 +105,23 @@ namespace Coflnet.Sky.Commands.MC
                 await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, productSlug, reference, count);
                 socket.Dialog(db => db.MsgLine($"Successfully started purchase of {productSlug} you should receive a confirmation in a few seconds"));
                 await Task.Delay(TimeSpan.FromSeconds(2));
-                await socket.sessionLifesycle.TierManager.RefreshTier();
-                socket.sessionLifesycle.UpdateConnectionTier(await socket.sessionLifesycle.TierManager.GetCurrentCached());
+                var tiermanager = socket.sessionLifesycle.TierManager;
+                var defaultAcount = tiermanager.DefaultAccount;
+                if (defaultAcount != socket.SessionInfo.McUuid)
+                {
+                    await tiermanager.ChangeDefaultTo(socket.SessionInfo.McUuid);
+                    var licenseInfo = await socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
+                    var targetSettings = licenseInfo.Licenses.FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid);
+                    if (targetSettings != default)
+                    {
+                        targetSettings.UseOnAccount = "none";
+                        await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", licenseInfo);
+                        socket.Dialog(db => db.MsgLine($"This connection was moved off of the license {McColorCodes.AQUA}{targetSettings.VirtualId}"));
+                    }
+                    socket.Dialog(db => db.MsgLine($"This connection was changed to be the default account with {McColorCodes.AQUA}{socket.SessionInfo.McName}"));
+                }
+                await tiermanager.RefreshTier();
+                socket.sessionLifesycle.UpdateConnectionTier(await tiermanager.GetCurrentCached());
                 return true;
             }
             catch (Payments.Client.Client.ApiException e)
