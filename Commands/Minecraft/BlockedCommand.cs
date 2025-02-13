@@ -150,9 +150,10 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Settings.GetPrice(FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
                 var formatedName = socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier) + socket.formatProvider.GetItemName(b.Flip.Auction);
                 var longReason = "";
-                if (ReasonLookup.TryGetValue(b.Reason, out var reason))
+                var matchingReason = ReasonLookup.Keys.FirstOrDefault(r => b.Reason.StartsWith(r));
+                if (matchingReason != default)
                 {
-                    longReason = string.Join("\n", reason);
+                    longReason = string.Join("\n", ReasonLookup[matchingReason]);
                 }
                 else if (b.Reason.StartsWith("finder"))
                 {
