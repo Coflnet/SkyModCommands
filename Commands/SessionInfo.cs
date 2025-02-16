@@ -87,6 +87,7 @@ namespace Coflnet.Sky.Commands.MC
         public int BestHotkeyUsageCount { get; set; }
         public string[] ModsFound { get; set; }
         public string ProfileId { get; set; }
+        public SaveAuction SelectedItem { get; set; }
 
         public bool SellAll;
 

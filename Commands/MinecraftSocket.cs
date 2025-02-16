@@ -226,6 +226,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<ReplayFlips>();
             Commands.Add<NECCommand>();
             Commands.Add<AhTaxCommand>("t");
+            Commands.Add<HotkeyCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

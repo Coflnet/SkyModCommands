@@ -7,7 +7,7 @@ namespace Coflnet.Sky.Commands.MC;
 public class AhTaxCommand : ArgumentsCommand
 {
     protected override string Usage => "<sellAmount>";
-
+    public override bool IsPublic => true;
     protected override Task Execute(IMinecraftSocket socket, Arguments args)
     {
         var sellAmount = NumberParser.Double(args["sellAmount"]);

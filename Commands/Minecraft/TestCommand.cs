@@ -6,16 +6,27 @@ using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    public class KeybindRegister
+    {
+        [Newtonsoft.Json.JsonProperty("name")]
+        public string Name { get; set; }
+        [Newtonsoft.Json.JsonProperty("defaultKey")]
+        public string DefaultKey { get; set; }
+    }
     public class TestCommand : McCommand
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            socket.Send(Response.Create("proxy", new ProxyRequest[] { new() { uploadTo = "https://sky.coflnet.com/api/data/proxy", id = "guploadTest", url = "https://google.com" } }));
+            socket.Send(Response.Create("registerKeybind", new KeybindRegister[] { new() { Name = "testxy", DefaultKey = "G" }, new() { Name = "test2", DefaultKey = "V" } }));
+            socket.Send(Response.Create("proxy", new ProxyRequest[] { new() { uploadTo = "https://sky.coflnet.com/api/data/proxy?test", id = "guploadTest", url = "https://willhaben.at" } }));
             return;
-            socket.Send(Response.Create("runSequence", new Sequence{steps=new(){
+            socket.Send(Response.Create("runSequence", new Sequence
+            {
+                steps = new(){
                 new (){type="execute", data="/sbmenu"},
                 new (){type="upload", data=""},
-            }}));
+            }
+            }));
             socket.Dialog(db => db.Msg("Sent sequence, awaiting response"));
 
             await Task.Delay(5000);
