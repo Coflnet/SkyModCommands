@@ -9,7 +9,7 @@ public class VerifyCommand : McCommand
     public override bool IsPublic => true;
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if (socket.AccountInfo == null)
+        if (socket.AccountInfo?.UserId == null)
         {
             await socket.SendLoginPrompt();
             return;
