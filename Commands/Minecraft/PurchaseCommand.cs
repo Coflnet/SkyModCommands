@@ -114,9 +114,9 @@ namespace Coflnet.Sky.Commands.MC
                     var targetSettings = licenseInfo.Licenses.FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid);
                     if (targetSettings != default)
                     {
-                        targetSettings.UseOnAccount = "none";
+                        targetSettings.UseOnAccount = defaultAcount ?? "none";
                         await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", licenseInfo);
-                        socket.Dialog(db => db.MsgLine($"This connection was moved off of the license {McColorCodes.AQUA}{targetSettings.VirtualId}"));
+                        socket.Dialog(db => db.MsgLine($"This connection was moved off of the license {McColorCodes.AQUA}{targetSettings.VirtualId}{McColorCodes.GRAY}, the license is now on {McColorCodes.GOLD}{defaultAcount}"));
                     }
                     socket.Dialog(db => db.MsgLine($"This connection was changed to be the default account with {McColorCodes.AQUA}{socket.SessionInfo.McName}"));
                 }
