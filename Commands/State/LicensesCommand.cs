@@ -273,9 +273,10 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         var allnames = await GetNames(socket, uuids);
         socket.Dialog(db => db.MsgLine(heading)
             .ForEach(uuids, (db, id) => db.Msg($"{McColorCodes.GRAY}> {McColorCodes.AQUA}{allnames.GetValueOrDefault(id) ?? id}")
-                .CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}premium  ", $"add {allnames.GetValueOrDefault(id) ?? id} premium", $"Purchase/extend premium license for {allnames.GetValueOrDefault(id) ?? id}")
-                .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+  ", $"add {allnames.GetValueOrDefault(id) ?? id} premium_plus-week", $"Purchase/extend premium+ license for {allnames.GetValueOrDefault(id) ?? id}")
-                .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}4 weeks  ", $"add {allnames.GetValueOrDefault(id) ?? id} premium_plus-weeks", $"Purchase/extend premium+ license for {allnames.GetValueOrDefault(id) ?? id}\nfor 4 weeks (33% discount)")
+                .CoflCommand<LicensesCommand>($" {McColorCodes.GREEN}premium ", $"add {allnames.GetValueOrDefault(id) ?? id} premium", $"Purchase/extend premium license for {allnames.GetValueOrDefault(id) ?? id}")
+                .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}Premium+ ", $"add {allnames.GetValueOrDefault(id) ?? id} premium_plus-week", $"Purchase/extend premium+ license for {allnames.GetValueOrDefault(id) ?? id}")
+                .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}4 weeks ", $"add {allnames.GetValueOrDefault(id) ?? id} premium_plus-weeks", $"Purchase/extend premium+ license for {allnames.GetValueOrDefault(id) ?? id}\nfor 4 weeks (16% discount)")
+                .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.BOLD}11 weeks ", $"add {allnames.GetValueOrDefault(id) ?? id} premium_plus-months", $"Purchase/extend premium+ license for {allnames.GetValueOrDefault(id) ?? id}\nfor 11 weeks (27% discount)")
                 .LineBreak()));
     }
 

@@ -17,7 +17,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            socket.Send(Response.Create("registerKeybind", new KeybindRegister[] { new() { Name = "testxy", DefaultKey = "G" }, new() { Name = "test2", DefaultKey = "V" } }));
+            socket.Send(Response.Create("registerKeybind", new KeybindRegister[] { new() { Name = "/cofl lb", DefaultKey = "F" }, new() { Name = "test2", DefaultKey = "Z" } }));
             socket.Send(Response.Create("proxy", new ProxyRequest[] { new() { uploadTo = "https://sky.coflnet.com/api/data/proxy?test", id = "guploadTest", url = "https://willhaben.at" } }));
             return;
             socket.Send(Response.Create("runSequence", new Sequence
