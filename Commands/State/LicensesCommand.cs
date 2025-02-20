@@ -247,14 +247,16 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         {
             socket.Dialog(db => db.MsgLine($"Click to confirm purchase/extend a license for {McColorCodes.AQUA}{name}", null, "click on the tier name below")
                 .If(() => !subargs[1].Contains("plus"), db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}Premium  ", $"add {name} premium {socket.SessionInfo.ConnectionId}", "Purchase premium license"))
-                .If(() => subargs[1].Contains("plus") && !subArgs.Contains("weeks"), db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ {McColorCodes.GRAY}1week ", $"add {name} premium_plus-week {socket.SessionInfo.ConnectionId}", "Purchase premium+ license"))
-                .If(() => subargs[1].Contains("plus") && subArgs.Contains("weeks"), db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 4 weeks ", $"add {name} premium_plus-weeks {socket.SessionInfo.ConnectionId}", "Purchase premium+ license for 4 weeks")));
+                .If(() => subargs[1] == "premium_plus-week", db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ {McColorCodes.GRAY}1week ", $"add {name} premium_plus-week {socket.SessionInfo.ConnectionId}", "Purchase premium+ license"))
+                .If(() => subargs[1] == "premium_plus-weeks", db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 4 weeks ", $"add {name} premium_plus-weeks {socket.SessionInfo.ConnectionId}", "Purchase premium+ license for 4 weeks"))
+                .If(() => subargs[1] == "premium_plus-months", db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 11 weeks ", $"add {name} premium_plus-months {socket.SessionInfo.ConnectionId}", "Purchase premium+ license for 11 weeks")));
             return;
         }
         socket.Dialog(db => db.MsgLine("Which tier do you want to purchase/extend")
             .CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}Premium  ", $"add {name} premium {socket.SessionInfo.ConnectionId}", "Purchase/extend premium license")
-            .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 1 ", $"add {name} premium_plus-week{socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 1 week")
-            .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}/ 4 weeks  ", $"add {name} premium_plus-weeks {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 4 weeks"));
+            .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 1 ", $"add {name} premium_plus-week {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 1 week")
+            .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}/ 4 weeks  ", $"add {name} premium_plus-weeks {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 4 weeks")
+            .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}/ 11 weeks  ", $"add {name} premium_plus-months {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 11 weeks"));
     }
 
     protected override async Task NoEntriesFound(MinecraftSocket socket, string subArgs)
