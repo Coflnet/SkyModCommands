@@ -39,30 +39,31 @@ public class AttributeUpgradeCommand : McCommand
             auctions = await db.Auctions.Where(a => auctionIds.Contains(a.UId)).ToListAsync();
         }
         var lookup = auctions.ToDictionary(a => a.UId.ToString());
-        var combined = result.Select(r => (r.Key, auctions: r.Value.Select(id => lookup.GetValueOrDefault(id)))).ToList();
+        var combined = result.ToDictionary(r => int.Parse(r.Key),r=>r.Value.Select(id => lookup.GetValueOrDefault(id)));
         var costBelow = new Dictionary<int, long>();
-        for (int i = startLevel - 1; i < endLevel; i++)
+        Console.WriteLine(string.Join(',', combined.Select(r => r.Key)));
+        for (int i = startLevel; i < endLevel -1; i++)
         {
             var r = combined[i];
-            var cost = r.auctions.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
+            var cost = r.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
             costBelow[i] = cost + costBelow.GetValueOrDefault(i - 1);
-            Console.WriteLine($"sum till: {r.Key} {cost} {costBelow[i]}");
+            Console.WriteLine($"sum till: {i} {cost} {costBelow[i]}");
         }
         socket.Dialog(db => db.MsgLine($"§6{itemType} {attribName} {startLevel}-{endLevel}")
             .ForEach(combined, (db, r) =>
             {
-                var tier = int.Parse(r.Key);
+                var tier = r.Key;
                 var totalBefore = costBelow.GetValueOrDefault(tier - 2);
                 var total = costBelow.GetValueOrDefault(tier - 1);
                 Console.WriteLine($"tier {tier} {totalBefore} {total}");
-                var tierSum = r.auctions.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
+                var tierSum = r.Value.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
                 db
                 .MsgLine($"§7Lvl: {McColorCodes.AQUA}{tier + 1} {McColorCodes.DARK_GRAY}({McColorCodes.GRAY}total {McColorCodes.YELLOW}{socket.FormatPrice(total)}{McColorCodes.DARK_GRAY})");
                 if (totalBefore > total - totalBefore && total != totalBefore)
                 {
                     db.MsgLine($"{McColorCodes.GREEN} directly buy this tier and save {socket.FormatPrice(totalBefore - tierSum)} for tier {tier}");
                 }
-                if (r.auctions.Count() == 0)
+                if (r.Value.Count() == 0)
                 {
                     db.MsgLine("§cno auctions found");
                     return;
@@ -74,7 +75,7 @@ public class AttributeUpgradeCommand : McCommand
                     return;
                 }
 
-                db.ForEach(r.auctions, (db, a) =>
+                db.ForEach(r.Value, (db, a) =>
 
                     db.If(() => a != null, db => db
                     .MsgLine(
