@@ -217,8 +217,13 @@ public class AccountTierManager : IAccountTierManager
 
         span.Log($"AccountTier {expires.Item1} {expires.Item2}");
         span.Log($"Sessions {JsonConvert.SerializeObject(sessions)}");
-        var licenseSettings = await licenseSettingsTask;
         var useEmailOnThisCon = activeSessions?.Value?.UseAccountTierOn == socket.SessionInfo.McUuid || isCurrentConOnlyCon;
+
+        if (useEmailOnThisCon && expires.Item1 == AccountTier.SUPER_PREMIUM)
+        {
+            return (expires.Item1, expires.Item2);
+        }
+        var licenseSettings = await licenseSettingsTask;
         var matchingNewLicense = licenseSettings.Licenses.OrderByDescending(l => l.Tier).FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid);
         IsLicense = false;
         if (Disposed)
