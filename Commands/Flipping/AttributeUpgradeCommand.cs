@@ -41,7 +41,7 @@ public class AttributeUpgradeCommand : McCommand
         var lookup = auctions.ToDictionary(a => a.UId.ToString());
         var combined = result.Select(r => (r.Key, auctions: r.Value.Select(id => lookup.GetValueOrDefault(id)))).ToList();
         var costBelow = new Dictionary<int, long>();
-        for (int i = startLevel - 1; i < combined.Count; i++)
+        for (int i = startLevel - 1; i < endLevel; i++)
         {
             var r = combined[i];
             var cost = r.auctions.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
@@ -54,6 +54,7 @@ public class AttributeUpgradeCommand : McCommand
                 var tier = int.Parse(r.Key);
                 var totalBefore = costBelow.GetValueOrDefault(tier - 2);
                 var total = costBelow.GetValueOrDefault(tier - 1);
+                Console.WriteLine($"tier {tier} {totalBefore} {total}");
                 var tierSum = r.auctions.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
                 db
                 .MsgLine($"§7Lvl: {McColorCodes.AQUA}{tier + 1} {McColorCodes.DARK_GRAY}({McColorCodes.GRAY}total {McColorCodes.YELLOW}{socket.FormatPrice(total)}{McColorCodes.DARK_GRAY})");
