@@ -52,7 +52,7 @@ public class AttributeUpgradeCommand : McCommand
             .ForEach(combined, (db, r) =>
             {
                 var tier = int.Parse(r.Key);
-                var totalBefore = costBelow.GetValueOrDefault(tier - 2 - startLevel);
+                var totalBefore = costBelow.GetValueOrDefault(tier - 2);
                 var total = costBelow.GetValueOrDefault(tier - 1);
                 var tierSum = r.auctions.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
                 db
