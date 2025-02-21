@@ -45,14 +45,14 @@ public class AttributeUpgradeCommand : McCommand
         {
             var r = combined[i];
             var cost = r.auctions.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
-            costBelow[i] = cost + (i > 0 ? costBelow[i - 1] : 0);
-            Console.WriteLine($"{r.Key} {cost} {costBelow[i]}");
+            costBelow[i] = cost + costBelow.GetValueOrDefault(i - 1);
+            Console.WriteLine($"sum till: {r.Key} {cost} {costBelow[i]}");
         }
         socket.Dialog(db => db.MsgLine($"§6{itemType} {attribName} {startLevel}-{endLevel}")
             .ForEach(combined, (db, r) =>
             {
                 var tier = int.Parse(r.Key);
-                var totalBefore = costBelow.GetValueOrDefault(tier - 2);
+                var totalBefore = costBelow.GetValueOrDefault(tier - 2 - startLevel);
                 var total = costBelow.GetValueOrDefault(tier - 1);
                 var tierSum = r.auctions.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
                 db
