@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Coflnet.Sky.Crafts.Client.Api;
 using Coflnet.Sky.Crafts.Models;
 using Coflnet.Sky.Items.Client.Api;
@@ -24,12 +25,12 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
 
     public CraftsCommand()
     {
-        sorters.Add("profit", (a) => a.OrderByDescending(f => f.SellPrice - f.CraftCost));
+        sorters.Add("profit", (a) => a.OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost)));
         sorters.Add("cost", (a) => a.OrderByDescending(f => f.CraftCost));
         sorters.Add("volume", (a) => a.OrderByDescending(f => f.Volume));
         sorters.Add("percent", (a) => a.OrderByDescending(f => (f.SellPrice - f.CraftCost) / f.CraftCost));
         sorters.Add("median", (a) => a.OrderByDescending(f => f.Median - f.CraftCost));
-        sorters.Add("bazaar", (a) => a.Where(a => OnBazaar.Contains(a.ItemId)).OrderByDescending(f => f.SellPrice - f.CraftCost));
+        sorters.Add("bazaar", (a) => a.Where(a => OnBazaar.Contains(a.ItemId)).OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost)));
     }
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Crafts.Models.ProfitableCraft elem)
     {
