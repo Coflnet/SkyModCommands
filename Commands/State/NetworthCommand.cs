@@ -42,5 +42,6 @@ public class NetworthCommand : ArgumentsCommand
         var top = networth.Member.First().Value.ValuePerCategory.OrderByDescending(m => m.Value).Take(3);
         socket.Dialog(db => db.MsgLine($"Networth of {McColorCodes.AQUA}{username} {McColorCodes.RESET}on {McColorCodes.AQUA}{profile} {McColorCodes.RESET}is {McColorCodes.GOLD}{socket.FormatPrice(networth.FullValue)}", null, "This is currently based on api fields\nincluding chest value is in the works")
             .ForEach(top, (db, m) => db.MsgLine($"{McColorCodes.DARK_GRAY} - {McColorCodes.RESET}{m.Key} {McColorCodes.GOLD}{socket.FormatPrice(m.Value)}")));
+        await Task.Delay(10_000); // soft ratelimit
     }
 }
