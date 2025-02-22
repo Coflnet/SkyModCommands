@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
-using Coflnet.Sky.Core;
 using Coflnet.Sky.Crafts.Client.Api;
 using Coflnet.Sky.Crafts.Models;
 using Coflnet.Sky.Items.Client.Api;
