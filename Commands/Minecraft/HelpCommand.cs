@@ -76,7 +76,7 @@ public class HelpCommand : McCommand
         var pageToNavigateTo = page + 2;
         if (pageToNavigateTo > withDescription.Count() / pageSize)
             pageToNavigateTo = 1;
-        socket.Dialog(d => d.CoflCommand<HelpCommand>($"AvailableCommands are (page {(page + 1)}/{withDescription.Count() / pageSize}):\n", "c " + pageToNavigateTo, "click to get next page")
+        socket.Dialog(d => d.CoflCommand<HelpCommand>($"AvailableCommands are (page {(page + 1)}/{withDescription.Count() / pageSize + 1}):\n", "c " + pageToNavigateTo, "click to get next page")
             .ForEach(toDisplay, (db, c) =>
                 db.If(() => c.Count() == 1,
                     db => FormatLine(c, $" {McColorCodes.AQUA}{c.First().Key}{McColorCodes.GRAY} -", db),
