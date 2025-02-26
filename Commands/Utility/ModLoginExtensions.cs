@@ -18,6 +18,8 @@ public static class ModLoginExtensions
         {
             return;
         }
+        socket.sessionLifesycle.UserId?.Dispose();
+        socket.sessionLifesycle.UserId = UserId;
         await socket.sessionLifesycle.LoggedIn(UserId.Value);
         socket.SendMessage("Login completed, please rerun the last command");
     }
