@@ -20,6 +20,7 @@ public class AfVersionAdapter : ModVersionAdapter
     public override async Task<bool> SendFlip(FlipInstance flip)
     {
         _ = socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
+        await SoftCapIfLimited(flip);
         (bool stopBuy, bool wait) = ShouldStopBuying();
         if (ShouldSkipFlip(flip) || stopBuy)
         {
@@ -50,6 +51,24 @@ public class AfVersionAdapter : ModVersionAdapter
         Activity.Current?.SetTag("itemName", name);
 
         return true;
+
+
+        static bool IsNotSpecialCase(FlipInstance flip)
+        { // (not) do not releist or user finder, -2 and -1
+            return flip.Target > 0;
+        }
+
+        async Task SoftCapIfLimited(FlipInstance flip)
+        {
+            var minProfitPercent = socket.Settings?.MinProfitPercent ?? 0;
+            if (socket.SessionInfo.AhSlotsOpen < 2)
+                minProfitPercent = Math.Max(9, minProfitPercent);
+            if (flip.Finder != LowPricedAuction.FinderType.USER && flip.ProfitPercentage < minProfitPercent && IsNotSpecialCase(flip))
+            {
+                Activity.Current?.Log($"profitpercent too low {flip.ProfitPercentage} < {minProfitPercent} | {flip.Finder} {flip.Auction.StartingBid} -> {flip.Target}");
+                await Task.Delay(100);
+            }
+        }
     }
 
     private async Task FindMatchingWhitelist(FlipInstance flip, string name)
@@ -124,14 +143,7 @@ public class AfVersionAdapter : ModVersionAdapter
             socket.Dialog(db => db.Msg($"Skipped buying {flip.Auction.ItemName} for {flip.Auction.StartingBid} because you only have {purse} purse left (max 2/3 used for one flip)"));
             return true;
         }
-        var minProfitPercent = socket.Settings?.MinProfitPercent ?? 0;
-        if (socket.SessionInfo.AhSlotsOpen < 2)
-            minProfitPercent = Math.Max(9, minProfitPercent);
-        if (flip.Finder != LowPricedAuction.FinderType.USER && flip.ProfitPercentage < minProfitPercent && IsNotSpecialCase(flip))
-        {
-            Activity.Current?.Log($"profitpercent too low {flip.ProfitPercentage} < {minProfitPercent} | {flip.Finder} {flip.Auction.StartingBid} -> {flip.Target}");
-            return true;
-        }
+        
         var preService = socket.GetService<IIsSold>();
         if (preService.IsSold(flip.Uuid))
         {
@@ -142,10 +154,6 @@ public class AfVersionAdapter : ModVersionAdapter
         }
         return false;
 
-        static bool IsNotSpecialCase(FlipInstance flip)
-        { // (not) do not releist or user finder, -2 and -1
-            return flip.Target > 0;
-        }
     }
 
     protected virtual (bool skip, bool wait) ShouldStopBuying()
