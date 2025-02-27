@@ -55,7 +55,7 @@ public class AfVersionAdapter : ModVersionAdapter
 
         static bool IsNotSpecialCase(FlipInstance flip)
         { // (not) do not releist or user finder, -2 and -1
-            return flip.Target > 0;
+            return flip.Target > 0 && flip.Profit < 20_000_000;
         }
 
         async Task SoftCapIfLimited(FlipInstance flip)
