@@ -54,6 +54,21 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             await SwitchConfigInUse(socket, args);
             return;
         }
+        if (command == "refresh")
+        {
+            var all = await GetCurrentLicenses(socket);
+            socket.Dialog(db => db.MsgLine("Refreshing all licenses (expire time)"));
+            foreach (var item in all.Licenses)
+            {
+                var virtualId = $"{socket.UserId}#{item.VirtualId}";
+                var userTier = await socket.GetService<PremiumService>().GetCurrentTier(virtualId);
+                item.Tier = userTier.Item1;
+                item.Expires = userTier.Item2;
+            }
+            await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", all);
+            socket.Dialog(db => db.MsgLine("Refreshed all licenses"));
+            return;
+        }
         await Help(socket, stringArgs);
     }
 
@@ -82,7 +97,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
                 return;
             }
         }
-        var settings = await socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
+        var settings = await GetCurrentLicenses(socket);
         var targetLicense = settings.Licenses.FirstOrDefault(l => l.VirtualId == virtualId);
         if (targetLicense == null)
         {
@@ -139,7 +154,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             socket.Dialog(db => db.MsgLine("Use requires the license id (first character of /cofl licenses list) and the username"));
             return;
         }
-        var settings = await socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
+        var settings = await GetCurrentLicenses(socket);
         var license = settings.Licenses.FirstOrDefault(l => l.VirtualId == virtualId);
         if (license == null)
         {
@@ -186,7 +201,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             var licenseApi = socket.GetService<ILicenseApi>();
             var userApi = socket.GetService<IUserApi>();
             var productApi = socket.GetService<IProductsApi>();
-            var settings = await socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
+            LicenseSetting settings = await GetCurrentLicenses(socket);
             var usedLicense = settings.Licenses.FirstOrDefault(l => l.UseOnAccount == uuid);
             if (settings.Licenses.Any(l => l.UseOnAccount == uuid))
             {
@@ -213,13 +228,19 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
                 {
                     Amount = product.Cost,
                     Reference = reference,
-                    TargetUser = $"{socket.UserId}#{usedLicense.VirtualId}"
+                    TargetUser = virtualuser
                 });
+                var previousExpire = await socket.GetService<PremiumService>().GetCurrentTier(virtualuser);
                 await userApi.UserUserIdServicePurchaseProductSlugPostAsync(virtualuser, subargs[1], reference);
-                await Task.Delay(2000); // wait for transaction to be processed
-                var userTier = await socket.GetService<PremiumService>().GetCurrentTier(virtualuser);
-                usedLicense.Tier = userTier.Item1;
-                usedLicense.Expires = userTier.Item2;
+                for (int i = 0; i < 10; i++)
+                {
+                    if (usedLicense.Expires > previousExpire.Item2)
+                        break;
+                    await Task.Delay(2000); // wait for transaction to be processed
+                    var userTier = await socket.GetService<PremiumService>().GetCurrentTier(virtualuser);
+                    usedLicense.Tier = userTier.Item1;
+                    usedLicense.Expires = userTier.Item2;
+                }
                 await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", settings);
             }
             catch (Payments.Client.Client.ApiException e)
@@ -257,6 +278,11 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 1 ", $"add {name} premium_plus-week {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 1 week")
             .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}/ 4 weeks  ", $"add {name} premium_plus-weeks {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 4 weeks")
             .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}/ 11 weeks  ", $"add {name} premium_plus-months {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 11 weeks"));
+    }
+
+    private static async Task<LicenseSetting> GetCurrentLicenses(MinecraftSocket socket)
+    {
+        return await socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(socket.UserId, "licenses", () => new LicenseSetting());
     }
 
     protected override async Task NoEntriesFound(MinecraftSocket socket, string subArgs)
