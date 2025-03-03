@@ -36,7 +36,7 @@ public class HotkeyCommand : McCommand
             .MsgLine($"Lowest bin sits at {McColorCodes.AQUA}{socket.FormatPrice(price.Lbin.Price)}")
             .Msg($"To sell quickly list at {McColorCodes.AQUA}{formattedInstasell}", $"copy:{formattedInstasell}", "click to copy")
                 .MsgLine($"{McColorCodes.GRAY}[put into chat]", $"suggest:{formattedInstasell}", "click to put \nsuggestion into chat")
-                .MsgLine($"[Copy item filters to website]", filterLink, "Click to view on Sky Website"));
+                .Button($"Open filter on website", filterLink, "Click to view on SkyCofl Website"));
     }
 
     private static Task<System.Collections.Generic.Dictionary<string, string>> RequestFilters(MinecraftSocket socket, SaveAuction auction)
