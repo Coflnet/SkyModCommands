@@ -64,7 +64,7 @@ public class DelayHandler : IDelayHandler
         if (dropoutChance * (profit > 6_000_000 ? 3 : 1) > random.NextDouble())
             await timeProvider.Delay(TimeSpan.FromSeconds(6)).ConfigureAwait(false);
         var isPreApi = (flipInstance.Auction.Context?.TryGetValue("pre-api", out var preApi) ?? false) && preApi != "recheck";
-        if (IsLikelyBot(flipInstance) && !isPreApi)
+        if (IsLikelyBot(flipInstance) && (!isPreApi || flipInstance.Profit > 20_000_000 && random.NextDouble() < 0.3))
             return timeProvider.Now;
         if (profit < 200_000 && flipInstance.Finder == Core.LowPricedAuction.FinderType.FLIPPER)
             return timeProvider.Now;
@@ -116,7 +116,7 @@ public class DelayHandler : IDelayHandler
         var tag = flipInstance.Auction?.Tag;
         var profitPercent = flipInstance.ProfitPercentage;
         var profitSum = flipInstance.Profit;
-        if (profitSum > 50_000_000)
+        if (profitSum > 25_000_000)
             return true;
         return tag != null && (
                     (tag.Contains("DIVAN") || tag == "FROZEN_SCYTHE" || tag.StartsWith("SORROW_")
