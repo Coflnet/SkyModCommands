@@ -33,7 +33,7 @@ namespace Coflnet.Sky.Commands.MC
                 who = string.Join(" ", args.Take(args.Length - 1));
             if (response.Flips.Count() == 0)
             {
-                socket.Dialog(db => db.MsgLine($"Sorry we don't have any tracked flips for {who} yet"));
+                socket.Dialog(db => db.MsgLine($"Sorry we don't have any tracked flips for {who} yet", hover: "Flips only count after they have sold"));
                 return;
             }
             string hover = GetHoverText(socket, response);
