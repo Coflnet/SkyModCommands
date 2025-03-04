@@ -61,7 +61,9 @@ namespace Coflnet.Sky.Commands.MC
         public static FlipSettings DefaultSettings => new FlipSettings()
         {
             MinProfit = 100000,
-            MinVolume = 10,
+            MinProfitPercent = 5,
+            MinVolume = 3,
+            AllowedFinders = LowPricedAuction.FinderType.FLIPPER_AND_SNIPERS,
             ModSettings = new ModSettings() { ShortNumbers = true },
             Visibility = new VisibilitySettings() { SellerOpenButton = true, ExtraInfoMax = 3, Lore = true }
         };
