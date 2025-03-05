@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using Coflnet.Sky.Bazaar.Flipper.Client.Api;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Core.Services;
+using Coflnet.Sky.ModCommands.Services.Vps;
 
 namespace Coflnet.Sky.ModCommands;
 public class Startup
@@ -87,6 +88,7 @@ public class Startup
         services.AddSingleton<IPriceStorageService, PriceStorageService>();
         services.AddSingleton<DelayService>();
         services.AddSingleton<AltChecker>();
+        services.AddSingleton<VpsInstanceManager>();
         services.AddSingleton<IDelayExemptList, DelayExemptionList>();
         services.AddCoflService();
     }

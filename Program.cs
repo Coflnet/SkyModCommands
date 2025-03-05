@@ -4,7 +4,7 @@ using WebSocketSharp.Server;
 using Coflnet.Sky.Commands.MC;
 using System.Threading.Tasks;
 using System;
-using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.ModCommands.Services.Vps;
 
 namespace Coflnet.Sky.ModCommands.MC
 {
@@ -18,6 +18,7 @@ namespace Coflnet.Sky.ModCommands.MC
             var server = new HttpServer(port);
             server.KeepClean = false;
             server.AddWebSocketService<MinecraftSocket>("/modsocket");
+            server.AddWebSocketService<VpsSocket>("/instances");
             server.Log.Level = WebSocketSharp.LogLevel.Debug;
             server.Log.Output = (data, s) => Console.WriteLine(data);
             server.OnGet += async (s, e) =>

@@ -228,6 +228,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<AhTaxCommand>("t");
             Commands.Add<HotkeyCommand>();
             Commands.Add<NetworthCommand>();
+            Commands.Add<VpsCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
