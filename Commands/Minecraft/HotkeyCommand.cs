@@ -50,6 +50,9 @@ public class HotkeyCommand : McCommand
         represent.Count = auction.Count;
         represent.Description = auction.Context["lore"];
         represent.Tag = auction.Tag;
+
+        represent.ExtraAttributes["modifier"] = auction.Reforge.ToString();
+        represent.ExtraAttributes["tier"] = auction.Tier.ToString();
         Activity.Current.Log(JsonConvert.SerializeObject(represent));
         var filterTask = priceApi.ApiItemFiltersPostAsync(represent);
         return filterTask;
