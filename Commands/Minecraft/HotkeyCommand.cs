@@ -5,6 +5,7 @@ using Coflnet.Sky.Api.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.Commands.MC;
 public class HotkeyCommand : McCommand
@@ -49,6 +50,7 @@ public class HotkeyCommand : McCommand
         represent.Count = auction.Count;
         represent.Description = auction.Context["lore"];
         represent.Tag = auction.Tag;
+        Activity.Current.Log(JsonConvert.SerializeObject(represent));
         var filterTask = priceApi.ApiItemFiltersPostAsync(represent);
         return filterTask;
     }
