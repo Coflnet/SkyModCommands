@@ -42,7 +42,7 @@ public class AttributeUpgradeCommand : McCommand
         var combined = result.ToDictionary(r => int.Parse(r.Key), r => r.Value.Select(id => lookup.GetValueOrDefault(id)));
         var costBelow = new Dictionary<int, long>();
         Console.WriteLine(string.Join(',', combined.Select(r => r.Key)));
-        for (int i = startLevel; i < endLevel - 1; i++)
+        for (int i = startLevel; i < endLevel; i++)
         {
             var r = combined[i];
             var cost = r.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
