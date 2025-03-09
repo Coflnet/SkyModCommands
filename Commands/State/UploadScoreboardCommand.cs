@@ -1,5 +1,7 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 
@@ -75,6 +77,15 @@ public class UploadScoreboardCommand : McCommand
         {
             socket.Dialog(db => db.MsgLine("Flips disabled because you are in a gamemode with no auction house"));
         }
+        var playerId = socket.SessionInfo?.McName;
+        socket.GetService<IStateUpdateService>().Produce(playerId, new()
+        {
+            ReceivedAt = DateTime.UtcNow,
+            PlayerId = playerId,
+            Kind = UpdateMessage.UpdateKind.CHAT,
+            UserId = socket.UserId,
+            Scoreboard = args
+        });
         await Task.Delay(100); // soft ratelimit
     }
 }
