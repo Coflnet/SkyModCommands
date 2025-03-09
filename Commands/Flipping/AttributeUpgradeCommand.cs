@@ -36,13 +36,13 @@ public class AttributeUpgradeCommand : McCommand
         List<SaveAuction> auctions;
         using (var db = new HypixelContext())
         {
-            auctions = await db.Auctions.Where(a => auctionIds.Contains(a.UId)).ToListAsync();
+            auctions = await db.Auctions.Where(a => auctionIds.Contains(a.UId)).Include(a => a.NbtData).ToListAsync();
         }
         var lookup = auctions.ToDictionary(a => a.UId.ToString());
-        var combined = result.ToDictionary(r => int.Parse(r.Key),r=>r.Value.Select(id => lookup.GetValueOrDefault(id)));
+        var combined = result.ToDictionary(r => int.Parse(r.Key), r => r.Value.Select(id => lookup.GetValueOrDefault(id)));
         var costBelow = new Dictionary<int, long>();
         Console.WriteLine(string.Join(',', combined.Select(r => r.Key)));
-        for (int i = startLevel; i < endLevel -1; i++)
+        for (int i = startLevel; i < endLevel - 1; i++)
         {
             var r = combined[i];
             var cost = r.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
@@ -53,8 +53,8 @@ public class AttributeUpgradeCommand : McCommand
             .ForEach(combined, (db, r) =>
             {
                 var tier = r.Key;
-                var totalBefore = costBelow.GetValueOrDefault(tier - 2);
-                var total = costBelow.GetValueOrDefault(tier - 1);
+                var totalBefore = costBelow.GetValueOrDefault(tier - 1);
+                var total = costBelow.GetValueOrDefault(tier);
                 Console.WriteLine($"tier {tier} {totalBefore} {total}");
                 var tierSum = r.Value.Where(a => a != null).Select(a => a.StartingBid).DefaultIfEmpty(0).Sum();
                 db
@@ -79,10 +79,15 @@ public class AttributeUpgradeCommand : McCommand
 
                     db.If(() => a != null, db => db
                     .MsgLine(
-                        $" {a.ItemName} §6{socket.FormatPrice(a.StartingBid)}", $"/viewauction {a.Uuid}",
+                        $"{McColorCodes.DARK_GRAY}{LevelFromAuction(a, attribName)} {McColorCodes.RESET}{a.ItemName} §6{socket.FormatPrice(a.StartingBid)}", $"/viewauction {a.Uuid}",
                         $"{McColorCodes.AQUA}try to open {a.ItemName} in ah\n{McColorCodes.GRAY}execute command again if expired")
                     , db => db.MsgLine("§clbin not found"))
                 );
             }));
+    }
+
+    private static string LevelFromAuction(SaveAuction a, string attribName)
+    {
+        return a.FlatenedNBT.Where(f => f.Key == attribName).Select(a => a.Value).FirstOrDefault();
     }
 }
