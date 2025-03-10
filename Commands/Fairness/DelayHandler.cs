@@ -76,6 +76,8 @@ public class DelayHandler : IDelayHandler
         await timeProvider.Delay(part1).ConfigureAwait(false);
         var time = timeProvider.Now;
         await timeProvider.Delay(part2).ConfigureAwait(false);
+        if (sessionInfo.SessionTier >= AccountTier.SUPER_PREMIUM)
+            return time; // no extra balancing for pre api user
         var apiBed = flipInstance.Auction.Start > timeProvider.Now - TimeSpan.FromSeconds(20) && !(flipInstance.Auction.Context?.ContainsKey("pre-api") ?? true);
         var isHighProfit = profit > 2_500_000 || flipInstance.Finder == Core.LowPricedAuction.FinderType.SNIPER && profit > 1_500_000;
         Activity.Current.Log("Applied fairness ");
