@@ -89,11 +89,12 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         var uuids = loads.Select(l => l.McUuid).Distinct().Where(l => Guid.TryParse(l, out _)).ToList();
         var timeSpan = TimeSpan.FromDays(2);
         var flips = await socket.GetService<FlipTrackingService>().GetPlayerFlips(uuids, timeSpan);
+        var differentSellers = flips.Flips.Select(f => f.Seller).Distinct().Count();
         var flipCount = flips.Flips.Length;
         var flipProfit = flips.Flips.Sum(f => f.Profit);
         var flipPaid = flips.Flips.Sum(f => f.PricePaid);
-        Console.WriteLine($"Flips: {flipCount} Profit: {flipProfit} Paid: {flipPaid} - count {uuids.Count()} - {timeSpan}");
-        var avgProfitPerDay = flipProfit / Math.Max(uuids.Count(), 1) / timeSpan.TotalDays;
+        Console.WriteLine($"Flips: {flipCount} Profit: {flipProfit} Paid: {flipPaid} - count {uuids.Count()} ({differentSellers}) - {timeSpan}");
+        var avgProfitPerDay = flipProfit / Math.Max(differentSellers, 1) / timeSpan.TotalDays;
         var flipsPerDay = flipCount / differentUsers / timeSpan.TotalDays;
         var mostCommonItem = flips.Flips.GroupBy(f => f.ItemTag).OrderByDescending(g => g.Count()).FirstOrDefault()?.First().ItemName ?? "none";
         var mostProfit = flips.Flips.OrderByDescending(f => f.Profit).FirstOrDefault();
