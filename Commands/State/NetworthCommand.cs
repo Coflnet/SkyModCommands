@@ -33,7 +33,8 @@ public class NetworthCommand : ArgumentsCommand
                 profile = mappedName.Key;
             }
         }
-        var profileInfo = await profileApi.GetProfile(accountUuid, profileId);
+        var after = DateTime.UtcNow.AddMinutes(-15);
+        var profileInfo = await profileApi.GetProfile(accountUuid, profileId, after);
         var virtualFull = new Api.Client.Model.Profile()
         {
             Members = new() { { accountUuid, profileInfo } },
