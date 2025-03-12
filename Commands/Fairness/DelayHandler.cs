@@ -207,18 +207,6 @@ public class DelayHandler : IDelayHandler
             summary.nonpurchaseRate = nonpurchaseRate;
         }
 
-        if (sessionInfo.SessionTier >= AccountTier.SUPER_PREMIUM)
-        {
-            currentDelay *= (1 - DelayReduction);
-            if (currentDelay > MaxSuperPremiumDelay)
-                currentDelay = MaxSuperPremiumDelay;
-            macroPenalty *= (1 - DelayReduction);
-            if (!breakdown.Buys.Values.Any(b => b > accountInfo.Value.ExpiresAt - TimeSpan.FromMinutes(4)))
-            {
-                currentDelay = TimeSpan.Zero;
-                macroPenalty = TimeSpan.Zero;
-            }
-        }
         summary.HasBadPlayer = (breakdown.BadIds?.Count ?? 0) != 0;
         if (summary.HasBadPlayer && Random.Shared.NextDouble() < 0.9)
         {
@@ -249,6 +237,19 @@ public class DelayHandler : IDelayHandler
         {
             Console.WriteLine("Delay too low, setting to 20ms for " + string.Join(", ", ids));
             currentDelay = TimeSpan.Zero;
+        }
+
+        if (sessionInfo.SessionTier >= AccountTier.SUPER_PREMIUM)
+        {
+            currentDelay *= (1 - DelayReduction);
+            if (currentDelay > MaxSuperPremiumDelay)
+                currentDelay = MaxSuperPremiumDelay;
+            macroPenalty *= (1 - DelayReduction);
+            if (summary.LastPurchase < DateTime.Now - TimeSpan.FromMinutes(5))
+            {
+                currentDelay = TimeSpan.Zero;
+                macroPenalty = TimeSpan.Zero;
+            }
         }
 
         if (currentDelay != lastDelay)
