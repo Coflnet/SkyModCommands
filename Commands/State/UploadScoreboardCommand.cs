@@ -47,7 +47,7 @@ public class UploadScoreboardCommand : McCommand
                 isStranded = true;
             if (item.Contains("the catacombs"))
                 isDungeon = true;
-            if(item.Contains("Dark Auction"))
+            if (item.Contains("Dark Auction"))
                 isDarkAuction = true;
             if (item.Contains("Motes:") || item.Contains("The Rift"))
             {
@@ -67,7 +67,7 @@ public class UploadScoreboardCommand : McCommand
         socket.SessionInfo.IsDungeon = isDungeon;
         socket.SessionInfo.IsRift = isRift;
         socket.SessionInfo.IsDarkAuction = isDarkAuction;
-        if(!isInSkyblock)
+        if (!isInSkyblock)
             socket.SessionInfo.Purse = -1;
         if (wasNotFlippable && !socket.SessionInfo.IsNotFlipable && !socket.HasFlippingDisabled())
         {
@@ -78,14 +78,15 @@ public class UploadScoreboardCommand : McCommand
             socket.Dialog(db => db.MsgLine("Flips disabled because you are in a gamemode with no auction house"));
         }
         var playerId = socket.SessionInfo?.McName;
-        socket.GetService<IStateUpdateService>().Produce(playerId, new()
-        {
-            ReceivedAt = DateTime.UtcNow,
-            PlayerId = playerId,
-            Kind = UpdateMessage.UpdateKind.CHAT,
-            UserId = socket.UserId,
-            Scoreboard = args
-        });
+        if (socket.CurrentRegion == "eu")
+            socket.GetService<IStateUpdateService>().Produce(playerId, new()
+            {
+                ReceivedAt = DateTime.UtcNow,
+                PlayerId = playerId,
+                Kind = UpdateMessage.UpdateKind.CHAT,
+                UserId = socket.UserId,
+                Scoreboard = args
+            });
         await Task.Delay(100); // soft ratelimit
     }
 }
