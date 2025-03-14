@@ -35,7 +35,7 @@ public class BuyConfigCommand : ArgumentsCommand
         if (args["confirmId"] != socket.SessionInfo.SessionId)
         {
             var summary = $"This config has {toBebought.Value.Settings.WhiteList.Count} whitelist entries and {toBebought.Value.Settings.BlackList.Count} blacklist entries.\n"
-                + $"It was last updated {toBebought.Value.Version} times and has the following change notes:\n{McColorCodes.GRAY}{toBebought.Value.ChangeNotes}";
+                + $"It was last updated {McColorCodes.GREEN}{socket.formatProvider.FormatTime(DateTime.Now - toBebought.Value.Diffs.Last().Value.CreatedAt)} ago{McColorCodes.RESET}. It had {McColorCodes.AQUA}{toBebought.Value.Version}{McColorCodes.RESET} updates and has the following change notes:\n{McColorCodes.GRAY}{toBebought.Value.ChangeNotes}";
             socket.Dialog(db => db.CoflCommand<BuyConfigCommand>($"Confirm buying §6{toBebought.Value.Name} §7v{toBebought.Value.Version} for §6{toBebought.Value.Price} CoflCoins {McColorCodes.YELLOW}[CLICK]",
                 $"{seller} {name} {socket.SessionInfo.SessionId}",
                 $"§aBuy {toBebought.Value.Name} for {toBebought.Value.Price} CoflCoins?"
