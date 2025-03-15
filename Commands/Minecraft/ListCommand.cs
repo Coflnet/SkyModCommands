@@ -217,6 +217,8 @@ namespace Coflnet.Sky.Commands.MC
             var displayPage = page;
             if (displayPage == 0)
                 displayPage = 1;
+            else 
+                page = displayPage - 1;
             if (totalPages < page)
             {
                 socket.SendMessage(new DialogBuilder()
