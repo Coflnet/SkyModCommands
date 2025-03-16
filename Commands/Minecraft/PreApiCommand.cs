@@ -32,6 +32,14 @@ public class PreApiCommand : McCommand
             await SendBackLastDaysProfit(socket);
             return;
         }
+        if (args[0] == "online")
+        {
+            var tier = await socket.UserAccountTier();
+            socket.Dialog(db => db.MsgLine($"There are currently {preapiService.PreApiUserCount} users using pre-api")
+                .If(() => preapiService.PreApiUserCount == 0 && tier < Shared.AccountTier.SUPER_PREMIUM,
+                    db => db.CoflCommand<PurchaseCommand>($"{McColorCodes.GREEN}[{McColorCodes.GRAY}Be the first to use it{McColorCodes.GREEN}]", "pre_api", "Get some flips before somebody else does")));
+            return;
+        }
         if (await socket.UserAccountTier() >= Shared.AccountTier.SUPER_PREMIUM)
         {
             var updated = await socket.sessionLifesycle.TierManager.GetCurrentTierWithExpire(true);
