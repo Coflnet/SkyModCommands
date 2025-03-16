@@ -39,7 +39,9 @@ namespace Coflnet.Sky.Commands.MC
             string hover = GetHoverText(socket, response);
             var perAccount = response.Flips.GroupBy(f => f.Seller).ToDictionary(g => g.Key, g => g.Sum(f => f.Profit));
             var names = namesTask == null ? null : await namesTask;
-            var accountHover = string.Join("\n", names.Select(a => $"- {a.Value}: {McColorCodes.AQUA}{FormatPrice(socket, perAccount.GetValueOrDefault(a.Key))}"));
+            var accountHover = "you have only one account";
+            if (names != null)
+                accountHover = string.Join("\n", names?.Select(a => $"- {a.Value}: {McColorCodes.AQUA}{FormatPrice(socket, perAccount.GetValueOrDefault(a.Key))}"));
             var paidSum = response.Flips.Sum(f => f.PricePaid);
             socket.Dialog(db => db.Msg($"According to our data {who} made {FormatPrice(socket, response.TotalProfit)} "
                 + $"in the last {McColorCodes.AQUA}{time.TotalDays}{McColorCodes.GRAY} days across {FormatPrice(socket, response.Flips.Length)} auctions", null, hover)
