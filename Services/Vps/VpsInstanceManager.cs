@@ -95,6 +95,7 @@ public class VpsInstanceManager
     {
         var update = await BuildFullUpdate(instance, options, configValue);
         redis.GetSubscriber().Publish(RedisChannel.Literal("vps:state"), JsonConvert.SerializeObject(update));
+        logger.LogInformation($"Published update for {instance.Id}");
     }
 
     public async Task<IEnumerable<VPsStateUpdate>> GetVps(string hostMachineIp)
