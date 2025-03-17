@@ -45,7 +45,7 @@ public class CaptchaGenerator
             .MsgLine($"{challenge.Question}", null, "anti macro question, please click on the answer")
             .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>("Horizontal captcha", "big", "Use horizontal captcha"))
             .CoflCommand<CaptchaCommand>(McColorCodes.ITALIC + " Another", "another", "Too difficult?\nGet another captcha")
-            .CoflCommand<CaptchaCommand>(McColorCodes.GREEN + " [Click if green line doesn't line up]", "config", "Configure the captcha\nso it lines up correctly")
+            .CoflCommand<CaptchaCommand>(McColorCodes.GREEN + " [Click if green lines do not line up]", "config", "Configure the captcha\nso it lines up correctly")
             .If(() => captchaType == "vertical", db => db.CoflCommand<CaptchaCommand>(McColorCodes.LIGHT_PURPLE + " I use optifine", "optifine",
                     McColorCodes.GREEN + "The green lines don't allign \nand you use optifine?\ntry this :) or one of the\noptions to the left"))
                 .CoflCommand<VoidCommand>(" ", " ");
