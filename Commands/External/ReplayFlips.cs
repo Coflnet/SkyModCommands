@@ -47,7 +47,7 @@ public class ReplayFlips : ArgumentsCommand
             GroupId = "sky-replay-flips",
         };
         using var consumer = new ConsumerBuilder<Ignore, LowPricedAuction>(conf).SetValueDeserializer(Coflnet.Kafka.SerializerFactory.GetDeserializer<LowPricedAuction>()).Build();
-        // seek to 10 hours ago
+
         var partition = new TopicPartition(kafkaTopic, 0);
         var timeStamp = new Timestamp(DateTime.UtcNow.AddHours(-hours), TimestampType.CreateTime);
         var offsets = consumer.OffsetsForTimes([new TopicPartitionTimestamp(partition, timeStamp)], TimeSpan.FromSeconds(10));
@@ -79,5 +79,6 @@ public class ReplayFlips : ArgumentsCommand
             }
         }
         socket.Dialog(db => db.MsgLine($"Replaying {McColorCodes.AQUA}{count}{McColorCodes.RESET} auctions finished, \n{McColorCodes.GRAY}wana replay active auctions against user finder? Try /cofl replayactive"));
+        await Task.Delay(10_000);
     }
 }
