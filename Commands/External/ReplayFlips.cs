@@ -17,8 +17,8 @@ public class ReplayFlips : ArgumentsCommand
 
     protected override async Task Execute(IMinecraftSocket socket, Arguments args)
     {
-        //if (!await socket.ReguirePremPlus())
-        //    return;
+        if (!await socket.ReguirePremPlus())
+            return;
         if (socket.Settings.BlockExport)
         {
             socket.Dialog(db => db.MsgLine("You seem to have a config loaded you don't own/made. This feature is only available for config creators"));
