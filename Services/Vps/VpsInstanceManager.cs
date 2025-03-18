@@ -146,7 +146,7 @@ public class VpsInstanceManager
         var deserialized = JsonConvert.DeserializeObject<TPM.Config>(combined);
         if (options != null)
         {
-            deserialized.igns = [ options.UserName];
+            deserialized.igns = [options.UserName];
             deserialized.session = options.SessionId;
         }
         return deserialized;
@@ -161,6 +161,24 @@ public class VpsInstanceManager
     {
         await settingsService.UpdateSetting(instance.OwnerId, "tpm_config", configValue);
         await PublishUpdate(instance, null, configValue);
+    }
+
+    internal async Task TurnOffVps(Instance instance)
+    {
+        instance.Context["turnedOff"] = "true";
+        await UpdateAndPublish(instance);
+    }
+
+    private async Task UpdateAndPublish(Instance instance)
+    {
+        await vpsTable.Insert(instance).ExecuteAsync();
+        await PublishUpdate(instance, null);
+    }
+
+    internal async Task TurnOnVps(Instance instance)
+    {
+        instance.Context.Remove("turnedOff");
+        await UpdateAndPublish(instance);
     }
 
     public class CreateOptions

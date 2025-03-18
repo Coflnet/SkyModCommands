@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.ModCommands.Services.Vps;
 
@@ -24,6 +25,12 @@ public class VpsCommand : McCommand
             case "create":
                 await Create(socket, service, args);
                 return;
+            case "turnOff":
+                await TurnOff(socket, service, args);
+                return;
+            case "turnOn":
+                await TurnOn(socket, service, args);
+                return;
             case "set":
                 await UpdateSettings(socket, service, args);
                 return;
@@ -37,6 +44,43 @@ public class VpsCommand : McCommand
         {
             socket.Dialog(db => db.MsgLine($"You don't have any instances so far, use {McColorCodes.AQUA}/cofl vps create tpm+{McColorCodes.RESET} to create one"));
         }
+    }
+
+    private async Task TurnOn(MinecraftSocket socket, VpsInstanceManager service, string[] args)
+    {
+        if (args.Length < 2)
+        {
+            socket.Dialog(db => db.MsgLine($"Usage: {McColorCodes.AQUA}/cofl vps turnOn [vpsId]"));
+            return;
+        }
+        Instance instance = await GetTargetVps(socket, service, args);
+        await service.TurnOnVps(instance);
+        socket.Dialog(db => db.MsgLine($"Turned on {instance.Id}"));
+    }
+
+    private async Task TurnOff(MinecraftSocket socket, VpsInstanceManager service, string[] args)
+    {
+        if (args.Length < 2)
+        {
+            socket.Dialog(db => db.MsgLine($"Usage: {McColorCodes.AQUA}/cofl vps turnOff [vpsId]"));
+            return;
+        }
+        Instance instance = await GetTargetVps(socket, service, args);
+        await service.TurnOffVps(instance);
+        socket.Dialog(db => db.MsgLine($"Turned off {instance.Id}"));
+    }
+
+    private static async Task<Instance> GetTargetVps(MinecraftSocket socket, VpsInstanceManager service, string[] args)
+    {
+        var vpsId = args[1];
+        var instances = await service.GetVpsForUser(socket.UserId);
+        var instance = instances.FirstOrDefault(i => i.Id.ToString().EndsWith(vpsId));
+        if (instance == null)
+        {
+            throw new CoflnetException("not_found", $"The instance with id {vpsId} was not found");
+        }
+
+        return instance;
     }
 
     private async Task UpdateSettings(MinecraftSocket socket, VpsInstanceManager service, string[] args)
