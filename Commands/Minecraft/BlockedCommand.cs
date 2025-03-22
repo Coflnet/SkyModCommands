@@ -180,7 +180,10 @@ namespace Coflnet.Sky.Commands.MC
                         new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + b.Flip.Auction.Uuid, "Expand flip options")
                 };
                 if (!string.IsNullOrEmpty(longReason))
-                    mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}hover for info{McColorCodes.GRAY}]", null, longReason));
+                    if (socket.ModAdapter is AfVersionAdapter)
+                        mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}{longReason}{McColorCodes.GRAY}]", null, longReason));
+                    else
+                        mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}hover for info{McColorCodes.GRAY}]", null, longReason));
 
                 return mainParts;
             }).Append(new ChatPart() { text = COFLNET + "These are examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray());
