@@ -74,7 +74,7 @@ public class HelpCommand : McCommand
         }
         var toDisplay = withDescription.Skip(page * pageSize).Take(pageSize);
         var pageToNavigateTo = page + 2;
-        if (pageToNavigateTo > withDescription.Count() / pageSize)
+        if (pageToNavigateTo > withDescription.Count() / pageSize +1)
             pageToNavigateTo = 1;
         socket.Dialog(d => d.CoflCommand<HelpCommand>($"AvailableCommands are (page {(page + 1)}/{withDescription.Count() / pageSize + 1}):\n", "c " + pageToNavigateTo, "click to get next page")
             .ForEach(toDisplay, (db, c) =>
