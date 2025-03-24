@@ -37,7 +37,7 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
         var hoverText = $"{McColorCodes.GRAY}Ingredients for {elem.ItemName}:\n" + ingedientList
         + $"\n{McColorCodes.GRAY}CraftCost: {McColorCodes.GOLD}{socket.FormatPrice(elem.CraftCost)}"
         + $"\n{McColorCodes.GRAY}Volume: {McColorCodes.GREEN}{socket.FormatPrice(elem.Volume)}  {McColorCodes.YELLOW}Click to open recipe menu"
-        + $"\n{McColorCodes.GRAY}Estimated Profit: {McColorCodes.AQUA}{socket.FormatPrice(elem.SellPrice - elem.CraftCost)}";
+        + $"\n{McColorCodes.GRAY}Estimated Profit: {McColorCodes.AQUA}{socket.FormatPrice(FlipInstance.ProfitAfterFees((long)elem.SellPrice, (long)elem.CraftCost))}{McColorCodes.GRAY}(incl fees)";
         var click = $"/recipe {elem.ItemId}";
         if (elem.ItemId == "???")
         {
