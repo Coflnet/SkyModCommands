@@ -249,7 +249,7 @@ public class AccountTierManager : IAccountTierManager
             return (expires.Item1, expires.Item2);
         }
         span.Log("none");
-        return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
+        return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(10));
     }
 
     private static bool IsNotPreApi((AccountTier, DateTime) expires)
