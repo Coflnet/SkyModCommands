@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
@@ -108,6 +109,7 @@ public class SessionFilterState : IDisposable
         if (string.IsNullOrWhiteSpace(childConfig.Settings.BasedConfig))
             return;
         BaseConfig = await LoadConfigCommand.GetContainer(lifesycle.socket, childConfig.Settings.BasedConfig);
+        Activity.Current.Log($"Baseconfig version {BaseConfig.Value.Version} > {lifesycle.AccountSettings.Value.BaseConfigVersion}");
         if (BaseConfig.Value.Version > lifesycle.AccountSettings.Value.BaseConfigVersion && BaseConfig.Value.Version > 0)
         {
             BaseConfigUpdate(childConfig, BaseConfig);
@@ -127,7 +129,7 @@ public class SessionFilterState : IDisposable
                 db => db.CoflCommand<LoadConfigCommand>($"[click to load]", $"{childConfig.OwnerId} {childConfig.Name}", "load new version\nWill override your current settings")));
         if (autoUpdate)
         {
-            lifesycle.socket.ExecuteCommand("/cofl loadconfig " + childConfig.OwnerId + " " + childConfig.Name);
+            MinecraftSocket.Commands["updatecurrentconfig"].Execute(lifesycle.socket, childConfig.OwnerId + " " + childConfig.Name);
         }
     }
 }
