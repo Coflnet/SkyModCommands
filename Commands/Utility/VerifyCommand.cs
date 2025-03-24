@@ -14,6 +14,14 @@ public class VerifyCommand : McCommand
             await socket.SendLoginPrompt();
             return;
         }
+        if (socket.sessionLifesycle?.UserId?.Value == null)
+        {
+            socket.Dialog(db => db.MsgLine("To refresh your login your are being reconnected"));
+            socket.ExecuteCommand("/cofl start");
+            await Task.Delay(500);
+            socket.Close();
+            return;
+        }
         var verifcationHandler = socket.sessionLifesycle.VerificationHandler;
         var isVerified = await verifcationHandler.CheckVerificationStatus(socket.AccountInfo);
         if (isVerified)
