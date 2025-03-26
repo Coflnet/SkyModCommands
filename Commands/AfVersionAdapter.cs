@@ -73,7 +73,7 @@ public class AfVersionAdapter : ModVersionAdapter
 
     private async Task FindMatchingWhitelist(FlipInstance flip, string name)
     {
-        await Task.Delay(300);
+        await Task.Delay(900);
         if (socket.Settings.WhiteList.Count > 30 && socket.sessionLifesycle.spamController.SentSinceReset > 3)
         {
             socket.Dialog(db => db.CoflCommand<WhichBLEntryCommand>($"{name} for {McColorCodes.AQUA}{flip.Auction.StartingBid} {McColorCodes.GREEN}matched your Whitelist{McColorCodes.WHITE}, click to see which",
