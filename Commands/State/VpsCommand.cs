@@ -31,6 +31,9 @@ public class VpsCommand : McCommand
             case "turnOn":
                 await TurnOn(socket, service, args);
                 return;
+            case "log":
+                await GetLog(socket, service, args);
+                return;
             case "set":
                 await UpdateSettings(socket, service, args);
                 return;
@@ -43,6 +46,23 @@ public class VpsCommand : McCommand
         if (instances.Count == 0)
         {
             socket.Dialog(db => db.MsgLine($"You don't have any instances so far, use {McColorCodes.AQUA}/cofl vps create tpm+{McColorCodes.RESET} to create one"));
+        }
+    }
+
+    private async Task GetLog(MinecraftSocket socket, VpsInstanceManager service, string[] args)
+    {
+        Instance instance = await GetTargetVps(socket, service, args);
+        var log = await service.GetVpsLog(instance);
+        socket.Dialog(db => db.ForEach(log.Reverse(), (db, line) => WriteLine(db, line)));
+
+        static ModCommands.Dialogs.DialogBuilder WriteLine(ModCommands.Dialogs.DialogBuilder db, string line)
+        {
+            var url = line.Split(' ').FirstOrDefault(l => l.StartsWith("http"));
+            if (url != null)
+            {
+                return db.MsgLine(line.Replace(url, $"{McColorCodes.AQUA}{url}{McColorCodes.RESET}"), url, "open url");
+            }
+            return db.MsgLine(line);
         }
     }
 
@@ -72,8 +92,10 @@ public class VpsCommand : McCommand
 
     private static async Task<Instance> GetTargetVps(MinecraftSocket socket, VpsInstanceManager service, string[] args)
     {
-        var vpsId = args[1];
         var instances = await service.GetVpsForUser(socket.UserId);
+        if (args.Length == 1)
+            return instances.FirstOrDefault();
+        var vpsId = args[1];
         var instance = instances.FirstOrDefault(i => i.Id.ToString().EndsWith(vpsId));
         if (instance == null)
         {

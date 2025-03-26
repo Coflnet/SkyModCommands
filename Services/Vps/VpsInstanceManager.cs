@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Cassandra;
@@ -8,8 +9,10 @@ using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using RestSharp;
 using StackExchange.Redis;
 
 namespace Coflnet.Sky.ModCommands.Services.Vps;
@@ -22,8 +25,9 @@ public class VpsInstanceManager
     private ConnectionMultiplexer redis;
     private Dictionary<string, DateTime> activeInstances = new();
     private ILogger<VpsInstanceManager> logger;
+    private IConfiguration configuration;
 
-    public VpsInstanceManager(ISession session, SettingsService settingsService, ConnectionMultiplexer redis, ILogger<VpsInstanceManager> logger)
+    public VpsInstanceManager(ISession session, SettingsService settingsService, ConnectionMultiplexer redis, ILogger<VpsInstanceManager> logger, IConfiguration configuration)
     {
         var mapping = new MappingConfiguration().Define(
             new Map<Instance>()
@@ -54,6 +58,7 @@ public class VpsInstanceManager
             activeInstances[message] = DateTime.UtcNow;
         });
         this.logger = logger;
+        this.configuration = configuration;
     }
 
     public void Connected(string ip)
@@ -180,6 +185,56 @@ public class VpsInstanceManager
         instance.Context.Remove("turnedOff");
         await UpdateAndPublish(instance);
     }
+
+    internal async Task<IEnumerable<string>> GetVpsLog(Instance instance)
+    {
+        // loki/api/v1/query_range?query={container="tpm-manager",%20instance_id="73b43b9b-353d-4ecd-ae2d-ce9dc31a6cd4"}&start=1741929959&end=1742292362&limit=20
+        var client = new RestClient(configuration["LOKI_BASE_URL"]);
+        var request = new RestRequest("loki/api/v1/query_range", Method.Get);
+        request.AddQueryParameter("query", $"{{container=\"tpm-manager\", instance_id=\"{instance.Id}\"}}");
+        request.AddQueryParameter("start", DateTimeOffset.UtcNow.AddHours(-24).ToUnixTimeSeconds().ToString());
+        request.AddQueryParameter("end", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
+        request.AddQueryParameter("limit", "20");
+        var response = await client.ExecuteAsync(request);
+        var root = JsonConvert.DeserializeObject<Root>(response.Content);
+        return root.data.result.SelectMany(r => r.values).Select(v => v[1]);
+    }
+
+    public class Root
+    {
+        [JsonPropertyName("status")]
+        public string status { get; set; }
+
+        [JsonPropertyName("data")]
+        public Data data { get; set; }
+    }
+
+    public class Data
+    {
+        [JsonPropertyName("result")]
+        public Result[] result { get; set; }
+    }
+
+    public class Result
+    {
+        [JsonPropertyName("stream")]
+        public Stream stream { get; set; }
+
+        [JsonPropertyName("values")]
+        public string[][] values { get; set; }
+    }
+
+    public class Stream
+    {
+        [JsonPropertyName("container")]
+        public string container { get; set; }
+
+        [JsonPropertyName("instance_id")]
+        public string instance_id { get; set; }
+        [JsonPropertyName("user_id")]
+        public string user_id { get; set; }
+    }
+
 
     public class CreateOptions
     {
