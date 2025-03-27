@@ -30,9 +30,14 @@ public class TakeConfigCommand : ArgumentsCommand
         }
         var targetUserId = await GetUserIdFromMcName(socket, ign);
         using var configs = await SelfUpdatingValue<OwnedConfigs>.Create(targetUserId, "owned_configs", () => new());
-        var toRemove = configs.Value.Configs.Where(c => c.OwnerId == from && c.Name == name && c.PricePaid == 0).ToList();
+        var toRemove = configs.Value.Configs.Where(c => c.OwnerId == from && c.Name == name).ToList();
         foreach (var item in toRemove)
         {
+            if(item.PricePaid != 0)
+            {
+                socket.Dialog(db => db.MsgLine($"Config was not gifted but bought by user, can't be take away."));
+                continue;
+            }
             configs.Value.Configs.Remove(item);
             socket.Dialog(db => db.MsgLine($"Removed {name} from {ign}."));
         }
