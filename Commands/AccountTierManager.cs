@@ -140,7 +140,7 @@ public class AccountTierManager : IAccountTierManager
             await SyncState(startValue);
         }
         var sessions = activeSessions.Value.Sessions;
-        sessions.RemoveAll(s => s?.ConnectionId == null || s.MinecraftUuid == null);
+        sessions.RemoveAll(s => s?.ConnectionId == null || string.IsNullOrEmpty(s.MinecraftUuid));
         if (!sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId))
         {
             sessions.Add(new ActiveSession()
