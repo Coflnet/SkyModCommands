@@ -77,15 +77,7 @@ public class VpsInstanceManager
         {
             throw new CoflnetException("no_active_instances", "There are no active hosts available, please try again later");
         }
-        var allActive = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow).ToList();
-        var grouped = allActive.GroupBy(v => v.HostMachineIp).ToDictionary(g => g.Key, g => g.Count());
-        var putOn = activeInstances.Where(a => a.Value > DateTime.UtcNow.AddMinutes(-50))
-                .OrderBy(v => grouped.GetValueOrDefault(v.Key)) // least other instances
-                .Select(a => a.Key).FirstOrDefault();
-        if (grouped.GetValueOrDefault(putOn) > 3)
-        {
-            throw new CoflnetException("too_many_instances", "It looks like we are out of servers to put you on. Thanks for your interest but we currently can't provide an instance to you, but please check back tomorrow.");
-        }
+        var putOn = await GetAvailableServer();
         if (instance.Id == Guid.Empty)
             instance.Id = Guid.NewGuid();
         instance.HostMachineIp = putOn;
@@ -198,6 +190,34 @@ public class VpsInstanceManager
         var response = await client.ExecuteAsync(request);
         var root = JsonConvert.DeserializeObject<Root>(response.Content);
         return root.data.result.SelectMany(r => r.values).Select(v => v[1]);
+    }
+
+    internal async Task ReassignVps(Instance instance)
+    {
+        string putOn = await GetAvailableServer();
+        var previousIp = instance.HostMachineIp;
+        if(previousIp == putOn)
+        {
+            throw new CoflnetException("no_change", "The instance is already on the best server");
+        }
+        instance.HostMachineIp = putOn;
+        await UpdateAndPublish(instance);
+        await vpsTable.Where(v => v.HostMachineIp == previousIp && v.Id == instance.Id).Delete().ExecuteAsync();
+    }
+
+    private async Task<string> GetAvailableServer()
+    {
+        var allActive = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow).ToList();
+        var grouped = allActive.GroupBy(v => v.HostMachineIp).ToDictionary(g => g.Key, g => g.Count());
+        var putOn = activeInstances.Where(a => a.Value > DateTime.UtcNow.AddMinutes(-50))
+                .OrderBy(v => grouped.GetValueOrDefault(v.Key)) // least other instances
+                .Select(a => a.Key).FirstOrDefault();
+        if (grouped.GetValueOrDefault(putOn) > 3)
+        {
+            throw new CoflnetException("too_many_instances", "It looks like we are out of servers to put you on. Thanks for your interest but we currently can't provide an instance to you, but please check back tomorrow");
+        }
+
+        return putOn;
     }
 
     public class Root

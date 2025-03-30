@@ -34,6 +34,9 @@ public class VpsCommand : McCommand
             case "log":
                 await GetLog(socket, service, args);
                 return;
+            case "reassign":
+                await Reassign(socket, service, args);
+                return;
             case "set":
                 await UpdateSettings(socket, service, args);
                 return;
@@ -47,6 +50,12 @@ public class VpsCommand : McCommand
         {
             socket.Dialog(db => db.MsgLine($"You don't have any instances so far, use {McColorCodes.AQUA}/cofl vps create tpm+{McColorCodes.RESET} to create one"));
         }
+    }
+
+    private async Task Reassign(MinecraftSocket socket, VpsInstanceManager service, string[] args)
+    {
+        var instance =  await GetTargetVps(socket, service, args);
+        await service.ReassignVps(instance);
     }
 
     private async Task GetLog(MinecraftSocket socket, VpsInstanceManager service, string[] args)
