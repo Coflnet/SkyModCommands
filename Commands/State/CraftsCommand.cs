@@ -82,7 +82,7 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
 
     private static async Task<List<Crafts.Models.ProfitableCraft>> NewMethod(ICraftsApi craftApi)
     {
-        var data = await craftApi.CraftsProfitGetWithHttpInfoAsync();
+        var data = await craftApi.GetProfitableWithHttpInfoAsync();
         return JsonConvert.DeserializeObject<List<Crafts.Models.ProfitableCraft>>(data.RawContent);
     }
 

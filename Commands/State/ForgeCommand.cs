@@ -41,7 +41,7 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
         var forgeApi = socket.GetService<IForgeApi>();
         var profileApi = socket.GetService<IProfileClient>();
         var forgeUnlockedTask = profileApi.GetForgeData(socket.SessionInfo.McUuid, "current");
-        var forgeFlips = await forgeApi.ForgeAllGetAsync();
+        var forgeFlips = await forgeApi.GetAllForgeAsync();
         var unlocked = await forgeUnlockedTask;
         var result = new List<ForgeFlip>();
         foreach (var item in forgeFlips)
