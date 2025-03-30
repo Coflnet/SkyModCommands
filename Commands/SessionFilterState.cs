@@ -62,7 +62,9 @@ public class SessionFilterState : IDisposable
         span.Log("loaded config " + loadedConfigMetadata?.Name);
         if (loadedConfigMetadata != null)
         {
+            var previous = LoadedConfig;
             LoadedConfig = await SelfUpdatingValue<ConfigContainer>.Create(loadedConfigMetadata.OwnerId, SellConfigCommand.GetKeyFromname(loadedConfigMetadata.Name), () => throw new Exception("config not found"));
+            previous?.Dispose();
             span.Log("got config " + LoadedConfig?.Value?.Name);
             if (LoadedConfig.Value != null)
             {
@@ -108,6 +110,7 @@ public class SessionFilterState : IDisposable
     {
         if (string.IsNullOrWhiteSpace(childConfig.Settings.BasedConfig))
             return;
+        BaseConfig?.Dispose();
         BaseConfig = await LoadConfigCommand.GetContainer(lifesycle.socket, childConfig.Settings.BasedConfig);
         if (BaseConfig?.Value == null)
             return;
