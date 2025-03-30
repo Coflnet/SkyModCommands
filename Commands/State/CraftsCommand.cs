@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC;
     "Based on unlocked collectionsAnd slayer level")]
 public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
 {
-    protected override string Title => $"Most profitable Craft Flips you can do (includes collection and slayer level)";
+    protected override string Title => $"Most profitable Craft Flips you can do (includes collection, skill and slayer level)";
 
     public override bool IsPublic => true;
 
