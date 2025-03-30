@@ -69,6 +69,7 @@ public class LoadConfigCommand : ArgumentsCommand
         if (string.IsNullOrWhiteSpace(configId) || !configId.Contains(':'))
         {
             await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
+            await socket.sessionLifesycle.FilterState.SubToConfigChanges();
             return;
         }
 
