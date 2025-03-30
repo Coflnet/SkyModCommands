@@ -52,7 +52,7 @@ public class VpsSocket : WebSocketBehavior
             {
                 logger.LogError(e, "Boostraping VPS list");
             }
-            while(this.ReadyState == WebSocketState.Open)
+            while (this.ReadyState == WebSocketState.Open)
             {
                 await Task.Delay(60_000);
                 vpsService.Connected(IP);
@@ -202,132 +202,143 @@ public class TPM
 
     }
     """;
-public class AutoRotate
-    {
-        [DataMember(Name="ign")]
-        public string ign;
-    }
+
 
     public class DoNotRelist
     {
-        [DataMember(Name="profitOver")]
+        [DataMember(Name = "profitOver")]
         public string profitOver;
 
-        [DataMember(Name="skinned")]
+        [DataMember(Name = "skinned")]
         public bool skinned;
 
-        [DataMember(Name="tags")]
+        [DataMember(Name = "tags")]
         public string[] tags;
 
-        [DataMember(Name="finders")]
+        [DataMember(Name = "finders")]
         public string[] finders;
 
-        [DataMember(Name="stacks")]
+        [DataMember(Name = "stacks")]
         public bool stacks;
 
-        [DataMember(Name="pingOnFailedListing")]
+        [DataMember(Name = "pingOnFailedListing")]
         public bool pingOnFailedListing;
 
-        [DataMember(Name="drillWithParts")]
+        [DataMember(Name = "drillWithParts")]
         public bool drillWithParts;
 
-        [DataMember(Name="expiredAuctions")]
+        [DataMember(Name = "expiredAuctions")]
         public bool expiredAuctions;
 
-        [DataMember(Name="relistMode")]
+        [DataMember(Name = "relistMode")]
         public string relistMode;
     }
 
     public class Config
     {
-        [DataMember(Name="igns")]
+        [DataMember(Name = "igns")]
         public string[] igns;
 
-        [DataMember(Name="discordID")]
+        [DataMember(Name = "discordID")]
         public string discordID;
 
-        [DataMember(Name="webhook")]
+        [DataMember(Name = "webhook")]
         public string webhook;
 
-        [DataMember(Name="webhookFormat")]
+        [DataMember(Name = "webhookFormat")]
         public string webhookFormat;
 
-        [DataMember(Name="sendAllFlips")]
+        [DataMember(Name = "sendAllFlips")]
         public string sendAllFlips;
 
-        [DataMember(Name="visitFriend")]
+        [DataMember(Name = "visitFriend")]
         public string visitFriend;
 
-        [DataMember(Name="useCookie")]
+        [DataMember(Name = "useCookie")]
         public bool useCookie;
 
-        [DataMember(Name="autoCookie")]
+        [DataMember(Name = "autoCookie")]
         public string autoCookie;
 
-        [DataMember(Name="angryCoopPrevention")]
+        [DataMember(Name = "angryCoopPrevention")]
         public bool angryCoopPrevention;
 
-        [DataMember(Name="relist")]
+        [DataMember(Name = "relist")]
         public bool relist;
 
-        [DataMember(Name="pingOnUpdate")]
+        [DataMember(Name = "pingOnUpdate")]
         public bool pingOnUpdate;
 
-        [DataMember(Name="delay")]
+        [DataMember(Name = "delay")]
         public int delay;
 
-        [DataMember(Name="waittime")]
+        [DataMember(Name = "waittime")]
         public int waittime;
 
-        [DataMember(Name="percentOfTarget")]
-        public string[] percentOfTarget;
+        [DataMember(Name = "percentOfTarget")]
+        public object[] percentOfTarget;
 
-        [DataMember(Name="listHours")]
-        public string[] listHours;
+        [DataMember(Name = "listHours")]
+        public object[] listHours;
 
-        [DataMember(Name="clickDelay")]
+        [DataMember(Name = "delayTime")]
+        public object[] delayTime;
+
+        [DataMember(Name = "clickDelay")]
         public int clickDelay;
 
-        [DataMember(Name="bedSpam")]
+        [DataMember(Name = "bedSpam")]
         public bool bedSpam;
 
-        [DataMember(Name="blockUselessMessages")]
+        [DataMember(Name = "blockUselessMessages")]
         public bool blockUselessMessages;
 
-        [DataMember(Name="roundTo")]
+        [DataMember(Name = "roundTo")]
         public int roundTo;
 
-        [DataMember(Name="skip")]
+        [DataMember(Name = "skip")]
         public Skip skip;
 
-        [DataMember(Name="doNotRelist")]
+        [DataMember(Name = "doNotRelist")]
         public DoNotRelist doNotRelist;
 
-        [DataMember(Name="autoRotate")]
-        public AutoRotate autoRotate;
+        [DataMember(Name = "sellInventory")]
+        public SellInventory sellInventory;
 
-        [DataMember(Name="session")]
+        [DataMember(Name = "autoRotate")]
+        public Dictionary<string,string> autoRotate;
+
+        [DataMember(Name = "session")]
         public string session;
+    }
+
+    public class SellInventory
+    {
+        [DataMember(Name = "slots")]
+        public string[] slots;
+
+        [DataMember(Name = "nameContains")]
+        public string[] nameContains;
     }
 
     public class Skip
     {
-        [DataMember(Name="always")]
+        [DataMember(Name = "always")]
         public bool always;
 
-        [DataMember(Name="minProfit")]
+        [DataMember(Name = "minProfit")]
         public string minProfit;
 
-        [DataMember(Name="profitPercentage")]
+        [DataMember(Name = "profitPercentage")]
         public string profitPercentage;
 
-        [DataMember(Name="minPrice")]
+        [DataMember(Name = "minPrice")]
         public string minPrice;
 
-        [DataMember(Name="userFinder")]
+        [DataMember(Name = "userFinder")]
         public bool userFinder;
 
-        [DataMember(Name="skins")]
+        [DataMember(Name = "skins")]
         public bool skins;
     }
 
