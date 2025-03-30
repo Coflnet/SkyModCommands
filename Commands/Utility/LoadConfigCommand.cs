@@ -183,7 +183,7 @@ public class LoadConfigCommand : ArgumentsCommand
         if (parts.Length != 2)
         {
             socket.Dialog(db => db.MsgLine("The config base config is invalid, ask the creator to correct it."));
-            return null;
+            return await SelfUpdatingValue<ConfigContainer>.CreateNoUpdate(() => null);
         }
         var userId = await GetUserIdFromMcName(socket, parts[0]);
         var baseKey = SellConfigCommand.GetKeyFromname(parts[1]);

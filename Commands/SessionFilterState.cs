@@ -109,7 +109,7 @@ public class SessionFilterState : IDisposable
         if (string.IsNullOrWhiteSpace(childConfig.Settings.BasedConfig))
             return;
         BaseConfig = await LoadConfigCommand.GetContainer(lifesycle.socket, childConfig.Settings.BasedConfig);
-        if (BaseConfig == null)
+        if (BaseConfig?.Value == null)
             return;
         Activity.Current.Log($"Baseconfig version {BaseConfig?.Value?.Version} > {lifesycle.AccountSettings?.Value?.BaseConfigVersion}");
         if (BaseConfig.Value.Version > lifesycle.AccountSettings.Value.BaseConfigVersion && BaseConfig.Value.Version > 0)
