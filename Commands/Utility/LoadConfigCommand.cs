@@ -66,14 +66,14 @@ public class LoadConfigCommand : ArgumentsCommand
         await UpdateConfig(socket, inOwnerShip);
 
         var configId = settings.Settings.BasedConfig;
-        if (string.IsNullOrWhiteSpace(configId))
+        if (string.IsNullOrWhiteSpace(configId) || !configId.Contains(':'))
         {
             await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
             return;
         }
 
         using var baseConfig = await GetContainer(socket, configId);
-        if (baseConfig.Value == null)
+        if (baseConfig?.Value == null)
         {
             socket.Dialog(db => db.MsgLine($"The configured base config doesn't exist, ask the creator to correct it."));
             return;
