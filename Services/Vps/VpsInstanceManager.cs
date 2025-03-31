@@ -212,6 +212,10 @@ public class VpsInstanceManager
         var putOn = activeInstances.Where(a => a.Value > DateTime.UtcNow.AddMinutes(-50))
                 .OrderBy(v => grouped.GetValueOrDefault(v.Key)) // least other instances
                 .Select(a => a.Key).FirstOrDefault();
+        if(putOn == null)
+        {
+            throw new CoflnetException("no_active_instances", "There are no active hosts available, please try again later");
+        }
         if (grouped.GetValueOrDefault(putOn) > 3)
         {
             throw new CoflnetException("too_many_instances", "It looks like we are out of servers to put you on. Thanks for your interest but we currently can't provide an instance to you, but please check back tomorrow");
