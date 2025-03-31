@@ -224,6 +224,11 @@ public class VpsInstanceManager
         return putOn;
     }
 
+    internal async Task UpdateInstance(Instance instance)
+    {
+        await UpdateAndPublish(instance);
+    }
+
     public class Root
     {
         [JsonPropertyName("status")]

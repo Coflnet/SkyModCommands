@@ -37,6 +37,9 @@ public class VpsCommand : McCommand
             case "reassign":
                 await Reassign(socket, service, args);
                 return;
+            case "extend":
+                await Extend(socket, service, args);
+                return;
             case "set":
                 await UpdateSettings(socket, service, args);
                 return;
@@ -44,12 +47,19 @@ public class VpsCommand : McCommand
         var instances = await service.GetVpsForUser(socket.UserId);
         foreach (var i in instances)
         {
-            socket.Dialog(db => db.MsgLine($"- {i.Id.ToString().TakeLast(3).Aggregate("", (s, c) => s + c)} {i.AppKind} {i.PaidUntil}"));
+            socket.Dialog(db => db.Msg($"- {i.Id.ToString().TakeLast(3).Aggregate("", (s, c) => s + c)} {i.AppKind} {i.PaidUntil}").CoflCommandButton<VpsCommand>("Extend", $"extend {i.Id}", "extend the server"));
         }
         if (instances.Count == 0)
         {
             socket.Dialog(db => db.MsgLine($"You don't have any instances so far, use {McColorCodes.AQUA}/cofl vps create tpm+{McColorCodes.RESET} to create one"));
         }
+    }
+
+    private async Task Extend(MinecraftSocket socket, VpsInstanceManager service, string[] args)
+    {
+        var instance = await GetTargetVps(socket, service, args);
+        instance.PaidUntil = DateTime.UtcNow.AddDays(1);
+        await service.UpdateInstance(instance);
     }
 
     private async Task Reassign(MinecraftSocket socket, VpsInstanceManager service, string[] args)
