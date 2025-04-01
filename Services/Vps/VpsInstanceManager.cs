@@ -198,6 +198,11 @@ public class VpsInstanceManager
         request.AddQueryParameter("end", end);
         request.AddQueryParameter("limit", limit);
         var response = await client.ExecuteAsync(request);
+        logger.LogInformation($"Querying loki with {client.BuildUri(request)}");
+        if(response.StatusCode != System.Net.HttpStatusCode.OK)
+        {
+            throw new CoflnetException("loki_error", $"The loki server returned an error {response.StatusCode} {response.Content}");
+        }
         var root = JsonConvert.DeserializeObject<Root>(response.Content);
         return root.data.result.SelectMany(r => r.values).Select(v => v[1]);
     }
