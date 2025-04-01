@@ -1001,6 +1001,8 @@ namespace Coflnet.Sky.Commands.MC
 
         public void ScheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
         {
+            if(IsClosed)
+                return;
             if (mod == null)
                 mod = Settings.ModSettings;
 
