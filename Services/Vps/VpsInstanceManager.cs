@@ -267,7 +267,7 @@ public class VpsInstanceManager
         var query = $"{{container=\"tpm-manager\"}}";
         var start = parsed.AddHours(-24).ToUnixTimeSeconds();
         var end = timeStamp;
-        var log = await QueryLoki(query, start, end, 200_000);
+        var log = await QueryLoki(query, start, end, 5_000);
         return string.Join("\n", log);
     }
 
