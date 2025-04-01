@@ -5,6 +5,9 @@ using Coflnet.Sky.Commands.MC;
 using System.Threading.Tasks;
 using System;
 using Coflnet.Sky.ModCommands.Services.Vps;
+using Coflnet.Sky.Commands.Shared;
+using System.Text;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.ModCommands.MC
 {
@@ -24,6 +27,11 @@ namespace Coflnet.Sky.ModCommands.MC
             server.OnGet += async (s, e) =>
             {
                 await Task.Delay(1).ConfigureAwait(false);
+                if (e.Request.Url.AbsolutePath.StartsWith("/instances/log"))
+                {
+                    await HandleLogRequest(e);
+                    return;
+                }
                 e.Response.StatusCode = 201;
             };
             server.Start();
@@ -32,6 +40,25 @@ namespace Coflnet.Sky.ModCommands.MC
             _ = Core.ItemDetails.Instance.LoadLookup();
 
             CreateHostBuilder(args).Build().Run();
+        }
+
+        private static async Task HandleLogRequest(HttpRequestEventArgs e)
+        {
+            e.Response.StatusCode = 200;
+            e.Response.ContentType = "text/plain";
+            e.Response.ContentEncoding = System.Text.Encoding.UTF8;
+            var manager = DiHandler.GetService<VpsInstanceManager>();
+            var timeStamp = e.Request.QueryString["timestamp"]?.ToString() ?? throw new CoflnetException("missing_query", "missing timestamp query");
+            var token = e.Request.QueryString["token"];
+            var logContent = await manager.GetLog(token, long.Parse(timeStamp));
+            var response = Encoding.UTF8.GetBytes(logContent);
+
+            // Add headers for file download
+            e.Response.Headers.Add("Content-Disposition", "attachment; filename=instance.log");
+
+            e.Response.ContentLength64 = response.Length;
+            Console.WriteLine($"Sending log file download of {response.Length} bytes");
+            e.Response.Close(response, true);
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>

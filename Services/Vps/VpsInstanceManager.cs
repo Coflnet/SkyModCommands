@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -180,13 +182,21 @@ public class VpsInstanceManager
 
     internal async Task<IEnumerable<string>> GetVpsLog(Instance instance)
     {
+        var query = $"{{container=\"tpm-manager\", instance_id=\"{instance.Id}\"}}";
+        var start = DateTimeOffset.UtcNow.AddHours(-24).ToUnixTimeSeconds();
+        var end = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         // loki/api/v1/query_range?query={container="tpm-manager",%20instance_id="73b43b9b-353d-4ecd-ae2d-ce9dc31a6cd4"}&start=1741929959&end=1742292362&limit=20
+        return await QueryLoki(query, start, end);
+    }
+
+    private async Task<IEnumerable<string>> QueryLoki(string query, long start, long end, int limit = 20)
+    {
         var client = new RestClient(configuration["LOKI_BASE_URL"]);
         var request = new RestRequest("loki/api/v1/query_range", Method.Get);
-        request.AddQueryParameter("query", $"{{container=\"tpm-manager\", instance_id=\"{instance.Id}\"}}");
-        request.AddQueryParameter("start", DateTimeOffset.UtcNow.AddHours(-24).ToUnixTimeSeconds().ToString());
-        request.AddQueryParameter("end", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
-        request.AddQueryParameter("limit", "20");
+        request.AddQueryParameter("query", query);
+        request.AddQueryParameter("start", start);
+        request.AddQueryParameter("end", end);
+        request.AddQueryParameter("limit", limit);
         var response = await client.ExecuteAsync(request);
         var root = JsonConvert.DeserializeObject<Root>(response.Content);
         return root.data.result.SelectMany(r => r.values).Select(v => v[1]);
@@ -196,7 +206,7 @@ public class VpsInstanceManager
     {
         string putOn = await GetAvailableServer();
         var previousIp = instance.HostMachineIp;
-        if(previousIp == putOn)
+        if (previousIp == putOn)
         {
             throw new CoflnetException("no_change", "The instance is already on the best server");
         }
@@ -212,7 +222,7 @@ public class VpsInstanceManager
         var putOn = activeInstances.Where(a => a.Value > DateTime.UtcNow.AddMinutes(-50))
                 .OrderBy(v => grouped.GetValueOrDefault(v.Key)) // least other instances
                 .Select(a => a.Key).FirstOrDefault();
-        if(putOn == null)
+        if (putOn == null)
         {
             throw new CoflnetException("no_active_instances", "There are no active hosts available, please try again later");
         }
@@ -227,6 +237,33 @@ public class VpsInstanceManager
     internal async Task UpdateInstance(Instance instance)
     {
         await UpdateAndPublish(instance);
+    }
+
+    internal async Task<string> GetLog(string token, long timeStamp)
+    {
+        var compareHash = configuration["VPS:LOG_TOKEN"];
+        var hashed = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        var hex = BitConverter.ToString(hashed).Replace("-", "").ToLower();
+        if (hex != compareHash)
+        {
+            Console.WriteLine($"Token {token} does not match {compareHash}");
+            throw new CoflnetException("invalid_token", "The token is invalid");
+        }
+
+        var parsed = DateTimeOffset.FromUnixTimeSeconds(timeStamp);
+        if(parsed > DateTimeOffset.UtcNow)
+        {
+            throw new CoflnetException("invalid_timestamp", "The timestamp is in the future, use unix seconds");
+        }
+        if (parsed < DateTimeOffset.UtcNow.AddDays(-4))
+        {
+            throw new CoflnetException("too_old", "The timestamp is older than 4 days, we only store logs for 4 days");
+        }
+        var query = $"{{container=\"tpm-manager\"}}";
+        var start = parsed.AddHours(-24).ToUnixTimeSeconds();
+        var end = timeStamp;
+        var log = await QueryLoki(query, start, end, 200_000);
+        return string.Join("\n", log);
     }
 
     public class Root
