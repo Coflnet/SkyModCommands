@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -78,7 +79,8 @@ public class UploadScoreboardCommand : McCommand
             socket.Dialog(db => db.MsgLine("Flips disabled because you are in a gamemode with no auction house"));
         }
         var playerId = socket.SessionInfo?.McName;
-        if (socket.CurrentRegion == "eu")
+        try
+        {
             socket.GetService<IStateUpdateService>().Produce(playerId, new()
             {
                 ReceivedAt = DateTime.UtcNow,
@@ -87,6 +89,11 @@ public class UploadScoreboardCommand : McCommand
                 UserId = socket.UserId,
                 Scoreboard = args
             });
+        }
+        catch (Exception e)
+        {
+            socket.GetService<ILogger<UploadScoreboardCommand>>().LogError(e, "chat produce failed");
+        }
         await Task.Delay(100); // soft ratelimit
     }
 }
