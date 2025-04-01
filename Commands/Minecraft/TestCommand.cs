@@ -17,6 +17,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            await SendRandomFlip(socket);
             socket.Send(Response.Create("registerKeybind", new KeybindRegister[] { new() { Name = "/cofl lb", DefaultKey = "F" }, new() { Name = "test2", DefaultKey = "Z" } }));
             socket.Send(Response.Create("proxy", new ProxyRequest[] { new() { uploadTo = "https://sky.coflnet.com/api/data/proxy?test", id = "guploadTest", url = "https://willhaben.at" } }));
             return;
@@ -39,7 +40,7 @@ namespace Coflnet.Sky.Commands.MC
             var r = new Random();
             var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
             {
-                name = "JUNGLE_KEY",
+                name = "GOD_POTION_2",
             });
 
             var targetAuction = activeAuction.OrderBy(x => x.Price + r.Next(10000)).FirstOrDefault();
