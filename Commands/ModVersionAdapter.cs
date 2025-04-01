@@ -152,13 +152,17 @@ namespace Coflnet.Sky.Commands.MC
             Auction = new SaveAuction()
             {
                 ItemName = "Hyperion",
-                Tier = Tier.DIVINE,
+                Tier = Tier.MYTHIC,
                 Bin = true,
                 StartingBid = 5000,
                 AuctioneerId = "384a029294fc445e863f2c42fe9709cb",
                 Enchantments = new List<Enchantment>()
                 {
                     new Enchantment(Enchantment.EnchantmentType.ultimate_chimera, 10)
+                },
+                Context = new Dictionary<string, string>()
+                {
+                    {"lore", "Haha lol, April fools :)"}
                 }
             },
             Bin = true,
