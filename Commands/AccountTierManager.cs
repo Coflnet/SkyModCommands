@@ -118,6 +118,7 @@ public class AccountTierManager : IAccountTierManager
         if (string.IsNullOrEmpty(userId))
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
         using var span = socket.CreateActivity("tierCalc", socket.ConSpan);
+        span?.SetTag("conId", socket.SessionInfo.ConnectionId);
         var userApi = socket.GetService<PremiumService>();
         var licenseSettingsTask = socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(userId, "licenses", () => new LicenseSetting());
         (AccountTier, DateTime) expires;
