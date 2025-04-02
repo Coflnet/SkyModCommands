@@ -134,6 +134,8 @@ namespace Coflnet.Sky.Commands.MC
                 return true;
             if (socket.LastSent.Where(l => l.Auction.Tag == f.Auction.Tag && f.Auction.Start - l.Auction.Start < TimeSpan.FromMinutes(3) && !flipInstance.IsWhitelisted()).Count() >= 3)
                 return BlockedFlip(f, "listing spam");
+            if(socket.ModAdapter is AfVersionAdapter)
+                return true; // doesn't care about being spammed, wants more flips
             if (!spamController.ShouldBeSent(flipInstance))
                 return BlockedFlip(f, "spam");
             return true;
