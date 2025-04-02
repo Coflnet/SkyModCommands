@@ -297,6 +297,7 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnOpen()
         {
             StartNewConnectionSpan();
+            this.SessionInfo.SessionId = ConSpan.Context.TraceId.ToString();
             SendMessage(COFLNET + "§7Established connection, loading settings...",
                         $"https://discord.gg/wvKXfTgCfb",
                         "Attempting to load your settings on " + System.Net.Dns.GetHostName() + " conId: " + ConSpan.Context.TraceId);
