@@ -189,7 +189,7 @@ public class AccountTierManager : IAccountTierManager
             var others = sameMcAccount.Where(s => s.ConnectionId != socket.SessionInfo.ConnectionId).ToList();
             if (amITheLast)
             { // only the latest session updates the state
-                foreach (var session in others.Where(o => o.LastActive < DateTime.UtcNow - TimeSpan.FromMinutes(5)))
+                foreach (var session in others.Where(o => o.LastActive < DateTime.UtcNow - TimeSpan.FromHours(2)))
                 {
                     sessions.Remove(session);
                 }
