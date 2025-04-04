@@ -92,7 +92,10 @@ public class DelayHandler : IDelayHandler
             Activity.Current.Log("Applied BAF " + sendableIn);
         }
         if (isPreApi && Random.Shared.NextDouble() < 0.98)
+        {
             await timeProvider.Delay(delay * 5).ConfigureAwait(false); // reserve preapi for non-macroers
+            Activity.Current.Log($"Applied preapi delay {delay} macro: {macroPenalty}");
+        }
 
         if (isHighProfit && (!apiBed || random.NextDouble() < 0.5))
             await timeProvider.Delay(macroPenalty).ConfigureAwait(false);
