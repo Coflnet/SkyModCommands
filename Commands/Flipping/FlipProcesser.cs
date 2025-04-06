@@ -88,7 +88,7 @@ namespace Coflnet.Sky.Commands.MC
                     socket.Error(e, "sending flip");
                 }
 
-            while (SentFlips.Count > 700)
+            if (SentFlips.Count > 700)
             {
                 foreach (var item in SentFlips.Where(i => i.Value < DateTime.UtcNow - TimeSpan.FromMinutes(2)).ToList())
                 {
@@ -107,6 +107,16 @@ namespace Coflnet.Sky.Commands.MC
             if (!delayExemptList.IsExempt(f) && profit < 8_000_000 && (f.DailyVolume < 20 || profit < 1_500_000))
                 return true;
             return BlockedFlip(f, "high competition");
+        }
+
+        public bool IsSent(string uuid)
+        {
+            return SentFlips.ContainsKey(AuctionService.Instance.GetId(uuid));
+        }
+
+        public void AddSentFlip(string uuid)
+        {
+            SentFlips.TryAdd(AuctionService.Instance.GetId(uuid), DateTime.UtcNow);
         }
 
         private async Task LoadAdditionalInfo(List<(LowPricedAuction f, FlipInstance instance)> prefiltered)
@@ -134,7 +144,7 @@ namespace Coflnet.Sky.Commands.MC
                 return true;
             if (socket.LastSent.Where(l => l.Auction.Tag == f.Auction.Tag && f.Auction.Start - l.Auction.Start < TimeSpan.FromMinutes(3) && !flipInstance.IsWhitelisted()).Count() >= 3)
                 return BlockedFlip(f, "listing spam");
-            if(socket.ModAdapter is AfVersionAdapter)
+            if (socket.ModAdapter is AfVersionAdapter)
                 return true; // doesn't care about being spammed, wants more flips
             if (!spamController.ShouldBeSent(flipInstance))
                 return BlockedFlip(f, "spam");
@@ -144,9 +154,7 @@ namespace Coflnet.Sky.Commands.MC
         private bool IsNoDupplicate(LowPricedAuction flip)
         {
             // this check is down here to avoid filling up the list
-            if (SentFlips.TryAdd(flip.UId, DateTime.UtcNow))
-                return true; // make sure flips are not sent twice
-            return false;
+            return !SentFlips.ContainsKey(flip.UId);  // make sure flips are not sent twice
         }
 
         private bool FlipMatchesSetting(LowPricedAuction flip, FlipInstance flipInstance)
@@ -287,8 +295,14 @@ namespace Coflnet.Sky.Commands.MC
                 if (blockSold && (Settings?.Visibility?.HideSoldAuction ?? false))
                     return;
             }
+            if (SentFlips.ContainsKey(flip.Auction.UId))
+            {
+                BlockedFlip(flip, "already sent");
+                return;
+            }
             Activity.Current?.Log("Initiating send");
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
+            SentFlips.TryAdd(flip.Auction.UId, DateTime.UtcNow);
             Activity.Current?.Log("Sent flip");
             if (flip.AdditionalProps.ContainsKey("isRR") && socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.SUPER_PREMIUM))
                 await socket.TriggerTutorial<RoundRobinTutorial>().ConfigureAwait(false);
