@@ -195,7 +195,7 @@ public class AccountTierManager : IAccountTierManager
                 }
                 if (others.Where(s => !s.Outdated).Any())
                 {
-                    foreach (var session in others.Where(o => o.LastActive >= DateTime.UtcNow - TimeSpan.FromHours(1)))
+                    foreach (var session in others)
                     {
                         session.Outdated = true;
                     }
