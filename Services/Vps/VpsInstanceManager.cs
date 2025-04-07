@@ -66,6 +66,8 @@ public class VpsInstanceManager
     public void Connected(string ip)
     {
         redis.GetSubscriber().Publish(RedisChannel.Literal("vps:connected"), ip);
+        var received = redis.GetSubscriber().Publish(RedisChannel.Literal("vps:state"), JsonConvert.SerializeObject(new VPsStateUpdate()));
+        logger.LogInformation($"{received} connections received state");
     }
 
     public async Task AddVps(Instance instance, CreateOptions options)
