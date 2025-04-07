@@ -295,14 +295,13 @@ namespace Coflnet.Sky.Commands.MC
                 if (blockSold && (Settings?.Visibility?.HideSoldAuction ?? false))
                     return;
             }
-            if (SentFlips.ContainsKey(flip.Auction.UId))
+            if (!SentFlips.TryAdd(flip.Auction.UId, DateTime.UtcNow))
             {
                 BlockedFlip(flip, "already sent");
                 return;
             }
             Activity.Current?.Log("Initiating send");
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
-            SentFlips.TryAdd(flip.Auction.UId, DateTime.UtcNow);
             Activity.Current?.Log("Sent flip");
             if (flip.AdditionalProps.ContainsKey("isRR") && socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.SUPER_PREMIUM))
                 await socket.TriggerTutorial<RoundRobinTutorial>().ConfigureAwait(false);
