@@ -70,6 +70,9 @@ public class UploadScoreboardCommand : McCommand
         socket.SessionInfo.IsDarkAuction = isDarkAuction;
         if (!isInSkyblock)
             socket.SessionInfo.Purse = -1;
+
+        if (socket.CurrentRegion != "eu")
+            return; // only send messages in eu
         if (wasNotFlippable && !socket.SessionInfo.IsNotFlipable && !socket.HasFlippingDisabled())
         {
             socket.Dialog(db => db.MsgLine("Flips reenabled because you left non-flippable gamemode"));
