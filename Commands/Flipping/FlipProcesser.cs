@@ -40,54 +40,54 @@ namespace Coflnet.Sky.Commands.MC
             delayExemptList = socket.GetService<IDelayExemptList>();
         }
 
-        public async Task NewFlips(IEnumerable<LowPricedAuction> flips)
+        public async Task ProcessFlip(LowPricedAuction flip)
         {
             if (Settings == null || socket.HasFlippingDisabled())
                 return;
+
             var start = DateTime.UtcNow;
+
+            // Early exit conditions
+            if (SentFlips.ContainsKey(flip.UId) || !FinderEnabled(flip) || !NotSold(flip) || !CheckHighCompetition(flip))
+                return;
+
             var maxCostFromPurse = socket.SessionInfo.Purse * (Settings.ModSettings.MaxPercentOfPurse == 0 ? 100 : Settings.ModSettings.MaxPercentOfPurse) / 100;
-            var prefiltered = flips.Where(f => !SentFlips.ContainsKey(f.UId)
-                && FinderEnabled(f)
-                && NotSold(f)
-                && CheckHighCompetition(f)
-                && (f.Auction.StartingBid < maxCostFromPurse || socket.SessionInfo.Purse == 0 || f.Finder == LowPricedAuction.FinderType.USER))
-                .Select(f => (f, instance: FlipperService.LowPriceToFlip(f)))
-                .ToList();
+            if (flip.Auction.StartingBid >= maxCostFromPurse && socket.SessionInfo.Purse > 0 && flip.Finder != LowPricedAuction.FinderType.USER)
+                return;
+
+            var instance = FlipperService.LowPriceToFlip(flip);
 
             if (Settings != null && !Settings.FastMode && (Settings.BasedOnLBin || (Settings.Visibility?.LowestBin ?? false) || (Settings.Visibility?.Seller ?? false)))
             {
-                await LoadAdditionalInfo(prefiltered).ConfigureAwait(false);
+                await LoadAdditionalInfo(new[] { (flip, instance) }).ConfigureAwait(false);
             }
 
-            var matches = prefiltered.Where(f =>
-                    FlipMatchesSetting(f.f, f.instance)
-                    && IsNoDupplicate(f.f)).ToList();
-            if (matches.Count == 0)
+            if (!IsNoDupplicate(flip) || !FlipMatchesSetting(flip, instance) || !NotBlockedForSpam(instance, flip))
                 return;
 
-            var toSend = matches.Where(f => NotBlockedForSpam(f.instance, f.f)).ToList();
-            foreach (var item in toSend)
-            {
-                var timeToSend = DateTime.UtcNow - item.f.Auction.FindTime;
-                item.f.AdditionalProps["dl"] = (timeToSend).ToString();
-                item.f.AdditionalProps["ft"] = (DateTime.UtcNow - start).ToString();
-            }
+            // Add timing info
+            var timeToSend = DateTime.UtcNow - flip.Auction.FindTime;
+            flip.AdditionalProps["dl"] = timeToSend.ToString();
+            flip.AdditionalProps["ft"] = (DateTime.UtcNow - start).ToString();
+
             using (var span = socket.CreateActivity("Flip", socket.ConSpan)
-                ?.AddTag("uuid", matches.First().f.Auction.Uuid)
-                .AddTag("batchSize", matches.Count))
+            ?.AddTag("uuid", flip.Auction.Uuid)
+            .AddTag("batchSize", 1))
+            {
                 try
                 {
                     span.Log($"Before send {DateTime.UtcNow.TimeOfDay:hh\\:mm\\:ss\\.fff}");
-                    await SendAfterDelay(toSend.ToList()).ConfigureAwait(false);
+                    await SendAfterDelay(new[] { (flip, instance) }).ConfigureAwait(false);
                     span.Log($"After send {DateTime.UtcNow.TimeOfDay:hh\\:mm\\:ss\\.fff}");
-                    var sendList = toSend.ToList();
-                    span.Log(JsonConvert.SerializeObject(sendList?.Select(a => a.f == null ? null : new Dictionary<string, string>(a.f?.AdditionalProps))));
+                    span.Log(JsonConvert.SerializeObject(new[] { new Dictionary<string, string>(flip.AdditionalProps) }));
                 }
                 catch (Exception e)
                 {
                     socket.Error(e, "sending flip");
                 }
+            }
 
+            // Clean up old sent flips
             if (SentFlips.Count > 700)
             {
                 foreach (var item in SentFlips.Where(i => i.Value < DateTime.UtcNow - TimeSpan.FromMinutes(2)).ToList())
@@ -95,6 +95,8 @@ namespace Coflnet.Sky.Commands.MC
                     SentFlips.TryRemove(item.Key, out DateTime value);
                 }
             }
+
+            // Prune the LastSent queue
             while (socket.LastSent.Count > 30)
                 socket.LastSent.TryDequeue(out _);
         }
@@ -119,7 +121,7 @@ namespace Coflnet.Sky.Commands.MC
             SentFlips.TryAdd(AuctionService.Instance.GetId(uuid), DateTime.UtcNow);
         }
 
-        private async Task LoadAdditionalInfo(List<(LowPricedAuction f, FlipInstance instance)> prefiltered)
+        private async Task LoadAdditionalInfo(IEnumerable<(LowPricedAuction f, FlipInstance instance)> prefiltered)
         {
             foreach (var flipSum in prefiltered)
             {

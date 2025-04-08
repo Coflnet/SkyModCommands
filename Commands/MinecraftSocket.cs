@@ -868,7 +868,7 @@ namespace Coflnet.Sky.Commands.MC
                     return false;
                 }
                 var start = DateTime.UtcNow;
-                await sessionLifesycle.SendFlipBatch(new LowPricedAuction[] { flip });
+                await sessionLifesycle.SendFlipBatch(flip);
                 var took = DateTime.UtcNow - start;
             }
             catch (Exception e)
@@ -1071,9 +1071,12 @@ namespace Coflnet.Sky.Commands.MC
             return await sessionLifesycle.TierManager.GetCurrentCached();
         }
 
-        public Task SendBatch(IEnumerable<LowPricedAuction> flips)
+        public async Task SendBatch(IEnumerable<LowPricedAuction> flips)
         {
-            return sessionLifesycle.SendFlipBatch(flips);
+            foreach (var item in flips)
+            {
+                await sessionLifesycle.SendFlipBatch(item);
+            }
         }
 
         public override bool Equals(object? obj)
