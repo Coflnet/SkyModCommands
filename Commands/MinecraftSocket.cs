@@ -867,9 +867,7 @@ namespace Coflnet.Sky.Commands.MC
                     Log("con check was false " + ReadyState);
                     return false;
                 }
-                var start = DateTime.UtcNow;
                 await sessionLifesycle.SendFlipBatch(flip);
-                var took = DateTime.UtcNow - start;
             }
             catch (Exception e)
             {
