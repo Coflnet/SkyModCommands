@@ -227,7 +227,7 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             socket.Dialog(db => db
-                .MsgLine($"Content (page {displayPage}):", $"/cofl {Slug} ls {page + 1}", $"This is page {displayPage} \nthere are {totalPages} pages\nclick this to show the next page")
+                .MsgLine($"Content (page {displayPage}):", $"/cofl {Slug} ls {displayPage + 1}", $"This is page {displayPage} \nthere are {totalPages} pages\nclick this to show the next page")
                 .ForEach(list.Skip(page * pageSize).Take(pageSize), (d, e) =>
                 {
                     ListResponse(d, e);
