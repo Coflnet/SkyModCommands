@@ -88,12 +88,12 @@ public class DelayHandler : IDelayHandler
             if (sendableIn > TimeSpan.Zero && !apiBed)
                 await timeProvider.Delay(sendableIn).ConfigureAwait(false);
             if (isPreApi && Random.Shared.NextDouble() < 0.98)
-                await timeProvider.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false); // reserve preapi for nonbots
+                await timeProvider.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false); // reserve preapi for nonbots
             Activity.Current.Log("Applied BAF " + sendableIn);
         }
         if (isPreApi && Random.Shared.NextDouble() < 0.98)
         {
-            await timeProvider.Delay(delay * 5).ConfigureAwait(false); // reserve preapi for non-macroers
+            await timeProvider.Delay(TimeSpan.FromSeconds(Math.Min(2, delay.TotalSeconds * 5))).ConfigureAwait(false); // reserve preapi for non-macroers
             Activity.Current.Log($"Applied preapi delay {delay} macro: {macroPenalty}");
         }
 
