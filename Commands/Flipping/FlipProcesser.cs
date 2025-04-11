@@ -234,20 +234,23 @@ namespace Coflnet.Sky.Commands.MC
             await SendDelayed(noBed, toSendDelayed).ConfigureAwait(false);
             if (bedsToWaitFor.Count() == 0)
                 return;
-            Activity.Current.Log("Waiting for beds");
-            // beds
-            foreach (var item in bedsToWaitFor.OrderBy(b => b.Item2))
+            _ = socket.TryAsyncTimes(async () =>
             {
-                item.lp.AdditionalProps["bed"] = item.Item2.ToString();
-                if (socket.sessionLifesycle.CurrentDelay > DelayHandler.MaxSuperPremiumDelay && Random.Shared.NextDouble() < 0.8)
+                Activity.Current.Log("Waiting for beds");
+                // beds
+                foreach (var item in bedsToWaitFor.OrderBy(b => b.Item2))
                 {
-                    await Task.Delay(item.Item2).ConfigureAwait(false);
-                    Activity.Current.Log("Bed await");
-                    await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow).ConfigureAwait(false);
-                    continue;
+                    item.lp.AdditionalProps["bed"] = item.Item2.ToString();
+                    if (socket.sessionLifesycle.CurrentDelay > DelayHandler.MaxSuperPremiumDelay && Random.Shared.NextDouble() < 0.8)
+                    {
+                        await Task.Delay(item.Item2).ConfigureAwait(false);
+                        Activity.Current.Log("Bed await");
+                        await SendAndTrackFlip(item.instance, item.lp, DateTime.UtcNow).ConfigureAwait(false);
+                        continue;
+                    }
+                    await WaitForBedToSend(item).ConfigureAwait(false);
                 }
-                await WaitForBedToSend(item).ConfigureAwait(false);
-            }
+            }, "bed wait", 1);
         }
 
         private async Task SendDelayed(IEnumerable<(FlipInstance instance, LowPricedAuction lp)> noBed, IEnumerable<(FlipInstance instance, LowPricedAuction lp)> toSendDelayed)
