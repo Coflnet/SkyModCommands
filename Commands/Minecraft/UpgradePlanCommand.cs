@@ -26,12 +26,18 @@ public class UpgradePlanCommand : PurchaseCommand
         {
             timeAllowed = TimeSpan.FromDays(3);
         }
-        var lastPurchase = recentTransactions.FirstOrDefault(t => t.ProductId == "premium" && t.TimeStamp > DateTime.UtcNow - timeAllowed && IsNotLicense(t));
+        var lastPurchase = recentTransactions.FirstOrDefault(t => t.ProductId == "premium" && IsNotLicense(t));
         if (lastPurchase == null)
+        {
+            socket.Dialog(db => db.MsgLine($"You don't seem to have a premium tier that can be upgraded, if you still want it upgraded please write in our discord support channel. Upgrading may require having CoflCoins"));
+            return;
+        }
+        if (lastPurchase.TimeStamp < DateTime.UtcNow - timeAllowed)
         {
             socket.Dialog(db => db.MsgLine($"Your premium purchase was too long ago to upgrade it. \nPlease buy prem+ directly instead, your premium will be extended by the time of prem+ you buy."));
             return;
         }
+
         var args = Convert<string>(arguments).Split(' ');
         if (args[0] != socket.SessionInfo.SessionId)
         {
@@ -41,7 +47,7 @@ public class UpgradePlanCommand : PurchaseCommand
             return;
         }
         var userInfo = await userApi.UserUserIdGetAsync(socket.UserId);
-        if(userInfo.Balance < 900)
+        if (userInfo.Balance < 900)
         {
             socket.Dialog(db => db.MsgLine($"You need at least 900 coins to upgrade your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to one week of {McColorCodes.GOLD}premium+")
                 .MsgLine($"You can buy more CoflCoins with {McColorCodes.AQUA}/cofl topup"));
