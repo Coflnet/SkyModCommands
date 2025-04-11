@@ -26,10 +26,22 @@ namespace Coflnet.Sky.ModCommands.MC
             server.Log.Output = (data, s) => Console.WriteLine(data);
             server.OnGet += async (s, e) =>
             {
-                await Task.Delay(1).ConfigureAwait(false);
-                if (e.Request.Url.AbsolutePath.StartsWith("/instances/log"))
+                try
                 {
-                    await HandleLogRequest(e);
+                    if (e.Request.Url.AbsolutePath.StartsWith("/instances/log"))
+                    {
+                        await HandleLogRequest(e);
+                        return;
+                    }
+                }
+                catch (CoflnetException ex)
+                {
+                    e.Response.StatusCode = 400;
+                    e.Response.ContentType = "text/plain";
+                    e.Response.ContentEncoding = Encoding.UTF8;
+                    var response = Encoding.UTF8.GetBytes(ex.Message);
+                    e.Response.ContentLength64 = response.Length;
+                    e.Response.Close(response, true);
                     return;
                 }
                 e.Response.StatusCode = 201;
