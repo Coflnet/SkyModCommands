@@ -84,6 +84,8 @@ public class UploadScoreboardCommand : McCommand
         var playerId = socket.SessionInfo?.McName;
         try
         {
+            if(socket.sessionLifesycle?.UserId?.Value == null)
+                return;
             socket.GetService<IStateUpdateService>().Produce(playerId, new()
             {
                 ReceivedAt = DateTime.UtcNow,
