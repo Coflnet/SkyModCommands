@@ -75,13 +75,19 @@ public class VpsCommand : McCommand
         if (args.Last() == "follow" || args.Last() == "f")
         {
             var myStreamid = Guid.NewGuid().ToString();
+            socket.Dialog(db => db.MsgLine($"As long as this connection is open it will print VPS logs for {instance.Id} ").CoflCommandButton<VpsCommand>("Stop following", $"log {instance.Id}", "stop following"));
             socket.SessionInfo.ActiveStream = myStreamid;
             var start = DateTimeOffset.UtcNow.AddHours(-24);
             var end = DateTimeOffset.UtcNow;
             while (!socket.IsClosed && myStreamid == socket.SessionInfo.ActiveStream)
             {
-                var followLog = await service.GetVpsLog(instance, start, end);
-                socket.Dialog(db => db.ForEach(followLog.Reverse(), (db, line) =>
+                var followLog = (await service.GetVpsLog(instance, start, end)).ToList();
+                if (followLog.Count == 0)
+                {
+                    await Task.Delay(5000);
+                    continue;
+                }
+                socket.Dialog(db => db.ForEach(followLog.AsEnumerable().Reverse(), (db, line) =>
                 {
                     db.Msg($"{McColorCodes.GOLD}V{McColorCodes.DARK_BLUE}PS{McColorCodes.RESET} ");
                     WriteLine(db, line);
@@ -91,7 +97,12 @@ public class VpsCommand : McCommand
                 end = DateTimeOffset.UtcNow;
             }
         }
-        socket.SessionInfo.ActiveStream = null;
+        if (socket.SessionInfo.ActiveStream != null)
+        {
+            socket.SessionInfo.ActiveStream = null;
+            socket.Dialog(db => db.MsgLine($"Stopped following {instance.Id}"));
+            return;
+        }
         var log = await service.GetVpsLog(instance, DateTimeOffset.UtcNow.AddHours(-24), DateTimeOffset.UtcNow);
         socket.Dialog(db => db.ForEach(log.Reverse(), (db, line) => WriteLine(db, line)));
 
