@@ -118,6 +118,7 @@ public class LoadConfigCommand : ArgumentsCommand
                 string[] ignore = [
                     StringName<MinProfitDetailedFlipFilter>(),
                     StringName<ProfitPercentageDetailedFlipFilter>(),
+                    StringName<EstProfitPerHourDetailedFlipFilter>(),
                     StringName<ProfitDetailedFlipFilter>(),
                     StringName<MinProfitPercentageDetailedFlipFilter>()];
                 var relevantFilters = e.filter?.Where(f => ignore.All(v => !f.Key.Equals(v, System.StringComparison.OrdinalIgnoreCase)));
