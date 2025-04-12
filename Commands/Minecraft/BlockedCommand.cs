@@ -151,6 +151,7 @@ namespace Coflnet.Sky.Commands.MC
                 var formatedName = socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier) + socket.formatProvider.GetItemName(b.Flip.Auction);
                 var longReason = "";
                 var matchingReason = ReasonLookup.Keys.FirstOrDefault(r => b.Reason.StartsWith(r));
+                string clickAction = null;
                 if (matchingReason != default)
                 {
                     longReason = string.Join("\n", ReasonLookup[matchingReason]);
@@ -158,7 +159,8 @@ namespace Coflnet.Sky.Commands.MC
                 else if (b.Reason.StartsWith("finder"))
                 {
                     longReason = "You don't have the algorithm that found this flip enabled.\nYou can enable it via the website.\nBut be cautious, some finders are experimental"
-                        + "\nand might overvalue estimations.\nCheck the description for each of them.";
+                        + $"\nand might overvalue estimations.\nCheck the description for each of them.\n{McColorCodes.GRAY}Click this to open algorithm explanation video";
+                    clickAction = "https://www.youtube.com/watch?v=nfMo5CeJDgc&list=PLDpPmxIcq9tAssQlyJMBlSmSg5JOpq699&index=9&pp=iAQB";
                 }
                 var text = $"{McColorCodes.DARK_GRAY}> {formatedName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)})";
                 if (string.IsNullOrEmpty(longReason))
@@ -168,22 +170,22 @@ namespace Coflnet.Sky.Commands.MC
                     text = socket.formatProvider.FormatFlip(FlipperService.LowPriceToFlip(b.Flip), b.Reason);
                 var mainParts = new List<ChatPart>
                 {
-                        new ChatPart(
-                        text,
-                        "https://sky.coflnet.com/auction/" + b.Flip.Auction.Uuid,
-                        b.Flip.Auction?.Context?.GetValueOrDefault("lore")
-                        + "\nCick to open on website"),
-                        new ChatPart(
-                        $" §l[ah]§r",
-                        "/viewauction " + b.Flip.Auction.Uuid,
-                        "Open in game"),
-                        new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + b.Flip.Auction.Uuid, "Expand flip options")
+                    new ChatPart(
+                    text,
+                    "https://sky.coflnet.com/auction/" + b.Flip.Auction.Uuid,
+                    b.Flip.Auction?.Context?.GetValueOrDefault("lore")
+                    + "\nCick to open on website"),
+                    new ChatPart(
+                    $" §l[ah]§r",
+                    "/viewauction " + b.Flip.Auction.Uuid,
+                    "Open in game"),
+                    new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + b.Flip.Auction.Uuid, "Expand flip options")
                 };
                 if (!string.IsNullOrEmpty(longReason))
                     if (socket.ModAdapter is AfVersionAdapter)
-                        mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}{longReason}{McColorCodes.GRAY}]", null, longReason));
+                        mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}{longReason}{McColorCodes.GRAY}]", clickAction, longReason));
                     else
-                        mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}hover for info{McColorCodes.GRAY}]", null, longReason));
+                        mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}hover for info{McColorCodes.GRAY}]", clickAction, longReason));
 
                 return mainParts;
             }).Append(new ChatPart() { text = COFLNET + "These are examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray());
