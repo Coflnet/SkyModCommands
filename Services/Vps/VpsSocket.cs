@@ -82,7 +82,13 @@ public class VpsSocket : WebSocketBehavior
 
     private static async Task RunCommand(MessageEventArgs e)
     {
-        var response = JsonConvert.DeserializeObject<Response>(e.Data);
+        var response = JsonConvert.DeserializeObject<Response>(e.Data, new JsonSerializerSettings
+        {
+            Error = (sender, args) =>
+            {
+                args.ErrorContext.Handled = true;
+            }
+        });
         Activity.Current.AddTag("type", response.type);
         Activity.Current.Log(response.data);
         if (response.type == "extraUpdate")
@@ -108,7 +114,7 @@ public class TPM
     //Used in backend. Get it from the /get_discord_id command in TPM server
     "discordID": "",
     //Refer to https://discord.com/channels/1261825756615540836/1265035635845234792 for help
-    "webhook": "",
+    "webhook": [],
     //{0} is item. {1} is profit. {2} is price. {3} is target. {4} is buyspeed. {5} is BED or NUGGET. {6} is finder. {7} is the auctionID. {8} is the shortened price. {9} is the bot's username. {10} is the flip volume. {11} is the flip profit percentage
     "webhookFormat": "You bought [``{0}``](https:\/\/sky.coflnet.com\/auction\/{7}) for ``{2}`` (``{1}`` profit) in ``{4}ms``",
     
@@ -243,7 +249,7 @@ public class TPM
         public string discordID;
 
         [DataMember(Name = "webhook")]
-        public string webhook;
+        public string[] webhook;
 
         [DataMember(Name = "webhookFormat")]
         public string webhookFormat;
@@ -306,7 +312,7 @@ public class TPM
         public SellInventory sellInventory;
 
         [DataMember(Name = "autoRotate")]
-        public Dictionary<string,string> autoRotate;
+        public Dictionary<string, string> autoRotate;
 
         [DataMember(Name = "session")]
         public string session;
