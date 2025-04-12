@@ -216,7 +216,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
 
     protected override DialogBuilder FormatForList(DialogBuilder d, ConfigRating elem)
     {
-        return d.Msg($"§6{elem.ConfigName} §7by {elem.OwnerName} {McColorCodes.GRAY}(")
+        return d.Msg($"§6{elem.ConfigName} §7by {elem.OwnerName} {McColorCodes.GRAY}(", null, $"{McColorCodes.GRAY}Last updated {FormatProvider.FormatTimeGlobal(DateTime.UtcNow - elem.LastUpdated)} ago")
             .CoflCommand<ConfigsCommand>($"{McColorCodes.GREEN}⬆{elem.Upvotes.Count} ", $"+rep {elem.OwnerId} {elem.ConfigName}", "upvote")
             .CoflCommand<ConfigsCommand>($"{McColorCodes.RED}⬇{elem.Downvotes.Count}", $"-rep {elem.OwnerId} {elem.ConfigName}", "downvote")
             .Msg($"{McColorCodes.GRAY})");
