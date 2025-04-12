@@ -194,10 +194,14 @@ public class VpsCommand : McCommand
             CreatedAt = DateTime.UtcNow,
             PaidUntil = DateTime.UtcNow.AddDays(1),
         };
+        var secret = Guid.NewGuid().ToString();
+        (_, var hashed) = socket.GetService<IdConverter>().ComputeConnectionId(socket.SessionInfo.McName, secret);
         await service.AddVps(instance, new()
         {
-            SessionId = socket.SessionInfo.SessionId,
+            SessionId = secret,
             UserName = socket.SessionInfo.McName,
         });
+        socket.AccountInfo.ConIds.Add(hashed); // auth that id
+        await socket.sessionLifesycle.AccountInfo.Update();
     }
 }
