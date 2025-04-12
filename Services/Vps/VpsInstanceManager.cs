@@ -182,12 +182,11 @@ public class VpsInstanceManager
         await UpdateAndPublish(instance);
     }
 
-    internal async Task<IEnumerable<string>> GetVpsLog(Instance instance)
+    internal async Task<IEnumerable<string>> GetVpsLog(Instance instance, DateTimeOffset from, DateTimeOffset to)
     {
         var query = $"{{container=\"tpm-manager\", instance_id=\"{instance.Id}\"}}";
-        var start = DateTimeOffset.UtcNow.AddHours(-24).ToUnixTimeSeconds();
-        var end = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        // loki/api/v1/query_range?query={container="tpm-manager",%20instance_id="73b43b9b-353d-4ecd-ae2d-ce9dc31a6cd4"}&start=1741929959&end=1742292362&limit=20
+        var start = from.ToUnixTimeSeconds();
+        var end = to.ToUnixTimeSeconds();
         return await QueryLoki(query, start, end);
     }
 

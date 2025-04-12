@@ -74,6 +74,7 @@ namespace Coflnet.Sky.Commands.MC
         public List<SaveAuction> Inventory { get; set; }
         public int SkipLikeliness { get; set; }
         public int LicensePoints { get; set; }
+        public string ActiveStream { get; set; }
         public bool IsDebug { get; set; }
 
         public AccountTier SessionTier { get; set; }

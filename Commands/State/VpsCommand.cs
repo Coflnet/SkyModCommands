@@ -65,14 +65,34 @@ public class VpsCommand : McCommand
 
     private async Task Reassign(MinecraftSocket socket, VpsInstanceManager service, string[] args)
     {
-        var instance =  await GetTargetVps(socket, service, args);
+        var instance = await GetTargetVps(socket, service, args);
         await service.ReassignVps(instance);
     }
 
     private async Task GetLog(MinecraftSocket socket, VpsInstanceManager service, string[] args)
     {
         Instance instance = await GetTargetVps(socket, service, args);
-        var log = await service.GetVpsLog(instance);
+        if (args.Last() == "follow" || args.Last() == "f")
+        {
+            var myStreamid = Guid.NewGuid().ToString();
+            socket.SessionInfo.ActiveStream = myStreamid;
+            var start = DateTimeOffset.UtcNow.AddHours(-24);
+            var end = DateTimeOffset.UtcNow;
+            while (!socket.IsClosed && myStreamid == socket.SessionInfo.ActiveStream)
+            {
+                var followLog = await service.GetVpsLog(instance, start, end);
+                socket.Dialog(db => db.ForEach(followLog.Reverse(), (db, line) =>
+                {
+                    db.Msg($"{McColorCodes.GOLD}V{McColorCodes.DARK_BLUE}PS{McColorCodes.RESET} ");
+                    WriteLine(db, line);
+                }));
+                await Task.Delay(5000);
+                start = end;
+                end = DateTimeOffset.UtcNow;
+            }
+        }
+        socket.SessionInfo.ActiveStream = null;
+        var log = await service.GetVpsLog(instance, DateTimeOffset.UtcNow.AddHours(-24), DateTimeOffset.UtcNow);
         socket.Dialog(db => db.ForEach(log.Reverse(), (db, line) => WriteLine(db, line)));
 
         static ModCommands.Dialogs.DialogBuilder WriteLine(ModCommands.Dialogs.DialogBuilder db, string line)
