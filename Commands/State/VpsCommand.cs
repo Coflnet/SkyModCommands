@@ -44,6 +44,9 @@ public class VpsCommand : McCommand
             case "set":
                 await UpdateSettings(socket, service, args);
                 return;
+            case "delete":
+                await Delete(socket, service, args);
+                return;
         }
         var instances = await service.GetVpsForUser(socket.UserId);
         foreach (var i in instances)
@@ -59,6 +62,13 @@ public class VpsCommand : McCommand
             socket.Dialog(db => db.MsgLine($"Usage: {McColorCodes.AQUA}/cofl vps <turnOn|turnOff|log|reassign|extend>")
                 .MsgLine($"To update settings use {McColorCodes.AQUA}/cofl vps set <vpsId> <key> <value>", null, "Separate settings with multiple options with comma (,)"));
         }
+    }
+
+    private async Task Delete(MinecraftSocket socket, VpsInstanceManager service, string[] args)
+    {
+        var instance = await GetTargetVps(socket, service, args);
+        await service.DeleteVps(instance);
+        socket.Dialog(db => db.MsgLine($"Deleted {instance.Id}"));
     }
 
     private async Task Extend(MinecraftSocket socket, VpsInstanceManager service, string[] args)
