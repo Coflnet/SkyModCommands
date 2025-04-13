@@ -34,7 +34,7 @@ public class VpsSocket : WebSocketBehavior
         var vpsService = DiHandler.GetService<VpsInstanceManager>();
         vpsService.OnInstanceCreated += update =>
         {
-            logger.LogInformation("Received update {ip} {id}", IP, update.Instance.Id);
+            logger.LogInformation("Received update {ip} for {target} {id}", IP, update.Instance.HostMachineIp, update.Instance.Id);
             if (update.Instance.HostMachineIp == IP)
             {
                 Send(JsonConvert.SerializeObject(Response.Create("configUpdate", update)));
