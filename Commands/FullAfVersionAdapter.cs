@@ -38,20 +38,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     public override async Task TryToListAuction()
     {
-        if (socket.Version[0] == '1')
-        {
-            if (socket.SessionInfo.SellAll)
-                socket.Dialog(db => db.Msg("BAF versions older than 2.0.0 don't get relist recommendations anymore"));
-            return;
-        }
-        await Task.Delay(5000);
-        if (DateTime.UtcNow - lastListing < TimeSpan.FromSeconds(15) || socket.CurrentRegion != Region.EU)
-            return;
         using var span = socket.CreateActivity("listAuctionTry", socket.ConSpan);
-        lastListing = DateTime.UtcNow;
-        var apiService = socket.GetService<IPlayerApi>();
-        var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
-        RequestInventory();
         using (var context = new HypixelContext())
         {
             var profile = await context.Players.FindAsync(socket.SessionInfo.McUuid);
@@ -61,6 +48,21 @@ public class FullAfVersionAdapter : AfVersionAdapter
         {
             await UpdateListSpace(span);
         }
+        // set for configs
+        socket.SessionInfo.AhSlotsOpen = listSpace - activeAuctionCount;
+        if (socket.Version[0] == '1')
+        {
+            if (socket.SessionInfo.SellAll)
+                socket.Dialog(db => db.Msg("BAF versions older than 2.0.0 don't get relist recommendations anymore"));
+            return;
+        }
+        await Task.Delay(5000);
+        if (DateTime.UtcNow - lastListing < TimeSpan.FromSeconds(15) || socket.CurrentRegion != Region.EU)
+            return;
+        lastListing = DateTime.UtcNow;
+        var apiService = socket.GetService<IPlayerApi>();
+        var filters = new Dictionary<string, string>() { { "EndAfter", DateTime.UtcNow.ToUnix().ToString() } };
+        RequestInventory();
         if (activeAuctionCount >= 14)
         {
 
@@ -76,8 +78,6 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 return; // ah full
             }
         }
-        // set for configs
-        socket.SessionInfo.AhSlotsOpen = listSpace - activeAuctionCount;
         List<SaveAuction> inventory = await WaitForInventory();
         if (inventory.Count == 0)
             return;
