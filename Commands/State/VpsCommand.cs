@@ -54,6 +54,11 @@ public class VpsCommand : McCommand
         {
             socket.Dialog(db => db.MsgLine($"You don't have any instances so far, use {McColorCodes.AQUA}/cofl vps create tpm+{McColorCodes.RESET} to create one"));
         }
+        else
+        {
+            socket.Dialog(db => db.MsgLine($"Usage: {McColorCodes.AQUA}/cofl vps <turnOn|turnOff|log|reassign|extend>")
+                .MsgLine($"To update settings use {McColorCodes.AQUA}/cofl vps set <vpsId> <key> <value>", null, "Separate settings with multiple options with comma (,)"));
+        }
     }
 
     private async Task Extend(MinecraftSocket socket, VpsInstanceManager service, string[] args)
