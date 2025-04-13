@@ -272,6 +272,12 @@ public class VpsInstanceManager
         return string.Join("\n", log);
     }
 
+    internal async Task DeleteVps(Instance instance)
+    {
+        await TurnOffVps(instance);
+        await vpsTable.Where(v => v.HostMachineIp == instance.HostMachineIp && v.Id == instance.Id).Delete().ExecuteAsync();
+    }
+
     public class Root
     {
         [JsonPropertyName("status")]
