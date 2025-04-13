@@ -21,15 +21,15 @@ public class VpsCommand : McCommand
         }
         var service = socket.GetService<VpsInstanceManager>();
         var args = Convert<string>(arguments).Split(' ');
-        switch (args[0])
+        switch (args[0].ToLower())
         {
             case "create":
                 await Create(socket, service, args);
                 return;
-            case "turnOff":
+            case "turnoff":
                 await TurnOff(socket, service, args);
                 return;
-            case "turnOn":
+            case "turnon":
                 await TurnOn(socket, service, args);
                 return;
             case "log":
@@ -87,9 +87,9 @@ public class VpsCommand : McCommand
                     await Task.Delay(5000);
                     continue;
                 }
-                socket.Dialog(db => db.ForEach(followLog.AsEnumerable().Reverse(), (db, line) =>
+                socket.Dialog(db => db.RemovePrefix().ForEach(followLog.AsEnumerable().Reverse(), (db, line) =>
                 {
-                    db.Msg($"{McColorCodes.GOLD}V{McColorCodes.DARK_BLUE}PS{McColorCodes.RESET} ");
+                    db.Msg($"{McColorCodes.GOLD}VPS{McColorCodes.RESET} ");
                     WriteLine(db, line);
                 }));
                 await Task.Delay(5000);

@@ -34,6 +34,14 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             LineBreak();
             return this;
         }
+
+
+        internal DialogBuilder RemovePrefix()
+        {
+            Parts.RemoveAt(0);
+            return this;
+        }
+
         public DialogBuilder ForEach<T>(IEnumerable<T> collection, Action<DialogBuilder, T> action)
         {
             foreach (var item in collection)
