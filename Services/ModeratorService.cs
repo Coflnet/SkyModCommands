@@ -18,7 +18,7 @@ public class ModeratorService
         "e7246661de77474f94627fabf9880f60", // IcyHenryT  
         "cfc37fbedfab4498893ea7799deedde5", // Flooored
         "dcc434c06bf9463188a1c5ca09c3431d", // Thompie
-        "de0e18981c26464595098f0e7e40663e", // Trexito
+        "89326ee470ca4b98af8722b540e9db5e", // Trexito
     };
     public bool IsModerator(IMinecraftSocket socket)
     {
