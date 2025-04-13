@@ -54,6 +54,8 @@ public class BlockedService : IBlockedService
         while (topBlocked.Count > v)
             if (topBlocked.TryDequeue(out var blocked))
             {
+                if(blocked.Flip.Auction.Start < DateTime.UtcNow.AddHours(2))
+                    continue; // skip old auctions, eg from replay flips
                 var statement = table.Insert(new()
                 {
                     AuctionUuid = Guid.Parse(blocked.Flip.Auction.Uuid),
