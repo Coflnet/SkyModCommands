@@ -109,7 +109,7 @@ public class VpsCommand : McCommand
                 }));
                 await Task.Delay(5000);
                 start = end;
-                end = DateTimeOffset.UtcNow;
+                end = DateTimeOffset.UtcNow - TimeSpan.FromSeconds(5);
             }
         }
         if (socket.SessionInfo.ActiveStream != null)
