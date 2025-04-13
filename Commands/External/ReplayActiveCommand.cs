@@ -40,11 +40,13 @@ public class ReplayActiveCommand : McCommand
                 $"{McColorCodes.RED}You need to add a whitelist to get any result"));
             return;
         }
-        using var db = new HypixelContext();
-        var maxId = db.Auctions.Max(a => a.Id);
+        int maxId;
+        using (var db = new HypixelContext())
+            maxId = db.Auctions.Max(a => a.Id);
         for (int i = 0; i < 10; i++)
         {
             var offset = i * 100_000;
+            using var db = new HypixelContext();
             var select = db.Auctions.Where(a =>
                 a.Id > maxId - offset - 100_000
                 && a.Id <= maxId - offset
