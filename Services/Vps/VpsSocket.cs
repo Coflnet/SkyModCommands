@@ -82,13 +82,7 @@ public class VpsSocket : WebSocketBehavior
 
     private static async Task RunCommand(MessageEventArgs e)
     {
-        var response = JsonConvert.DeserializeObject<Response>(e.Data, new JsonSerializerSettings
-        {
-            Error = (sender, args) =>
-            {
-                args.ErrorContext.Handled = true;
-            }
-        });
+        var response = JsonConvert.DeserializeObject<Response>(e.Data);
         Activity.Current.AddTag("type", response.type);
         Activity.Current.Log(response.data);
         if (response.type == "extraUpdate")
@@ -248,8 +242,8 @@ public class TPM
         [DataMember(Name = "discordID")]
         public string discordID;
 
-        [DataMember(Name = "webhook")]
-        public string[] webhook;
+        [DataMember(Name = "webhooks")]
+        public string[] webhooks;
 
         [DataMember(Name = "webhookFormat")]
         public string webhookFormat;
