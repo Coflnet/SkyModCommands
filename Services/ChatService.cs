@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace Coflnet.Sky.ModCommands.Services;
-
 public class ChatService
 {
     private Chat.Client.Api.ChatApi api;

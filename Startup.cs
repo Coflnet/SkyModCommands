@@ -67,6 +67,7 @@ public class Startup
         services.AddSingleton<ITutorialService, TutorialService>();
         services.AddSingleton<IFlipApi, FlipApi>(s => new FlipApi(Configuration["API_BASE_URL"]));
         services.AddSingleton<PreApiService>();
+        services.AddSingleton<CommandSyncService>();
         services.AddSingleton<IIsSold>(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IFlipReceiveTracker>(s => s.GetRequiredService<FlipTrackingService>());
         services.AddSingleton(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));

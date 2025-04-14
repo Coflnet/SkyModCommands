@@ -92,6 +92,19 @@ public class VpsInstanceManager
         logger.LogInformation($"Created new instance {instance.Id} on {instance.HostMachineIp}");
     }
 
+    public async Task UpdateSetting(string userId, string key, string value, Instance instance)
+    {
+        var configValue = await GetVpsConfig(userId);
+        configValue.skip ??= new();
+        var updater = new GenericSettingsUpdater();
+        updater.AddSettings(typeof(TPM.Config), "");
+        updater.AddSettings(typeof(TPM.Skip), "skip", s => (s as TPM.Config).skip);
+        updater.AddSettings(typeof(TPM.DoNotRelist), "relist", s => (s as TPM.Config).relist);
+        updater.AddSettings(typeof(TPM.SellInventory), "sell", s => (s as TPM.Config).sellInventory);
+        updater.Update(configValue, key, value);
+        await UpdateVpsConfig(instance, configValue);
+    }
+
     private async Task PublishUpdate(Instance instance, CreateOptions options, TPM.Config configValue = null)
     {
         var update = await BuildFullUpdate(instance, options, configValue);
@@ -200,7 +213,7 @@ public class VpsInstanceManager
         request.AddQueryParameter("limit", limit);
         var response = await client.ExecuteAsync(request);
         logger.LogInformation($"Querying loki with {client.BuildUri(request)}");
-        if(response.StatusCode != System.Net.HttpStatusCode.OK)
+        if (response.StatusCode != System.Net.HttpStatusCode.OK)
         {
             throw new CoflnetException("loki_error", $"The loki server returned an error {response.StatusCode} {response.Content}");
         }
@@ -257,7 +270,7 @@ public class VpsInstanceManager
         }
 
         var parsed = DateTimeOffset.FromUnixTimeSeconds(timeStamp);
-        if(parsed > DateTimeOffset.UtcNow)
+        if (parsed > DateTimeOffset.UtcNow)
         {
             throw new CoflnetException("invalid_timestamp", "The timestamp is in the future, use unix seconds");
         }

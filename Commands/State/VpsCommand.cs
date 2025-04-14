@@ -183,15 +183,7 @@ public class VpsCommand : McCommand
         var value = string.Join(" ", args.Skip(3));
         var instances = await service.GetVpsForUser(socket.UserId);
         var instance = instances.FirstOrDefault(i => i.Id.ToString().EndsWith(vpsId));
-        var configValue = await service.GetVpsConfig(socket.UserId);
-        configValue.skip ??= new();
-        var updater = new GenericSettingsUpdater();
-        updater.AddSettings(typeof(TPM.Config), "");
-        updater.AddSettings(typeof(TPM.Skip), "skip", s => (s as TPM.Config).skip);
-        updater.AddSettings(typeof(TPM.DoNotRelist), "relist", s => (s as TPM.Config).relist);
-        updater.AddSettings(typeof(TPM.SellInventory), "sell", s => (s as TPM.Config).sellInventory);
-        updater.Update(configValue, key, value);
-        await service.UpdateVpsConfig(instance, configValue);
+        await service.UpdateSetting(socket.UserId, key, value, instance);
         socket.Dialog(db => db.MsgLine($"Updated {McColorCodes.AQUA}{key}{McColorCodes.RESET} to {McColorCodes.AQUA}{value}{McColorCodes.RESET} on {McColorCodes.AQUA}{vpsId}"));
     }
 

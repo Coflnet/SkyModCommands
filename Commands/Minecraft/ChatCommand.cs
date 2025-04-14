@@ -67,12 +67,12 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "Please use another chat for long messages", null, $"Messages over {maxMsgLength} characters are blocked");
                 return;
             }
-            if(message.StartsWith("/cofl"))
+            if (message.StartsWith("/cofl"))
             {
                 socket.SendMessage(COFLNET + "Seems like you accientially sent a command in chat. If that was intentional, add a . in front to send it as message");
                 return;
             }
-            if(message == "disable")
+            if (message == "disable")
             {
                 socket.SendMessage(COFLNET + $"To turn the chat off just do {McColorCodes.AQUA}/cofl chat");
                 return;
@@ -109,6 +109,13 @@ namespace Coflnet.Sky.Commands.MC
 
         public static async Task MakeSureChatIsConnected(MinecraftSocket socket)
         {
+            var commands = await socket.GetService<CommandSyncService>().Subscribe(socket.SessionInfo, h =>
+            {
+                if (socket.IsClosed)
+                    return false;
+                socket.ExecuteCommand(h);
+                return true;
+            });
             if (socket.SessionInfo.ListeningToChat)
             {
                 return;
@@ -130,6 +137,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 sub.Unsubscribe();
                 dm.Unsubscribe();
+                commands.Unsubscribe();
             };
         }
 
@@ -179,7 +187,7 @@ namespace Coflnet.Sky.Commands.MC
                     {
                         return Shareitem(socket, m, color, message, optionsCmd);
                     }
-                    if(message.Contains('傳'))
+                    if (message.Contains('傳'))
                     {
                         return ShareLore(socket, m, color, message, optionsCmd);
                     }
@@ -210,7 +218,7 @@ namespace Coflnet.Sky.Commands.MC
             var parts = message.Split('傳');
             var loreJson = parts[1];
             var lore = JsonConvert.DeserializeObject<DescriptionSetting>(loreJson);
-            socket.Dialog(db=>db.CoflCommand<LoreCommand>($"{m.Name} shared his lore settings with you, {McColorCodes.YELLOW}[click to use them]", loreJson, "Import the lore settings"));
+            socket.Dialog(db => db.CoflCommand<LoreCommand>($"{m.Name} shared his lore settings with you, {McColorCodes.YELLOW}[click to use them]", loreJson, "Import the lore settings"));
             return true;
         }
 
