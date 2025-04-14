@@ -82,6 +82,7 @@ public class VpsCommand : McCommand
     {
         var instance = await GetTargetVps(socket, service, args);
         await service.ReassignVps(instance);
+        socket.Dialog(db => db.MsgLine($"Reassigned to host {instance.HostMachineIp.Split('.').Last()}"));
     }
 
     private async Task GetLog(MinecraftSocket socket, VpsInstanceManager service, string[] args)
