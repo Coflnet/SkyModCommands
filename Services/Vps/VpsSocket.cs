@@ -57,6 +57,7 @@ public class VpsSocket : WebSocketBehavior
                 await Task.Delay(60_000);
                 vpsService.Connected(IP);
             }
+            logger.LogWarning("VPS {ip} disconnected", IP);
         });
 
     }
