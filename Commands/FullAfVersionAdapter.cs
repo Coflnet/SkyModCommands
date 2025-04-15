@@ -39,17 +39,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
     public override async Task TryToListAuction()
     {
         using var span = socket.CreateActivity("listAuctionTry", socket.ConSpan);
-        using (var context = new HypixelContext())
-        {
-            var profile = await context.Players.FindAsync(socket.SessionInfo.McUuid);
-            activeAuctionCount = await context.Auctions.Where(a => a.SellerId == profile.Id && a.End > DateTime.UtcNow).CountAsync();
-        }
-        if (listSpace - activeAuctionCount <= 2)
-        {
-            await UpdateListSpace(span);
-        }
-        // set for configs
-        socket.SessionInfo.AhSlotsOpen = listSpace - activeAuctionCount;
+        await UpdateAhSlots(span);
         if (socket.Version[0] == '1')
         {
             if (socket.SessionInfo.SellAll)
@@ -112,6 +102,21 @@ public class FullAfVersionAdapter : AfVersionAdapter
         }
         span.Log($"Checking sellable {toList.Count()} total {inventory.Count}. Space {listSpace} active {activeAuctionCount}");
         await ListItems(span, apiService, inventory, toList, listSpace < 10 ? 14 : listSpace - activeAuctionCount);
+    }
+
+    private async Task UpdateAhSlots(Activity span)
+    {
+        using (var context = new HypixelContext())
+        {
+            var profile = await context.Players.FindAsync(socket.SessionInfo.McUuid);
+            activeAuctionCount = await context.Auctions.Where(a => a.SellerId == profile.Id && a.End > DateTime.UtcNow).CountAsync();
+        }
+        if (listSpace - activeAuctionCount <= 2)
+        {
+            await UpdateListSpace(span);
+        }
+        // set for configs
+        socket.SessionInfo.AhSlotsOpen = listSpace - activeAuctionCount;
     }
 
     private IEnumerable<LowPricedAuction> LastSentFlips()
@@ -435,6 +440,10 @@ public class FullAfVersionAdapter : AfVersionAdapter
         socket.SessionInfo.IsMacroBot = true;
         base.OnAuthorize(accountInfo);
         RequestInventory();
+        socket.TryAsyncTimes(async () =>
+        {
+            await UpdateAhSlots(socket.ConSpan);
+        }, "updateAhSlots", 1);
         if (socket.sessionLifesycle.FlipSettings.Value?.ModSettings?.AutoStartFlipper == null)
             return;
         socket.sessionLifesycle.FlipSettings.Value.ModSettings.AutoStartFlipper = true;
