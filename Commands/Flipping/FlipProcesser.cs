@@ -53,7 +53,10 @@ namespace Coflnet.Sky.Commands.MC
 
             var maxCostFromPurse = socket.SessionInfo.Purse * (Settings.ModSettings.MaxPercentOfPurse == 0 ? 100 : Settings.ModSettings.MaxPercentOfPurse) / 100;
             if (flip.Auction.StartingBid >= maxCostFromPurse && socket.SessionInfo.Purse > 0 && flip.Finder != LowPricedAuction.FinderType.USER)
+            {
+                BlockedFlip(flip, "purse check");
                 return;
+            }
 
             var instance = FlipperService.LowPriceToFlip(flip);
 
