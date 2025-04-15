@@ -90,7 +90,7 @@ public class UploadScoreboardCommand : McCommand
             {
                 ReceivedAt = DateTime.UtcNow,
                 PlayerId = playerId,
-                Kind = UpdateMessage.UpdateKind.CHAT,
+                Kind = UpdateMessage.UpdateKind.Scoreboard,
                 UserId = socket.UserId,
                 Scoreboard = args
             });
