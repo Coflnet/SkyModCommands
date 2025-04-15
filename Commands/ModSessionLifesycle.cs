@@ -905,19 +905,6 @@ namespace Coflnet.Sky.Commands.MC
                 if (socket.HasFlippingDisabled())
                     return;
                 await Task.Delay(new Random().Next(1, 3000)).ConfigureAwait(false);
-                if (AccountInfo?.Value?.ShadinessLevel == -1 && SessionInfo.VerifiedMc && TierManager.HasAtLeast(AccountTier.PREMIUM))
-                {
-                    try
-                    {
-                        var altProb = await socket.GetService<AltChecker>().AltLevel(SessionInfo.McUuid);
-                        AccountInfo.Value.ShadinessLevel = altProb;
-                    }
-                    catch (System.Exception e)
-                    {
-                        socket.Error(e, "getting alt level");
-                    }
-                }
-
                 var ids = await GetMinecraftAccountUuids();
                 var isBot = socket.ModAdapter is AfVersionAdapter;
                 string accountForLicense = null;
