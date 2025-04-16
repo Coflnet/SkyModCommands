@@ -28,6 +28,7 @@ public class DelayHandler : IDelayHandler
     private int FlipIndex = 0;
     public static readonly TimeSpan DefaultDelay = TimeSpan.FromSeconds(2);
     public static readonly TimeSpan MaxSuperPremiumDelay = TimeSpan.FromMilliseconds(700);
+    private static readonly TimeSpan PreApiDelayExempt = TimeSpan.FromMilliseconds(-1234);
     public static readonly double DelayReduction = 0.3;
 
 
@@ -252,7 +253,7 @@ public class DelayHandler : IDelayHandler
             macroPenalty *= (1 - DelayReduction);
             if (summary.LastPurchase < DateTime.Now - TimeSpan.FromMinutes(5))
             {
-                currentDelay = TimeSpan.Zero;
+                currentDelay = PreApiDelayExempt;
                 macroPenalty = TimeSpan.Zero;
             }
         }
