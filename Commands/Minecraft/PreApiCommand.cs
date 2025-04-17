@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Commands.MC;
 [CommandDescription("Pre api submenu", "Usage: /cofl preapi <notify|profit>")]
