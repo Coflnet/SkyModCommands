@@ -205,6 +205,12 @@ public class VpsInstanceManager
 
     private async Task<IEnumerable<string>> QueryLoki(string query, long start, long end, int limit = 20)
     {
+        Root root = await QueryLokiJson(query, start, end, limit);
+        return root.data.result.SelectMany(r => r.values).Select(v => v[1]);
+    }
+
+    private async Task<Root> QueryLokiJson(string query, long start, long end, int limit)
+    {
         var client = new RestClient(configuration["LOKI_BASE_URL"]);
         var request = new RestRequest("loki/api/v1/query_range", Method.Get);
         request.AddQueryParameter("query", query);
@@ -218,7 +224,7 @@ public class VpsInstanceManager
             throw new CoflnetException("loki_error", $"The loki server returned an error {response.StatusCode} {response.Content}");
         }
         var root = JsonConvert.DeserializeObject<Root>(response.Content);
-        return root.data.result.SelectMany(r => r.values).Select(v => v[1]);
+        return root;
     }
 
     internal async Task ReassignVps(Instance instance)
@@ -281,8 +287,8 @@ public class VpsInstanceManager
         var query = $"{{container=\"tpm-manager\"}}";
         var start = parsed.AddHours(-24).ToUnixTimeSeconds();
         var end = timeStamp;
-        var log = await QueryLoki(query, start, end, 5_000);
-        return string.Join("\n", log);
+        var log = await QueryLokiJson(query, start, end, 5_000);
+        return string.Join("\n", log.data.result.SelectMany(r=>r.stream.user_id + ": " + r.values[0][1]));
     }
 
     internal async Task DeleteVps(Instance instance)

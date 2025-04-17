@@ -38,6 +38,7 @@ public class VpsSocket : WebSocketBehavior
             if (update.Instance.HostMachineIp == IP)
             {
                 Send(JsonConvert.SerializeObject(Response.Create("configUpdate", update)));
+                logger.LogInformation("Sent update {ip} for {target} {id}", IP, update.Instance.HostMachineIp, update.Instance.Id);
             }
         };
         Task.Run(async () =>
