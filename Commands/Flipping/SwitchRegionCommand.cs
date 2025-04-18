@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WebSocketSharp;
@@ -55,21 +57,45 @@ public class SwitchRegionCommand : McCommand
 
     public static async Task TryToConnect(MinecraftSocket socket)
     {
+        var tobeUsed = "sky-us";
+        var clientIp = socket.ClientIp;
+        var vultrChicagoPrefixes = new List<string> {
+            "45.63.",
+            "45.76.",
+            "66.42.",
+            "104.156.",
+            "104.238.",
+            "108.61.",
+        };
+        var linodePrefixes = new List<string> {
+            "172.23",
+        };
+
+        if (!string.IsNullOrEmpty(clientIp) && vultrChicagoPrefixes.Any(clientIp.StartsWith))
+        {
+            socket.Dialog(db => db.MsgLine("You are using a vultr server, switching to us-vultr"));
+            tobeUsed = "us-vultr";
+        }
+        else if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith))
+        {
+            socket.Dialog(db => db.MsgLine("You are using a linode server, switching to us-linode"));
+            tobeUsed = "us-linode";
+        }
         // check twice if the server is reachable
-        if (await CheckReachable() || await CheckReachable())
+        if (await CheckReachable(tobeUsed) || await CheckReachable(tobeUsed))
         {
             socket.Dialog(db => db.MsgLine("Switching to us server"));
-            socket.ExecuteCommand("/cofl connect ws://sky-us.coflnet.com/modsocket");
+            socket.ExecuteCommand($"/cofl connect ws://{tobeUsed}.coflnet.com/modsocket");
             return;
         }
         socket.Dialog(db => db.MsgLine("US server seems to be currently not reachable :(").MsgLine("We are probably trying to get them online again, you stay connected to eu in the meantime, sorry"));
 
     }
 
-    private static async Task<bool> CheckReachable()
+    private static async Task<bool> CheckReachable(string tobeUsed)
     {
         // timeout after 5 seconds
-        var restClient = new RestSharp.RestClient("http://sky-us.coflnet.com");
+        var restClient = new RestSharp.RestClient($"http://{tobeUsed}.coflnet.com");
         var request = new RestSharp.RestRequest("/modsocket")
         {
             Timeout = TimeSpan.FromSeconds(5)
