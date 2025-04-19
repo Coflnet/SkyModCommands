@@ -38,6 +38,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     public override async Task TryToListAuction()
     {
+        if(socket.CurrentRegion != "eu")
+            return; // only works with direct db access
         using var span = socket.CreateActivity("listAuctionTry", socket.ConSpan);
         await UpdateAhSlots(span);
         if (socket.Version[0] == '1')
