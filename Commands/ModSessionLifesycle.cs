@@ -133,6 +133,22 @@ namespace Coflnet.Sky.Commands.MC
             loadSpan?.Dispose();
             UpdateExtraDelay();
             TierManager.OnTierChange += TierChangedHandler;
+            await SubscribetoCommands();
+        }
+
+        private async Task SubscribetoCommands()
+        {
+            var commands = await socket.GetService<CommandSyncService>().Subscribe(socket.SessionInfo, h =>
+            {
+                if (socket.IsClosed)
+                    return false;
+                socket.ExecuteCommand(h);
+                return true;
+            });
+            socket.OnConClose += () =>
+            {
+                commands?.Unsubscribe();
+            };
         }
 
         private void TierChangedHandler(object sender, AccountTier Newtier)
