@@ -163,7 +163,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (profiles?.Profiles == null)
                 throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
             var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
-            var membersOnIsland = profile.Members.Count;
+            var membersOnIsland = profile.Members.Where(m=>m.Value.Profile.DeletionNotice == null).Count();
             listSpace = 14 + 3 * (membersOnIsland - 1);
             listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
         }

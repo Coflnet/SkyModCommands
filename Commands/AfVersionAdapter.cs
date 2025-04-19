@@ -182,5 +182,19 @@ public class ProfilesResponse
 public class Profile
 {
     public bool Selected { get; set; }
-    public Dictionary<string, object> Members { get; set; }
+    public Dictionary<string, ProfileInfo> Members { get; set; }
+}
+public class ProfileInfo
+{
+    public ProfileStats Profile { get; set; }
+}
+
+public class ProfileStats
+{
+    public DeletionNotice DeletionNotice { get; set; }
+}
+
+public class DeletionNotice
+{
+    public long TimeStamp { get; set; }
 }
