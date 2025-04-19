@@ -101,6 +101,9 @@ public class VpsInstanceManager
         updater.AddSettings(typeof(TPM.Skip), "skip", s => (s as TPM.Config).skip);
         updater.AddSettings(typeof(TPM.DoNotRelist), "relist", s => (s as TPM.Config).relist);
         updater.AddSettings(typeof(TPM.SellInventory), "sell", s => (s as TPM.Config).sellInventory);
+        configValue.doNotRelist ??= new();
+        configValue.sellInventory ??= new();
+        configValue.skip ??= new();
         updater.Update(configValue, key, value);
         await UpdateVpsConfig(instance, configValue);
     }
