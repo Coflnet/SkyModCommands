@@ -291,7 +291,7 @@ public class VpsInstanceManager
         var start = parsed.AddHours(-24).ToUnixTimeSeconds();
         var end = timeStamp;
         var log = await QueryLokiJson(query, start, end, 5_000);
-        return string.Join("\n", log.data.result.SelectMany(r=>r.stream.user_id + ": " + r.values[0][1]));
+        return string.Join("\n", log.data.result.Select(r=>r.stream.user_id + ": " + r.values[0][1]));
     }
 
     internal async Task DeleteVps(Instance instance)
