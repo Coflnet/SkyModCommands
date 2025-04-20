@@ -84,7 +84,7 @@ public class Startup
         services.AddSingleton<Sniper.Client.Api.IAuctionApi, Sniper.Client.Api.AuctionApi>(s => new Sniper.Client.Api.AuctionApi(Configuration["SNIPER_BASE_URL"]));
         services.AddSingleton<McConnect.Api.IConnectApi, McConnect.Api.ConnectApi>(s => new McConnect.Api.ConnectApi(Configuration["MCCONNECT_BASE_URL"]));
         services.AddSingleton<HypixelItemService>();
-        services.AddSingleton<IHypixelItemStore, HypixelItemService>(di=>di.GetRequiredService<HypixelItemService>());
+        services.AddSingleton<IHypixelItemStore, HypixelItemService>(di => di.GetRequiredService<HypixelItemService>());
         services.AddSingleton<System.Net.Http.HttpClient>();
         services.AddSingleton<IPriceStorageService, PriceStorageService>();
         services.AddSingleton<DelayService>();
@@ -97,10 +97,10 @@ public class Startup
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
-        if (env.IsDevelopment())
+        app.UseExceptionHandler(errorApp =>
         {
-            app.UseDeveloperExceptionPage();
-        }
+            ErrorHandler.Add(errorApp, "modcommands");
+        });
         app.UseSwagger();
         app.UseSwaggerUI(c =>
         {
