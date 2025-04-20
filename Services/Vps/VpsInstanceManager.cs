@@ -208,6 +208,10 @@ public class VpsInstanceManager
 
     internal async Task TurnOnVps(Instance instance)
     {
+        if(instance.PaidUntil < DateTime.UtcNow)
+        {
+            throw new CoflnetException("expired", "The instance has expired, please renew it");
+        }
         instance.Context.Remove("turnedOff");
         await UpdateAndPublish(instance);
     }
