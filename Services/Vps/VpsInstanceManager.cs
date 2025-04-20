@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -311,6 +312,33 @@ public class VpsInstanceManager
     {
         await TurnOffVps(instance);
         await vpsTable.Where(v => v.HostMachineIp == instance.HostMachineIp && v.Id == instance.Id).Delete().ExecuteAsync();
+    }
+
+    internal async Task<Dictionary<string, string>> GetSettings(string userId, Instance instance)
+    {
+        var configValue = await GetVpsConfig(userId);
+        var updater = GetUpdater();
+        var options = updater.ModOptions;
+        var result = new Dictionary<string, string>();
+        foreach (var option in options)
+        {
+            var value = updater.GetCurrent(configValue, option.Key);
+            result.Add(option.Key, Format(value));
+        }
+        return result;
+
+        static string Format(object value)
+        {
+            if (value is Dictionary<string, string> dict)
+            {
+                return string.Join("\n", dict.Select(kv => $"{kv.Key} {kv.Value}"));
+            }
+            else if (value is IEnumerable enumerable && !(value is string))
+            {
+                return string.Join(",", enumerable.Cast<object>());
+            }
+            return value?.ToString() ?? "";
+        }
     }
 
     public class Root
