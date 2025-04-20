@@ -14,11 +14,7 @@ public class VpsCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if (!socket.GetService<ModeratorService>().IsModerator(socket))
-        {
-            socket.Dialog(db => db.MsgLine("You need to be a moderator to use this command currently"));
-            return;
-        }
+        await socket.ReguirePremPlus();
         var service = socket.GetService<VpsInstanceManager>();
         var args = Convert<string>(arguments).Split(' ');
         switch (args[0].ToLower())
