@@ -44,6 +44,13 @@ public class VpsController : ControllerBase
     {
         return await vpsInstanceManager.GetVpsForUser(userId);
     }
+
+    [HttpGet("settings")]
+    [ResponseCache(Duration = 3600)]
+    public Dictionary<string, Commands.Shared.SettingsUpdater.SettingDoc> GetSettings()
+    {
+        return vpsInstanceManager.SettingOptions();
+    }
     
     [HttpPost("{user}/{instanceId}/set")]
     public async Task UpdateSetting(string user, Guid instanceId, [FromBody] VpsSettingUpdateRequest request)

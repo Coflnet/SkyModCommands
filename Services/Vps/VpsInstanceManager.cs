@@ -96,16 +96,29 @@ public class VpsInstanceManager
     {
         var configValue = await GetVpsConfig(userId);
         configValue.skip ??= new();
-        var updater = new GenericSettingsUpdater();
-        updater.AddSettings(typeof(TPM.Config), "");
-        updater.AddSettings(typeof(TPM.Skip), "skip", s => (s as TPM.Config).skip);
-        updater.AddSettings(typeof(TPM.DoNotRelist), "relist", s => (s as TPM.Config).doNotRelist);
-        updater.AddSettings(typeof(TPM.SellInventory), "sell", s => (s as TPM.Config).sellInventory);
+        GenericSettingsUpdater updater = GetUpdater();
         configValue.doNotRelist ??= new();
         configValue.sellInventory ??= new();
         configValue.skip ??= new();
         updater.Update(configValue, key, value);
         await UpdateVpsConfig(instance, configValue);
+    }
+
+    public Dictionary<string, SettingsUpdater.SettingDoc> SettingOptions()
+    {
+        var updater = GetUpdater();
+        var options = updater.ModOptions;
+        return options.ToDictionary(k => k.Key, v => v.Value);
+    }
+
+    private static GenericSettingsUpdater GetUpdater()
+    {
+        var updater = new GenericSettingsUpdater();
+        updater.AddSettings(typeof(TPM.Config), "");
+        updater.AddSettings(typeof(TPM.Skip), "skip", s => (s as TPM.Config).skip);
+        updater.AddSettings(typeof(TPM.DoNotRelist), "relist", s => (s as TPM.Config).doNotRelist);
+        updater.AddSettings(typeof(TPM.SellInventory), "sell", s => (s as TPM.Config).sellInventory);
+        return updater;
     }
 
     private async Task PublishUpdate(Instance instance, CreateOptions options, TPM.Config configValue = null)
