@@ -109,13 +109,6 @@ namespace Coflnet.Sky.Commands.MC
 
         public static async Task MakeSureChatIsConnected(MinecraftSocket socket)
         {
-            var commands = await socket.GetService<CommandSyncService>().Subscribe(socket.SessionInfo, h =>
-            {
-                if (socket.IsClosed)
-                    return false;
-                socket.ExecuteCommand(h);
-                return true;
-            });
             if (socket.SessionInfo.ListeningToChat)
             {
                 return;
@@ -137,7 +130,6 @@ namespace Coflnet.Sky.Commands.MC
             {
                 sub.Unsubscribe();
                 dm.Unsubscribe();
-                commands.Unsubscribe();
             };
         }
 
