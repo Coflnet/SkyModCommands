@@ -32,15 +32,7 @@ public class VpsSocket : WebSocketBehavior
             return;
         }
         var vpsService = DiHandler.GetService<VpsInstanceManager>();
-        vpsService.OnInstanceCreated += update =>
-        {
-            logger.LogInformation("Received update {ip} for {target} {id}", IP, update.Instance.HostMachineIp, update.Instance.Id);
-            if (update.Instance.HostMachineIp == IP)
-            {
-                Send(JsonConvert.SerializeObject(Response.Create("configUpdate", update)));
-                logger.LogInformation("Sent update {ip} for {target} {id}", IP, update.Instance.HostMachineIp, update.Instance.Id);
-            }
-        };
+        vpsService.OnInstanceCreated += Distributeupdate;
         Task.Run(async () =>
         {
             try
@@ -59,9 +51,21 @@ public class VpsSocket : WebSocketBehavior
                 vpsService.Connected(IP);
             }
             logger.LogWarning("VPS {ip} disconnected", IP);
+            vpsService.OnInstanceCreated -= Distributeupdate;
         });
 
     }
+
+    private void Distributeupdate(VPsStateUpdate update)
+    {
+        logger.LogInformation("Received update {ip} for {target} {id}", IP, update.Instance.HostMachineIp, update.Instance.Id);
+        if (update.Instance.HostMachineIp == IP)
+        {
+            Send(JsonConvert.SerializeObject(Response.Create("configUpdate", update)));
+            logger.LogInformation("Sent update {ip} for {target} {id}", IP, update.Instance.HostMachineIp, update.Instance.Id);
+        }
+    }
+
     protected override void OnMessage(MessageEventArgs e)
     {
         Task.Run(async () =>
@@ -82,7 +86,7 @@ public class VpsSocket : WebSocketBehavior
         });
     }
 
-    private static async Task RunCommand(MessageEventArgs e)
+    private async Task RunCommand(MessageEventArgs e)
     {
         var response = JsonConvert.DeserializeObject<Response>(e.Data);
         Activity.Current.AddTag("type", response.type);
@@ -92,6 +96,7 @@ public class VpsSocket : WebSocketBehavior
             var extraConfig = JsonConvert.DeserializeObject<ExtraConfig>(response.data);
             await DiHandler.GetService<VpsInstanceManager>().PersistExtra(extraConfig.userId, extraConfig.extraConfig);
         }
+        Console.WriteLine($"Received {response.type} from {IP}");
     }
 
     public class ExtraConfig
