@@ -191,6 +191,8 @@ public class ProfileInfo
 
 public class ProfileStats
 {
+    [JsonProperty("deletion_notice")]
+    [System.Text.Json.Serialization.JsonPropertyName("deletion_notice")]
     public DeletionNotice DeletionNotice { get; set; }
 }
 
