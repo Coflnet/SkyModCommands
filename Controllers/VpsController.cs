@@ -52,7 +52,7 @@ public class VpsController : ControllerBase
         return vpsInstanceManager.SettingOptions();
     }
 
-    [HttpGet("{user}/{instanceId}settings")]
+    [HttpGet("{user}/{instanceId}/settings")]
     public async Task<Dictionary<string, string>> GetUserSettings(string user, Guid instanceId)
     {
         Instance instance = await GetInstance(user, instanceId);
