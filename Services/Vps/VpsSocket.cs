@@ -280,7 +280,7 @@ public class TPM
         public int delay;
 
         [DataMember(Name = "waittime")]
-        public int waittime;
+        public float waittime;
 
         [DataMember(Name = "percentOfTarget")]
         public object[] percentOfTarget;
