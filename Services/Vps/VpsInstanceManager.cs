@@ -319,7 +319,7 @@ public class VpsInstanceManager
         var start = parsed.AddHours(-24).ToUnixTimeSeconds();
         var end = timeStamp;
         var log = await QueryLokiJson(query, start, end, 5_000);
-        return string.Join("\n", log.data.result.SelectMany(r => r.values.Select(v => (long.Parse(v[0]), r.stream.user_id + ": " + v[1]))).OrderBy(v => v.Item1).Select(v => v.Item2));
+        return string.Join("\n", log.data.result.SelectMany(r => r.values.Select(v => (long.Parse(v[0]), v[0] + "-" + r.stream.user_id + ": " + v[1]))).OrderBy(v => v.Item1).Select(v => v.Item2));
     }
 
     internal async Task DeleteVps(Instance instance)
