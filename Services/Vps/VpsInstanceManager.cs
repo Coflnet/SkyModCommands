@@ -129,7 +129,7 @@ public class VpsInstanceManager
         var updater = new GenericSettingsUpdater();
         updater.AddSettings(typeof(TPM.Config), "");
         updater.AddSettings(typeof(TPM.Skip), "skip", s => (s as TPM.Config).skip);
-        updater.AddSettings(typeof(TPM.DoNotRelist), "relist", s => (s as TPM.Config).doNotRelist);
+        updater.AddSettings(typeof(TPM.DoNotRelist), "norelist", s => (s as TPM.Config).doNotRelist);
         updater.AddSettings(typeof(TPM.SellInventory), "sell", s => (s as TPM.Config).sellInventory);
         return updater;
     }
