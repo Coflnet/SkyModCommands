@@ -58,7 +58,7 @@ public class VpsController : ControllerBase
         Instance instance = await GetInstance(user, instanceId);
         return await vpsInstanceManager.GetSettings(user, instance);
     }
-    
+
     [HttpPost("{user}/{instanceId}/set")]
     public async Task UpdateSetting(string user, Guid instanceId, [FromBody] VpsSettingUpdateRequest request)
     {
@@ -86,6 +86,12 @@ public class VpsController : ControllerBase
     {
         Instance instance = await GetInstance(user, instanceId);
         await vpsInstanceManager.TurnOffVps(instance);
+    }
+    [HttpPost("{user}/{instanceId}/import")]
+    public async Task Import(string user, Guid instanceId, [FromBody] string settings)
+    {
+        Instance instance = await GetInstance(user, instanceId);
+        await vpsInstanceManager.ImportSettings(instance, settings);
     }
 
     public class VpsSettingUpdateRequest

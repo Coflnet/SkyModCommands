@@ -105,6 +105,13 @@ public class VpsInstanceManager
         await UpdateVpsConfig(instance, configValue);
     }
 
+    public async Task ImportSettings(Instance instance, string settings)
+    {
+        var parsed = JsonConvert.DeserializeObject<TPM.Config>(settings)
+            ?? throw new CoflnetException("invalid_settings", "The settings are invalid");
+        await UpdateVpsConfig(instance, parsed);
+    }
+
     public Dictionary<string, SettingsUpdater.SettingDoc> SettingOptions()
     {
         var updater = GetUpdater();
@@ -208,7 +215,7 @@ public class VpsInstanceManager
 
     internal async Task TurnOnVps(Instance instance)
     {
-        if(instance.PaidUntil < DateTime.UtcNow)
+        if (instance.PaidUntil < DateTime.UtcNow)
         {
             throw new CoflnetException("expired", "The instance has expired, please renew it");
         }
@@ -309,7 +316,7 @@ public class VpsInstanceManager
         var start = parsed.AddHours(-24).ToUnixTimeSeconds();
         var end = timeStamp;
         var log = await QueryLokiJson(query, start, end, 5_000);
-        return string.Join("\n", log.data.result.SelectMany(r=>r.values.Select(v=>(long.Parse(v[0]),r.stream.user_id + ": " + v[1]))).OrderBy(v=>v.Item1).Select(v=>v.Item2));
+        return string.Join("\n", log.data.result.SelectMany(r => r.values.Select(v => (long.Parse(v[0]), r.stream.user_id + ": " + v[1]))).OrderBy(v => v.Item1).Select(v => v.Item2));
     }
 
     internal async Task DeleteVps(Instance instance)

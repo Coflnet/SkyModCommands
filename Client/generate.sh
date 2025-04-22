@@ -1,4 +1,4 @@
-VERSION=0.2.3
+VERSION=0.3.0
 PACKAGE_NAME=Coflnet.Sky.ModCommands.Client
 docker run --rm -v "${PWD}:/local" --network host -u $(id -u ${USER}):$(id -g ${USER})  openapitools/openapi-generator-cli generate \
 -i http://localhost:5003/swagger/v1/swagger.json \
