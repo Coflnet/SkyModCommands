@@ -115,7 +115,7 @@ public class TPM
     //Used in backend. Get it from the /get_discord_id command in TPM server
     "discordID": "",
     //Refer to https://discord.com/channels/1261825756615540836/1265035635845234792 for help
-    "webhook": [],
+    "webhooks": [],
     //{0} is item. {1} is profit. {2} is price. {3} is target. {4} is buyspeed. {5} is BED or NUGGET. {6} is finder. {7} is the auctionID. {8} is the shortened price. {9} is the bot's username. {10} is the flip volume. {11} is the flip profit percentage
     "webhookFormat": "You bought [``{0}``](https:\/\/sky.coflnet.com\/auction\/{7}) for ``{2}`` (``{1}`` profit) in ``{4}ms``",
     
@@ -250,7 +250,11 @@ public class TPM
         public string discordID;
 
         [DataMember(Name = "webhooks")]
+        [SettingsDoc("Comma separated list of webhooks")]
         public string[] webhooks;
+        [DataMember(Name = "webhook")]
+        [SettingsDoc("TPM (normal) webhook", true)]
+        public string webhook;
 
         [DataMember(Name = "webhookFormat")]
         public string webhookFormat;
