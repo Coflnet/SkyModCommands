@@ -31,8 +31,9 @@ public class VpsInstanceManager
     private ILogger<VpsInstanceManager> logger;
     private IConfiguration configuration;
     private IUserApi userApi;
+    private ITopUpApi topUpApi;
 
-    public VpsInstanceManager(ISession session, SettingsService settingsService, ConnectionMultiplexer redis, ILogger<VpsInstanceManager> logger, IConfiguration configuration, IUserApi userApi)
+    public VpsInstanceManager(ISession session, SettingsService settingsService, ConnectionMultiplexer redis, ILogger<VpsInstanceManager> logger, IConfiguration configuration, IUserApi userApi, ITopUpApi topUpApi)
     {
         var mapping = new MappingConfiguration().Define(
             new Map<Instance>()
@@ -65,6 +66,7 @@ public class VpsInstanceManager
         this.logger = logger;
         this.configuration = configuration;
         this.userApi = userApi;
+        this.topUpApi = topUpApi;
     }
 
     public void Connected(string ip)
@@ -387,6 +389,14 @@ public class VpsInstanceManager
         instance.PaidUntil = time;
         await UpdateAndPublish(instance);
         logger.LogInformation($"Extended instance {instance.Id} to {time}");
+
+        if (instance.AppKind == "tpm+")
+            await topUpApi.TopUpCustomPostAsync("28258", new()
+            {
+                Amount = 1800,
+                ProductId = "compensation",
+                Reference = "tpm+" + instance.Id.ToString().Split('-').Last() + "-" + DateTime.UtcNow.ToString("yyyyMMdd"),
+            });
     }
 
     public class Root
