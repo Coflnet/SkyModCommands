@@ -207,5 +207,7 @@ public class VpsCommand : McCommand
         });
         socket.AccountInfo.ConIds.Add(hashed); // auth that id
         await socket.sessionLifesycle.AccountInfo.Update();
+        socket.Dialog(db => db.MsgLine($"Created {McColorCodes.AQUA}{args[1]}{McColorCodes.RESET} instance with id {McColorCodes.AQUA}{instance.Id.ToString().TakeLast(3).Aggregate("", (s, c) => s + c)}{McColorCodes.RESET}")
+            .MsgLine($"You can now use {McColorCodes.AQUA}/cofl vps turnOn{McColorCodes.RESET} to start it and manage it through discord"));
     }
 }
