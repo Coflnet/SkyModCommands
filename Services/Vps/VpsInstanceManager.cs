@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Coflnet.Payments.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Microsoft.Extensions.Configuration;
@@ -29,8 +30,9 @@ public class VpsInstanceManager
     private Dictionary<string, DateTime> activeInstances = new();
     private ILogger<VpsInstanceManager> logger;
     private IConfiguration configuration;
+    private IUserApi userApi;
 
-    public VpsInstanceManager(ISession session, SettingsService settingsService, ConnectionMultiplexer redis, ILogger<VpsInstanceManager> logger, IConfiguration configuration)
+    public VpsInstanceManager(ISession session, SettingsService settingsService, ConnectionMultiplexer redis, ILogger<VpsInstanceManager> logger, IConfiguration configuration, IUserApi userApi)
     {
         var mapping = new MappingConfiguration().Define(
             new Map<Instance>()
@@ -62,6 +64,7 @@ public class VpsInstanceManager
         });
         this.logger = logger;
         this.configuration = configuration;
+        this.userApi = userApi;
     }
 
     public void Connected(string ip)
@@ -350,6 +353,40 @@ public class VpsInstanceManager
             }
             return value?.ToString() ?? "";
         }
+    }
+
+    internal async Task ExtendVps(Instance instance)
+    {
+        var kind = instance.AppKind switch
+        {
+            "tpm+" => "vps+",
+            _ => "vps"
+        };
+        var currentTime = await userApi.UserUserIdOwnsProductSlugUntilGetAsync(instance.OwnerId, kind);
+        if (currentTime > DateTime.UtcNow)
+        {
+            throw new CoflnetException("already_extended", "The instance is not expired so you can't extend it yet");
+        }
+        try
+        {
+            await userApi.UserUserIdServicePurchaseProductSlugPostAsync(instance.OwnerId, kind, instance.Id.ToString().Split('-').Last() + DateTime.UtcNow.ToString("-yyyyMMdd"), 1);
+        }
+        catch (Payments.Client.Client.ApiException ex)
+        {
+            if (ex.Message.Contains("already purchased"))
+            {
+                throw new CoflnetException("already_purchased", "You already purchased/extended this instance, can only be done once a day");
+            }
+            if (ex.Message.Contains("insuficcient balance"))
+            {
+                throw new CoflnetException("not_enough_coins", "You don't have enough CoflCoins to extend this instance, you can get some at sky.coflnet.com/premium");
+            }
+            throw;
+        }
+        var time = await userApi.UserUserIdOwnsProductSlugUntilGetAsync(instance.OwnerId, kind);
+        instance.PaidUntil = time;
+        await UpdateAndPublish(instance);
+        logger.LogInformation($"Extended instance {instance.Id} to {time}");
     }
 
     public class Root

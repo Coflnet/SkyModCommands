@@ -87,6 +87,13 @@ public class VpsController : ControllerBase
         Instance instance = await GetInstance(user, instanceId);
         await vpsInstanceManager.TurnOffVps(instance);
     }
+    [HttpPost("{user}/{instanceId}/extend")]
+    public async Task<Instance> Extend(string user, Guid instanceId)
+    {
+        Instance instance = await GetInstance(user, instanceId);
+        await vpsInstanceManager.ExtendVps(instance);
+        return instance;
+    }
     [HttpPost("{user}/{instanceId}/import")]
     public async Task Import(string user, Guid instanceId, [FromBody] string settings)
     {
