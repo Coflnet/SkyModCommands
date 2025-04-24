@@ -14,7 +14,8 @@ public class VpsCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        await socket.ReguirePremPlus();
+        if(!await socket.ReguirePremPlus())
+            return;
         var service = socket.GetService<VpsInstanceManager>();
         var args = Convert<string>(arguments).Split(' ');
         switch (args[0].ToLower())
