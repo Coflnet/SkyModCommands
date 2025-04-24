@@ -113,7 +113,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var profile = await context.Players.FindAsync(socket.SessionInfo.McUuid);
             activeAuctionCount = await context.Auctions.Where(a => a.SellerId == profile.Id && a.End > DateTime.UtcNow).CountAsync();
         }
-        if (listSpace - activeAuctionCount <= 2)
+        if (listSpace <= 2)
         {
             await UpdateListSpace(span);
         }
