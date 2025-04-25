@@ -119,6 +119,10 @@ public class VpsInstanceManager
                 ?? throw new CoflnetException("invalid_settings", "The settings are invalid");
             await UpdateVpsConfig(instance, parsed);
         }
+        catch (JsonSerializationException e)
+        {
+            throw new CoflnetException("invalid_settings", "Settings are not valid format: " + e.Message);
+        }
         catch (JsonReaderException e)
         {
             throw new CoflnetException("invalid_settings", "Settings are not valid format: " + e.Message);
