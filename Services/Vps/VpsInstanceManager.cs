@@ -112,9 +112,17 @@ public class VpsInstanceManager
 
     public async Task ImportSettings(Instance instance, string settings)
     {
-        var parsed = JsonConvert.DeserializeObject<TPM.Config>(settings)
-            ?? throw new CoflnetException("invalid_settings", "The settings are invalid");
-        await UpdateVpsConfig(instance, parsed);
+        try
+        {
+
+            var parsed = JsonConvert.DeserializeObject<TPM.Config>(settings)
+                ?? throw new CoflnetException("invalid_settings", "The settings are invalid");
+            await UpdateVpsConfig(instance, parsed);
+        }
+        catch (JsonReaderException e)
+        {
+            throw new CoflnetException("invalid_settings", "Settings are not valid format: " + e.Message);
+        }
     }
 
     public Dictionary<string, SettingsUpdater.SettingDoc> SettingOptions()

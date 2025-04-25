@@ -77,6 +77,7 @@ public class VpsCommand : McCommand
 
     private async Task Reassign(MinecraftSocket socket, VpsInstanceManager service, string[] args)
     {
+        socket.Dialog(db => db.MsgLine($"Calculating the best server", null, "The best server is the one with \nthe lowest ping and fewest other users"));
         var instance = await GetTargetVps(socket, service, args);
         await service.ReassignVps(instance);
         socket.Dialog(db => db.MsgLine($"Reassigned to host {instance.HostMachineIp.Split('.').Last()}"));
