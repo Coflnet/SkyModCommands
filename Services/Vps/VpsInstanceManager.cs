@@ -238,6 +238,10 @@ public class VpsInstanceManager
         }
         instance.Context.Remove("turnedOff");
         await UpdateAndPublish(instance);
+        if (!activeInstances.TryGetValue(instance.HostMachineIp, out var hostContact) || hostContact < DateTime.UtcNow.AddMinutes(-10))
+        {
+            await ReassignVps(instance);
+        }
     }
 
     internal async Task<IEnumerable<string>> GetVpsLog(Instance instance, DateTimeOffset from, DateTimeOffset to)
