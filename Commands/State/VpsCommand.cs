@@ -14,7 +14,7 @@ public class VpsCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        if(!await socket.ReguirePremPlus())
+        if (!await socket.ReguirePremPlus())
             return;
         var service = socket.GetService<VpsInstanceManager>();
         var args = Convert<string>(arguments).Split(' ');
@@ -71,8 +71,23 @@ public class VpsCommand : McCommand
     private async Task Extend(MinecraftSocket socket, VpsInstanceManager service, string[] args)
     {
         var instance = await GetTargetVps(socket, service, args);
-        instance.PaidUntil = DateTime.UtcNow.AddDays(1);
-        await service.UpdateInstance(instance);
+        if (instance.CreatedAt > DateTime.UtcNow.AddDays(-1.5))
+        {
+            instance.PaidUntil = DateTime.UtcNow.AddDays(1);
+            await service.UpdateInstance(instance);
+            return;
+        }
+        if (args.Length < 3 || args[2] != socket.SessionInfo.SessionId)
+        {
+            var cost = instance.AppKind switch
+            {
+                "tpm+" => 5100,
+                _ => 2700
+            };
+            socket.Dialog(db => db.MsgLine($"To confirm that you want to extend the server for 30 days for {cost} CoflCoins, click ").CoflCommandButton<VpsCommand>("here", $"extend {instance.Id} " + socket.SessionInfo.SessionId, "confirm"));
+            return;
+        }
+        await service.ExtendVps(instance);
     }
 
     private async Task Reassign(MinecraftSocket socket, VpsInstanceManager service, string[] args)

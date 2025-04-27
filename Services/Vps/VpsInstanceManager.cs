@@ -396,7 +396,7 @@ public class VpsInstanceManager
         {
             if (ex.Message.Contains("already purchased"))
             {
-                throw new CoflnetException("already_purchased", "You already purchased/extended this instance, can only be done once a day");
+                throw new CoflnetException("already_purchased", "You already extended this instance, can only be done once a day");
             }
             if (ex.Message.Contains("insuficcient balance"))
             {
