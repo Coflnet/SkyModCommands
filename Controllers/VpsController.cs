@@ -66,6 +66,13 @@ public class VpsController : ControllerBase
         await vpsInstanceManager.UpdateSetting(user, request.Setting, request.Value, instance);
     }
 
+    [HttpPost("{user}/{instanceId}/reassign")]
+    public async Task Reassign(string user, Guid instanceId)
+    {
+        Instance instance = await GetInstance(user, instanceId);
+        await vpsInstanceManager.ReassignVps(instance);
+    }
+
     private async Task<Instance> GetInstance(string user, Guid instanceId)
     {
         var instances = await vpsInstanceManager.GetVpsForUser(user);
