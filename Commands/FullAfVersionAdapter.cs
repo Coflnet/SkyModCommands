@@ -93,6 +93,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var uuid = GetUuid(inventoryRepresent);
 
             using var listingSpan = socket.CreateActivity("listAuction", span);
+            listingSpan?.SetTag("uuid", uuid);
             listingSpan.Log(JsonConvert.SerializeObject(item));
             var marketBased = toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid).Select(x => Math.Min(x.Second.Median, x.Second.Lbin.Price)).FirstOrDefault();
             var targetPrice = Math.Max(item.TargetPrice, marketBased * 0.95);
