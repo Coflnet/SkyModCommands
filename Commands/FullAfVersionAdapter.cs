@@ -238,57 +238,78 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid))
                 continue; // ignore recently sent they are handled by the loop above
             // get target 
-            var storedEstimate = socket.GetService<IPriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
-            var flips = await GetFlipData(await GetItemPurchases(apiService, uuid));
-            var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
             using var listingSpan = socket.CreateActivity("listAuction", span);
-            if (flips.Count == 0)
+            (bool abort, double target) = await GetPrice(apiService, item, uuid, listingSpan);
+            if (!abort)
             {
-                if (!socket.SessionInfo.SellAll)
-                {
-                    Activity.Current?.SetTag("state", "no sent flips").Log(JsonConvert.SerializeObject(item.First));
-                    socket.Dialog(db => db.Msg($"Found unknown item in inventory: {item.First.ItemName} {item.First.Tag} {item.First.Uuid} could have been whitelisted, please manually remove it from inventory or execute {McColorCodes.AQUA}/cofl sellinventory"));
-                    continue;
-                }
-                listingSpan.Log($"keys:{item.Second.MedianKey}\n{item.Second.ItemKey}");
-                target = item.Second.Median;
-            }
-            else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-2)))
-            {
-                // all are more recent than a day, still usable
-                target = flips.Where(f => (int)f.FinderType < 100 && IsFinderEnabled(f))
-                        .Select(f => f.TargetPrice).DefaultIfEmpty((int)flips.Select(f => f.TargetPrice).Average()).Average();
-                listingSpan.Log($"Found {flips.Count} flips for average price {target}");
-            }
-            var stored = await storedEstimate;
-            if (stored < 0)
-            {
-                listingSpan.Log($"Stored price for {item.First.ItemName} was {target}");
-                if (!socket.SessionInfo.SellAll)
-                    continue;
-                var foundReason = stored == -1 ? "found by USER finder" : "marked with not list filter";
-                socket.Dialog(db => db.Msg($"Because you executed {McColorCodes.AQUA}/cofl sellinventory{McColorCodes.GRAY} item {item.First.ItemName} {foundReason} will be sold at market price"));
-            }
-            if (stored > 1_000_000)
-            {
-                listingSpan.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored} instead of {target}");
-                target = stored;
-            }
-            // list at least at 90% of median
-            target = Math.Max(target, item.Second.Median * 0.9);
-
-            if (socket.Settings.ModSettings.QuickSell)
-            {
-                target = SniperClient.InstaSellPrice(item.Second).Item1 * (item.Second.Volume > 5 ? 1 : 0.98);
-                socket.Dialog(db => db.MsgLine($"{McColorCodes.DARK_RED} [QuickSelling] {McColorCodes.GRAY} {item.First.ItemName} {McColorCodes.GRAY} for {McColorCodes.GOLD} {target}.")
-                    .MsgLine($"{McColorCodes.GRAY}Might be undervalued use {McColorCodes.AQUA}/cofl set quicksell false{McColorCodes.GRAY} to disable"));
-                await Task.Delay(2000);
-                if (!socket.Settings.ModSettings.QuickSell)
-                    continue;
+                continue;
             }
             await SendListing(listingSpan, item.First, (long)target, index, uuid);
             listed++;
         }
+    }
+
+    private async Task<(bool flowControl, double value)> GetPrice(IPlayerApi apiService, (SaveAuction First, Sniper.Client.Model.PriceEstimate Second) item, string uuid, Activity listingSpan)
+    {
+        var storedEstimate = socket.GetService<IPriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
+        var flips = await GetFlipData(await GetItemPurchases(apiService, uuid));
+        var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
+        if (flips.Count == 0)
+        {
+            if (!socket.SessionInfo.SellAll)
+            {
+                Activity.Current?.SetTag("state", "no sent flips").Log(JsonConvert.SerializeObject(item.First));
+                socket.Dialog(db => db.Msg($"Found unknown item in inventory: {item.First.ItemName} {item.First.Tag} {item.First.Uuid} could have been whitelisted, please manually remove it from inventory or execute {McColorCodes.AQUA}/cofl sellinventory"));
+                return (flowControl: false, value: default);
+            }
+            listingSpan.Log($"keys:{item.Second.MedianKey}\n{item.Second.ItemKey}");
+            target = item.Second.Median;
+        }
+        else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-2)))
+        {
+            // all are more recent than a day, still usable
+            target = flips.Where(f => (int)f.FinderType < 100 && IsFinderEnabled(f))
+                    .Select(f => f.TargetPrice).DefaultIfEmpty((int)flips.Select(f => f.TargetPrice).Average()).Average();
+            listingSpan.Log($"Found {flips.Count} flips for average price {target}");
+        }
+        var checkFilters = new Dictionary<string, string>() {
+                { "UId", uuid },
+                { "EndAfter", (DateTime.UtcNow - TimeSpan.FromDays(4)).ToUnix().ToString() } };
+        var sellAttempts = await apiService.ApiPlayerPlayerUuidAuctionsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
+        var stored = await storedEstimate;
+        if (stored < 0)
+        {
+            listingSpan.Log($"Stored price for {item.First.ItemName} was {target}");
+            if (!socket.SessionInfo.SellAll)
+                return (flowControl: false, value: default);
+            var foundReason = stored == -1 ? "found by USER finder" : "marked with not list filter";
+            socket.Dialog(db => db.Msg($"Because you executed {McColorCodes.AQUA}/cofl sellinventory{McColorCodes.GRAY} item {item.First.ItemName} {foundReason} will be sold at market price"));
+        }
+        if (stored > 1_000_000)
+        {
+            listingSpan.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored} instead of {target}");
+            target = stored;
+            if (sellAttempts.Count > 0)
+            {
+                var reduction = Math.Max(0.5, 1 - ((double)sellAttempts.Count / 12));
+                listingSpan.Log($"Found {sellAttempts.Count} attempts to sell, reducing target by {reduction}");
+                target *= reduction;
+            }
+        }
+        // list at least at 90% of median
+        target = Math.Max(target, item.Second.Median * 0.9);
+
+        if (socket.Settings.ModSettings.QuickSell)
+        {
+            target = SniperClient.InstaSellPrice(item.Second).Item1 * (item.Second.Volume > 5 ? 1 : 0.98);
+            socket.Dialog(db => db.MsgLine($"{McColorCodes.DARK_RED} [QuickSelling] {McColorCodes.GRAY} {item.First.ItemName} {McColorCodes.GRAY} for {McColorCodes.GOLD} {target}.")
+                .MsgLine($"{McColorCodes.GRAY}Might be undervalued use {McColorCodes.AQUA}/cofl set quicksell false{McColorCodes.GRAY} to disable"));
+            await Task.Delay(2000);
+            if (!socket.Settings.ModSettings.QuickSell)
+                return (flowControl: false, value: default);
+        }
+
+        return (flowControl: true, value: default);
     }
 
     private bool IsFinderEnabled(Flip f)
