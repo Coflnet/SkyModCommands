@@ -408,6 +408,11 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var listTime = socket.Settings?.ModSettings?.AhListTimeTarget;
         if (listTime == 0)
             listTime = null;
+        if(sellPrice == 0)
+        {
+            socket.Error(new(), "Price is 0, skipping listing");
+            return;
+        }
         socket.Send(Response.Create("createAuction", new
         {
             Slot = index,
