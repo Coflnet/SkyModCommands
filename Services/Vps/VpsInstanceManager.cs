@@ -418,6 +418,14 @@ public class VpsInstanceManager
             });
     }
 
+    internal async Task<string> ExportSettings(Instance instance)
+    {
+        var configValue = await GetVpsConfig(instance.OwnerId);
+        configValue.session = null;
+        var serialized = JsonConvert.SerializeObject(configValue);
+        return serialized;
+    }
+
     public class Root
     {
         [JsonPropertyName("status")]

@@ -108,6 +108,13 @@ public class VpsController : ControllerBase
         await vpsInstanceManager.ImportSettings(instance, settings);
     }
 
+    [HttpGet("{user}/{instanceId}/export")]
+    public async Task<string> Export(string user, Guid instanceId)
+    {
+        Instance instance = await GetInstance(user, instanceId);
+        return await vpsInstanceManager.ExportSettings(instance);
+    }
+
     public class VpsSettingUpdateRequest
     {
         public string Setting { get; set; }
