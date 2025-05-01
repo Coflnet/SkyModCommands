@@ -426,6 +426,21 @@ public class VpsInstanceManager
         return serialized;
     }
 
+    internal async Task SetPublicIp(Instance instance, string ip)
+    {
+        var parts = ip.Split(':');
+        if (parts.Length != 2 || !System.Net.IPAddress.TryParse(parts[0], out _) || !int.TryParse(parts[1], out var port) || port < 1 || port > 65535)
+        {
+            throw new CoflnetException("invalid_proxy_format", "The provided address is not a valid ip:port format for a SOCKS5 proxy.");
+        }
+
+        // Further validation could involve attempting a connection, but that's complex.
+        // For now, we assume format validation is sufficient.
+        instance.PublicIp = ip;
+        await UpdateAndPublish(instance);
+        logger.LogInformation($"Set public IP for instance {instance.Id} to {ip}");
+    }
+
     public class Root
     {
         [JsonPropertyName("status")]

@@ -115,6 +115,14 @@ public class VpsController : ControllerBase
         return await vpsInstanceManager.ExportSettings(instance);
     }
 
+    [HttpPost("{user}/{instanceId}/publicIp")]
+    public async Task<string> SetPublicIp(string user, Guid instanceId, [FromBody] string ip)
+    {
+        Instance instance = await GetInstance(user, instanceId);
+        await vpsInstanceManager.SetPublicIp(instance, ip);
+        return ip;
+    }
+
     public class VpsSettingUpdateRequest
     {
         public string Setting { get; set; }
