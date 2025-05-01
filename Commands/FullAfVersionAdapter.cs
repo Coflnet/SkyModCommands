@@ -100,7 +100,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var stored = await socket.GetService<IPriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
             if (stored < 0)
                 continue; // user finder/do not relist
-            await SendListing(span, item.Auction, (long)targetPrice, index, uuid);
+            await SendListing(listingSpan, item.Auction, (long)targetPrice, index, uuid);
             return; // created listing
         }
         span.Log($"Checking sellable {toList.Count()} total {inventory.Count}. Space {listSpace} active {activeAuctionCount}");
@@ -410,7 +410,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             listTime = null;
         if(sellPrice == 0)
         {
-            socket.Error(new(), "Price is 0, skipping listing");
+            socket.Error(new(), "Price is 0, skipping listing, og: " + price, JsonConvert.SerializeObject(auction));
             return;
         }
         socket.Send(Response.Create("createAuction", new
