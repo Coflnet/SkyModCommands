@@ -310,7 +310,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 return (flowControl: false, value: default);
         }
 
-        return (flowControl: true, value: default);
+        return (flowControl: true, value: target);
     }
 
     private bool IsFinderEnabled(Flip f)
