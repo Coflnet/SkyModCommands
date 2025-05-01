@@ -378,6 +378,8 @@ public class VpsInstanceManager
 
     internal async Task ExtendVps(Instance instance)
     {
+        // checks that there is a server available
+        await GetAvailableServer();
         var kind = instance.AppKind switch
         {
             "tpm+" => "vps+",
