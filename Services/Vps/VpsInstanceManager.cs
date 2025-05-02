@@ -443,6 +443,13 @@ public class VpsInstanceManager
         logger.LogInformation($"Set public IP for instance {instance.Id} to {ip}");
     }
 
+    internal async Task<Dictionary<string, IEnumerable<Guid>>> GetIpGroups()
+    {
+        var allActive = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow).ToList();
+        var grouped = allActive.GroupBy(v => v.PublicIp == null ? v.HostMachineIp : v.PublicIp).ToDictionary(g => g.Key, g => g.Select(s => s.Id));
+        return grouped;
+    }
+
     public class Root
     {
         [JsonPropertyName("status")]

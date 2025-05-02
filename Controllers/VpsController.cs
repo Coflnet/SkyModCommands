@@ -123,6 +123,12 @@ public class VpsController : ControllerBase
         return ip;
     }
 
+    [HttpGet("ipGroups")]
+    public async Task<Dictionary<string,IEnumerable<Guid>>> GetIpGroups()
+    {
+        return await vpsInstanceManager.GetIpGroups();
+    }
+
     public class VpsSettingUpdateRequest
     {
         public string Setting { get; set; }
