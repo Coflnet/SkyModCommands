@@ -238,6 +238,12 @@ public class VpsInstanceManager
         {
             throw new CoflnetException("expired", "The instance has expired, please renew it");
         }
+        var activeOnServer = (await vpsTable.Where(v => v.HostMachineIp == instance.HostMachineIp).ExecuteAsync()).Where(v=>v.PaidUntil > DateTime.UtcNow && !v.Context.ContainsKey("turnedOff") && v.Id != instance.Id).ToList();
+        if (activeOnServer.Count >= 3)
+        {
+            // to many on one server try to reassign
+            await ReassignVps(instance);
+        }
         instance.Context.Remove("turnedOff");
         await UpdateAndPublish(instance);
         if (!activeInstances.TryGetValue(instance.HostMachineIp, out var hostContact) || hostContact < DateTime.UtcNow.AddMinutes(-10))
@@ -303,7 +309,7 @@ public class VpsInstanceManager
             throw new CoflnetException("no_active_instances", "There are no active hosts available, please try again later");
         }
         var active = grouped.GetValueOrDefault(putOn);
-        if (active.running >= 3 || active.total >= 5)
+        if (active.running >= 3)
         {
             throw new CoflnetException("too_many_instances", "It looks like we are out of servers to put you on. Thanks for your interest but we currently can't provide an instance to you, but please check back tomorrow");
         }
