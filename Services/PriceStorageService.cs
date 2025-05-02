@@ -42,7 +42,7 @@ public class PriceStorageService : IPriceStorageService
         try
         {
             var res = table.Where(x => x.Uuid == Guid.Empty && x.PlayerUuid == Guid.Empty).Select(x => x.Value).FirstOrDefault().Execute();
-            if(res == 0)
+            if (res == 0)
                 throw new Exception("Empty");
         }
         catch (System.Exception e)
@@ -74,17 +74,21 @@ public class PriceStorageService : IPriceStorageService
     public async Task SetPrice(Guid playerUuid, Guid uuid, long value)
     {
         var storageTime = 48 * 60 * 60;
-        if(value < 0)
+        if (value < 0)
             storageTime *= 7;
         var exiting = await table.Where(x => x.Uuid == uuid && x.PlayerUuid == playerUuid)
             .FirstOrDefault().ExecuteAsync();
-        if(exiting.Value > value)
+        if (exiting.Value > value)
         {
             logger.LogInformation($"Price for {uuid} is already higher than {value}, not updating for {playerUuid}");
             return;
         }
+        var insert = table.Insert(new PriceEstimateValue() { Uuid = uuid, PlayerUuid = playerUuid, Value = value });
         // insert with ttl 48h
-            await table.Insert(new PriceEstimateValue() { Uuid = uuid, PlayerUuid = playerUuid, Value = value }).SetTTL(storageTime).ExecuteAsync();
+        insert.SetTTL(storageTime);
+        // move higher estimations later to override lower "earlier" ones
+        insert.SetTimestamp(DateTime.UtcNow.AddSeconds(value / 5_000_000));
+        await insert.ExecuteAsync();
         Activity.Current?.Log($"Set price for {uuid} to {value}");
     }
 }
