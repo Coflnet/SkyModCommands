@@ -240,7 +240,7 @@ public class VpsInstanceManager
         }
         var activeOnServer = (await vpsTable.Where(v => v.HostMachineIp == instance.HostMachineIp).ExecuteAsync())
             .Where(v=>v.PaidUntil > DateTime.UtcNow && !v.Context.ContainsKey("turnedOff") && v.Id != instance.Id && v.PublicIp == null).ToList();
-        if (activeOnServer.Count >= 3)
+        if (instance.PublicIp == null && activeOnServer.Count >= 3)
         {
             // to many on one server try to reassign
             await ReassignVps(instance);
