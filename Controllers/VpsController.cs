@@ -124,7 +124,7 @@ public class VpsController : ControllerBase
     }
 
     [HttpGet("ipGroups")]
-    public async Task<Dictionary<string,IEnumerable<Guid>>> GetIpGroups()
+    public async Task<Dictionary<string,IEnumerable<string>>> GetIpGroups()
     {
         return await vpsInstanceManager.GetIpGroups();
     }

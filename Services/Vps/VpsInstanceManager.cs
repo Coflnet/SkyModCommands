@@ -71,7 +71,7 @@ public class VpsInstanceManager
 
     public void Connected(string ip)
     {
-        if(ip == "1.1.1.1")
+        if (ip == "1.1.1.1")
             return; // test server
         var conSate = redis.GetSubscriber().Publish(RedisChannel.Literal("vps:connected"), ip);
         var received = redis.GetSubscriber().Publish(RedisChannel.Literal("vps:state"), JsonConvert.SerializeObject(new VPsStateUpdate()));
@@ -430,9 +430,9 @@ public class VpsInstanceManager
 
     internal async Task SetPublicIp(Instance instance, string ip)
     {
-        if (!System.Net.IPAddress.TryParse(ip, out _) )
+        if (!System.Net.IPAddress.TryParse(ip, out _))
         {
-            throw new CoflnetException("invalid_proxy_format", "The provided address is not a valid ip:port format for a SOCKS5 proxy.");
+            throw new CoflnetException("invalid_proxy_format", "The provided address is not a valid ip format for a SOCKS5 proxy.");
         }
 
         // Further validation could involve attempting a connection, but that's complex.
@@ -442,10 +442,10 @@ public class VpsInstanceManager
         logger.LogInformation($"Set public IP for instance {instance.Id} to {ip}");
     }
 
-    internal async Task<Dictionary<string, IEnumerable<Guid>>> GetIpGroups()
+    internal async Task<Dictionary<string, IEnumerable<string>>> GetIpGroups()
     {
         var allActive = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow).ToList();
-        var grouped = allActive.GroupBy(v => v.PublicIp == null ? v.HostMachineIp : v.PublicIp).ToDictionary(g => g.Key, g => g.Select(s => s.Id));
+        var grouped = allActive.GroupBy(v => v.PublicIp == null ? v.HostMachineIp : v.PublicIp).ToDictionary(g => g.Key, g => g.Select(s => $"{s.Id}/{(s.Context.ContainsKey("turnedOff") ? "Off" : "running")}/{s.PaidUntil}/{s.OwnerId}"));
         return grouped;
     }
 
