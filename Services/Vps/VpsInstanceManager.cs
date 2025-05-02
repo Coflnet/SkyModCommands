@@ -430,8 +430,7 @@ public class VpsInstanceManager
 
     internal async Task SetPublicIp(Instance instance, string ip)
     {
-        var parts = ip.Split(':');
-        if (parts.Length != 2 || !System.Net.IPAddress.TryParse(parts[0], out _) || !int.TryParse(parts[1], out var port) || port < 1 || port > 65535)
+        if (!System.Net.IPAddress.TryParse(ip, out _) )
         {
             throw new CoflnetException("invalid_proxy_format", "The provided address is not a valid ip:port format for a SOCKS5 proxy.");
         }
