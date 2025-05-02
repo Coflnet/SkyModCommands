@@ -294,7 +294,7 @@ public class VpsInstanceManager
     public async Task<string> GetAvailableServer()
     {
         var allActive = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow).ToList();
-        var grouped = allActive.GroupBy(v => v.HostMachineIp).ToDictionary(g => g.Key, g => (total: g.Count(), running: g.Count(s => !s.Context.ContainsKey("turnedOff"))));
+        var grouped = allActive.GroupBy(v => v.HostMachineIp).ToDictionary(g => g.Key, g => (total: g.Count(), running: g.Count(s => !s.Context.ContainsKey("turnedOff") && s.PublicIp == null)));
         var putOn = activeInstances.Where(a => a.Value > DateTime.UtcNow.AddMinutes(-50))
                 .OrderBy(v => grouped.GetValueOrDefault(v.Key).running) // least other instances
                 .Select(a => a.Key).FirstOrDefault();
