@@ -306,6 +306,7 @@ public class VpsInstanceManager
                 .Select(a => a.Key).FirstOrDefault();
         if (putOn == null)
         {
+            logger.LogError("No active instances available {active}", JsonConvert.SerializeObject(activeInstances));
             throw new CoflnetException("no_active_instances", "There are no active hosts available, please try again later");
         }
         var active = grouped.GetValueOrDefault(putOn);
