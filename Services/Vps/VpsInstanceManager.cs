@@ -87,7 +87,7 @@ public class VpsInstanceManager
         }
         if (activeInstances.Count == 0)
         {
-            throw new CoflnetException("no_active_instances", "There are no active hosts available, please try again later");
+            throw new CoflnetException("no_active_instances", "There are no active hosts available, please try again later!");
         }
         var putOn = await GetAvailableServer();
         if (instance.Id == Guid.Empty)
@@ -393,9 +393,9 @@ public class VpsInstanceManager
             _ => "vps"
         };
         var currentTime = await userApi.UserUserIdOwnsProductSlugUntilGetAsync(instance.OwnerId, kind);
-        if (currentTime > DateTime.UtcNow)
+        if (currentTime > DateTime.UtcNow.AddDays(20))
         {
-            throw new CoflnetException("already_extended", "The instance is not expired so you can't extend it yet");
+            throw new CoflnetException("already_extended", "The instance has more than 20 days left so you can't extend it yet");
         }
         try
         {
