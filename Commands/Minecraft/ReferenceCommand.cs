@@ -131,7 +131,7 @@ namespace Coflnet.Sky.Commands.MC
                     {
 
                         if (!string.IsNullOrEmpty(item))
-                            references.Add(await AuctionService.Instance.GetAuctionAsync(item));
+                            references.Add(await AuctionService.Instance.GetAuctionAsync(AuctionService.Instance.GetUuid(long.Parse(item))));
                     }
                     catch (Exception e)
                     {
