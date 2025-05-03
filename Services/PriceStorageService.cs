@@ -78,7 +78,7 @@ public class PriceStorageService : IPriceStorageService
             storageTime *= 7;
         var exiting = await table.Where(x => x.Uuid == uuid && x.PlayerUuid == playerUuid)
             .FirstOrDefault().ExecuteAsync();
-        if (exiting.Value > value)
+        if (exiting?.Value > value)
         {
             logger.LogInformation($"Price for {uuid} is already higher than {value}, not updating for {playerUuid}");
             return;
