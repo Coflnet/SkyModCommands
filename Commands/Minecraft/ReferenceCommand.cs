@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Sniper.Client.Api;
@@ -129,9 +130,15 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     try
                     {
-
-                        if (!string.IsNullOrEmpty(item))
-                            references.Add(await AuctionService.Instance.GetAuctionAsync(AuctionService.Instance.GetUuid(long.Parse(item))));
+                        if (string.IsNullOrEmpty(item))
+                            continue;
+                        var auction = await AuctionService.Instance.GetAuctionAsync(item);
+                        if (auction == null)
+                        {
+                            socket.Log($"Auction {item} not found", Microsoft.Extensions.Logging.LogLevel.Error);
+                            continue;
+                        }
+                        references.Add(auction);
                     }
                     catch (Exception e)
                     {
@@ -149,8 +156,6 @@ namespace Coflnet.Sky.Commands.MC
             parts.AddRange(references.SelectMany(r =>
             {
                 return RefreshReference(socket, r);
-
-
             }
             ));
             if (flip.Finder == LowPricedAuction.FinderType.SNIPER && !string.IsNullOrEmpty(referenceId))
