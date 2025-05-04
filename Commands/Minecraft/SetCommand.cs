@@ -97,7 +97,8 @@ public class SetCommand : McCommand
             Kind = UpdateMessage.UpdateKind.Setting,
             Settings = new()
             {
-                DisableTradeTracking = socket.sessionLifesycle.PrivacySettings.Value.DisableTradeStoring
+                DisableTradeTracking = socket.sessionLifesycle.PrivacySettings.Value.DisableTradeStoring,
+                DisableKuudraTracking = socket.sessionLifesycle.PrivacySettings.Value.DisableKuudraTracking,
             },
             UserId = socket.UserId
         });
