@@ -55,9 +55,10 @@ public class SwitchRegionCommand : McCommand
         return;
     }
 
+    private static readonly string MainUs = "sky-us";
     public static async Task TryToConnect(MinecraftSocket socket)
     {
-        var tobeUsed = "sky-us";
+        var tobeUsed = MainUs;
         var clientIp = socket.ClientIp;
         var vultrChicagoPrefixes = new List<string> {
             "45.63.",
@@ -88,6 +89,13 @@ public class SwitchRegionCommand : McCommand
             socket.ExecuteCommand($"/cofl connect ws://{tobeUsed}.coflnet.com/modsocket");
             return;
         }
+        if(tobeUsed != MainUs && await CheckReachable(MainUs))
+        {
+            socket.Dialog(db => db.MsgLine("Switching to us server"));
+            socket.ExecuteCommand($"/cofl connect ws://{MainUs}.coflnet.com/modsocket");
+            return;
+        }
+
         socket.Dialog(db => db.MsgLine("US server seems to be currently not reachable :(").MsgLine("We are probably trying to get them online again, you stay connected to eu in the meantime, sorry"));
 
     }
