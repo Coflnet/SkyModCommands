@@ -201,7 +201,7 @@ namespace Coflnet.Sky.Commands.MC
                 Tier.UNCOMMON => "§a",
                 Tier.RARE => "§9",
                 Tier.SPECIAL => "§c",
-                Tier.SUPREME => "§4",
+                Tier.DIVINE => "§4",
                 Tier.VERY_SPECIAL => "§4",
                 Tier.LEGENDARY => "§6",
                 Tier.MYTHIC => "§d",
