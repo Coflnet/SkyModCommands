@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Sky.Commands.Shared;
@@ -123,11 +124,15 @@ public class AccountTierManager : IAccountTierManager
         var licenseSettingsTask = socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(userId, "licenses", () => new LicenseSetting());
         (AccountTier, DateTime) expires;
         if (expiresAt < DateTime.UtcNow.AddMinutes(5) || force)
-            expires = await userApi.GetCurrentTier(userId);
-        else
         {
-            expires = (lastTier ?? AccountTier.NONE, expiresAt);
+            var response = await userApi.GetCurrentTier(userId);
+            if (response.Item1 == null)
+                expires = (socket.AccountInfo.Tier, socket.AccountInfo.ExpiresAt);
+            else
+                expires = (response.Item1 ?? socket.AccountInfo.Tier, response.Item2);
         }
+        else
+            expires = (lastTier ?? AccountTier.NONE, expiresAt);
         if (activeSessions?.Value == null)
         {
             Console.WriteLine($"No active sessions for {socket.SessionInfo.McUuid} {userId}");
