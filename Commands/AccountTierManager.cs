@@ -240,7 +240,7 @@ public class AccountTierManager : IAccountTierManager
             {
                 var tierFor = await userApi.GetCurrentTier($"{userId}#{matchingNewLicense.VirtualId}");
                 matchingNewLicense.Expires = tierFor.Item2;
-                matchingNewLicense.Tier = tierFor.Item1;
+                matchingNewLicense.Tier = tierFor.Item1 ?? AccountTier.NONE;
                 if (ExpiresAt > DateTime.UtcNow + TimeSpan.FromMinutes(10))
                     await socket.GetService<SettingsService>().UpdateSetting(userId, "licenses", licenseSettings);
             }

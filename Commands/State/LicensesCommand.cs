@@ -62,7 +62,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             {
                 var virtualId = $"{socket.UserId}#{item.VirtualId}";
                 var userTier = await socket.GetService<PremiumService>().GetCurrentTier(virtualId);
-                item.Tier = userTier.Item1;
+                item.Tier = userTier.Item1 ?? AccountTier.PREMIUM;
                 item.Expires = userTier.Item2;
             }
             await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", all);
@@ -238,7 +238,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
                         break;
                     await Task.Delay(2000); // wait for transaction to be processed
                     var userTier = await socket.GetService<PremiumService>().GetCurrentTier(virtualuser);
-                    usedLicense.Tier = userTier.Item1;
+                    usedLicense.Tier = userTier.Item1 ?? AccountTier.PREMIUM;
                     usedLicense.Expires = userTier.Item2;
                 }
                 await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", settings);
