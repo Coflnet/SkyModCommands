@@ -32,8 +32,9 @@ public class VpsInstanceManager
     private IConfiguration configuration;
     private IUserApi userApi;
     private ITopUpApi topUpApi;
+    private IdConverter idConverter;
 
-    public VpsInstanceManager(ISession session, SettingsService settingsService, ConnectionMultiplexer redis, ILogger<VpsInstanceManager> logger, IConfiguration configuration, IUserApi userApi, ITopUpApi topUpApi)
+    public VpsInstanceManager(ISession session, SettingsService settingsService, ConnectionMultiplexer redis, ILogger<VpsInstanceManager> logger, IConfiguration configuration, IUserApi userApi, ITopUpApi topUpApi, IdConverter idConverter)
     {
         var mapping = new MappingConfiguration().Define(
             new Map<Instance>()
@@ -67,6 +68,7 @@ public class VpsInstanceManager
         this.configuration = configuration;
         this.userApi = userApi;
         this.topUpApi = topUpApi;
+        this.idConverter = idConverter;
     }
 
     public void Connected(string ip)
@@ -76,6 +78,28 @@ public class VpsInstanceManager
         var conSate = redis.GetSubscriber().Publish(RedisChannel.Literal("vps:connected"), ip);
         var received = redis.GetSubscriber().Publish(RedisChannel.Literal("vps:state"), JsonConvert.SerializeObject(new VPsStateUpdate()));
         logger.LogInformation($"{received} connections received state - {conSate}");
+    }
+
+    public async Task<Instance> CreateVps(string userId, string mcName, string appKind)
+    {
+        var instance = new Instance
+        {
+            OwnerId = userId,
+            AppKind = appKind,
+            CreatedAt = DateTime.UtcNow,
+            PaidUntil = DateTime.UtcNow.AddDays(1),
+        };
+        var secret = Guid.NewGuid().ToString();
+        (_, var hashed) = idConverter.ComputeConnectionId(mcName, secret);
+        await AddVps(instance, new()
+        {
+            SessionId = secret,
+            UserName = mcName,
+        });
+        using var accountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => null);
+        accountInfo.Value.ConIds.Add(hashed); // auth that id
+        await accountInfo.Update();
+        return instance;
     }
 
     public async Task AddVps(Instance instance, CreateOptions options)

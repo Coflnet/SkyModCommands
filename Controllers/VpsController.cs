@@ -52,6 +52,13 @@ public class VpsController : ControllerBase
         return vpsInstanceManager.SettingOptions();
     }
 
+    [HttpPost]
+    public async Task<Instance> Create(string userId, [FromBody] VpsCreateRequest request)
+    {
+        var instance = await vpsInstanceManager.CreateVps(userId, request.mcName, request.AppKind);
+        return instance;
+    }
+
     [HttpGet("{user}/{instanceId}/settings")]
     public async Task<Dictionary<string, string>> GetUserSettings(string user, Guid instanceId)
     {
@@ -134,4 +141,10 @@ public class VpsController : ControllerBase
         public string Setting { get; set; }
         public string Value { get; set; }
     }
+}
+
+public class VpsCreateRequest
+{
+    public string AppKind { get; internal set; }
+    public string mcName { get; internal set; }
 }

@@ -205,25 +205,13 @@ public class VpsCommand : McCommand
     {
         if (args.Length < 2 || args[1] != "tpm+")
         {
-            socket.Dialog(db => db.MsgLine($"Usage: {McColorCodes.AQUA}/vps create tpm+"));
+            socket.Dialog(db => db.MsgLine($"Usage: {McColorCodes.AQUA}/cofl vps create tpm+"));
             return;
         }
-        var instance = new Instance
-        {
-            OwnerId = socket.UserId,
-            AppKind = args[1],
-            CreatedAt = DateTime.UtcNow,
-            PaidUntil = DateTime.UtcNow.AddDays(1),
-        };
-        var secret = Guid.NewGuid().ToString();
-        (_, var hashed) = socket.GetService<IdConverter>().ComputeConnectionId(socket.SessionInfo.McName, secret);
-        await service.AddVps(instance, new()
-        {
-            SessionId = secret,
-            UserName = socket.SessionInfo.McName,
-        });
-        socket.AccountInfo.ConIds.Add(hashed); // auth that id
-        await socket.sessionLifesycle.AccountInfo.Update();
+        var userId = socket.UserId;
+        var userName = socket.SessionInfo.McName;
+        var kind = args[1];
+        var instance = await service.CreateVps(userId, userName, kind);
         socket.Dialog(db => db.MsgLine($"Created {McColorCodes.AQUA}{args[1]}{McColorCodes.RESET} instance with id {McColorCodes.AQUA}{instance.Id.ToString().TakeLast(3).Aggregate("", (s, c) => s + c)}{McColorCodes.RESET}")
             .MsgLine($"You can now use {McColorCodes.AQUA}/cofl vps turnOn{McColorCodes.RESET} to start it and manage it through discord"));
     }
