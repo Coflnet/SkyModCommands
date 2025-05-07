@@ -286,13 +286,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var foundReason = stored == -1 ? "found by USER finder" : "marked with not list filter";
             socket.Dialog(db => db.Msg($"Because you executed {McColorCodes.AQUA}/cofl sellinventory{McColorCodes.GRAY} item {item.First.ItemName} {foundReason} will be sold at market price"));
         }
-        if (stored > 1_000_000)
+        if (stored > 200_000)
         {
             listingSpan.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored} instead of {target}");
             target = stored;
             if (sellAttempts.Count > 0)
             {
-                var reduction = Math.Max(0.5, 1 - ((double)sellAttempts.Count / 12));
+                var reduction = Math.Max(0.4, 1 - ((double)sellAttempts.Count / 12));
                 listingSpan.Log($"Found {sellAttempts.Count} attempts to sell, reducing target by {reduction}");
                 target *= reduction;
             }
