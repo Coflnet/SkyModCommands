@@ -131,7 +131,7 @@ public class VpsController : ControllerBase
     }
 
     [HttpGet("ipGroups")]
-    public async Task<Dictionary<string,IEnumerable<string>>> GetIpGroups()
+    public async Task<Dictionary<string, IEnumerable<string>>> GetIpGroups()
     {
         return await vpsInstanceManager.GetIpGroups();
     }
@@ -145,6 +145,6 @@ public class VpsController : ControllerBase
 
 public class VpsCreateRequest
 {
-    public string AppKind { get; internal set; }
-    public string mcName { get; internal set; }
+    public string AppKind { get; set; }
+    public string mcName { get; set; }
 }
