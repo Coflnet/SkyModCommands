@@ -73,8 +73,8 @@ public class SellConfigCommand : ArgumentsCommand
             socket.SendMessage("Your config name is a number, this is probably an error and you meant to specify the price. Please correct the order of the arguments.");
             return;
         }
-        string key = GetKeyFromname(name);
         var settingsCopy = JsonConvert.DeserializeObject<FlipSettings>(JsonConvert.SerializeObject(socket.Settings));
+        string key = GetKeyFromname(name);
         RemoveBaseConfig(settingsCopy.WhiteList);
         RemoveBaseConfig(settingsCopy.BlackList);
         var config = new ConfigContainer()
@@ -89,7 +89,7 @@ public class SellConfigCommand : ArgumentsCommand
         };
         socket.Settings.PublishedAs = name;
         var configsCommand = MinecraftSocket.Commands.GetBy<ConfigsCommand>();
-        var table = configsCommand.GetTable(socket);
+        var table = configsCommand.GetTable();
         var all = (await table.ExecuteAsync()).ToList();
         if (all.Any(c => c.ConfigName == name && c.OwnerId != socket.UserId && c.OwnerName == socket.SessionInfo.McName))
         {
@@ -111,19 +111,7 @@ public class SellConfigCommand : ArgumentsCommand
                 .LineBreak()
                 .MsgLine($"§7{config.Price} CoflCoins"));
         }
-        var rating = await configsCommand.GetRatingOrDefault(table, name, new()
-        {
-            OwnerId = socket.UserId,
-            Name = name,
-            OwnerName = socket.SessionInfo.McName,
-            PricePaid = priceInt,
-        });
-        if (rating.OwnerName != socket.SessionInfo.McName)
-        {
-            rating.OwnerName = socket.SessionInfo.McName;
-        }
-        rating.LastUpdated = DateTime.UtcNow;
-        await table.Insert(rating).ExecuteAsync();
+        await UpdateConfigRating(socket.UserId, name, priceInt, socket.SessionInfo.McName);
         // add to own configs
         using var createdConfigs = await SelfUpdatingValue<CreatedConfigs>.Create(socket.UserId, "created_configs", () => new());
         createdConfigs.Value.Configs.Add(name);
@@ -148,6 +136,25 @@ public class SellConfigCommand : ArgumentsCommand
         await ownedConfigs.Update();
         socket.Settings.BlockExport = false;
         await socket.sessionLifesycle.FlipSettings.Update();
+    }
+
+    public static async Task UpdateConfigRating(string userId, string name, int priceInt, string mcName = null)
+    {
+        var configsCommand = MinecraftSocket.Commands.GetBy<ConfigsCommand>();
+        var table = configsCommand.GetTable();
+        var rating = await configsCommand.GetRatingOrDefault(table, name, new()
+        {
+            OwnerId = userId,
+            Name = name,
+            OwnerName = mcName,
+            PricePaid = priceInt,
+        });
+        if (rating.OwnerName != mcName && mcName != null)
+        {
+            rating.OwnerName = mcName;
+        }
+        rating.LastUpdated = DateTime.UtcNow;
+        await table.Insert(rating).ExecuteAsync();
     }
 
     private static async Task UpdateConfig(IMinecraftSocket socket, ConfigContainer config, SelfUpdatingValue<ConfigContainer> current)

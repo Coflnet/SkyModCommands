@@ -22,7 +22,7 @@ public class RemoveConfigCommand : ArgumentsCommand
             return;
         }
         var configsCommand = MinecraftSocket.Commands.GetBy<ConfigsCommand>();
-        var table = configsCommand.GetTable(socket);
+        var table = configsCommand.GetTable();
         var rating = await configsCommand.GetRatingOrDefault(table, name, new()
         {
             OwnerId = ownerId
@@ -32,7 +32,7 @@ public class RemoveConfigCommand : ArgumentsCommand
             socket.Dialog(db => db.Msg("You can't remove a config that has been voted on."));
             return;
         }
-        await ConfigsCommand.Delete(configsCommand.GetTable(socket), rating);
+        await ConfigsCommand.Delete(configsCommand.GetTable(), rating);
         string key = SellConfigCommand.GetKeyFromname(name);
         using var container = await SelfUpdatingValue<ConfigContainer>.Create(socket.UserId, key);
         var settingsService = socket.GetService<SettingsService>();

@@ -119,7 +119,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
 
     private async Task GiveRep(MinecraftSocket socket, string[] args)
     {
-        var table = GetTable(socket);
+        var table = GetTable();
         var targetConfig = await GetTargetRating(socket, args, table);
         if (targetConfig.Upvotes.Contains(socket.UserId))
         {
@@ -141,7 +141,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
 
     private async Task RemoveRep(MinecraftSocket socket, string[] args)
     {
-        var table = GetTable(socket);
+        var table = GetTable();
         var targetConfig = await GetTargetRating(socket, args, table);
         var targetConfigClone = targetConfig.Copy();
         if (targetConfig.Downvotes.Contains(socket.UserId))
@@ -281,7 +281,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         return targetConfig;
     }
 
-    public Table<ConfigRating> GetTable(IMinecraftSocket socket)
+    public Table<ConfigRating> GetTable()
     {
         var mapping = new MappingConfiguration().Define(
             new Map<ConfigRating>()
@@ -295,7 +295,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         );
 
         // drop table config_ratings
-        return new Table<ConfigRating>(socket.GetService<ISession>(), mapping);
+        return new Table<ConfigRating>(DiHandler.GetService<ISession>(), mapping);
     }
 
     protected override Task Help(MinecraftSocket socket, string subArgs)
@@ -321,7 +321,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
 
     protected override async Task<List<ConfigRating>> GetList(MinecraftSocket socket)
     {
-        var table = GetTable(socket);
+        var table = GetTable();
         var content = await table.Where(c => c.Type == "config").ExecuteAsync();
         return content.OrderByDescending(c => c.Rating).ToList();
     }
