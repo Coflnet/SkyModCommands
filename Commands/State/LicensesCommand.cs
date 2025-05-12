@@ -181,6 +181,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} useconfig <id> <config>{DEFAULT_COLOR} use a certain config", null, "with backup:name you can select configs from your backup")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} list{DEFAULT_COLOR} lists all licenses")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} default <userName>{DEFAULT_COLOR} switch mcName using account premium")
+            .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} refresh{DEFAULT_COLOR} refresh all licenses (time andtier)")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} help{DEFAULT_COLOR} display this help"));
         return Task.CompletedTask;
     }
