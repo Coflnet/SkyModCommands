@@ -418,9 +418,11 @@ public class VpsInstanceManager
             _ => "vps"
         };
         var currentTime = await userApi.UserUserIdOwnsProductSlugUntilGetAsync(instance.OwnerId, kind);
-        if (currentTime > DateTime.UtcNow.AddDays(20))
+        if (currentTime > DateTime.UtcNow.AddDays(25))
         {
-            throw new CoflnetException("already_extended", "The instance has more than 20 days left so you can't extend it yet");
+            instance.PaidUntil = currentTime;
+            await UpdateAndPublish(instance);
+            throw new CoflnetException("already_extended", "The instance has more than 25 days left so you can't extend it yet");
         }
         try
         {
