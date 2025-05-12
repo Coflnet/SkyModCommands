@@ -56,20 +56,25 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         }
         if (command == "refresh")
         {
-            var all = await GetCurrentLicenses(socket);
             socket.Dialog(db => db.MsgLine("Refreshing all licenses (expire time)"));
-            foreach (var item in all.Licenses)
-            {
-                var virtualId = $"{socket.UserId}#{item.VirtualId}";
-                var userTier = await socket.GetService<PremiumService>().GetCurrentTier(virtualId);
-                item.Tier = userTier.Item1 ?? AccountTier.PREMIUM;
-                item.Expires = userTier.Item2;
-            }
-            await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", all);
+            await RefreshLicenseTime(socket);
             socket.Dialog(db => db.MsgLine("Refreshed all licenses"));
             return;
         }
         await Help(socket, stringArgs);
+    }
+
+    private static async Task RefreshLicenseTime(MinecraftSocket socket)
+    {
+        var all = await GetCurrentLicenses(socket);
+        foreach (var item in all.Licenses)
+        {
+            var virtualId = $"{socket.UserId}#{item.VirtualId}";
+            var userTier = await socket.GetService<PremiumService>().GetCurrentTier(virtualId);
+            item.Tier = userTier.Item1 ?? AccountTier.PREMIUM;
+            item.Expires = userTier.Item2;
+        }
+        await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", all);
     }
 
     private async Task SwitchConfigInUse(MinecraftSocket socket, string[] args)
@@ -338,6 +343,13 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             hoverText = $"Renew {McColorCodes.DARK_GREEN}{e.Tier} {McColorCodes.GRAY}for {McColorCodes.GREEN}{e.TargetName}";
         }
         FormatForList(d, e).MsgLine(displayText, $"/cofl {Slug} add {e.UseOnAccount} {e.Tier}", hoverText);
+    }
+
+    protected override async Task List(MinecraftSocket socket, string subArgs)
+    {
+        await base.List(socket, subArgs);
+        // to avoid desyncing issues from the payment system refresh it every time
+        await RefreshLicenseTime(socket);
     }
 
     protected override string GetId(PublicLicenseWithName elem)
