@@ -11,6 +11,7 @@ using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Coflnet.Payments.Client.Api;
+using Coflnet.Sky.Commands;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Microsoft.Extensions.Configuration;
@@ -263,7 +264,7 @@ public class VpsInstanceManager
             throw new CoflnetException("expired", "The instance has expired, please renew it");
         }
         var activeOnServer = (await vpsTable.Where(v => v.HostMachineIp == instance.HostMachineIp).ExecuteAsync())
-            .Where(v=>v.PaidUntil > DateTime.UtcNow && !v.Context.ContainsKey("turnedOff") && v.Id != instance.Id && v.PublicIp == null).ToList();
+            .Where(v => v.PaidUntil > DateTime.UtcNow && !v.Context.ContainsKey("turnedOff") && v.Id != instance.Id && v.PublicIp == null).ToList();
         if (instance.PublicIp == null && activeOnServer.Count >= 3)
         {
             // to many on one server try to reassign
@@ -348,7 +349,7 @@ public class VpsInstanceManager
         await UpdateAndPublish(instance);
     }
 
-    internal async Task<string> GetLog(string token, long timeStamp)
+    internal async Task<string> GetLog(string token, long timeStamp, string user = null)
     {
         var compareHash = configuration["VPS:LOG_TOKEN"];
         var hashed = SHA256.HashData(Encoding.UTF8.GetBytes(token));
@@ -369,6 +370,18 @@ public class VpsInstanceManager
             throw new CoflnetException("too_old", "The timestamp is older than 4 days, we only store logs for 4 days");
         }
         var query = $"{{container=\"tpm-manager\"}}";
+        if (!string.IsNullOrWhiteSpace(user))
+        {
+            if (!int.TryParse(user, out _))
+            {
+                if (user.Length != 32)
+                    user = await DiHandler.GetService<PlayerName.PlayerNameService>()
+                                .GetUuid(user);
+                var mcService = DiHandler.GetService<McAccountService>();
+                user = (await mcService.GetUserId(user.Trim('"'))).ExternalId;
+            }
+            query = $"{{user_id=\"{user}\", container=\"tpm-manager\"}}";
+        }
         var start = parsed.AddHours(-24).ToUnixTimeSeconds();
         var end = timeStamp;
         var log = await QueryLokiJson(query, start, end, 5_000);

@@ -61,8 +61,9 @@ namespace Coflnet.Sky.ModCommands.MC
             e.Response.ContentEncoding = System.Text.Encoding.UTF8;
             var manager = DiHandler.GetService<VpsInstanceManager>();
             var timeStamp = e.Request.QueryString["timestamp"]?.ToString() ?? throw new CoflnetException("missing_query", "missing timestamp query");
+            var user = e.Request.QueryString["user"]?.ToString();
             var token = e.Request.QueryString["token"];
-            var logContent = await manager.GetLog(token, long.Parse(timeStamp));
+            var logContent = await manager.GetLog(token, long.Parse(timeStamp), user);
             var response = Encoding.UTF8.GetBytes(logContent);
 
             // Add headers for file download
