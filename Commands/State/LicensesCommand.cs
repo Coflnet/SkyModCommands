@@ -345,13 +345,6 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         FormatForList(d, e).MsgLine(displayText, $"/cofl {Slug} add {e.UseOnAccount} {e.Tier}", hoverText);
     }
 
-    protected override async Task List(MinecraftSocket socket, string subArgs)
-    {
-        await base.List(socket, subArgs);
-        // to avoid desyncing issues from the payment system refresh it every time
-        await RefreshLicenseTime(socket);
-    }
-
     protected override string GetId(PublicLicenseWithName elem)
     {
         return elem.UseOnAccount + elem.Tier;
@@ -401,6 +394,8 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
                 .If(() => licenses.Count >= 1, db => db.MsgLine($"Switch license 1 with {McColorCodes.AQUA}/cl license use 1 {socket.SessionInfo.McName}", $"/cofl license use 1 {socket.SessionInfo.McName}", "Click to switch license 1")));
             return;
         }
+        // to avoid desyncing issues from the payment system refresh it every time
+        await RefreshLicenseTime(socket);
 
 
         static async Task<string> NewMethod(MinecraftSocket socket)
