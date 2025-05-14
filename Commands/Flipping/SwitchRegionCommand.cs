@@ -60,24 +60,11 @@ public class SwitchRegionCommand : McCommand
     {
         var tobeUsed = MainUs;
         var clientIp = socket.ClientIp;
-        var vultrChicagoPrefixes = new List<string> {
-            "45.63.",
-            "45.76.",
-            "66.42.",
-            "104.156.",
-            "104.238.",
-            "108.61.",
-        };
         var linodePrefixes = new List<string> {
             "172.23",
         };
 
-        if (!string.IsNullOrEmpty(clientIp) && vultrChicagoPrefixes.Any(clientIp.StartsWith))
-        {
-            socket.Dialog(db => db.MsgLine("You are using a vultr server, switching to us-vultr"));
-            tobeUsed = "us-vultr";
-        }
-        else if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith))
+        if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith))
         {
             socket.Dialog(db => db.MsgLine("You are using a linode server, switching to us-linode"));
             tobeUsed = "us-linode";
