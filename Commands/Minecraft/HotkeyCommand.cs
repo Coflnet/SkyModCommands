@@ -46,7 +46,7 @@ public class HotkeyCommand : McCommand
         var represent = new Api.Client.Model.ItemRepresent();
         represent.ItemName = auction.ItemName;
         represent.ExtraAttributes = auction.NbtData.Data;
-        represent.Enchantments = auction.Enchantments.ToDictionary(e => e.Type.ToString(), e => (int)e.Level);
+        represent.Enchantments = auction.Enchantments.GroupBy(t => t.Type).Select(g => g.First()).ToDictionary(e => e.Type.ToString(), e => (int)e.Level);
         represent.Count = auction.Count;
         represent.Description = auction.Context["lore"];
         represent.Tag = auction.Tag;
