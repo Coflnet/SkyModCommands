@@ -146,7 +146,7 @@ public class AccountTierManager : IAccountTierManager
             await SyncState(startValue);
         }
         var sessions = activeSessions.Value.Sessions;
-        sessions.RemoveAll(s => s?.ConnectionId == null || string.IsNullOrEmpty(s.MinecraftUuid));
+        sessions.RemoveAll(s => s?.ConnectionId == null || string.IsNullOrEmpty(s.MinecraftUuid) || s?.ConnectedAt < DateTime.UtcNow - TimeSpan.FromDays(2));
         if (!sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId))
         {
             sessions.Add(new ActiveSession()
