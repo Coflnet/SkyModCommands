@@ -54,7 +54,9 @@ public class HelpCommand : McCommand
     {
         socket.Dialog(db => db.MsgLine("The mod asks you to login to save and restore your settings.")
                             .MsgLine("The login link connects the Minecraft account you are currently running to whatever email you choose to login with.")
-                            .MsgLine("To utilize more features, you may need to verify your Minecraft account").CoflCommand<HelpCommand>(McColorCodes.AQUA + "more about verifying", "verify", "prints more help"));
+                            .MsgLine("To utilize more features, you may need to verify your Minecraft account")
+                            .MsgLine("To logout use the command /cofl logout", "/cofl logout", $"{McColorCodes.GRAY}logs you out on all devices\nclick to logout")
+                            .CoflCommand<HelpCommand>(McColorCodes.AQUA + "more about verifying", "verify", "prints more help"));
     }
 
     private static void PrintCommandHelp(MinecraftSocket socket, string arguments)
