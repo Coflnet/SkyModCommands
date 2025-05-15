@@ -292,7 +292,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             target = stored;
             if (sellAttempts.Count > 0)
             {
-                var reduction = Math.Max(0.4, 1 - ((double)sellAttempts.Count / 12));
+                var reduction = Math.Max(0.4, 1 - ((double)sellAttempts.Count * 0.05));
                 listingSpan.Log($"Found {sellAttempts.Count} attempts to sell, reducing target by {reduction}");
                 target *= reduction;
             }
