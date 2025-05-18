@@ -449,7 +449,7 @@ public class VpsInstanceManager
             }
             if (ex.Message.Contains("insuficcient balance"))
             {
-                throw new CoflnetException("not_enough_coins", "You don't have enough CoflCoins to extend this instance, you can get some at sky.coflnet.com/premium");
+                throw new CoflnetException("not_enough_coins", "You don't have enough CoflCoins to extend this instance, you can get some at https://sky.coflnet.com/premium");
             }
             throw;
         }
