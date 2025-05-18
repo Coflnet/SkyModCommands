@@ -63,6 +63,11 @@ public class VpsCommand : McCommand
 
     private async Task Delete(MinecraftSocket socket, VpsInstanceManager service, string[] args)
     {
+        if (!socket.GetService<ModeratorService>().IsModerator(socket))
+        {
+            socket.Dialog(db => db.MsgLine($"You need to be a moderator to delete a vps"));
+            return;
+        }
         var instance = await GetTargetVps(socket, service, args);
         await service.DeleteVps(instance);
         socket.Dialog(db => db.MsgLine($"Deleted {instance.Id}"));
