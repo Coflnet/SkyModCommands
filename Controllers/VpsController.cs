@@ -108,6 +108,14 @@ public class VpsController : ControllerBase
         await vpsInstanceManager.ExtendVps(instance);
         return instance;
     }
+
+    [HttpDelete("{user}/{instanceId}")]
+    public async Task Delete(string user, Guid instanceId)
+    {
+        Instance instance = await GetInstance(user, instanceId);
+        await vpsInstanceManager.DeleteVps(instance);
+    }
+
     [HttpPost("{user}/{instanceId}/import")]
     public async Task Import(string user, Guid instanceId, [FromBody] string settings)
     {
