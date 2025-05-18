@@ -213,6 +213,7 @@ public class VpsCommand : McCommand
             socket.Dialog(db => db.MsgLine($"Usage: {McColorCodes.AQUA}/cofl vps create tpm+"));
             return;
         }
+        socket.Dialog(db => db.MsgLine($"Trying to create instance..."));
         var userId = socket.UserId;
         var userName = socket.SessionInfo.McName;
         var kind = args[1];
