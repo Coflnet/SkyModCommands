@@ -477,7 +477,8 @@ public class VpsInstanceManager
 
     internal async Task SetPublicIp(Instance instance, string ip)
     {
-        if (!System.Net.IPAddress.TryParse(ip, out _))
+        var isDelete = ip == "delete";
+        if (!isDelete && !System.Net.IPAddress.TryParse(ip, out _))
         {
             throw new CoflnetException("invalid_proxy_format", "The provided address is not a valid ip format for a SOCKS5 proxy.");
         }
@@ -485,6 +486,8 @@ public class VpsInstanceManager
         // Further validation could involve attempting a connection, but that's complex.
         // For now, we assume format validation is sufficient.
         instance.PublicIp = ip;
+        if (isDelete)
+            instance.PublicIp = null;
         await UpdateAndPublish(instance);
         logger.LogInformation($"Set public IP for instance {instance.Id} to {ip}");
     }
