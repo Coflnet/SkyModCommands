@@ -32,13 +32,22 @@ namespace Coflnet.Sky.ModCommands.Services
         FilterStateService filterStateService;
         HypixelItemService hypixelItemService;
         DateTime lastFastest = DateTime.UtcNow;
+        ItemDetails itemDetails;
         object compareLock = new object();
         private ConcurrentDictionary<(string, LowPricedAuction.FinderType, long), DateTime> alreadyProcessed = new();
 
         private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
 
         public ModBackgroundService(
-            IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<ModBackgroundService> logger, FlipperService flipperService, CounterService counterService, IDelayExemptList iDelayExemptList, FilterStateService filterStateService, HypixelItemService hypixelItemService)
+            IServiceScopeFactory scopeFactory,
+            IConfiguration config,
+            ILogger<ModBackgroundService> logger,
+            FlipperService flipperService,
+            CounterService counterService,
+            IDelayExemptList iDelayExemptList,
+            FilterStateService filterStateService,
+            HypixelItemService hypixelItemService,
+            ItemDetails itemDetails)
         {
             this.scopeFactory = scopeFactory;
             this.config = config;
@@ -48,6 +57,7 @@ namespace Coflnet.Sky.ModCommands.Services
             delayExemptList = iDelayExemptList;
             this.filterStateService = filterStateService;
             this.hypixelItemService = hypixelItemService;
+            this.itemDetails = itemDetails;
         }
         /// <summary>
         /// Called by asp.net on startup
@@ -56,6 +66,7 @@ namespace Coflnet.Sky.ModCommands.Services
         /// <returns></returns>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            await itemDetails.LoadLookup();
             await filterStateService.UpdateState();
             logger.LogInformation("Loaded flip filter data");
             await SubscribeToRedisSnipes(stoppingToken);

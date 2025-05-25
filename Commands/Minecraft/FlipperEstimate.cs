@@ -28,7 +28,7 @@ public class FlipperEstimateCommand : ItemSelectCommand<FlipperEstimateCommand>
         var itemId = GetUidFromString(uid as string);
         using var scope = socket.GetService<IServiceScopeFactory>().CreateScope();
         using var db = scope.ServiceProvider.GetRequiredService<HypixelContext>();
-        var key = NBT.Instance.GetKeyId("uid");
+        var key = socket.GetService<INBT>().GetKeyId("uid");
         var auctionUuid = db.Auctions
                     .Where(a => a.NBTLookup.Where(l => l.KeyId == key && l.Value == itemId).Any())
                     .OrderByDescending(a => a.End).Select(a => a.Uuid).FirstOrDefault();

@@ -19,7 +19,7 @@ public class AttributeUpgradeCommand : McCommand
         if (args.Length < 2)
             throw new CoflnetException("invalid_arguments", "Please provide: {item_type} {attribute_name} [start_level] [end_level]");
         var itemType = args[0].ToUpper();
-        if (ItemDetails.Instance.GetItemIdForTag(itemType) == 0)
+        if (socket.GetService<ItemDetails>().GetItemIdForTag(itemType) == 0)
         {
             throw new CoflnetException("invalid_arguments", $"The item type {itemType} is not known, check that you entered a valid tag");
         }

@@ -38,7 +38,7 @@ namespace Coflnet.Sky.Commands.MC
         private static async Task SendRandomFlip(MinecraftSocket socket)
         {
             var r = new Random();
-            var activeAuction = await ItemPrices.Instance.GetActiveAuctions(new ActiveItemSearchQuery()
+            var activeAuction = await socket.GetService<ItemPrices>().GetActiveAuctions(new ActiveItemSearchQuery()
             {
                 name = "GOD_POTION_2",
             });

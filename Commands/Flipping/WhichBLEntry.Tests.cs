@@ -10,7 +10,7 @@ namespace Coflnet.Sky.Commands.MC
         [SetUp]
         public void Setup()
         {
-            DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine());
+            DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine(null));
         }
         [Test]
         public void MatchWithTag()

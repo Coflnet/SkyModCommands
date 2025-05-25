@@ -48,9 +48,6 @@ namespace Coflnet.Sky.ModCommands.MC
             };
             server.Start();
             System.Threading.ThreadPool.SetMinThreads(10, 10);
-
-            _ = Core.ItemDetails.Instance.LoadLookup();
-
             CreateHostBuilder(args).Build().Run();
         }
 

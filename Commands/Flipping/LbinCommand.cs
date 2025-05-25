@@ -35,7 +35,7 @@ public class LbinCommand : McCommand
             socket.SendMessage($"Sorry, I couldn't find an item with the name {itemName}");
             return;
         }
-        var itemId = ItemDetails.Instance.GetItemIdForTag(targetItem.Tag);
+        var itemId = socket.GetService<ItemDetails>().GetItemIdForTag(targetItem.Tag);
         socket.SendMessage($"Querying AH for {McColorCodes.AQUA}{targetItem.Text}");
         Activity.Current.Log($"Item id: {itemId} for {itemName}");
         var fe = socket.GetService<FilterEngine>();

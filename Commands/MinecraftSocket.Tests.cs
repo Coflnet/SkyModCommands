@@ -23,11 +23,11 @@ public class MinecraftSocketTests
     {
         Assert.Pass("timer not testable since it checks for open websocket connections");
         DiHandler.ResetProvider();
-        DiHandler.OverrideService<IAhActive,IAhActive>(new Mock<IAhActive>().Object);
+        DiHandler.OverrideService<IAhActive, IAhActive>(new Mock<IAhActive>().Object);
         var mockSocket = new Mock<MinecraftSocket>();
         var config = new Mock<IConfiguration>();
         mockSocket.Setup(s => s.GetService<FlipTrackingService>())
-            .Returns(new FlipTrackingService(null, null, config.Object, null, null, null, null, null));
+            .Returns(new FlipTrackingService(null, null, config.Object, null, null, null, null, null, null, null));
         var session = new Mock<ModSessionLifesycle>(mockSocket.Object);
         session.Setup(s => s.StartTimer(It.IsAny<int>(), It.IsAny<string>()));
         var socket = new TestSocket(session.Object);
@@ -74,7 +74,7 @@ public class FlipStreamTests
         var socket = new MinecraftSocket();
         socket.SetLifecycleVersion("1.4.2-Alpha");
         socket.sessionLifesycle.FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => new FlipSettings());
-        socket.sessionLifesycle.AccountInfo = await SelfUpdatingValue<AccountInfo>.CreateNoUpdate(() => new AccountInfo() {  });
+        socket.sessionLifesycle.AccountInfo = await SelfUpdatingValue<AccountInfo>.CreateNoUpdate(() => new AccountInfo() { });
         provider.GetRequiredService<FlipperService>().AddConnection(socket);
 
         //_ = Task.Run(async () =>
@@ -85,7 +85,7 @@ public class FlipStreamTests
         }
         // });
         await Task.Delay(10);
-        Assert.That(socket.TopBlocked.Count,Is.GreaterThanOrEqualTo(500));
+        Assert.That(socket.TopBlocked.Count, Is.GreaterThanOrEqualTo(500));
 
     }
 }

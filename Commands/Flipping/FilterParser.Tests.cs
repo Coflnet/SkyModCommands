@@ -17,7 +17,7 @@ public class FilterParserTests
         var apiMock = new Mock<IItemsApi>();
         apiMock.Setup(api => api.ItemItemTagModifiersAllGetAsync("*", 0, default)).ReturnsAsync(new Dictionary<string, List<string>>());
         DiHandler.OverrideService<IItemsApi, IItemsApi>(apiMock.Object);
-        DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine());
+        DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine(null));
         var remaining = await parser.ParseFiltersAsync(null, "itemNameContains=\"test string\"", filters, new List<string> { "ItemNameContains" });
         Assert.That(remaining, Is.Empty);
         Assert.That(filters["ItemNameContains"], Is.EqualTo("test string"));

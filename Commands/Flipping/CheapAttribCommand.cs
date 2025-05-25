@@ -38,7 +38,7 @@ public class CheapAttribCommand : McCommand
             throw new CoflnetException("invalid_arguments", "Invalid usage.\nuse <item_tag> <attrib_1> <attrib_2>\nPlease provide two attribute names without spaces (you can use _ or ommit it) eg manapool mana_regeneration");
 
         var tag = attribNames[0].ToUpper();
-        if(ItemDetails.Instance.GetItemIdForTag(tag, false) == 0)
+        if(socket.GetService<ItemDetails>().GetItemIdForTag(tag, false) == 0)
         {
             var itemClient = socket.GetService<IItemsApi>();
             var item = await itemClient.ItemsSearchTermGetAsync(tag.ToLower());
