@@ -27,7 +27,8 @@ public class AttributeUpgradeCommand : McCommand
         var startLevel = 1;
         var endLevel = 10;
         if (args.Length > 2)
-            startLevel = int.Parse(args[2]);
+            if(!int.TryParse(args[2], out startLevel))
+                throw new CoflnetException("invalid_arguments", $"Invalid start level: {args[2]}, this command expects {{item_type}} {{attribute_name}} [start_level] [end_level]");
         if (args.Length > 3)
             endLevel = int.Parse(args[3]);
         var attribApi = socket.GetService<IAttributeApi>();
