@@ -38,7 +38,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
 
     public override async Task TryToListAuction()
     {
-        if(socket.CurrentRegion != "eu")
+        if (socket.CurrentRegion != "eu")
             return; // only works with direct db access
         using var span = socket.CreateActivity("listAuctionTry", socket.ConSpan);
         await UpdateAhSlots(span);
@@ -164,7 +164,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (profiles?.Profiles == null)
                 throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
             var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
-            var membersOnIsland = profile.Members.Where(m=>m.Value.Profile.DeletionNotice?.TimeStamp == null).Count();
+            var membersOnIsland = profile.Members.Where(m => m.Value.Profile.DeletionNotice?.TimeStamp == null).Count();
             listSpace = 14 + 3 * (membersOnIsland - 1);
             listLog.Log($"Auction house fill, {activeAuctionCount} / {listSpace} for {socket.SessionInfo.McName} members {membersOnIsland}");
         }
@@ -408,7 +408,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var listTime = socket.Settings?.ModSettings?.AhListTimeTarget;
         if (listTime == 0)
             listTime = null;
-        if(sellPrice == 0)
+        if (sellPrice == 0)
         {
             socket.Error(new(), "Price is 0, skipping listing, og: " + price, JsonConvert.SerializeObject(auction));
             return;
@@ -487,7 +487,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
             return false;
         if (item.FlatenedNBT.ContainsKey("donated_museum"))
             return true; // sould bound
-                         // ⬇⬇ sell able items ⬇⬇
+        if (item.Tag == "RUNEBOOK")
+        {
+            if(Random.Shared.NextDouble() < 0.03)
+                socket.Dialog(db => db.MsgLine($"Found {item.ItemName} in inventory, it has to be auctioned manually, please create an auction for it"));
+            return true; // rune books have to be auctioned manually
+        }
+        // ⬇⬇ sell able items ⬇⬇
         if (socket.SessionInfo.SellAll)
             return false;
         if (!string.IsNullOrEmpty(uid))
