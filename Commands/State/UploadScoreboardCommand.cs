@@ -52,7 +52,6 @@ public class UploadScoreboardCommand : McCommand
                 isDarkAuction = true;
             if (item.Contains("Motes:") || item.Contains("The Rift"))
             {
-                System.Console.WriteLine("Rift detected");
                 isRift = true;
             }
             if (item.StartsWith("Purse:") || item.StartsWith("Piggy: "))
