@@ -364,6 +364,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 socket.Dialog(db => db.Msg($"Reached max flip items in inventory ({maxItemsAllowedInInventory}), paused buying until items are sold and listed. ")
                     .Msg($"Can be disabled with {McColorCodes.AQUA}/cofl set maxItemsInInventory 0"));
                 lastInventoryFullMsg = DateTime.UtcNow;
+                socket.TryAsyncTimes(TryToListAuction, "listAuction", 1);
             }
             return (true, false);
         }
@@ -489,7 +490,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             return true; // sould bound
         if (item.Tag == "RUNEBOOK")
         {
-            if(Random.Shared.NextDouble() < 0.03)
+            if (Random.Shared.NextDouble() < 0.03)
                 socket.Dialog(db => db.MsgLine($"Found {item.ItemName} in inventory, it has to be auctioned manually, please create an auction for it"));
             return true; // rune books have to be auctioned manually
         }
