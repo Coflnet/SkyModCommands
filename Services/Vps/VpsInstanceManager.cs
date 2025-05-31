@@ -474,7 +474,7 @@ public class VpsInstanceManager
                 Reference = "tpm+" + instance.Id.ToString().Split('-').Last() + "-" + DateTime.UtcNow.ToString("yyyyMMdd"),
             });
 
-        if (instance.PublicIp == null)
+        if (instance.PublicIp == null && instance.HostMachineIp.StartsWith("23."))
         {
             var allProxies = (await proxyTable.ExecuteAsync()).ToList();
             var allServers = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow && v.PublicIp != null).ToList();
