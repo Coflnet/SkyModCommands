@@ -144,6 +144,23 @@ public class VpsController : ControllerBase
         return await vpsInstanceManager.GetIpGroups();
     }
 
+    [HttpPost("proxies")]
+    public async Task<ProxyInfo> SetProxy([FromBody] ProxyInfo proxy)
+    {
+        await vpsInstanceManager.AddProxy(proxy);
+        return proxy;
+    }
+    [HttpGet("proxies")]
+    public async Task<IEnumerable<ProxyInfo>> GetProxies()
+    {
+        return await vpsInstanceManager.GetProxies();
+    }
+    [HttpDelete("proxies/{id}")]
+    public async Task DeleteProxy(string ip)
+    {
+        await vpsInstanceManager.DeleteProxy(ip);
+    }
+
     public class VpsSettingUpdateRequest
     {
         public string Setting { get; set; }

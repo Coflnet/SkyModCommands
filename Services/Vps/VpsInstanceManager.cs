@@ -25,6 +25,7 @@ namespace Coflnet.Sky.ModCommands.Services.Vps;
 public class VpsInstanceManager
 {
     private Table<Instance> vpsTable;
+    private Table<ProxyInfo> proxyTable;
     public event Action<VPsStateUpdate> OnInstanceCreated;
     private SettingsService settingsService;
     private ConnectionMultiplexer redis;
@@ -52,6 +53,13 @@ public class VpsInstanceManager
         );
         vpsTable = new Table<Instance>(session, mapping);
         vpsTable.CreateIfNotExists();
+        var proxyMapping = new MappingConfiguration().Define(
+            new Map<ProxyInfo>()
+                .TableName("vps_proxy")
+                .PartitionKey(u => u.IP)
+        );
+        proxyTable = new Table<ProxyInfo>(session, proxyMapping);
+        proxyTable.CreateIfNotExists();
         this.settingsService = settingsService;
         this.redis = redis;
 
@@ -465,6 +473,17 @@ public class VpsInstanceManager
                 ProductId = "compensation",
                 Reference = "tpm+" + instance.Id.ToString().Split('-').Last() + "-" + DateTime.UtcNow.ToString("yyyyMMdd"),
             });
+
+        if (instance.PublicIp == null)
+        {
+            var allProxies = (await proxyTable.ExecuteAsync()).ToList();
+            var allServers = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow && v.PublicIp != null).ToList();
+            var usedCount = allServers.GroupBy(v => v.PublicIp).ToDictionary(g => g.Key, g => g.Count());
+            var fewestOthers = allProxies.OrderBy(p => usedCount.GetValueOrDefault(p.IP)).First();
+            instance.PublicIp = fewestOthers.IP;
+            await UpdateAndPublish(instance);
+            logger.LogInformation($"Assigned public IP {fewestOthers.IP} to instance {instance.Id}");
+        }
     }
 
     internal async Task<string> ExportSettings(Instance instance)
@@ -497,6 +516,33 @@ public class VpsInstanceManager
         var allActive = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow).ToList();
         var grouped = allActive.GroupBy(v => v.PublicIp == null ? v.HostMachineIp : v.PublicIp).ToDictionary(g => g.Key, g => g.Select(s => $"{s.Id}/{(s.Context.ContainsKey("turnedOff") ? "Off" : "running")}/{s.PaidUntil}/{s.OwnerId}"));
         return grouped;
+    }
+
+    internal async Task AddProxy(ProxyInfo proxy)
+    {
+        if (!System.Net.IPAddress.TryParse(proxy.IP, out _))
+        {
+            throw new CoflnetException("invalid_proxy_format", "The provided address is not a valid ip format for a SOCKS5 proxy.");
+        }
+        var existing = await proxyTable.Where(p => p.IP == proxy.IP).ExecuteAsync();
+        if (existing.Any())
+        {
+            throw new CoflnetException("proxy_already_exists", "The provided proxy already exists in the database.");
+        }
+        await proxyTable.Insert(proxy).ExecuteAsync();
+        logger.LogInformation($"Added new proxy {proxy.IP}");
+    }
+
+    public async Task<IEnumerable<ProxyInfo>> GetProxies()
+    {
+        var proxies = await proxyTable.ExecuteAsync();
+        return proxies.ToList();
+    }
+
+    internal async Task DeleteProxy(string ip)
+    {
+        await proxyTable.Where(p => p.IP == ip).Delete().ExecuteAsync();
+        logger.LogInformation($"Deleted proxy {ip}");
     }
 
     public class Root

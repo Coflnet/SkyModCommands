@@ -373,3 +373,13 @@ public class Instance
     public Dictionary<string, string> Context { get; set; }
     public string PublicIp { get; set; }
 }
+
+public class ProxyInfo
+{
+    public string IP { get; set; }
+    public short Port { get; set; } = 1080;
+    public string Username { get; set; }
+    public string Password { get; set; }
+    public string ProxyType { get; set; } = "socks5"; // Default to socks5
+    public string Region { get; set; } = "chicago";
+}
