@@ -12,6 +12,8 @@ namespace Coflnet.Sky.Commands.MC
             var flip = socket.LastSent.LastOrDefault();
             if (arguments.Length > 30)
                 flip = socket.GetFlip(arguments.Trim('"'));
+            else
+                socket.Dialog(db => db.MsgLine($"You didn't specify an auction uuid so timings for {McColorCodes.BOLD}{flip.Auction.ItemName}{McColorCodes.RESET} for {McColorCodes.AQUA}{flip.Auction.StartingBid}{McColorCodes.RESET} is displayed"));
             if (flip == null)
             {
                 if (socket.CurrentRegion == "eu")
