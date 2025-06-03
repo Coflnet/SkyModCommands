@@ -188,12 +188,17 @@ public class VpsInstanceManager
         logger.LogInformation($"Published update for {instance.Id}");
     }
 
-    public async Task<IEnumerable<VPsStateUpdate>> GetVps(string hostMachineIp)
+    public async Task<IEnumerable<VPsStateUpdate>> GetRunningVps(string hostMachineIp)
     {
         var instance = await vpsTable.Where(v => v.HostMachineIp == hostMachineIp).ExecuteAsync();
         var result = new List<VPsStateUpdate>();
         foreach (var i in instance)
         {
+            if(i.PaidUntil < DateTime.UtcNow)
+            {
+                // skip expired instances
+                continue;
+            }
             VPsStateUpdate update = await BuildFullUpdate(i);
             result.Add(update);
         }

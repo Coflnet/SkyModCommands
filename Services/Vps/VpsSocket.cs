@@ -37,7 +37,7 @@ public class VpsSocket : WebSocketBehavior
         {
             try
             {
-                var vps = await vpsService.GetVps(IP);
+                var vps = await vpsService.GetRunningVps(IP);
                 Send(JsonConvert.SerializeObject(Response.Create("init", vps)));
                 vpsService.Connected(IP);
             }
