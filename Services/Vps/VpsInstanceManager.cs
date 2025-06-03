@@ -219,6 +219,7 @@ public class VpsInstanceManager
     private async Task<VPsStateUpdate> BuildFullUpdate(Instance i, CreateOptions options = null, TPM.Config tpmConfig = null)
     {
         tpmConfig ??= await settingsService.GetCurrentValue<TPM.Config>(i.OwnerId, "tpm_config", () => CreatedConfigs(options));
+        tpmConfig ??= CreatedConfigs(options); // fallback to default config if not found
         var extraConfig = await settingsService.GetCurrentValue<string>(i.OwnerId, "tpm_extra_config", () => "");
         var update = new VPsStateUpdate
         {
