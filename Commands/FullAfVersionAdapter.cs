@@ -95,16 +95,24 @@ public class FullAfVersionAdapter : AfVersionAdapter
             using var listingSpan = socket.CreateActivity("listAuction", span);
             listingSpan?.SetTag("uuid", uuid);
             listingSpan.Log(JsonConvert.SerializeObject(item));
-            var marketBased = toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid).Select(x => Math.Min(x.Second.Median, x.Second.Lbin.Price)).FirstOrDefault();
+            var marketBased = toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid
+                && PriceIsNoGuess(x))
+                .Select(x => Math.Min(x.Second.Median, x.Second.Lbin.Price)).FirstOrDefault();
             var stored = await socket.GetService<IPriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
             var targetPrice = Math.Max(item.TargetPrice, Math.Max(marketBased * 0.95, stored));
             if (stored < 0)
                 continue; // user finder/do not relist
+            listingSpan.Log($"Found {item.Auction.ItemName} {item.Auction.Tag} {item.Auction.Uuid} in sent with price {targetPrice} stored {stored}, marked {marketBased}");
             await SendListing(listingSpan, item.Auction, (long)targetPrice, index, uuid);
             return; // created listing
         }
         span.Log($"Checking sellable {toList.Count()} total {inventory.Count}. Space {listSpace} active {activeAuctionCount}");
         await ListItems(span, apiService, inventory, toList, listSpace < 10 ? 14 : listSpace - activeAuctionCount);
+
+        static bool PriceIsNoGuess((SaveAuction First, Sniper.Client.Model.PriceEstimate Second) x)
+        {
+            return x.Second.MedianKey == x.Second.ItemKey;
+        }
     }
 
     private async Task UpdateAhSlots(Activity span)
