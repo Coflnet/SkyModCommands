@@ -9,6 +9,7 @@ using RestSharp;
 using System.Net;
 
 namespace Coflnet.Sky.Commands.MC;
+
 public class RewardHandler
 {
     static CookieContainer cookies = new CookieContainer();
@@ -21,7 +22,7 @@ public class RewardHandler
         var request = new RestRequest(rewardLink, Method.Get);
         request.CookieContainer = cookies;
         // set user agent to avoid cloudflare bot protection
-        request.AddHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
+        request.AddHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36");
         var responseData = await restClient.ExecuteAsync(request);
         var rewsponse = responseData.Content;
         Console.WriteLine("got response " + rewsponse.Truncate(2000));
@@ -54,7 +55,7 @@ public class RewardHandler
 
     public class ClaimHypixelRewardCommand : McCommand
     {
-        public override Task Execute(MinecraftSocket socket, string arguments)
+        public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var args = JsonConvert.DeserializeObject<string>(arguments).Split(" ");
             var selected = int.Parse(args[0]);
@@ -62,7 +63,7 @@ public class RewardHandler
             var id = args[2];
             var restClient = new RestClient();
             var request = new RestRequest("https://rewards.hypixel.net/claim-reward/claim", Method.Post);
-            request.AddHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
+            request.AddHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36");
             request.AddQueryParameter("option", selected);
             request.AddQueryParameter("id", id);
             request.AddQueryParameter("activeAd", 0);
@@ -77,8 +78,7 @@ public class RewardHandler
                 socket.Dialog(db => db.MsgLine("Claimed reward"));
             else
                 socket.Dialog(db => db.MsgLine("Failed to claim reward"));
-
-            return Task.CompletedTask;
+            await Task.Delay(TimeSpan.FromSeconds(20));// soft ratelimit
         }
     }
 
