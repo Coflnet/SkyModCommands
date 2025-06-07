@@ -36,8 +36,9 @@ public class RewardHandler
         var data = JsonConvert.DeserializeObject<Root>(Regex.Match(lines[14], @"'.*'").Value.Trim('\''));
         if (!data.skippable)
         {
-            socket.Dialog(db => db.MsgLine("Seems like you don't have a rank. You have to watch the ad to claim the reward"));
-            return;
+            socket.Dialog(db => db.MsgLine($"Seems like you don't have a rank. Consider {McColorCodes.GREEN}supporting hypixel{McColorCodes.RESET} through {McColorCodes.YELLOW}store.hypixel.net",
+                "https://store.hypixel.net/?ign=" + socket.SessionInfo.McName, $"Click to {McColorCodes.YELLOW}open store"));
+            await Task.Delay(5000);
         }
         var securityToken = lines[13].Split('"')[1];
         var rewards = data.rewards;
