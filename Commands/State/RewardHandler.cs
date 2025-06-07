@@ -37,7 +37,7 @@ public class RewardHandler
         if (!data.skippable)
         {
             socket.Dialog(db => db.MsgLine($"Seems like you don't have a rank. Consider {McColorCodes.GREEN}supporting hypixel{McColorCodes.RESET} through {McColorCodes.YELLOW}store.hypixel.net",
-                "https://store.hypixel.net/?ign=" + socket.SessionInfo.McName, $"Click to {McColorCodes.YELLOW}open store"));
+                "https://store.hypixel.net/category/ranks?ign=" + socket.SessionInfo.McName, $"Click to {McColorCodes.YELLOW}open store\npurchasing a rank will \nget rid of this message"));
             await Task.Delay(5000);
         }
         var securityToken = lines[13].Split('"')[1];
