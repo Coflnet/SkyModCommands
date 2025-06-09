@@ -214,7 +214,7 @@ public class VpsInstanceManager
             logger.LogWarning($"Found duplicate instance {item.Key} for user {userId}, removing duplicates");
             foreach (var duplicate in item.OrderByDescending(i => i.PublicIp != null ? 1 : 0).Skip(1))
             {
-                await vpsTable.Where(v => v.Id == duplicate.Id).Delete().ExecuteAsync();
+                await vpsTable.Where(v => v.HostMachineIp == duplicate.HostMachineIp && v.Id == duplicate.Id).Delete().ExecuteAsync();
             }
         }
 
