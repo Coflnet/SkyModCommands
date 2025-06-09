@@ -46,7 +46,12 @@ public class RecipeCommand : McCommand
                 partCount[parts[0]] = existingCount + count;
             }
         }
-        var itemLookup = (await itemListTask).ToDictionary(i => i.Tag, i => new { Name = i.Name, IsBazaar = i.Flags.Value.HasFlag(Items.Client.Model.ItemFlags.BAZAAR) });
+        var itemLookup = (await itemListTask).ToDictionary(i => i.Tag, i => new
+        {
+            Name = i.Name,
+            IsBazaar = i.Flags.Value.HasFlag(Items.Client.Model.ItemFlags.BAZAAR),
+            Color = socket.formatProvider.GetRarityColor((Core.Tier)i.Tier)
+        });
 
         socket.Dialog(d => d.MsgLine($"Recipe:")
             .ForEach(location, (db, row) =>
@@ -60,9 +65,9 @@ public class RecipeCommand : McCommand
                     }
                     var parts = item.Split(':');
                     var itemId = parts[0];
-                    var info = itemLookup.GetValueOrDefault(itemId, new { Name = itemId, IsBazaar = false });
+                    var info = itemLookup.GetValueOrDefault(itemId, new { Name = itemId, IsBazaar = false, Color = McColorCodes.WHITE });
                     var command = info.IsBazaar ? $"/bazaar {info.Name}" : $"/ah {info.Name}";
-                    db2.Button(info.Name.First().ToString(), command, "Open " + (info.IsBazaar ? "bazaar" : "auction house") + " for " + info.Name);
+                    db2.Button(info.Color + info.Name.First(), command, "Open " + (info.IsBazaar ? "bazaar" : "auction house") + $" for {info.Color}{info.Name} {McColorCodes.GRAY}x{parts.Last()}");
                 }).LineBreak();
             }).LineBreak()
             .MsgLine("Parts needed:")
@@ -70,9 +75,9 @@ public class RecipeCommand : McCommand
             {
                 var itemId = kvp.Key;
                 var count = kvp.Value;
-                var info = itemLookup.GetValueOrDefault(itemId, new { Name = itemId, IsBazaar = false });
+                var info = itemLookup.GetValueOrDefault(itemId, new { Name = itemId, IsBazaar = false, Color = McColorCodes.WHITE });
                 var command = info.IsBazaar ? $"/bazaar {info.Name}" : $"/ah {info.Name}";
-                db.Button($"{info.Name} x{count}", command, $"Open {(info.IsBazaar ? "bazaar" : "auction house")} for {info.Name} (x{count})")
+                db.Button($"{info.Name} {McColorCodes.GRAY}x{count}", command, $"Open {(info.IsBazaar ? "bazaar" : "auction house")} for {info.Color}{info.Name} (x{count})")
                     .LineBreak();
             })
             .MsgLine("Open recipe menu for " + name, $"/recipe {itemId}").LineBreak()
