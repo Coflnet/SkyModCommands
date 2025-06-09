@@ -36,7 +36,7 @@ public class RecipeCommand : McCommand
         {
             foreach (var item in row)
             {
-                if (item == null || item == "null")
+                if (string.IsNullOrEmpty(item))
                 {
                     continue;
                 }
@@ -58,7 +58,7 @@ public class RecipeCommand : McCommand
             {
                 db.ForEach(row, (db2, item) =>
                 {
-                    if (item == null || item == "null")
+                    if (string.IsNullOrEmpty(item))
                     {
                         db2.Button("-", null, "Empty slot");
                         return;
