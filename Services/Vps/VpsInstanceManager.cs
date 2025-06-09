@@ -194,7 +194,7 @@ public class VpsInstanceManager
         var result = new List<VPsStateUpdate>();
         foreach (var i in instance)
         {
-            if(i.PaidUntil < DateTime.UtcNow)
+            if (i.PaidUntil < DateTime.UtcNow)
             {
                 // skip expired instances
                 continue;
@@ -208,7 +208,17 @@ public class VpsInstanceManager
     public async Task<List<Instance>> GetVpsForUser(string userId)
     {
         var instance = await vpsTable.Where(v => v.OwnerId == userId).ExecuteAsync();
-        return instance.ToList();
+        var all = instance.ToList();
+        foreach (var item in all.GroupBy(i => i.Id).Where(g => g.Count() > 1))
+        {
+            logger.LogWarning($"Found duplicate instance {item.Key} for user {userId}, removing duplicates");
+            foreach (var duplicate in item.OrderByDescending(i => i.PublicIp != null ? 1 : 0).Skip(1))
+            {
+                await vpsTable.Where(v => v.Id == duplicate.Id).Delete().ExecuteAsync();
+            }
+        }
+
+        return all;
     }
 
     public async Task PersistExtra(string userId, string extraConfig)
