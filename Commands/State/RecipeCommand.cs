@@ -21,7 +21,7 @@ public class RecipeCommand : McCommand
         itemId = searchResult?.FirstOrDefault()?.Id ?? itemId;
 
         var craftApi = socket.GetService<ICraftsApi>();
-        var itemListTask = socket.GetService<IItemApi>().ApiItemsGetAsync();
+        var itemListTask = socket.GetService<Items.Client.Api.IItemsApi>().ItemsGetAsync();
         var recipe = await craftApi.GetRecipeAsync(itemId);
         if (recipe == null)
         {
