@@ -10,7 +10,7 @@ public class RecipeCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        var itemId = arguments.Trim();
+        var itemId = Convert<string>(arguments);
         if (string.IsNullOrEmpty(itemId))
         {
             socket.Dialog(db => db.MsgLine("Please provide an item ID or name to view the recipe."));
