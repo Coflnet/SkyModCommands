@@ -36,9 +36,9 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
         var ingedientList = string.Join('\n', elem.Ingredients.Select(i => $"{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost {McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}"));
         var hoverText = $"{McColorCodes.GRAY}Ingredients for {elem.ItemName}:\n" + ingedientList
         + $"\n{McColorCodes.GRAY}CraftCost: {McColorCodes.GOLD}{socket.FormatPrice(elem.CraftCost)}"
-        + $"\n{McColorCodes.GRAY}Volume: {McColorCodes.GREEN}{socket.FormatPrice(elem.Volume)}  {McColorCodes.YELLOW}Click to open recipe menu"
+        + $"\n{McColorCodes.GRAY}Volume: {McColorCodes.GREEN}{socket.FormatPrice(elem.Volume)}  {McColorCodes.YELLOW}Show recipe breakdown"
         + $"\n{McColorCodes.GRAY}Estimated Profit: {McColorCodes.AQUA}{socket.FormatPrice(FlipInstance.ProfitAfterFees((long)elem.SellPrice, (long)elem.CraftCost))}{McColorCodes.GRAY}(incl fees)";
-        var click = $"/recipe {elem.ItemId}";
+        var click = $"/cofl recipe {elem.ItemId}";
         if (elem.ItemId == "???")
         {
             click = "/cofl buy starter_premium";
