@@ -46,7 +46,7 @@ public class RecipeCommand : McCommand
                 partCount[parts[0]] = existingCount + count;
             }
         }
-        var itemLookup = (await itemListTask).ToDictionary(i => i.Tag, i => new { Name = i.Name, IsBazaar = i.Flags.Value.HasFlag(Api.Client.Model.ItemFlags.BAZAAR) });
+        var itemLookup = (await itemListTask).ToDictionary(i => i.Tag, i => new { Name = i.Name, IsBazaar = i.Flags.Value.HasFlag(Items.Client.Model.ItemFlags.BAZAAR) });
 
         socket.Dialog(d => d.MsgLine($"Recipe:")
             .ForEach(location, (db, row) =>
