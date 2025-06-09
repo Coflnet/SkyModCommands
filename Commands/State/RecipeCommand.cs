@@ -16,7 +16,7 @@ public class RecipeCommand : McCommand
             socket.Dialog(db => db.MsgLine("Please provide an item ID or name to view the recipe."));
             return;
         }
-        var searchResult = await socket.GetService<SearchApi>().ApiItemSearchSearchValGetAsync(itemId);
+        var searchResult = await socket.GetService<ISearchApi>().ApiItemSearchSearchValGetAsync(itemId);
         var name = searchResult?.FirstOrDefault()?.Name;
         itemId = searchResult?.FirstOrDefault()?.Id ?? itemId;
 
