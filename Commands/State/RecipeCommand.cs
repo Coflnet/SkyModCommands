@@ -66,7 +66,7 @@ public class RecipeCommand : McCommand
                     var parts = item.Split(':');
                     var itemId = parts[0];
                     var info = itemLookup.GetValueOrDefault(itemId, new { Name = itemId, IsBazaar = false, Color = McColorCodes.WHITE });
-                    var command = info.IsBazaar ? $"/bazaar {info.Name}" : $"/ah {info.Name}";
+                    var command = info.IsBazaar ? $"/bazaar {info.Name}" : $"/ahs {info.Name}";
                     db2.Button(info.Color + info.Name.First(), command, "Open " + (info.IsBazaar ? "bazaar" : "auction house") + $" for {info.Color}{info.Name} {McColorCodes.GRAY}x{parts.Last()}");
                 }).LineBreak();
             }).LineBreak()
@@ -76,7 +76,7 @@ public class RecipeCommand : McCommand
                 var itemId = kvp.Key;
                 var count = kvp.Value;
                 var info = itemLookup.GetValueOrDefault(itemId, new { Name = itemId, IsBazaar = false, Color = McColorCodes.WHITE });
-                var command = info.IsBazaar ? $"/bazaar {info.Name}" : $"/ah {info.Name}";
+                var command = info.IsBazaar ? $"/bazaar {info.Name}" : $"/ahs {info.Name}";
                 db.Button($"{info.Name} {McColorCodes.GRAY}x{count}", command, $"Open {(info.IsBazaar ? "bazaar" : "auction house")} for {info.Color}{info.Name} (x{count})")
                     .LineBreak();
             })
