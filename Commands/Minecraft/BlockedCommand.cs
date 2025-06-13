@@ -158,7 +158,8 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 else if (b.Reason.StartsWith("finder"))
                 {
-                    longReason = "You don't have the algorithm that found this flip enabled.\nYou can enable it via the website.\nBut be cautious, some finders are experimental"
+                    longReason = "You don't have the algorithm that found this flip enabled.\n"
+                        +$"You can enable the {b.Reason.Replace("finder","")} finder via the website.\nBut be cautious, some finders are experimental"
                         + $"\nand might overvalue estimations.\nCheck the description for each of them.\n{McColorCodes.GRAY}Click this to open algorithm explanation video";
                     clickAction = "https://www.youtube.com/watch?v=nfMo5CeJDgc&list=PLDpPmxIcq9tAssQlyJMBlSmSg5JOpq699&index=9&pp=iAQB";
                 }
