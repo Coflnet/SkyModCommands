@@ -78,7 +78,7 @@ public class UploadScoreboardCommand : McCommand
         }
         else if (!wasNotFlippable && socket.SessionInfo.IsNotFlipable)
         {
-            socket.Dialog(db => db.MsgLine("Flips disabled because you are in a gamemode with no auction house"));
+            socket.Dialog(db => db.MsgLine("Flips disabled because you are in a gamemode with no auction house", null, $"You can disable flips generally with {McColorCodes.AQUA}/cofl flip never"));
         }
         var playerId = socket.SessionInfo?.McName;
         try
