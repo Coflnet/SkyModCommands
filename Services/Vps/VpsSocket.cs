@@ -187,7 +187,7 @@ public class TPM
         //Pings you when an item doesn't list
         "pingOnFailedListing": false,
         //Doesn't list a drill if it has any parts (It will then automatically remove and sell the parts)
-        "drillWithParts": true,
+        "drillWithParts": false,
         //Will automatically get a price from the cofl API and relist auctions that are expired with the new price. False = don't list. True = list
         "expiredAuctions": false,
         //Pricing to use for expired auctions. Set to 1 if you want to use cofl lore pricing stuff, set to 2:x if you want to cut away x percentage from the price
