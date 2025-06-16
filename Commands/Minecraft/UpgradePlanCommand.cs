@@ -41,8 +41,8 @@ public class UpgradePlanCommand : PurchaseCommand
         var args = Convert<string>(arguments).Split(' ');
         if (args[0] != socket.SessionInfo.SessionId)
         {
-            socket.Dialog(db => db.MsgLine($"Do you want to convert your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to one week of {McColorCodes.GOLD}premium+{McColorCodes.WHITE} for {McColorCodes.AQUA}0 coins")
-                .CoflCommand<UpgradePlanCommand>($"  {McColorCodes.GREEN}Yes  ", $"{socket.SessionInfo.SessionId}", $"Confirm upgrade (paying no coins)")
+            socket.Dialog(db => db.MsgLine($"Do you want to convert your {McColorCodes.GREEN}premium{McColorCodes.WHITE} to one week of {McColorCodes.GOLD}premium+{McColorCodes.WHITE} for {McColorCodes.AQUA}900 CoflCoins")
+                .CoflCommand<UpgradePlanCommand>($"  {McColorCodes.GREEN}Yes  ", $"{socket.SessionInfo.SessionId}", $"Confirm upgrade (paying 900 CoflCoins)")
                 .DialogLink<EchoDialog>($"  {McColorCodes.RED}No  ", $"Upgrade Canceled", $"{McColorCodes.RED}Cancel upgrade"));
             return;
         }
