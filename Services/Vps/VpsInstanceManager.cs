@@ -137,7 +137,7 @@ public class VpsInstanceManager
     {
         var configValue = await GetVpsConfig(userId);
         configValue.skip ??= new();
-        GenericSettingsUpdater updater = GetUpdater();
+        GenericSettingsUpdater updater = GetUpdater(instance);
         configValue.doNotRelist ??= new();
         configValue.sellInventory ??= new();
         configValue.skip ??= new();
@@ -145,12 +145,21 @@ public class VpsInstanceManager
         await UpdateVpsConfig(instance, configValue);
     }
 
+    private static GenericSettingsUpdater GetUpdater(Instance instance)
+    {
+        return instance.AppKind switch
+        {
+            "tpm+" => GetUpdater<TPM.TpmPlusConfig>(),
+            _ => GetUpdater<TPM.TpmConfig>()
+        };
+    }
+
     public async Task ImportSettings(Instance instance, string settings)
     {
         try
         {
 
-            var parsed = JsonConvert.DeserializeObject<TPM.Config>(settings)
+            var parsed = JsonConvert.DeserializeObject<TPM.TpmPlusConfig>(settings)
                 ?? throw new CoflnetException("invalid_settings", "The settings are invalid");
             await UpdateVpsConfig(instance, parsed);
         }
@@ -166,22 +175,23 @@ public class VpsInstanceManager
 
     public Dictionary<string, SettingsUpdater.SettingDoc> SettingOptions()
     {
-        var updater = GetUpdater();
+        var updater = GetUpdater<TPM.TpmPlusConfig>();
         var options = updater.ModOptions;
         return options.ToDictionary(k => k.Key, v => v.Value);
     }
 
-    private static GenericSettingsUpdater GetUpdater()
+    private static GenericSettingsUpdater GetUpdater<T>() where T : new()
     {
         var updater = new GenericSettingsUpdater();
-        updater.AddSettings(typeof(TPM.Config), "");
-        updater.AddSettings(typeof(TPM.Skip), "skip", s => (s as TPM.Config).skip);
-        updater.AddSettings(typeof(TPM.DoNotRelist), "norelist", s => (s as TPM.Config).doNotRelist);
-        updater.AddSettings(typeof(TPM.SellInventory), "sell", s => (s as TPM.Config).sellInventory);
+        updater.AddSettings(typeof(T), "");
+        updater.AddSettings(typeof(TPM.Skip), "skip", s => (s as TPM.TpmPlusConfig).skip);
+        updater.AddSettings(typeof(TPM.DoNotRelist), "norelist", s => (s as TPM.TpmPlusConfig).doNotRelist);
+        if (typeof(T) == typeof(TPM.TpmPlusConfig)) // only available in TPM+
+            updater.AddSettings(typeof(TPM.SellInventory), "sell", s => (s as TPM.TpmPlusConfig).sellInventory);
         return updater;
     }
 
-    private async Task PublishUpdate(Instance instance, CreateOptions options, TPM.Config configValue = null)
+    private async Task PublishUpdate(Instance instance, CreateOptions options, TPM.TpmPlusConfig configValue = null)
     {
         var update = await BuildFullUpdate(instance, options, configValue);
         redis.GetSubscriber().Publish(RedisChannel.Literal("vps:state"), JsonConvert.SerializeObject(update));
@@ -226,10 +236,10 @@ public class VpsInstanceManager
         await settingsService.UpdateSetting(userId, "tpm_extra_config", extraConfig);
     }
 
-    private async Task<VPsStateUpdate> BuildFullUpdate(Instance i, CreateOptions options = null, TPM.Config tpmConfig = null)
+    private async Task<VPsStateUpdate> BuildFullUpdate(Instance i, CreateOptions options = null, TPM.TpmPlusConfig tpmConfig = null)
     {
-        tpmConfig ??= await settingsService.GetCurrentValue<TPM.Config>(i.OwnerId, "tpm_config", () => CreatedConfigs(options));
-        tpmConfig ??= CreatedConfigs(options); // fallback to default config if not found
+        tpmConfig ??= await settingsService.GetCurrentValue<TPM.TpmPlusConfig>(i.OwnerId, "tpm_config", () => CreatedConfigs(i, options));
+        tpmConfig ??= CreatedConfigs(i, options); // fallback to default config if not found
         var extraConfig = await settingsService.GetCurrentValue<string>(i.OwnerId, "tpm_extra_config", () => "");
         var update = new VPsStateUpdate
         {
@@ -240,16 +250,16 @@ public class VpsInstanceManager
         return update;
     }
 
-    private TPM.Config CreatedConfigs(CreateOptions options = null)
+    private TPM.TpmPlusConfig CreatedConfigs(Instance instance = null, CreateOptions options = null)
     {
-        var withoutComments = Regex.Replace(TPM.Default, @"//.*\n", "");
+        var withoutComments = Regex.Replace(instance?.AppKind == "tpm+" ? TPM.PlusDefault : TPM.NormalDefault, @"//.*\n", "");
         var split = withoutComments.Split("\n").Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
         for (int i = 0; i < split.Length; i++)
         {
             Console.WriteLine((i + 1) + " " + split[i]);
         }
         var combined = string.Join("\n", split);
-        var deserialized = JsonConvert.DeserializeObject<TPM.Config>(combined);
+        var deserialized = JsonConvert.DeserializeObject<TPM.TpmPlusConfig>(combined);
         if (options != null)
         {
             deserialized.igns = [options.UserName];
@@ -258,12 +268,12 @@ public class VpsInstanceManager
         return deserialized;
     }
 
-    internal async Task<TPM.Config> GetVpsConfig(string userId)
+    internal async Task<TPM.TpmPlusConfig> GetVpsConfig(string userId)
     {
-        return await settingsService.GetCurrentValue<TPM.Config>(userId, "tpm_config", () => CreatedConfigs());
+        return await settingsService.GetCurrentValue<TPM.TpmPlusConfig>(userId, "tpm_config", () => CreatedConfigs());
     }
 
-    internal async Task UpdateVpsConfig(Instance instance, TPM.Config configValue)
+    internal async Task UpdateVpsConfig(Instance instance, TPM.TpmPlusConfig configValue)
     {
         await settingsService.UpdateSetting(instance.OwnerId, "tpm_config", configValue);
         await PublishUpdate(instance, null, configValue);
@@ -421,7 +431,7 @@ public class VpsInstanceManager
     internal async Task<Dictionary<string, string>> GetSettings(string userId, Instance instance)
     {
         var configValue = await GetVpsConfig(userId);
-        var updater = GetUpdater();
+        var updater = GetUpdater(instance);
         var options = updater.ModOptions;
         var result = new Dictionary<string, string>();
         foreach (var option in options)

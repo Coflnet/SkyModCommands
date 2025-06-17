@@ -52,7 +52,7 @@ public class VpsCommand : McCommand
         }
         if (instances.Count == 0)
         {
-            socket.Dialog(db => db.MsgLine($"You don't have any instances so far, use {McColorCodes.AQUA}/cofl vps create tpm+{McColorCodes.RESET} to create one"));
+            socket.Dialog(db => db.MsgLine($"You don't have any instances so far, use {McColorCodes.AQUA}/cofl vps create{McColorCodes.RESET} to create one"));
         }
         else
         {
@@ -208,9 +208,10 @@ public class VpsCommand : McCommand
 
     private static async Task Create(MinecraftSocket socket, VpsInstanceManager service, string[] args)
     {
-        if (args.Length < 2 || args[1] != "tpm+")
+        if (args.Length < 2 || args[1] != "tpm+" && args[1] != "tpm")
         {
-            socket.Dialog(db => db.MsgLine($"Usage: {McColorCodes.AQUA}/cofl vps create tpm+"));
+            socket.Dialog(db => db.MsgLine($"Usage: {McColorCodes.AQUA}/cofl vps create tpm+")
+                .MsgLine($"Or {McColorCodes.AQUA}/cofl vps create tpm{McColorCodes.GRAY} to create a new instance of normal tpm"));
             return;
         }
         socket.Dialog(db => db.MsgLine($"Trying to create instance..."));

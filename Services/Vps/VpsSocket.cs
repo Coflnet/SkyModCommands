@@ -108,7 +108,7 @@ public class VpsSocket : WebSocketBehavior
 
 public class TPM
 {
-    public static readonly string Default = """
+    public static readonly string PlusDefault = """
     {
     //Put your minecraft IGN here. To use multiple, follow this format: ["account1", "account2"],
     "igns": [""],
@@ -210,6 +210,54 @@ public class TPM
     }
     """;
 
+    public static readonly string NormalDefault = """
+    {
+    "igns": [""],
+    "discordID": "",
+    "webhook": "",
+    "webhooks": [""],
+    "webhookFormat": "You bought [``{0}``](https://sky.coflnet.com/auction/{7}) for ``{2}`` (``{1}`` profit) in ``{4}ms``",
+    "sendAllFlips": "",
+    "visitFriend": "",
+    "useCookie": true,
+    "autoCookie": "1h",
+    "angryCoopPrevention": false,
+    "relist": true,
+    "pingOnUpdate": false,
+    "delay": 250,
+    "waittime": 15,
+    "percentOfTarget": ["0", "10b", 97],
+    "listHours": ["0", "10b", 48],
+    "clickDelay": 125,
+    "bedSpam": false,
+    "blockUselessMessages": true,
+    "roundTo": 6,
+    "skip": {
+        "always": false,
+        "minProfit": "25m",
+        "profitPercentage": "500",
+        "minPrice": "500m",
+        "userFinder": true,
+        "skins": true
+    },
+    "doNotRelist": {
+        "profitOver": "50m",
+        "skinned": true,
+        "tags": ["HYPERION"],
+        "finders": ["USER", "CraftCost"],
+        "stacks": false,
+        "pingOnFailedListing": false,
+        "drillWithParts": true,
+        "expiredAuctions": false,
+        "relistMode": "2:97"
+    },
+    "autoRotate": {
+        "ign": "12r:12f"
+    },
+    "session": ""
+    }
+    """;
+
 
     public class DoNotRelist
     {
@@ -241,7 +289,17 @@ public class TPM
         public string relistMode;
     }
 
-    public class Config
+    public class TpmPlusConfig : TpmConfig
+    {
+
+        [DataMember(Name = "delayTime")]
+        public object[] delayTime;
+
+        [DataMember(Name = "sellInventory")]
+        public SellInventory sellInventory;
+    }
+
+    public class TpmConfig
     {
         [DataMember(Name = "igns")]
         public string[] igns;
@@ -291,9 +349,6 @@ public class TPM
 
         [DataMember(Name = "listHours")]
         public object[] listHours;
-
-        [DataMember(Name = "delayTime")]
-        public object[] delayTime;
 
         [DataMember(Name = "clickDelay")]
         public int clickDelay;
@@ -357,7 +412,7 @@ public class TPM
 
 public class VPsStateUpdate
 {
-    public TPM.Config Config { get; set; }
+    public object Config { get; set; }
     public Instance Instance { get; set; }
     public string ExtraConfig { get; set; }
 }
