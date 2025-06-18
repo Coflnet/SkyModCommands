@@ -76,7 +76,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         // retrieve price
         var sniperService = socket.GetService<ISniperClient>();
         var values = await sniperService.GetPrices(inventory);
-        var toList = inventory.Zip(values).Skip(9).Where(x => x.First != null && x.Second.Median > 1000);
+        var toList = inventory.Zip(values).Skip(9).Where(x => x.First != null && x.Second.Median > 1000).ToList();
         using (var dataResult = socket.CreateActivity("listData", span))
             dataResult.Log(JsonConvert.SerializeObject(toList));
         foreach (var item in LastSentFlips())
@@ -186,13 +186,17 @@ public class FullAfVersionAdapter : AfVersionAdapter
     private async Task ListItems(Activity span, IPlayerApi apiService, List<SaveAuction> inventory, IEnumerable<(SaveAuction First, Sniper.Client.Model.PriceEstimate Second)> toList, int space)
     {
         var listed = 0;
+        var skipped = 0;
         foreach (var item in toList.OrderByDescending(x => x.Second.Volume).ThenByDescending(x => x.Second.Median))
         {
             if (listed >= space)
                 break;
             var index = inventory.IndexOf(item.First);
             if (await ShouldSkip(span, apiService, item.First))
+            {
+                skipped++;
                 continue;
+            }
             if (item.First.Tier == Core.Tier.COMMON && !item.First.Tag.StartsWith("PET"))
             {
                 var itemsApi = socket.GetService<Items.Client.Api.IItemsApi>();
@@ -255,6 +259,11 @@ public class FullAfVersionAdapter : AfVersionAdapter
             }
             await SendListing(listingSpan, item.First, (long)target, index, uuid);
             listed++;
+        }
+        if (skipped == toList.Count() && skipped > 10)
+        {
+            socket.Dialog(db => db.MsgLine($"Skipped {skipped} items in inventory because they were either bought a long time ago, soulbound or marked to be not relisted.")
+                .MsgLine($"Note that having many of those items can fill up your inventory and prevent receiving flips, please remove them, you can sell them at market prices with {McColorCodes.AQUA}/cofl sellinventory{McColorCodes.GRAY}"));
         }
     }
 
