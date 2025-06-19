@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Figgle;
+using Figgle.Fonts;
 using Newtonsoft.Json;
 using WebSocketSharp;
 
