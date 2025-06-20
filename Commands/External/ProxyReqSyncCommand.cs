@@ -26,7 +26,7 @@ public class ProxyReqSyncCommand : McCommand
                 return;
             if (socket.Settings.IsCompiled)
                 break;
-            await Task.Delay(200);
+            await Task.Delay(300);
         }
         if (!socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
         {
@@ -47,17 +47,18 @@ public class ProxyReqSyncCommand : McCommand
         await Task.Delay(200);
         SendState(socket);
         Action<AccountInfo> accounthandler = (a) => SendState(socket);
+        Action<TimeSpan> delayUpdate = (a) => SendState(socket);
         socket.sessionLifesycle.AccountInfo.OnChange += accounthandler;
         socket.sessionLifesycle.FlipSettings.ShouldPreventUpdate += (a) =>
         {
             SendState(socket);
             return false;
         };
-        socket.sessionLifesycle.OnDelayChange += (a) => SendState(socket);
+        socket.sessionLifesycle.OnDelayChange += delayUpdate;
         socket.OnConClose += () =>
         {
             socket.sessionLifesycle.AccountInfo.OnChange -= accounthandler;
-            socket.sessionLifesycle.OnDelayChange -= (a) => SendState(socket);
+            socket.sessionLifesycle.OnDelayChange -= delayUpdate;
         };
     }
 
