@@ -499,6 +499,13 @@ public class VpsInstanceManager
                 ProductId = "compensation",
                 Reference = "tpm+" + instance.Id.ToString().Split('-').Last() + "-" + DateTime.UtcNow.ToString("yyyyMMdd"),
             });
+        else if (instance.AppKind == "tpm")
+            await topUpApi.TopUpCustomPostAsync("28258", new()
+            {
+                Amount = 300,
+                ProductId = "compensation",
+                Reference = "tpm" + instance.Id.ToString().Split('-').Last() + "-" + DateTime.UtcNow.ToString("yyyyMMdd"),
+            });
 
         if (instance.PublicIp == null && instance.HostMachineIp.StartsWith("23."))
         {
