@@ -135,7 +135,7 @@ public class VpsInstanceManager
 
     public async Task UpdateSetting(string userId, string key, string value, Instance instance)
     {
-        var configValue = await GetVpsConfig(userId);
+        var configValue = await GetVpsConfig(instance);
         configValue.skip ??= new();
         GenericSettingsUpdater updater = GetUpdater(instance);
         configValue.doNotRelist ??= new();
@@ -268,9 +268,9 @@ public class VpsInstanceManager
         return deserialized;
     }
 
-    internal async Task<TPM.TpmPlusConfig> GetVpsConfig(string userId)
+    internal async Task<TPM.TpmPlusConfig> GetVpsConfig(Instance instance)
     {
-        return await settingsService.GetCurrentValue<TPM.TpmPlusConfig>(userId, "tpm_config", () => CreatedConfigs());
+        return await settingsService.GetCurrentValue<TPM.TpmPlusConfig>(instance.OwnerId, "tpm_config", () => CreatedConfigs(instance));
     }
 
     internal async Task UpdateVpsConfig(Instance instance, TPM.TpmPlusConfig configValue)
@@ -430,7 +430,7 @@ public class VpsInstanceManager
 
     internal async Task<Dictionary<string, string>> GetSettings(string userId, Instance instance)
     {
-        var configValue = await GetVpsConfig(userId);
+        var configValue = await GetVpsConfig(instance);
         var updater = GetUpdater(instance);
         var options = updater.ModOptions;
         var result = new Dictionary<string, string>();
@@ -521,7 +521,7 @@ public class VpsInstanceManager
 
     internal async Task<string> ExportSettings(Instance instance)
     {
-        var configValue = await GetVpsConfig(instance.OwnerId);
+        var configValue = await GetVpsConfig(instance);
         configValue.session = null;
         var serialized = JsonConvert.SerializeObject(configValue);
         return serialized;

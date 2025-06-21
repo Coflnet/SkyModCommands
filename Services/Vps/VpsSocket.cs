@@ -216,7 +216,7 @@ public class TPM
     "discordID": "",
     "webhook": "",
     "webhooks": [""],
-    "webhookFormat": "You bought [``{0}``](https://sky.coflnet.com/auction/{7}) for ``{2}`` (``{1}`` profit) in ``{4}ms``",
+    "webhookFormat": "You bought [``{0}``](https:\/\/sky.coflnet.com\/auction\/{7}) for ``{2}`` (``{1}`` profit) in ``{4}ms``",
     "sendAllFlips": "",
     "visitFriend": "",
     "useCookie": true,
