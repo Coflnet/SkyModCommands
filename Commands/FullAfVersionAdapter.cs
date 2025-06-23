@@ -422,7 +422,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
         if (sellPrice < 100_000)
             sellPrice = price;
         var id = uuid ?? MapToGameTag(auction);
-        span.Log($"Listing {auction.ItemName} for {sellPrice} (median: {price}) slot {index} id: {id}");
+        var name = auction?.Context?.GetValueOrDefault("cname") ?? auction.ItemName;
+        span.Log($"Listing {name} for {sellPrice} (median: {price}) slot {index} id: {id}");
         var listTime = socket.Settings?.ModSettings?.AhListTimeTarget;
         if (listTime == 0)
             listTime = null;
@@ -436,7 +437,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             Slot = index,
             Price = sellPrice,
             Duration = listTime ?? 96,
-            ItemName = auction.ItemName,
+            ItemName = name,
             Id = id
         }));
         await Task.Delay(5500);
