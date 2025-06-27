@@ -188,7 +188,7 @@ public class CaptchaGenerator
 
     private static string GetMainfillChar()
     {
-        return "🇧🇾".First().ToString();
+        return "";
     }
 
     private static IEnumerable<Option> AddParts(string padding)
@@ -207,8 +207,6 @@ public class CaptchaGenerator
                 continue;
             }
             var piece = item;
-            if (Random.Shared.Next(3) == 0)
-                piece = item.Insert(Random.Shared.Next(0, item.Length - 1), string.Join(null, Enumerable.Range(0, random.Next(1, 10)).Select(x => "🇧🇾")));
             yield return new() { Text = piece };
         }
     }
