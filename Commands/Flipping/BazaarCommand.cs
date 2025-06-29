@@ -55,16 +55,16 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element elem)
     {
-        var userFees = 0.0125; // maybe load this in the future to be exact
         var hourlyVolume = (double)elem.Flip.Volume / 168;
-        var fees = elem.Flip.BuyPrice * userFees * hourlyVolume;
-        var profit = elem.Flip.ProfitPerHour - fees;
+        // its assumed the user has the free bazaar upgrade, maybe load this in the future to be exact
+        var fees = elem.Flip.EstimatedFees;
+        var profit = elem.Flip.ProfitPerHour;
         var isManipulated = elem.IsManipulated;
         var color = isManipulated ? McColorCodes.GRAY : McColorCodes.GREEN;
         db.MsgLine($"{McColorCodes.GRAY}>{(isManipulated ? "[!]" + McColorCodes.STRIKE : McColorCodes.YELLOW)}{elem.ItemName}{McColorCodes.GRAY}: est {color}{socket.FormatPrice((long)profit)} per hour",
                 $"/bz {GetSearchValue(elem.Flip, elem.ItemName)}",
                 $"{(isManipulated ? McColorCodes.RED + $"Probably manipulated preceed with caution\nYou can hide manipulated items with \n{McColorCodes.AQUA}/cl s hideManipulated true\n\n" : "")}"
-                + $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)} {McColorCodes.GRAY}{socket.FormatPrice((long)fees)} fees"
+                + $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)} {McColorCodes.GRAY}incl. {socket.FormatPrice((long)fees)} fees"
                 + $"\n{McColorCodes.GRAY}avg {socket.FormatPrice(hourlyVolume)} sales per hour"
                 + $"\n Click to view in bazaar\n{McColorCodes.DARK_GRAY}Requires booster cookie");
     }
