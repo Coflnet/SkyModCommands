@@ -714,7 +714,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var preApiService = socket.GetService<PreApiService>();
             var badSellers =
-                socket.LastSent.Where(s => s.TargetPrice > s.Auction.StartingBid * 9
+                socket.LastSent.Where(s => s.TargetPrice > s.Auction.StartingBid * 1.5
                             && !preApiService.IsSold(s.Auction.Uuid))
                 .GroupBy(s => s.Auction.AuctioneerId + s.Auction.Tag).Where(g => g.Count() >= 3 && g.Max(a => a.Auction.Start) > DateTime.UtcNow - TimeSpan.FromMinutes(2))
                 .ToList();
