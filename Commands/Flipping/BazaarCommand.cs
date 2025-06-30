@@ -50,7 +50,8 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
                 IsManipulated = isManipulated
             };
         }).Where(f => !f.IsManipulated || !socket.Settings.Visibility.HideManipulated)
-        .OrderByDescending(e => (int)e.Flip.ProfitPerHour - e.Flip.BuyPrice * 0.0125 * (int)e.Flip.Volume / 168);
+            .OrderByDescending(e => (int)e.Flip.ProfitPerHour - e.Flip.BuyPrice * 0.0125 * (int)e.Flip.Volume / 168)
+            .ToList();
         if (await socket.UserAccountTier() == Shared.AccountTier.NONE)
             all.Take(2).Select(e =>
             {
