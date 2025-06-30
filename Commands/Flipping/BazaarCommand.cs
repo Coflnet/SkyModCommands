@@ -53,11 +53,10 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
             .OrderByDescending(e => (int)e.Flip.ProfitPerHour - e.Flip.BuyPrice * 0.0125 * (int)e.Flip.Volume / 168)
             .ToList();
         if (await socket.UserAccountTier() == Shared.AccountTier.NONE)
-            all.Take(2).Select(e =>
+            foreach (var item in all.Take(2))
             {
-                e.ItemName = $"{McColorCodes.RED}requires at least starter premium";
-                return e;
-            });
+                item.ItemName = $"{McColorCodes.RED}requires at least starter premium";
+            }
         return all;
     }
 
