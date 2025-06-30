@@ -39,7 +39,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var items = socket.GetService<Items.Client.Api.IItemsApi>();
         var topFlips = await api.FlipsGetAsync();
         var names = (await items.ItemNamesGetAsync()).ToDictionary(i => i.Tag, i => i.Name);
-        return topFlips.Select(f =>
+        var all = topFlips.Select(f =>
         {
             var profitmargin = f.BuyPrice / f.MedianBuyPrice;
             var isManipulated = profitmargin > 2 || profitmargin > 1.5 && f.BuyPrice > 7_500_000;
@@ -51,6 +51,13 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
             };
         }).Where(f => !f.IsManipulated || !socket.Settings.Visibility.HideManipulated)
         .OrderByDescending(e => (int)e.Flip.ProfitPerHour - e.Flip.BuyPrice * 0.0125 * (int)e.Flip.Volume / 168);
+        if (await socket.UserAccountTier() == Shared.AccountTier.NONE)
+            all.Take(2).Select(e =>
+            {
+                e.ItemName = $"{McColorCodes.RED}requires at least starter premium";
+                return e;
+            });
+        return all;
     }
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element elem)
