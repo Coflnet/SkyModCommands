@@ -150,7 +150,8 @@ public class VpsInstanceManager
         return instance.AppKind switch
         {
             "tpm+" => GetUpdater<TPM.TpmPlusConfig>(),
-            _ => GetUpdater<TPM.TpmConfig>()
+            "tpm" => GetUpdater<TPM.TpmConfig>(),
+            _ => throw new CoflnetException("invalid_app_kind", "The app kind your instance has is unknown, please let support know about this issue or try resetting your instance")
         };
     }
 
