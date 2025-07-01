@@ -230,6 +230,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<NetworthCommand>();
             Commands.Add<VpsCommand>();
             Commands.Add<RecipeCommand>();
+            Commands.Add<NoLoginCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

@@ -162,15 +162,18 @@ namespace Coflnet.Sky.Commands.MC
         private async Task SendLoginPromptMessage(string stringId)
         {
             var index = 1;
+            var ignore = await socket.GetService<StayLoggedOutService>().WantsToBeLoggedout(stringId);
+            if (ignore)
+                return;
             while (UserId.Value == null)
-            {
-                socket.ModAdapter.SendLoginPrompt(GetAuthLink(stringId));
-                await Task.Delay(TimeSpan.FromSeconds(300 * index++)).ConfigureAwait(false);
+                {
+                    socket.ModAdapter.SendLoginPrompt(GetAuthLink(stringId));
+                    await Task.Delay(TimeSpan.FromSeconds(300 * index++)).ConfigureAwait(false);
 
-                if (UserId.Value != default)
-                    return;
-                SendMessage("do /cofl stop to stop receiving this (or click this message)", "/cofl stop");
-            }
+                    if (UserId.Value != default)
+                        return;
+                    socket.Dialog(d=>d.MsgLine($"do {McColorCodes.AQUA}/cofl nologin{McColorCodes.RESET} to stop receiving this (or click this message)", "/cofl nologin"));
+                }
         }
 
         public async Task LoggedIn(string userId)

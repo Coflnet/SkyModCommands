@@ -31,7 +31,7 @@ namespace Coflnet.Sky.Commands.MC
             if (accountInfo == null)
             {
                 socket.SendMessage("Captchas are not relevant/displayed when you are not logged in");
-                socket.SendLoginPrompt();
+                await socket.SendLoginPrompt();
                 return;
             }
             var solution = info.CurrentSolutions;
