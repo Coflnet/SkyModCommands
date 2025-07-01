@@ -242,6 +242,11 @@ public class VpsInstanceManager
         tpmConfig ??= await settingsService.GetCurrentValue<TPM.TpmPlusConfig>(i.OwnerId, "tpm_config", () => CreatedConfigs(i, options));
         tpmConfig ??= CreatedConfigs(i, options); // fallback to default config if not found
         var extraConfig = await settingsService.GetCurrentValue<string>(i.OwnerId, "tpm_extra_config", () => "");
+        if (i.AppKind != "tpm" && i.AppKind != "tpm+")
+        {
+            i.AppKind = i.AppKind.Contains('+') ? "tpm+" : "tpm"; // ensure app kind is correct for discord issue
+            await vpsTable.Insert(i).ExecuteAsync(); // update app kind in db
+        }
         var update = new VPsStateUpdate
         {
             Config = tpmConfig,
