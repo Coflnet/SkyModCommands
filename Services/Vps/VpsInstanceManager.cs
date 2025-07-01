@@ -346,7 +346,7 @@ public class VpsInstanceManager
 
     internal async Task ReassignVps(Instance instance)
     {
-        string putOn = await GetAvailableServer();
+        string putOn = await GetAvailableServer(instance.HostMachineIp);
         var previousIp = instance.HostMachineIp;
         if (previousIp == putOn)
         {
@@ -357,12 +357,12 @@ public class VpsInstanceManager
         await vpsTable.Where(v => v.HostMachineIp == previousIp && v.Id == instance.Id).Delete().ExecuteAsync();
     }
 
-    public async Task<string> GetAvailableServer()
+    public async Task<string> GetAvailableServer(string avoidIp = null)
     {
         var allActive = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow).ToList();
         var grouped = allActive.GroupBy(v => v.HostMachineIp).ToDictionary(g => g.Key, g => (total: g.Count(), running: g.Count(s => !s.Context.ContainsKey("turnedOff") && s.PublicIp == null)));
         var putOn = activeInstances.Where(a => a.Value > DateTime.UtcNow.AddMinutes(-10))
-                .OrderBy(v => grouped.GetValueOrDefault(v.Key).running) // least other instances
+                .OrderBy(v => grouped.GetValueOrDefault(v.Key).running + (v.Key == avoidIp ? 3 : 0)) // least other instances
                 .Select(a => a.Key).FirstOrDefault();
         if (putOn == null)
         {
