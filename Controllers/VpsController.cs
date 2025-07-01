@@ -80,6 +80,13 @@ public class VpsController : ControllerBase
         await vpsInstanceManager.ReassignVps(instance);
     }
 
+    [HttpPost("{user}/{instanceId}/reset")]
+    public async Task Reset(string user, Guid instanceId, VpsCreateRequest request)
+    {
+        Instance instance = await GetInstance(user, instanceId);
+        await vpsInstanceManager.ResetVps(instance, request.mcName, request.AppKind);
+    }
+
     private async Task<Instance> GetInstance(string user, Guid instanceId)
     {
         var instances = await vpsInstanceManager.GetVpsForUser(user);

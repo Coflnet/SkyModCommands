@@ -578,6 +578,16 @@ public class VpsInstanceManager
         logger.LogInformation($"Deleted proxy {ip}");
     }
 
+    internal async Task ResetVps(Instance instance, string mcName, string appKind)
+    {
+        if(instance.PaidUntil > DateTime.UtcNow.AddDays(2))
+        {
+            throw new CoflnetException("too_far_in_future", "You can only switch the instance if it has less than 2 days left");
+        }
+        instance.AppKind = appKind;
+        await UpdateAndPublish(instance);
+    }
+
     public class Root
     {
         [JsonPropertyName("status")]
