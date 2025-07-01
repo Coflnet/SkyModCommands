@@ -139,7 +139,7 @@ namespace Coflnet.Sky.Commands.MC
         public virtual void SendLoginPrompt(string loginLink)
         {
             socket.Dialog(db => db.Msg($"Please {McColorCodes.WHITE}§lclick this [LINK] to login{McColorCodes.GRAY} so we can load your settings §8(do '/cofl help login' to get more info)"
-             + $"\n{McColorCodes.BLACK}You can run `/cofl nologin` to disable this message for a while.",
+             + $"\n{McColorCodes.DARK_GRAY}Run '/cofl nologin' to avoid this message",
                 loginLink, "Click to login")
                 .AddMargin(""));
         }
