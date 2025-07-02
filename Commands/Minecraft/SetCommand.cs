@@ -21,6 +21,7 @@ public class SetCommand : McCommand
 {
     public override bool IsPublic => true;
     private static SettingsUpdater updater = new SettingsUpdater();
+    public static IEnumerable<string> Options => updater.Options();
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         try
