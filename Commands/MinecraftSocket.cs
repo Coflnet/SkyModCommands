@@ -605,14 +605,15 @@ namespace Coflnet.Sky.Commands.MC
             var commandType = a.type.ToLower().Trim(' ', '"');
             if (!Commands.TryGetValue(commandType, out var command))
             {
-                var closest = Commands.Where(c => c.Value is { IsPublic: true }).Select(c => (cmd: c.Key, dist: Fastenshtein.Levenshtein.Distance(c.Key.ToLower(), commandType))).MinBy(x => x.dist);
+                var closest = Commands.Where(c => c.Value is { IsPublic: true }).Select(c => c.Key).Concat(SetCommand.Options)
+                    .Select(c => (cmd: c, dist: Fastenshtein.Levenshtein.Distance(c.ToLower(), commandType))).MinBy(x => x.dist);
                 if (SetCommand.Options.Contains(commandType, StringComparer.OrdinalIgnoreCase))
                 {
                     closest = (cmd: "s", dist: 0); // set command is always available
                     a.data = a.data.Insert(1, commandType + " ");
                     Dialog(db => db.MsgLine($"You didn't use {McColorCodes.AQUA}/cofl s <setting Name>{McColorCodes.RESET} so we corrected that for you. {McColorCodes.GRAY}(changing settings is done with set command, or s for short)"));
                 }
-                else if (closest.dist > 1)
+                else if (closest.dist > 1 || SetCommand.Options.Contains(closest.cmd))
                 {
                     var altCommand = $"/cofl {closest.cmd} {a.data.Trim('"')}";
                     SendMessage($"{COFLNET}The command '{McColorCodes.ITALIC + commandType + McColorCodes.RESET + McCommand.DEFAULT_COLOR}' is not known. Maybe you meant '{closest}\n",
