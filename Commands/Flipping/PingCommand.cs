@@ -20,7 +20,7 @@ public class PingCommand : McCommand
         if (args.Length <= 1)
         {
             if (MinecraftSocket.NextFlipTime > DateTime.UtcNow.AddSeconds(52) && MinecraftSocket.NextFlipTime < DateTime.UtcNow.AddSeconds(65))
-                socket.Dialog(db => db.MsgLine($"The ah updates soon. Ping may appear higher now than it actually is because cpu is used to load auctions as fast as possible for you."));
+                socket.Dialog(db => db.MsgLine($"The ah updates soon. Ping may appear higher now than it actually is because cpu is used to load auctions as fast as possible for you. Run /cofl ping again in ~10 seconds to get a more accurate ping."));
             socket.Dialog(db => db.MsgLine($"Testing ping"));
             await Task.Delay(200);
             socket.ExecuteCommand($"/cofl ping {sessionId} {DateTime.UtcNow.Ticks}");
