@@ -63,11 +63,11 @@ public class AccountTierManager : IAccountTierManager
         }, "get active sessions", 3);
     }
 
-    private async Task CheckAccounttier()
+    private async Task CheckAccounttier(bool forceUpdate = false)
     {
         try
         {
-            var currentTier = await GetCurrentTierWithExpire();
+            var currentTier = await GetCurrentTierWithExpire(forceUpdate);
         }
         catch (Exception e)
         {
@@ -94,7 +94,7 @@ public class AccountTierManager : IAccountTierManager
     public async Task RefreshTier()
     {
         expiresAt = DateTime.UtcNow;
-        await CheckAccounttier();
+        await CheckAccounttier(true);
     }
 
     public bool HasAtLeast(AccountTier tier)
@@ -106,6 +106,10 @@ public class AccountTierManager : IAccountTierManager
     {
         if (Disposed)
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
+        if (expiresAt > DateTime.UtcNow && !forceUpdate && lastTier != null)
+        {
+            return (lastTier.Value, expiresAt);
+        }
         var currentTier = await CalculateCurrentTierWithExpire(forceUpdate);
         if (currentTier.tier != lastTier)
         {
