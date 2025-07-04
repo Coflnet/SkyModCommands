@@ -834,10 +834,10 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     using var span = socket.CreateActivity("blockedcleanup", ConSpan);
                     var service = socket.GetService<IBlockedService>();
-                    await service.ArchiveBlockedFlipsUntil(socket.TopBlocked, socket.UserId, 300);
+                    await service.ArchiveBlockedFlipsUntil(socket.TopBlocked, socket.UserId, 100);
                     return;
                 }
-                while (socket.TopBlocked.Count > 200)
+                while (socket.TopBlocked.Count > 300)
                     socket.TopBlocked.TryDequeue(out _);
             }, "blocked cleanup");
         }
