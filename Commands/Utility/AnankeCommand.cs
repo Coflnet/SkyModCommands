@@ -60,7 +60,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
 
     protected override async Task<IEnumerable<Element>> GetElements(MinecraftSocket socket, string val)
     {
-        var cleanPrices = await socket.GetService<SniperClient>().GetCleanPrices();
+        var cleanPrices = await socket.GetService<ISniperClient>().GetCleanPrices();
         var all = new List<Element>();
         var featherPrice = cleanPrices.GetValueOrDefault("ANANKE_FEATHER");
         foreach (var item in costs)
