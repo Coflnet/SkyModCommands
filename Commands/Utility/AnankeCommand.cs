@@ -81,7 +81,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
                 Price = price
             });
         }
-        return all.OrderBy(e => e.Price - e.Cost);
+        return all.OrderByDescending(e => e.Price - e.Cost);
     }
 
     protected override string GetId(Element elem)
