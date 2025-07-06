@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
@@ -51,10 +52,10 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element item)
     {
-        db.MsgLine($" {item.Tag} {McColorCodes.GRAY}for {McColorCodes.AQUA}{item.Price/item.FeathersRequired} coins per feather",
+        db.MsgLine($" {item.Tag} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice(item.Price / item.FeathersRequired)} coins per feather",
                     "https://sky.coflnet.com/item/" + item.Tag,
                     $"Requires {McColorCodes.AQUA}{item.FeathersRequired} feathers{McColorCodes.GRAY}, total cost: {McColorCodes.AQUA}{socket.FormatPrice(item.Cost)} coins\n"
-                    + $"Estimated profit buying at ah: {McColorCodes.AQUA}{socket.FormatPrice(item.Price-item.Cost)} coins"
+                    + $"Estimated profit buying at ah: {McColorCodes.AQUA}{socket.FormatPrice(item.Price - item.Cost)} coins"
                     + "Click to check history on website");
     }
 
@@ -80,7 +81,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
                 Price = price
             });
         }
-        return all;
+        return all.OrderBy(e => e.Price - e.Cost);
     }
 
     protected override string GetId(Element elem)
