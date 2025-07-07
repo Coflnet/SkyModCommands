@@ -358,7 +358,9 @@ public class VpsInstanceManager
         {
             throw new CoflnetException("no_change", "The instance is already on the best server");
         }
+        await TurnOffVps(instance); // make sure it doesn't keep running on the old server
         instance.HostMachineIp = putOn;
+        instance.Context.Remove("turnedOff");
         await UpdateAndPublish(instance);
         await vpsTable.Where(v => v.HostMachineIp == previousIp && v.Id == instance.Id).Delete().ExecuteAsync();
     }
