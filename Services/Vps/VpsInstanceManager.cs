@@ -553,10 +553,10 @@ public class VpsInstanceManager
         logger.LogInformation($"Set public IP for instance {instance.Id} to {ip}");
     }
 
-    internal async Task<Dictionary<string, IEnumerable<string>>> GetIpGroups()
+    internal async Task<Dictionary<string, IEnumerable<string>>> GetIpGroups(bool preventProxy = false)
     {
         var allActive = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow).ToList();
-        var grouped = allActive.GroupBy(v => v.PublicIp == null ? v.HostMachineIp : v.PublicIp).ToDictionary(g => g.Key, g => g.Select(s => $"{s.Id}/{(s.Context.ContainsKey("turnedOff") ? "Off" : "running")}/{s.PaidUntil}/{s.OwnerId}"));
+        var grouped = allActive.GroupBy(v => v.PublicIp == null || preventProxy ? v.HostMachineIp : v.PublicIp).ToDictionary(g => g.Key, g => g.Select(s => $"{s.Id}/{(s.Context.ContainsKey("turnedOff") ? "Off" : "running")}/{s.PaidUntil}/{s.OwnerId}"));
         return grouped;
     }
 

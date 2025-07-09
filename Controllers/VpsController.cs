@@ -146,9 +146,9 @@ public class VpsController : ControllerBase
     }
 
     [HttpGet("ipGroups")]
-    public async Task<Dictionary<string, IEnumerable<string>>> GetIpGroups()
+    public async Task<Dictionary<string, IEnumerable<string>>> GetIpGroups(bool preventProxy = false)
     {
-        return await vpsInstanceManager.GetIpGroups();
+        return await vpsInstanceManager.GetIpGroups(preventProxy);
     }
 
     [HttpPost("proxies")]
