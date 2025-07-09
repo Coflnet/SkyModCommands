@@ -360,6 +360,7 @@ public class VpsInstanceManager
         }
         await TurnOffVps(instance); // make sure it doesn't keep running on the old server
         instance.HostMachineIp = putOn;
+        instance.PublicIp = null; // reset public IP to use host system
         instance.Context.Remove("turnedOff");
         await UpdateAndPublish(instance);
         await vpsTable.Where(v => v.HostMachineIp == previousIp && v.Id == instance.Id).Delete().ExecuteAsync();
