@@ -10,6 +10,14 @@ namespace Coflnet.Sky.Commands.MC
     {
         private Regex regex = new Regex(InventoryModSession.DefaultChatRegex);
 
+        [TestCase("[NPC] Kat: You can pick it up in 59 minutes 22 seconds")]
+        [TestCase("[NPC] Kat: I'm currently taking care of your Bee!")]
+        [TestCase("[NPC] Kat: Stop by once it\u0027s done, okay?")]
+        public void MatchesKatMessage(string message)
+        {
+            Assert.That(regex.IsMatch(message));
+        }
+
         [Test]
         public void MatchesAuctionCreation()
         {
