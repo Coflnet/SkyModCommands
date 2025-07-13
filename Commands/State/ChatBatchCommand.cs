@@ -30,7 +30,7 @@ namespace Coflnet.Sky.Commands.MC
                 return; // dismiss stat update
             var config = socket.GetService<IConfiguration>();
             var playerId = socket.SessionInfo?.McName;
-            if (playerId == "Ekwav")
+            if (playerId == "Ekwav" || MinecraftSocket.IsDevMode)
                 Console.WriteLine("produced chat batch " + string.Join(',',batch));
             try
             {

@@ -134,6 +134,8 @@ namespace Coflnet.Sky.Commands.MC
             UpdateExtraDelay();
             TierManager.OnTierChange += TierChangedHandler;
             await SubscribetoCommands();
+            if (socket.sessionLifesycle.AccountSettings.Value.GetLowballs)
+                socket.GetService<LowballSerivce>().Enable(socket);
         }
 
         private async Task SubscribetoCommands()

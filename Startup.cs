@@ -91,6 +91,7 @@ public class Startup
         services.AddSingleton<AltChecker>();
         services.AddSingleton<VpsInstanceManager>();
         services.AddSingleton<StayLoggedOutService>();
+        services.AddSingleton<LowballSerivce>();
         services.AddSingleton<IDelayExemptList, DelayExemptionList>();
         services.AddCoflService();
     }

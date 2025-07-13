@@ -233,6 +233,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<NoLoginCommand>();
             Commands.Add<AnankeCommand>();
             Commands.Add<TaskCommand>();
+            Commands.Add<LowballCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {

@@ -6,6 +6,8 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.PlayerState.Client.Api;
 using Newtonsoft.Json;
 using Coflnet.Sky.Commands.Shared;
+using System;
+using System.Collections.Generic;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -14,7 +16,7 @@ public abstract class ItemSelectCommand<T> : McCommand where T : ItemSelectComma
     protected async Task HandleSelectionOrDisplaySelect(MinecraftSocket socket, string[] args, string context, string hoverPrefix)
     {
         if (socket.SessionInfo.McName == null)
-            throw new CoflnetException("not logged in", "Your minecraft account cou");
+            throw new CoflnetException("not logged in", "Your minecraft account could not be confirmed, please run /cofl verify");
         var inventory = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
         if (args.Length > 1)
         {
@@ -42,6 +44,23 @@ public abstract class ItemSelectCommand<T> : McCommand where T : ItemSelectComma
                             $"{hoverPrefix}{item.ItemName}\n{item.Description}")).LineBreak()));
     }
 
+    protected static SaveAuction ConvertToAuction(PlayerState.Client.Model.Item item)
+    {
+        var auction = new SaveAuction()
+        {
+            Tag = item.Tag,
+            ItemName = item.ItemName,
+            Enchantments = item.Enchantments?.Select(e => new Enchantment()
+            {
+                Type = Enum.Parse<Enchantment.EnchantmentType>(e.Key, true),
+                Level = (byte)e.Value
+            }).ToList() ?? [],
+            Count = item.Count ?? 1,
+        };
+        auction.SetFlattenedNbt(NBT.FlattenNbtData(item.ExtraAttributes));
+        auction.Tier = (Tier)int.Parse(item.ExtraAttributes.GetValueOrDefault("tier", 0).ToString());
+        return auction;
+    }
 
     protected abstract Task SelectedItem(MinecraftSocket socket, string context, PlayerState.Client.Model.Item item);
 

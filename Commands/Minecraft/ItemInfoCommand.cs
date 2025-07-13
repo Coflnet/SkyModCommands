@@ -15,18 +15,7 @@ public class ItemInfoCommand : ItemSelectCommand<ItemInfoCommand>
 
     protected override async Task SelectedItem(MinecraftSocket socket, string targetPlayer, PlayerState.Client.Model.Item item)
     {
-        var auction = new SaveAuction()
-        {
-            Tag = item.Tag,
-            ItemName = item.ItemName,
-            Enchantments = item.Enchantments.Select(e => new Enchantment()
-            {
-                Type = Enum.Parse<Enchantment.EnchantmentType>(e.Key, true),
-                Level = (byte)e.Value
-            }).ToList(),
-            Count = item.Count ?? 1,
-        };
-        auction.SetFlattenedNbt(NBT.FlattenNbtData(item.ExtraAttributes));
+        SaveAuction auction = ConvertToAuction(item);
         var res = await socket.GetService<Shared.ISniperClient>().GetPrices(new SaveAuction[] { auction });
         var price = res[0].Median;
         var priceString = price == 0 ? "§cnot found" : $"§a{price} coins";
