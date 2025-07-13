@@ -180,12 +180,41 @@ namespace Coflnet.Sky.Commands.MC
             catch (Exception e)
             {
                 var id = socket.Error(e, "matching flip settings", JSON.Stringify(flip) + "\n\n" + JSON.Stringify(flip.Auction.Context) + "\n\n" + JSON.Stringify(Settings));
+                if (e is CoflnetException c && c.Slug == "compile_error")
+                {
+                    if (FindCompileError(flipInstance, Settings.WhiteList) || FindCompileError(flipInstance, Settings.BlackList))
+                        return false;
+                    socket.Dialog(d => d.MsgLine("Your black or whitelist contain an invalid filter that could not be handled automatically, please check your filters or contact support, flip with issue is " + id));
+                    return false;
+                }
                 dev.Logger.Instance.Error(e, "minecraft socket flip settings matching " + id);
                 return BlockedFlip(flip, "Error " + e.Message);
             }
             if (Settings != null && !isMatch.Item1)
                 return BlockedFlip(flip, isMatch.Item2);
             return true;
+        }
+
+        private bool FindCompileError(FlipInstance flipInstance, List<ListEntry> targetList)
+        {
+            foreach (var item in Settings.WhiteList.ToList())
+            {
+                var virtualS = new FlipSettings()
+                {
+                    WhiteList = [item]
+                };
+                try
+                {
+                    virtualS.MatchesSettings(flipInstance);
+                }
+                catch (System.Exception ex)
+                {
+                    targetList.Remove(item);
+                    socket.Dialog(d => d.MsgLine(BlacklistCommand.FormatEntry(item) + McColorCodes.RED + " was ignored in your filters because it had an error, please correct or remove it: " + ex.Message));
+                    return true;
+                }
+            }
+            return false;
         }
 
         private bool NotSold(LowPricedAuction flip)
