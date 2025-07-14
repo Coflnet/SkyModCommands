@@ -30,7 +30,7 @@ public class KatTask : ProfitTask
             };
         }
         // skip top one as its usually quickly bought
-        var best = katData.OrderByDescending(k => k.Profit / k.CoreData.Hours).Skip(1).FirstOrDefault();
+        var best = katData.Where(k=>k.CoreData.Hours != 0).OrderByDescending(k => k.Profit / k.CoreData.Hours).Skip(1).FirstOrDefault();
         return new TaskResult
         {
             ProfitPerHour = (int)(best.Profit / best.CoreData.Hours),
