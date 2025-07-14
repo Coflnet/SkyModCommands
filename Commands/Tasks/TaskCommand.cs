@@ -17,6 +17,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
     public TaskCommand()
     {
         _tasks.Add<KatTask>();
+        _tasks.Add<ForgeTask>();
     }
     public override bool IsPublic => true;
 

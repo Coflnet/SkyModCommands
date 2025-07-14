@@ -38,6 +38,11 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
 
     protected override async Task<IEnumerable<ForgeFlip>> GetElements(MinecraftSocket socket, string val)
     {
+        return await GetPossibleFlips(socket);
+    }
+
+    public static async Task<IEnumerable<ForgeFlip>> GetPossibleFlips(MinecraftSocket socket)
+    {
         var forgeApi = socket.GetService<IForgeApi>();
         var profileApi = socket.GetService<IProfileClient>();
         var forgeUnlockedTask = profileApi.GetForgeData(socket.SessionInfo.McUuid, "current");
