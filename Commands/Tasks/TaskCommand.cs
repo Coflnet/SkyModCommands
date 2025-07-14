@@ -23,7 +23,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, TaskResult elem)
     {
-        db.MsgLine($"§6{elem.ProfitPerHour} coins/h {McColorCodes.GRAY}{elem.Message}", elem.OnClick, elem.Details);
+        db.MsgLine($"§6{socket.FormatPrice(elem.ProfitPerHour)} coins/h {McColorCodes.GRAY}{elem.Message}", elem.OnClick, elem.Details);
     }
 
     protected override async Task<IEnumerable<TaskResult>> GetElements(MinecraftSocket socket, string val)
