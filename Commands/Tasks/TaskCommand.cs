@@ -37,7 +37,22 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             Cache = Cache,
             MaxAvailableCoins = socket.SessionInfo.Purse > 0 ? socket.SessionInfo.Purse : 1000000000 // Default to 1 billion coins if not set
         };
-        var all = await Task.WhenAll(_tasks.Select(t => t.Value.Execute(parameters)).ToList());
+        var all = await Task.WhenAll(_tasks.Select(async t =>
+        {
+            try
+            {
+                return await t.Value.Execute(parameters);
+            }
+            catch (Exception e)
+            {
+                return new TaskResult
+                {
+                    ProfitPerHour = 0,
+                    Message = $"§cError while trying to calculate task {t.Key} {t.Value.Description}",
+                    Details = e.ToString()
+                };
+            }
+        }).ToList());
         return all.OrderByDescending(r => r.ProfitPerHour).ToList();
     }
 
