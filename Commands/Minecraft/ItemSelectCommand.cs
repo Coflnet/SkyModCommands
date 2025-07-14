@@ -57,6 +57,8 @@ public abstract class ItemSelectCommand<T> : McCommand where T : ItemSelectComma
             }).ToList() ?? [],
             Count = item.Count ?? 1,
         };
+        if(item.ExtraAttributes == null)
+            throw new CoflnetException("invalid item", "The item attributes could not be read, please open your inventory and try again a few seconds after");
         auction.SetFlattenedNbt(NBT.FlattenNbtData(item.ExtraAttributes));
         auction.Tier = (Tier)int.Parse(item.ExtraAttributes.GetValueOrDefault("tier", 0).ToString());
         return auction;
