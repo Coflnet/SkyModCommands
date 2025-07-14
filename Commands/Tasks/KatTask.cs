@@ -29,8 +29,8 @@ public class KatTask : ProfitTask
                 Message = $"Your kat is currently busy with {parameters.ExtractedInfo.KatStatus.ItemName} for another {parameters.ExtractedInfo.KatStatus.KatEnd - DateTime.UtcNow}."
             };
         }
-        // skip top one as its usually quickly bought
-        var best = katData.Where(k=>k.CoreData.Hours != 0).OrderByDescending(k => k.Profit / k.CoreData.Hours).Skip(1).FirstOrDefault();
+        // skip top one as its usually quickly bought, add 6 minutes for getting materials and setup
+        var best = katData.Where(k=>k.CoreData.Hours != 0).OrderByDescending(k => k.Profit / (k.CoreData.Hours + 0.1)).Skip(1).FirstOrDefault();
         return new TaskResult
         {
             ProfitPerHour = (int)(best.Profit / best.CoreData.Hours),
