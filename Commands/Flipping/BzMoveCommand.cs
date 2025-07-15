@@ -11,11 +11,14 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
     public override bool IsPublic => true;
     protected override string Title => "Top Bazaar Movers";
     protected override string NoMatchText => $"No match found, that should not be possible, guess there is a bug";
+    public BzMoveCommand()
+    {
+        sorters.Add("asc", (el) => el.OrderBy(m => m.Movement.CurrentPrice - m.Movement.PreviousPrice));
+    }
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, MovementElement elem)
     {
         db.MsgLine($"");
-        sorters.Add("asc", (el) => el.OrderBy(m => m.Movement.CurrentPrice - m.Movement.PreviousPrice));
     }
 
     protected override async Task<IEnumerable<MovementElement>> GetElements(MinecraftSocket socket, string val)
