@@ -18,7 +18,8 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, MovementElement elem)
     {
-        db.MsgLine($"");
+        db.Msg($" {elem.ItemName} {McColorCodes.RED}{socket.FormatPrice(elem.Movement.PreviousPrice)} {McColorCodes.GRAY}-> {McColorCodes.GREEN}{socket.FormatPrice(elem.Movement.CurrentPrice)}", "/bz " + elem.ItemName, "open in game")
+            .Button($"Website", $"https://sky.coflnet.com/item/{elem.Movement.ItemId}", "open in browser");
     }
 
     protected override async Task<IEnumerable<MovementElement>> GetElements(MinecraftSocket socket, string val)
