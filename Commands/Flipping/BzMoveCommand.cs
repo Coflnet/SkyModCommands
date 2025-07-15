@@ -9,7 +9,7 @@ namespace Coflnet.Sky.Commands.MC;
 public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
 {
     public override bool IsPublic => true;
-    protected override string Title => "Top Bazaar Movers";
+    protected override string Title => "Top Bazaar 24h Movers";
     protected override string NoMatchText => $"No match found, that should not be possible, guess there is a bug";
     public BzMoveCommand()
     {
@@ -58,6 +58,13 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
         arguments = args.Aggregate((a, b) => a + " " + b);
 
         return arguments;
+    }
+
+    protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<MovementElement> elements)
+    {
+        var isDescending = elements.FirstOrDefault()?.Movement.CurrentPrice - elements.FirstOrDefault()?.Movement.PreviousPrice < 0;
+        db.If(()=>isDescending, db=>db.Button("Drop", "/cofl bzmove asc", $"Sort by biggest drop first\n{McColorCodes.GRAY}You can also use {McColorCodes.AQUA}/cl bzmove asc <search>\n{McColorCodes.GRAY} to search the results"),
+            db => db.Button("Upwards", "/cofl bzmove", "sort by biggest increase first"));
     }
 
     protected override string GetId(MovementElement elem)
