@@ -37,7 +37,7 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
                 break;
             }
         }
-        search = search.Replace("buy", "").Replace("sell", "");
+        search = search.Replace("buy", "").Replace("sell", "").Trim();
 
         var names = (await itemsApi.ItemNamesGetAsync()).ToDictionary(i => i.Tag, i => i.Name);
         return (await movementTask)
