@@ -53,7 +53,7 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
 
     protected override string GetId(MovementElement elem)
     {
-        throw new NotImplementedException();
+        return elem.ItemName + elem.Movement.ItemId;
     }
 
     public class MovementElement
