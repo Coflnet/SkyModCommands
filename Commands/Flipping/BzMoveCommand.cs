@@ -62,7 +62,7 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<MovementElement> elements)
     {
-        var isDescending = elements.FirstOrDefault()?.Movement.CurrentPrice - elements.FirstOrDefault()?.Movement.PreviousPrice < 0;
+        var isDescending = elements.FirstOrDefault()?.Movement.CurrentPrice - elements.FirstOrDefault()?.Movement.PreviousPrice > 0;
         db.If(()=>isDescending, db=>db.Button("Drop", "/cofl bzmove asc", $"Sort by biggest drop first\n{McColorCodes.GRAY}You can also use {McColorCodes.AQUA}/cl bzmove asc <search>\n{McColorCodes.GRAY} to search the results"),
             db => db.Button("Upwards", "/cofl bzmove", "sort by biggest increase first"));
     }
