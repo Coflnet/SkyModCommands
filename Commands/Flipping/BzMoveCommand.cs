@@ -28,16 +28,6 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
         var items = socket.GetService<IBazaarApi>();
         var movementTask = items.GetMovementAsync(24, val.Contains("buy"));
         var itemsApi = socket.GetService<Items.Client.Api.IItemsApi>();
-        var search = val.ToLower();
-        foreach (var item in sorters.Keys)
-        {
-            if (search.StartsWith(item))
-            {
-                search = search.Substring(item.Length).Trim();
-                break;
-            }
-        }
-        search = search.Replace("buy", "").Replace("sell", "").Trim();
 
         var names = (await itemsApi.ItemNamesGetAsync()).ToDictionary(i => i.Tag, i => i.Name);
         return (await movementTask)
@@ -46,9 +36,28 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
                 Movement = m,
                 ItemName = names.TryGetValue(m.ItemId, out var name) ? name : m.ItemId
             })
-            .Where(m => m.ItemName.Contains(search, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(m => m.Movement.CurrentPrice - m.Movement.PreviousPrice)
             .ToList();
+    }
+
+
+    protected override string RemoveSortArgument(string arguments)
+    {
+        var args = arguments.Split(' ').Where(a =>
+        {
+            if (sorters.ContainsKey(a))
+                return false;
+            if(a == "buy" || a == "sell")
+                return false; // special selection filter
+            return true;
+        }).ToList();
+
+        if(args.Count == 0)
+            return "";
+
+        arguments = args.Aggregate((a, b) => a + " " + b);
+
+        return arguments;
     }
 
     protected override string GetId(MovementElement elem)
