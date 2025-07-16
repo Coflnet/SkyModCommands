@@ -18,6 +18,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
     {
         _tasks.Add<KatTask>();
         _tasks.Add<ForgeTask>();
+        _tasks.Add<GalateaTask>();
     }
     public override bool IsPublic => true;
 
@@ -28,6 +29,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
 
     protected override async Task<IEnumerable<TaskResult>> GetElements(MinecraftSocket socket, string val)
     {
+        var locationProfit = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdProfitLocationGetAsync(socket.SessionInfo.McUuid);
         var extractedState = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdExtractedGetAsync(socket.SessionInfo.McName);
         var parameters = new TaskParams
         {
@@ -35,6 +37,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             ExtractedInfo = extractedState,
             Socket = socket,
             Cache = Cache,
+            LocationProfit = locationProfit.ToDictionary(l => l.Location),
             MaxAvailableCoins = socket.SessionInfo.Purse > 0 ? socket.SessionInfo.Purse : 1000000000 // Default to 1 billion coins if not set
         };
         var all = await Task.WhenAll(_tasks.Select(async t =>
