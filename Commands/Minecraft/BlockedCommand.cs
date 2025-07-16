@@ -159,7 +159,7 @@ namespace Coflnet.Sky.Commands.MC
                 else if (b.Reason.StartsWith("finder"))
                 {
                     longReason = "You don't have the algorithm that found this flip enabled.\n"
-                        +$"You can enable the {b.Reason.Replace("finder","")} finder via the website.\nBut be cautious, some finders are experimental"
+                        + $"You can enable the {b.Reason.Replace("finder", "")} finder via the website.\nBut be cautious, some finders are experimental"
                         + $"\nand might overvalue estimations.\nCheck the description for each of them.\n{McColorCodes.GRAY}Click this to open algorithm explanation video";
                     clickAction = "https://www.youtube.com/watch?v=nfMo5CeJDgc&list=PLDpPmxIcq9tAssQlyJMBlSmSg5JOpq699&index=9&pp=iAQB";
                 }
@@ -189,13 +189,22 @@ namespace Coflnet.Sky.Commands.MC
                         mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}hover for info{McColorCodes.GRAY}]", clickAction, longReason));
 
                 return mainParts;
-            }).Append(new ChatPart() { text = COFLNET + "These are examples of blocked flips.", onClick = "/cofl blocked", hover = "Execute again to get another sample" }).ToArray());
+            }).Append(new ChatPart()
+            {
+                text = COFLNET + "These are examples of blocked flips. Hover for options",
+                onClick = "/cofl blocked profit",
+                hover = $"Execute again to get another sample,\n"
+                        + "they are random each time and the most \n"
+                        + "common block cause is sorted on top\n"
+                        + $"Or run {McColorCodes.AQUA}/cofl blocked profit {McColorCodes.RESET} to order by most profit\n"
+                        + "Or run " + $"{McColorCodes.AQUA}/cofl blocked <search> {McColorCodes.RESET}to search for specific flips",
+            }).ToArray());
             var sentCount = socket.LastSent.Where(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-10)).Count();
             if (sentCount > 2 && socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(10).All(s => !s.AdditionalProps.ContainsKey("clickT")))
                 socket.Dialog(db => db.MsgLine($"There were {sentCount} flips sent in the last 10 minutes, but you didn't click any of them.")
-                    .If(()=>socket.ModAdapter is AfVersionAdapter,
-                        b =>b.MsgLine("Maybe adjust your settings"),
-                        d =>d.MsgLine("Make sure none of your other mods are blocking the chat messages.")));
+                    .If(() => socket.ModAdapter is AfVersionAdapter,
+                        b => b.MsgLine("Maybe adjust your settings"),
+                        d => d.MsgLine("Make sure none of your other mods are blocking the chat messages.")));
             if (await socket.UserAccountTier() == AccountTier.NONE)
             {
                 socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"Note that you don't have premium, flips will show up very late if at all. Eg. the user finder doesn't work. \n{McColorCodes.GREEN}[Click to change that]", "", "Click to select a premium plan"));
