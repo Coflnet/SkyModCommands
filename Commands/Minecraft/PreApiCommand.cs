@@ -11,7 +11,6 @@ public class PreApiCommand : McCommand
     public override bool IsPublic => true;
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        throw new CoflnetException("unavailable", "Sadly hypixel banned this command for now");
         var args = JsonConvert.DeserializeObject<string>(arguments).Split(' ');
         var preapiService = socket.GetService<PreApiService>();
         if (args[0] == "notify")
