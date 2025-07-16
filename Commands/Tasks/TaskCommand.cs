@@ -19,6 +19,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
         _tasks.Add<KatTask>();
         _tasks.Add<ForgeTask>();
         _tasks.Add<GalateaTask>();
+        _tasks.Add<JerryTask>();
     }
     public override bool IsPublic => true;
 
@@ -57,6 +58,12 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             }
         }).ToList());
         return all.OrderByDescending(r => r.ProfitPerHour).ToList();
+    }
+
+    protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<TaskResult> elements, IEnumerable<TaskResult> toDisplay)
+    {
+        if (!socket.Version.StartsWith("1.6.3"))
+            db.MsgLine($"{McColorCodes.RED}Active tasks require at least mod version 1.6.3 to work properly");
     }
 
     protected override string GetId(TaskResult elem)
