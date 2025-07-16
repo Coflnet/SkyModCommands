@@ -13,7 +13,10 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
     protected override string NoMatchText => $"No match found, that should not be possible, guess there is a bug";
     public BzMoveCommand()
     {
-        sorters.Add("asc", (el) => el.OrderBy(m => m.Movement.CurrentPrice - m.Movement.PreviousPrice));
+        sorters.Add("asc", (el) => el.OrderBy(m => 
+            m.Movement.PreviousPrice != 0 
+            ? (m.Movement.CurrentPrice - m.Movement.PreviousPrice) / m.Movement.PreviousPrice
+            : 0));
     }
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, MovementElement elem)
@@ -33,10 +36,13 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
         return (await movementTask)
             .Select(m => new MovementElement
             {
-                Movement = m,
-                ItemName = names.TryGetValue(m.ItemId, out var name) ? name : m.ItemId
+            Movement = m,
+            ItemName = names.TryGetValue(m.ItemId, out var name) ? name : m.ItemId
             })
-            .OrderByDescending(m => m.Movement.CurrentPrice - m.Movement.PreviousPrice)
+            .OrderByDescending(m => 
+            m.Movement.PreviousPrice != 0 
+                ? (m.Movement.CurrentPrice - m.Movement.PreviousPrice) / m.Movement.PreviousPrice
+                : 0)
             .ToList();
     }
 
