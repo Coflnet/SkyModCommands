@@ -29,7 +29,7 @@ public abstract class IslandTask : ProfitTask
             {
                 ProfitPerHour = 0,
                 Message = $"No {RegionName} activity tracked so far.",
-                Details = $"Please visit {RegionName} island and do some activities so we can calculate the profitability."
+                Details = $"Please visit {RegionName} island \nand do some activities \nso we can calculate the profitability."
             });
         }
         if (!IsPossibleAt(parameters.TestTime))
