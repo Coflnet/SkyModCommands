@@ -57,13 +57,14 @@ public class GalateaTask : ProfitTask
             });
         }
         var bestLocation = locations.First();
+        var formattedDuration = parameters.Socket.formatProvider.FormatTime(bestLocation.data.EndTime - bestLocation.data.StartTime);
         return Task.FromResult(new TaskResult
         {
             ProfitPerHour = (int)bestLocation.perHour,
-            Message = $"Best location: {bestLocation.data.Location} with {parameters.Socket.FormatPrice(bestLocation.data.Profit)} profit in total, {parameters.Socket.FormatPrice(bestLocation.perHour)} per hour.",
+            Message = $"Galatea: {McColorCodes.AQUA}{bestLocation.data.Location} with {parameters.Socket.FormatPrice(bestLocation.data.Profit)} over {formattedDuration}.",
             Details = $"Total locations considered: {locations.Count}\n" +
                       $"Best start: {bestLocation.data.StartTime:f}\n" +
-                      $"Duration: {parameters.Socket.formatProvider.FormatTime(bestLocation.data.EndTime - bestLocation.data.StartTime)}",
+                      $"Duration: {formattedDuration}",
             OnClick = "/warp galatea"
         });
     }
