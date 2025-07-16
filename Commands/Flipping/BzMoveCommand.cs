@@ -68,11 +68,11 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<MovementElement> elements, IEnumerable<MovementElement> toDisplay)
     {
-        var hidden = toDisplay.Count(e => e.Movement.PreviousPrice == 0);
+        var hidden = toDisplay.Count(e => e.Movement.Volume * e.Movement.PreviousPrice < 100_000_000 );
         var isDescending = elements.FirstOrDefault()?.Movement.CurrentPrice - elements.FirstOrDefault()?.Movement.PreviousPrice > 0;
         db.If(() => isDescending, db => db.Button("Drop", "/cofl bzmove asc", $"Sort by biggest drop first\n{McColorCodes.GRAY}You can also use {McColorCodes.AQUA}/cl bzmove asc <search>\n{McColorCodes.GRAY} to search the results"),
             db => db.Button("Upwards", "/cofl bzmove", "sort by biggest increase first"))
-            .If(() => hidden > 0, db => db.Msg($" Hid {hidden}", null, "Elements that had no previous\norders are hidden"));
+            .If(() => hidden > 0, db => db.Msg($" Hid {hidden}", null, "Elements that had less than\n100m in weekly transactions\nare hidden for irelevance"));
     }
 
     protected override string GetId(MovementElement elem)
