@@ -21,7 +21,10 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, MovementElement elem)
     {
-        db.Msg($" {elem.ItemName} {McColorCodes.RED}{socket.FormatPrice(elem.Movement.PreviousPrice)} {McColorCodes.GRAY}-> {McColorCodes.GREEN}{socket.FormatPrice(elem.Movement.CurrentPrice)}", "/bz " + elem.ItemName, $"open {McColorCodes.AQUA}{elem.ItemName} {McColorCodes.GRAY}in game")
+        if (IsIrelevant(elem))
+            return; // skip irrelevant elements
+        db.Msg($" {elem.ItemName} {McColorCodes.RED}{socket.FormatPrice(elem.Movement.PreviousPrice)} {McColorCodes.GRAY}-> {McColorCodes.GREEN}{socket.FormatPrice(elem.Movement.CurrentPrice)}", "/bz " + elem.ItemName,
+            $"{McColorCodes.GRAY}has {McColorCodes.RESET}{socket.FormatPrice(elem.Movement.Volume/7)} transactions per day\nopen {McColorCodes.AQUA}{elem.ItemName} {McColorCodes.GRAY}in game")
             .Button($"Website", $"https://sky.coflnet.com/item/{elem.Movement.ItemId}", $"open {McColorCodes.AQUA}{elem.ItemName} {McColorCodes.GRAY}in browser")
             .LineBreak();
     }
@@ -68,11 +71,16 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<MovementElement> elements, IEnumerable<MovementElement> toDisplay)
     {
-        var hidden = toDisplay.Count(e => e.Movement.Volume * e.Movement.PreviousPrice < 100_000_000 );
+        var hidden = toDisplay.Count(e => IsIrelevant(e));
         var isDescending = elements.FirstOrDefault()?.Movement.CurrentPrice - elements.FirstOrDefault()?.Movement.PreviousPrice > 0;
         db.If(() => isDescending, db => db.Button("Drop", "/cofl bzmove asc", $"Sort by biggest drop first\n{McColorCodes.GRAY}You can also use {McColorCodes.AQUA}/cl bzmove asc <search>\n{McColorCodes.GRAY} to search the results"),
             db => db.Button("Upwards", "/cofl bzmove", "sort by biggest increase first"))
             .If(() => hidden > 0, db => db.Msg($" Hid {hidden}", null, "Elements that had less than\n100m in weekly transactions\nare hidden for irelevance"));
+    }
+
+    private static bool IsIrelevant(MovementElement e)
+    {
+        return e.Movement.Volume * e.Movement.PreviousPrice < 100_000_000;
     }
 
     protected override string GetId(MovementElement elem)
