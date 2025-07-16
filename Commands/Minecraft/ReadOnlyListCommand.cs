@@ -40,7 +40,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
         DialogBuilder dialog = PrintResult(socket, title, page, toDisplay, totalPages);
         if (toDisplay.Count() == 0)
             dialog.MsgLine(NoMatchText);
-        PrintSumary(socket, dialog, elements);
+        PrintSumary(socket, dialog, elements, toDisplay);
         socket.SendMessage(dialog.Build());
     }
 
@@ -60,7 +60,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
         return arguments;
     }
 
-    protected virtual void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<T> elements)
+    protected virtual void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<T> elements, IEnumerable<T> toDisplay)
     {
     }
     protected virtual string GetTitle(string arguments)

@@ -13,8 +13,8 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
     protected override string NoMatchText => $"No match found, that should not be possible, guess there is a bug";
     public BzMoveCommand()
     {
-        sorters.Add("asc", (el) => el.OrderBy(m => 
-            m.Movement.PreviousPrice != 0 
+        sorters.Add("asc", (el) => el.OrderBy(m =>
+            m.Movement.PreviousPrice != 0
             ? (m.Movement.CurrentPrice - m.Movement.PreviousPrice) / m.Movement.PreviousPrice
             : 0));
     }
@@ -36,11 +36,11 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
         return (await movementTask)
             .Select(m => new MovementElement
             {
-            Movement = m,
-            ItemName = names.TryGetValue(m.ItemId, out var name) ? name : m.ItemId
+                Movement = m,
+                ItemName = names.TryGetValue(m.ItemId, out var name) ? name : m.ItemId
             })
-            .OrderByDescending(m => 
-            m.Movement.PreviousPrice != 0 
+            .OrderByDescending(m =>
+            m.Movement.PreviousPrice != 0
                 ? (m.Movement.CurrentPrice - m.Movement.PreviousPrice) / m.Movement.PreviousPrice
                 : 0)
             .ToList();
@@ -53,12 +53,12 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
         {
             if (sorters.ContainsKey(a))
                 return false;
-            if(a == "buy" || a == "sell")
+            if (a == "buy" || a == "sell")
                 return false; // special selection filter
             return true;
         }).ToList();
 
-        if(args.Count == 0)
+        if (args.Count == 0)
             return "";
 
         arguments = args.Aggregate((a, b) => a + " " + b);
@@ -66,11 +66,13 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
         return arguments;
     }
 
-    protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<MovementElement> elements)
+    protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<MovementElement> elements, IEnumerable<MovementElement> toDisplay)
     {
+        var hidden = toDisplay.Count(e => e.Movement.PreviousPrice == 0);
         var isDescending = elements.FirstOrDefault()?.Movement.CurrentPrice - elements.FirstOrDefault()?.Movement.PreviousPrice > 0;
-        db.If(()=>isDescending, db=>db.Button("Drop", "/cofl bzmove asc", $"Sort by biggest drop first\n{McColorCodes.GRAY}You can also use {McColorCodes.AQUA}/cl bzmove asc <search>\n{McColorCodes.GRAY} to search the results"),
-            db => db.Button("Upwards", "/cofl bzmove", "sort by biggest increase first"));
+        db.If(() => isDescending, db => db.Button("Drop", "/cofl bzmove asc", $"Sort by biggest drop first\n{McColorCodes.GRAY}You can also use {McColorCodes.AQUA}/cl bzmove asc <search>\n{McColorCodes.GRAY} to search the results"),
+            db => db.Button("Upwards", "/cofl bzmove", "sort by biggest increase first"))
+            .If(() => hidden > 0, db => db.Msg($" Hid {hidden}", null, "Elements that had no previous\norders are hidden"));
     }
 
     protected override string GetId(MovementElement elem)

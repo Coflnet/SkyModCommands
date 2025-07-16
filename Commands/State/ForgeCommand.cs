@@ -71,7 +71,7 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
         return elem.CraftData.ItemId + elem.CraftData.ItemName;
     }
 
-    protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<ForgeFlip> elements)
+    protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<ForgeFlip> elements, IEnumerable<ForgeFlip> toDisplay)
     {
         db.MsgLine("New Command, looking for feedback :)");
     }

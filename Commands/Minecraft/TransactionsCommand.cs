@@ -47,7 +47,7 @@ namespace Coflnet.Sky.Commands.MC
             //db.MsgLine($"{McColorCodes.YELLOW}Purchased {McColorCodes.AQUA}{elem.ProductId}{McColorCodes.YELLOW} on {McColorCodes.YELLOW}{elem.TimeStamp}{McColorCodes.YELLOW} for {McColorCodes.AQUA}{elem.Amount} ");
         }
 
-        protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<ExternalTransaction> elements)
+        protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<ExternalTransaction> elements, IEnumerable<ExternalTransaction> toDisplay)
         {
             var spent = elements.Where(e => e.Amount < 0).Sum(e => e.Amount) * -1;
             var inRealMoney = (long)((spent - elements.Where(e => e.ProductId == "compensation").Sum(e => e.Amount)) / 1800 * 6.69);
