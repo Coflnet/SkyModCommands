@@ -62,11 +62,12 @@ public class SwitchRegionCommand : McCommand
         var clientIp = socket.ClientIp;
         var linodePrefixes = new List<string> {
             "172.23",
+            "130.131", //azure
         };
 
         if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith))
         {
-            socket.Dialog(db => db.MsgLine("You are using a linode server, switching to us-linode"));
+            socket.Dialog(db => db.MsgLine("You seem have good connection to linode, switching to us-linode"));
             tobeUsed = "us-linode";
         }
         // check twice if the server is reachable
