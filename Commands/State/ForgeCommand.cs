@@ -76,6 +76,14 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
         db.MsgLine("New Command, looking for feedback :)");
     }
 
+    protected override IEnumerable<ForgeFlip> FilterElementsForProfile(MinecraftSocket socket, IEnumerable<ForgeFlip> elements)
+    {
+        var filtered = elements.Where(f => f.CraftData.CraftCost < socket.SessionInfo.Purse).ToList();
+        if(filtered.Count != elements.Count())
+            socket.Dialog(db=>db.MsgLine($"Filtered {elements.Count() - filtered.Count} forges that cost more than your purse ({socket.FormatPrice(socket.SessionInfo.Purse)})"));
+        return filtered;
+    }
+
     protected override string Title => $"Most profitable Forge Flips you can do";
 
     public override bool IsPublic => true;

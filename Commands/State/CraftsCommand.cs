@@ -80,6 +80,14 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
         return filtered;
     }
 
+    protected override IEnumerable<ProfitableCraft> FilterElementsForProfile(MinecraftSocket socket, IEnumerable<ProfitableCraft> elements)
+    {
+        var filtered = elements.Where(f => f.CraftCost < socket.SessionInfo.Purse).ToList();
+        if(filtered.Count != elements.Count())
+            socket.Dialog(db=>db.MsgLine($"Filtered {elements.Count() - filtered.Count} crafts that cost more than your purse ({socket.FormatPrice(socket.SessionInfo.Purse)})"));
+        return filtered;
+    }
+
     private static async Task<List<Crafts.Models.ProfitableCraft>> NewMethod(ICraftsApi craftApi)
     {
         var data = await craftApi.GetProfitableWithHttpInfoAsync();

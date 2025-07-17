@@ -31,6 +31,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
             // search
             elements = elements.Where(e => GetId(e).ToLower().Contains(arguments.ToLower())).ToList();
         }
+        elements = FilterElementsForProfile(socket, elements).ToList();
         if (page < 0)
             page = elements.Count / PageSize + page;
         if (page == 0)
@@ -62,6 +63,11 @@ public abstract class ReadOnlyListCommand<T> : McCommand
 
     protected virtual void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<T> elements, IEnumerable<T> toDisplay)
     {
+    }
+
+    protected virtual IEnumerable<T> FilterElementsForProfile(MinecraftSocket socket, IEnumerable<T> elements)
+    {
+        return elements;
     }
     protected virtual string GetTitle(string arguments)
     {
