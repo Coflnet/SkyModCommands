@@ -17,6 +17,8 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            socket.Send(Response.Create("highlightBlocks", new BlockPos[] { new() { X = 9, Y = 102, Z = 15 },new() { X = 9, Y = 104, Z = 15 } }));
+            return;
             socket.ExecuteCommand("/cofl getinventory");
             socket.ExecuteCommand("/viewstash material");
             await Task.Delay(500);
