@@ -10,7 +10,7 @@ namespace Coflnet.Sky.Commands.MC
                 + @"|You collected|�6[Auction]|BIN Auction started|You cancelled|You purchased "
                 + @"|Profile ID: "
                 + @"|You caught " // catching shards
-                + @"|Added items" // stash adding notification
+                + @"|Added items|Removed items" // stash adding notification
                 + @"| - | \+ |Trade completed|Bid of|\nClick the link to |\nClick th' li|You must set it to at least).*";
 
         public InventoryModSession(MinecraftSocket socket) : base(socket)
