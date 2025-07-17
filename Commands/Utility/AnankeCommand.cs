@@ -7,6 +7,9 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Lists the top potential flips for",
+    "RNG meter progress granted by Ananke Feathers")]
 public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
 {
     public override bool IsPublic => true;

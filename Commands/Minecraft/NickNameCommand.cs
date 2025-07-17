@@ -6,12 +6,18 @@ using StackExchange.Redis;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription(
+        "Set your account nickname",
+        "This will be displayed in chat instead of your minecraft name",
+        "You can clear it by typing /cofl nickname clear",
+        "Note that if your nickname contains inappropriate",
+        "words your account may be suspended")]
     public class NickNameCommand : McCommand
     {
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            
+
             var nickName = JsonConvert.DeserializeObject<string>(arguments);
             if (nickName == "clear")
             {
@@ -26,7 +32,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (string.IsNullOrEmpty(nickName))
             {
-                socket.Dialog(db=>db.MsgLine($"usage {McColorCodes.AQUA}/cofl nickname [nickname]")
+                socket.Dialog(db => db.MsgLine($"usage {McColorCodes.AQUA}/cofl nickname [nickname]")
                     .MsgLine($"Alternatively {McColorCodes.AQUA}/cofl nickname clear{McColorCodes.GRAY} to clear your nickname"));
                 return;
             }
@@ -41,7 +47,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             var alphaNumericRegex = new System.Text.RegularExpressions.Regex("^[a-zA-Z0-9_]*$");
-            if(!alphaNumericRegex.IsMatch(nickName))
+            if (!alphaNumericRegex.IsMatch(nickName))
             {
                 socket.SendMessage(COFLNET + "Nicknames can only contain letters, numbers and underscores");
                 return;
@@ -65,7 +71,7 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 }
             }
-            if((await redis.GetDatabase().StringGetAsync("nicknameu" + nickName)).HasValue)
+            if ((await redis.GetDatabase().StringGetAsync("nicknameu" + nickName)).HasValue)
             {
                 socket.Dialog(db => db.MsgLine($"The nickname {nickName} is already in use"));
                 return;

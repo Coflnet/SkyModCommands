@@ -4,6 +4,11 @@ using Coflnet.Payments.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Helps you verify your minecraft account",
+    "This command checks if your minecraft account is verified",
+    "If it is not, it will prompt you to verify it",
+    "You can also use this command to check if you are verified")]
 public class VerifyCommand : McCommand
 {
     public override bool IsPublic => true;

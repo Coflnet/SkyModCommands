@@ -6,6 +6,12 @@ using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Updates the current config to the latest version",
+    "This command applies all changes from the config seller",
+    "This is done by checking what the seller changed and applying",
+    " those changes. This keeps any filter changes you made in tact.",
+    "You can skip settings by using /cl updateconfig skipSettings=true")]
 public class UpdateCurrentConfigCommand : ArgumentsCommand
 {
     protected override string Usage => "[skipSettings=true]";

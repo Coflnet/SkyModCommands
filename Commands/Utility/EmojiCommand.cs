@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 
 namespace Coflnet.Sky.Commands.MC
 {
+    [CommandDescription(
+        $"Lists available emojis for §b/fc")]
     public class EmojiCommand : McCommand
     {
         public override bool IsPublic => true;

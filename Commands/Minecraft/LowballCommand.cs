@@ -9,6 +9,12 @@ using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Offer items to or register as lowballer",
+    "Simplifies lowballing by not requiring",
+    "you to advertise anymore as a buyer.",
+    "And allows you to compare multiple offers",
+    "and be visited by the highest as a seller")]
 public class LowballCommand : ItemSelectCommand<LowballCommand>
 {
     public override bool IsPublic => true;
@@ -62,7 +68,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
                 return;
             }
             socket.Dialog(db => db.MsgLine($"{McColorCodes.GRAY}To register for lowballing, use {McColorCodes.AQUA}/cofl lowball on", "/cofl lowball on")
-                .MsgLine($"{ McColorCodes.GRAY}full help is available with {McColorCodes.AQUA}/cofl lowball help","/cofl lowball help"));
+                .MsgLine($"{McColorCodes.GRAY}full help is available with {McColorCodes.AQUA}/cofl lowball help", "/cofl lowball help"));
             await HandleSelectionOrDisplaySelect(socket, args, "offer", $"Offer this item to lowballers: \n");
             return;
         }

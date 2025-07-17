@@ -8,6 +8,11 @@ using Item = Coflnet.Sky.PlayerState.Client.Model.Item;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Shows breakdown of cost for items applied to the main item.",
+    "This command allows you to see the total cost of crafting an item",
+    "It will show you the total cost and the individual costs of each component",
+    "This represents the induvidual costs in TotalCraftCost in lore")]
 public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
 {
     public override bool IsPublic => true;
@@ -31,7 +36,7 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
 
         static string NewMethod(MinecraftSocket socket, Api.Client.Model.CraftPrice c)
         {
-            if(c.Price < 0)
+            if (c.Price < 0)
             {
                 return $"{McColorCodes.RED}{c.FormattedReson}{McColorCodes.GRAY} for {McColorCodes.GOLD}{McColorCodes.ITALIC}0/unknown coins";
             }

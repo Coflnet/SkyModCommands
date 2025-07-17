@@ -10,6 +10,13 @@ using Coflnet.Sky.ModCommands.Dialogs;
 using static Coflnet.Sky.Commands.MC.BazaarCommand;
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "A list of the top bazaar flips",
+    "Allows you to see the most profitable",
+    "bazaar flips currently available",
+    "It assumes that you make buy and sellers",
+    "and includes the §b1.25% bazaar fee",
+    "from the free bazaar community upgrade")]
 public class BazaarCommand : ReadOnlyListCommand<Element>
 {
     public override bool IsPublic => true;

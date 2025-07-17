@@ -11,6 +11,12 @@ using NUnit.Framework;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Allows you to manage your account licenses",
+    "Licenses allow you to open multiple connections at once",
+    "If you have multiple accounts and want to configure",
+    "which one takes the premium on your email first use",
+    "/cofl license default <userName>")]
 public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLicenseWithName>>
 {
     protected override bool CanAddMultiple => false;

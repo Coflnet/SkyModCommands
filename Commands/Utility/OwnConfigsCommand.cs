@@ -8,6 +8,11 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Lists configs you purchased from /cofl configs",
+    "This command allows you to see the configs you own",
+    "You can load them with /cl loadconfig <ownerId> <name>",
+    "or by clicking on the output of the command")]
 public class OwnConfigsCommand : ListCommand<OwnedConfigs.OwnedConfig, List<OwnedConfigs.OwnedConfig>>
 {
     protected override Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)

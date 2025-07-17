@@ -6,6 +6,12 @@ using Coflnet.Sky.McConnect.Api;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Allows you to unverify one of your minecraft accounts",
+    "You can only unverify accounts that fufill requirements",
+    "Eg. blacklisted accounts can't be unverfied",
+    "Unless you shared an account with someone else",
+    "there is no reason to unverify an account")]
 public class UnVerifyCommand : McCommand
 {
     public override bool IsPublic => true;

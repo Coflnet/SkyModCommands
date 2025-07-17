@@ -11,6 +11,11 @@ using static Coflnet.Sky.Core.ItemReferences;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Lists flips that a modifier can be applied to for profit",
+    "This command is experimental and not all modifiers",
+    "list correctly. It uses the median sniper flip finder",
+    "to find price differences between modifiers on the ah")]
 public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.AttributeFlip>
 {
     protected override string Title => "Attribute craft Flips";

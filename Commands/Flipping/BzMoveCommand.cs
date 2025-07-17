@@ -6,6 +6,12 @@ using Coflnet.Sky.Bazaar.Client.Api;
 using Coflnet.Sky.ModCommands.Dialogs;
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Lists the top bazaar movers in the last 24 hours",
+    "Sorts by biggest price increase by default",
+    "You can use /cofl bzmove asc to sort by biggest drop",
+    "You can also search for items by name or id",
+    "Use /cofl bzmove help to see usage")]
 public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
 {
     public override bool IsPublic => true;
@@ -24,7 +30,7 @@ public class BzMoveCommand : ReadOnlyListCommand<BzMoveCommand.MovementElement>
         if (IsIrelevant(elem))
             return; // skip irrelevant elements
         db.Msg($" {elem.ItemName} {McColorCodes.RED}{socket.FormatPrice(elem.Movement.PreviousPrice)} {McColorCodes.GRAY}-> {McColorCodes.GREEN}{socket.FormatPrice(elem.Movement.CurrentPrice)}", "/bz " + elem.ItemName,
-            $"{McColorCodes.GRAY}has {McColorCodes.RESET}{socket.FormatPrice(elem.Movement.Volume/7)} transactions per day\nopen {McColorCodes.AQUA}{elem.ItemName} {McColorCodes.GRAY}in game")
+            $"{McColorCodes.GRAY}has {McColorCodes.RESET}{socket.FormatPrice(elem.Movement.Volume / 7)} transactions per day\nopen {McColorCodes.AQUA}{elem.ItemName} {McColorCodes.GRAY}in game")
             .Button($"Website", $"https://sky.coflnet.com/item/{elem.Movement.ItemId}", $"open {McColorCodes.AQUA}{elem.ItemName} {McColorCodes.GRAY}in browser")
             .LineBreak();
     }

@@ -7,6 +7,11 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Lists the cheapest items per exp for museum donations",
+    "Honors tierd donations and tries to suggest the biggest",
+    "exp donation first so you don't double spend.",
+    "Also respects armor set requirements")]
 public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
 {
     public override bool IsPublic => true;

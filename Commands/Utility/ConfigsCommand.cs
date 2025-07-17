@@ -13,6 +13,13 @@ using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "A list of the top configs",
+    "Allows you to see the most popular configs",
+    "You can upvote and downvote configs",
+    "You can also see stats for each config",
+    "and buy them if you don't own them yet",
+    "Note that configs are not required to use the flipper")]
 public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<ConfigsCommand.ConfigRating>>
 {
     protected Dictionary<string, Func<IEnumerable<ConfigRating>, IOrderedEnumerable<ConfigRating>>> sorters = new(){

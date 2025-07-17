@@ -9,6 +9,12 @@ using Coflnet.Sky.PlayerState.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC.Tasks;
 
+[CommandDescription(
+    "Lists tasks that can be done for profit",
+    "Tasks are calculated based on your current progress",
+    "and try to self adjust based on how many items",
+    "you managed to collect recently (active tasks)",
+    "Passive tasks include flips from other commands")]
 public class TaskCommand : ReadOnlyListCommand<TaskResult>
 {
     private ClassNameDictonary<ProfitTask> _tasks = new ClassNameDictonary<ProfitTask>();

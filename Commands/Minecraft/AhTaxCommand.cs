@@ -4,6 +4,10 @@ using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[CommandDescription(
+    "Calculates the auction house tax for a given sell amount",
+    "Honors fee changes of Derpy",
+    "Usage: /cofl ahtax <sellAmount>")]
 public class AhTaxCommand : ArgumentsCommand
 {
     protected override string Usage => "<sellAmount>";
