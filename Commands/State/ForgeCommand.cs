@@ -6,6 +6,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Crafts.Client.Api;
 using Coflnet.Sky.Crafts.Client.Model;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.PlayerState.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -44,10 +45,15 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
     public static async Task<IEnumerable<ForgeFlip>> GetPossibleFlips(MinecraftSocket socket)
     {
         var forgeApi = socket.GetService<IForgeApi>();
+        var stateApi = socket.GetService<IPlayerStateApi>();
         var profileApi = socket.GetService<IProfileClient>();
+        var extractedTask = stateApi.PlayerStatePlayerIdExtractedGetAsync(socket.SessionInfo.McName);
         var forgeUnlockedTask = profileApi.GetForgeData(socket.SessionInfo.McUuid, "current");
         var forgeFlips = await forgeApi.GetAllForgeAsync();
         var unlocked = await forgeUnlockedTask;
+        var extractedInfo = await extractedTask;
+        if (extractedInfo.HeartOfTheMountain?.Tier > 0)
+            unlocked.HotMLevel = extractedInfo.HeartOfTheMountain.Tier;
         var result = new List<ForgeFlip>();
         foreach (var item in forgeFlips)
         {
@@ -79,8 +85,8 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
     protected override IEnumerable<ForgeFlip> FilterElementsForProfile(MinecraftSocket socket, IEnumerable<ForgeFlip> elements)
     {
         var filtered = elements.Where(f => f.CraftData.CraftCost < socket.SessionInfo.Purse).ToList();
-        if(filtered.Count != elements.Count())
-            socket.Dialog(db=>db.MsgLine($"Filtered {elements.Count() - filtered.Count} forges that cost more than your purse ({socket.FormatPrice(socket.SessionInfo.Purse)})"));
+        if (filtered.Count != elements.Count())
+            socket.Dialog(db => db.MsgLine($"Filtered {elements.Count() - filtered.Count} forges that cost more than your purse ({socket.FormatPrice(socket.SessionInfo.Purse)})"));
         return filtered;
     }
 
