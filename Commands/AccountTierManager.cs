@@ -239,6 +239,7 @@ public class AccountTierManager : IAccountTierManager
         IsLicense = false;
         if (Disposed)
             activeSessions?.Dispose(); // async functions could have been running while the connection closed
+        span.Log($"Matching {JsonConvert.SerializeObject(matchingNewLicense)}");
         if (matchingNewLicense != default)
         {
             if (matchingNewLicense.Expires < DateTime.UtcNow)
