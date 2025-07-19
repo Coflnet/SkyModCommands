@@ -235,6 +235,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<Tasks.TaskCommand>();
             Commands.Add<LowballCommand>();
             Commands.Add<BzMoveCommand>();
+            Commands.Add<UploadSettingsCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
