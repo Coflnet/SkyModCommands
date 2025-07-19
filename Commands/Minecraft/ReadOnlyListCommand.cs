@@ -9,6 +9,7 @@ namespace Coflnet.Sky.Commands.MC;
 
 public abstract class ReadOnlyListCommand<T> : McCommand
 {
+    public override bool IsPublic => true;
     protected Dictionary<string, Func<IEnumerable<T>, IOrderedEnumerable<T>>> sorters = new Dictionary<string, Func<IEnumerable<T>, IOrderedEnumerable<T>>>();
     public override async Task Execute(MinecraftSocket socket, string args)
     {

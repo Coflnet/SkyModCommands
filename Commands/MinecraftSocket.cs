@@ -236,6 +236,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<LowballCommand>();
             Commands.Add<BzMoveCommand>();
             Commands.Add<UploadSettingsCommand>();
+            Commands.Add<MinionCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
