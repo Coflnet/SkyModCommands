@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core.Services;
 using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -13,44 +14,45 @@ namespace Coflnet.Sky.Commands.MC;
 public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
 {
     public override bool IsPublic => true;
-    private static Dictionary<string, double> costs = new()
+    // Updated: Added unlock costs (in coins) where known, 0 if unknown
+    private static Dictionary<string, (double feathers, long unlockCost)> costs = new()
     {
-        { "T7_BOOK", 5.00 },
-        { "SCYTHE_BLADE", 0.98 },
-        { "SHARD_OF_THE_SHREDDED", 1.84 },
-        { "WARDEN_HEART", 7.40 },
-        { "OVERFLUX_CAPACITOR", 4.10 },
-        { "JUDGEMENT_CORE", 12.64 },
-        { "ARTIFACT_UPGRADER", 25.29 },
-        { "BURGER", 2.31 },
-        { "VAMPIRE_PART", 2.31 },
-        { "THE_ONE_IV", 1.56 },
-        { "HIGH_CLASS_DICE", 2.29 },
-        { "FIRST_MASTER_STAR", 0.98 },
-        { "SECOND_MASTER_STAR", 0.97 },
-        { "THIRD_MASTER_STAR", 2.45 },
-        { "FOURTH_MASTER_STAR", 4.06 },
-        { "FIFTH_MASTER_STAR", 20.29 },
-        { "SHADOW_FURY", 2.86 },
-        { "GIANTS_SWORD", 5.33 },
-        { "PRECURSOR_EYE", 8.89 },
-        { "NECRON_HANDLE", 33.79 },
-        { "SCROLL_F7", 26.38 },
-        { "IMPLOSION_SCROLL", 24.33 },
-        { "SHADOW_WARP_SCROLL", 24.33 },
-        { "WITHER_SHIELD_SCROLL", 24.33 },
-        { "DARK_CLAYMORE", 60.83 },
-        { "QUICK_CLAW", 26.47 },
-        { "DIVANS_ALLOY", 58.82 },
-        { "DYE_NADESHIKO", 25 },
-        { "DYE_MATCHA", 150 },
-        { "DYE_CELESTE", 250 },
-        { "DYE_BYZANTIUM", 1.072 },
-        { "DYE_SANGRIA", 94 },
-        { "DYE_FLAME", 883 },
-        { "DYE_LIVID", 50 },
-        { "DYE_NECRON", 143 },
-        { "DYE_JADE", 295 },
+        { "T7_BOOK", (5.00, 0) },
+        { "SCYTHE_BLADE", (0.98, 0) },
+        { "SHARD_OF_THE_SHREDDED", (1.84, 0) },
+        { "WARDEN_HEART", (7.40, 0) },
+        { "OVERFLUX_CAPACITOR", (4.10, 0) },
+        { "JUDGEMENT_CORE", (12.64, 0) },
+        { "ARTIFACT_UPGRADER", (25.29, 0) },
+        { "BURGER", (2.31, 0) },
+        { "VAMPIRE_PART", (2.31, 0) },
+        { "THE_ONE_IV", (1.56, 0) },
+        { "HIGH_CLASS_DICE", (2.29, 0) },
+        { "FIRST_MASTER_STAR", (0.98, 5_000_000) },
+        { "SECOND_MASTER_STAR", (0.97, 6_000_000) }, // M4
+        { "THIRD_MASTER_STAR", (2.45, 7_000_000) }, // F5/M5
+        { "FOURTH_MASTER_STAR", (4.06, 8_000_000) }, // F6/M6
+        { "FIFTH_MASTER_STAR", (20.29, 9_000_000) }, // F7/M7
+        { "SHADOW_FURY", (2.86, 15_000_000) }, // F5/M5
+        { "GIANTS_SWORD", (5.33, 25_000_000) }, // F6/M6
+        { "PRECURSOR_EYE", (8.89, 0) },
+        { "NECRON_HANDLE", (33.79, 100_000_000) }, // F7/M7
+        { "SCROLL_F7", (26.38, 50_000_000) }, // F7/M7
+        { "IMPLOSION_SCROLL", (24.33, 50_000_000) }, // F7/M7
+        { "SHADOW_WARP_SCROLL", (24.33, 50_000_000) }, // F7/M7
+        { "WITHER_SHIELD_SCROLL", (24.33, 50_000_000) }, // F7/M7
+        { "DARK_CLAYMORE", (60.83, 150_000_000) }, // F7/M7
+        { "QUICK_CLAW", (26.47, 0) },
+        { "DIVANS_ALLOY", (58.82, 0) },
+        { "DYE_NADESHIKO", (25, 0) },
+        { "DYE_MATCHA", (150, 0) },
+        { "DYE_CELESTE", (250, 0) },
+        { "DYE_BYZANTIUM", (1.072, 0) },
+        { "DYE_SANGRIA", (94, 0) },
+        { "DYE_FLAME", (883, 0) },
+        { "DYE_LIVID", (50, 0) },
+        { "DYE_NECRON", (143, 0) },
+        { "DYE_JADE", (295, 0) },
     };
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element item)
@@ -58,13 +60,15 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
         db.MsgLine($" {item.Tag} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice(item.Price / item.FeathersRequired)} coins per feather",
                     "https://sky.coflnet.com/item/" + item.Tag,
                     $"Requires {McColorCodes.AQUA}{item.FeathersRequired} feathers{McColorCodes.GRAY}, total cost: {McColorCodes.AQUA}{socket.FormatPrice(item.Cost)} coins\n"
-                    + $"Estimated profit buying at ah: {McColorCodes.AQUA}{socket.FormatPrice(item.Price - item.Cost)} coins"
+                    + (item.UnlockCost > 0 ? $"Unlock cost: {McColorCodes.AQUA}{socket.FormatPrice(item.UnlockCost)} coins{McColorCodes.GRAY}(already in cost)\n" : "")
+                    + $"Estimated profit buying at ah: {McColorCodes.AQUA}{socket.FormatPrice(item.Price - item.Cost - item.UnlockCost)} coins"
                     + "Click to check history on website");
     }
 
     protected override async Task<IEnumerable<Element>> GetElements(MinecraftSocket socket, string val)
     {
         var cleanPrices = await socket.GetService<ISniperClient>().GetCleanPrices();
+        var itemService = socket.GetService<HypixelItemService>();
         var all = new List<Element>();
         var featherPrice = cleanPrices.GetValueOrDefault("ANANKE_FEATHER");
         foreach (var item in costs)
@@ -74,17 +78,20 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
                 Console.WriteLine($"Price for {item.Key} not found in clean prices, skipping.");
                 continue;
             }
-            var feathersRequired = item.Value;
+            if (itemService.IsDungeonItemSync(item.Key))
+                price += 100_000_000;
+            var (feathersRequired, unlockCost) = item.Value;
             var costOfFeathers = featherPrice * ((int)feathersRequired + 1);
             all.Add(new Element
             {
                 Tag = item.Key,
                 Cost = costOfFeathers,
                 FeathersRequired = feathersRequired,
-                Price = price
+                Price = price + unlockCost,
+                UnlockCost = unlockCost
             });
         }
-        return all.OrderByDescending(e => e.Price - e.Cost);
+        return all.OrderByDescending(e => (e.Price - e.Cost - e.UnlockCost));
     }
 
     protected override string GetId(Element elem)
@@ -96,6 +103,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
     {
         public string Tag { get; set; }
         public double FeathersRequired { get; set; }
+        public long UnlockCost { get; set; }
     }
     public class Element
     {
@@ -104,5 +112,6 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
         public long Cost { get; set; }
         public double FeathersRequired { get; set; }
         public string AuctionUuid { get; set; }
+        public long UnlockCost { get; set; }
     }
 }
