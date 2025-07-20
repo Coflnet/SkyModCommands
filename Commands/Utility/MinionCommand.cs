@@ -10,9 +10,10 @@ namespace Coflnet.Sky.Commands.MC;
 
 public class MinionCommand : ReadOnlyListCommand<MinionService.MinionEffect>
 {
+    protected override string Title => "Top Minions by profit";
     protected override void Format(MinecraftSocket socket, DialogBuilder db, MinionService.MinionEffect elem)
     {
-        db.MsgLine($" {elem.name} {McColorCodes.RED}{socket.FormatPrice(elem.craftCostEst)}/minion {McColorCodes.GRAY}is {McColorCodes.AQUA}{elem.profitPerDay} per day");
+        db.MsgLine($" {elem.name} {McColorCodes.RED}{socket.FormatPrice(elem.craftCostEst)}/minion {McColorCodes.GRAY}is {McColorCodes.AQUA}{socket.FormatPrice(elem.profitPerDay)} per day");
     }
 
     protected override async Task<IEnumerable<MinionService.MinionEffect>> GetElements(MinecraftSocket socket, string val)
