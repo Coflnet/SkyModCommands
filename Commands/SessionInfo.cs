@@ -71,7 +71,6 @@ namespace Coflnet.Sky.Commands.MC
         public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon || IsRift || IsDarkAuction || Purse == -1;
         public string ConnectionType { get; set; }
 
-        public List<SaveAuction> Inventory { get; set; }
         public int SkipLikeliness { get; set; }
         public int LicensePoints { get; set; }
         public string ActiveStream { get; set; }
@@ -92,6 +91,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public bool SellAll;
 
+        public List<SaveAuction> Inventory { get; set; }
         public void Dispose()
         {
             EventBrokerSub?.Unsubscribe();
