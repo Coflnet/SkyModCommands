@@ -79,7 +79,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void SetupFlipProcessor(SelfUpdatingValue<AccountInfo> info)
         {
-            DelayHandler = new DelayHandler(Shared.TimeProvider.Instance, socket.GetService<FlipTrackingService>(), SessionInfo, info);
+            DelayHandler = new DelayHandler(Shared.TimeProvider.Instance, socket.GetService<IFlipTrackingService>(), SessionInfo, info);
 
             FlipProcessor = new FlipProcesser(socket, spamController, DelayHandler);
         }
@@ -293,7 +293,7 @@ namespace Coflnet.Sky.Commands.MC
                 settings.MatchesSettings(testFlip);
                 span.Log(JSON.Stringify(settings));
                 socket.GetService<FlipperService>().UpdateFilterSumaries();
-                if (FlipSettings.Value?.ModSettings?.Chat ?? false)
+                if (settings?.ModSettings?.Chat ?? false)
                     await ChatCommand.MakeSureChatIsConnected(socket);
             }
             catch (Exception e)

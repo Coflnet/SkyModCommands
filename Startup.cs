@@ -70,6 +70,7 @@ public class Startup
         services.AddSingleton<CommandSyncService>();
         services.AddSingleton<IIsSold>(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IFlipReceiveTracker>(s => s.GetRequiredService<FlipTrackingService>());
+        services.AddSingleton<IFlipTrackingService>(s => s.GetRequiredService<FlipTrackingService>());
         services.AddSingleton(s => ConnectionMultiplexer.Connect(Configuration["MOD_REDIS_HOST"]));
         services.AddSingleton<IConnectionMultiplexer, IConnectionMultiplexer>(s => s.GetRequiredService<ConnectionMultiplexer>());
         services.AddSingleton<IBaseApi, BaseApi>(s => new BaseApi(Configuration["PROXY_BASE_URL"]));

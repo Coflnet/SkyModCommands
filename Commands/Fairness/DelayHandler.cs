@@ -43,10 +43,10 @@ public class DelayHandler : IDelayHandler
     private SessionInfo sessionInfo;
     private Random random;
     private SelfUpdatingValue<AccountInfo> accountInfo;
-    private FlipTrackingService flipTrackingService;
+    private IFlipTrackingService flipTrackingService;
     public event Action<TimeSpan> OnDelayChange;
 
-    public DelayHandler(ITimeProvider timeProvider, FlipTrackingService flipTrackingService, SessionInfo sessionInfo, SelfUpdatingValue<AccountInfo> accountInfo, Random random = null)
+    public DelayHandler(ITimeProvider timeProvider, IFlipTrackingService flipTrackingService, SessionInfo sessionInfo, SelfUpdatingValue<AccountInfo> accountInfo, Random random = null)
     {
         this.timeProvider = timeProvider;
         this.random = random;

@@ -21,7 +21,6 @@ public class MinecraftSocketTests
     [TestCase(51, 60, 51)]
     public async Task TestTimer(int updateIn, int countdown, int expected)
     {
-        Assert.Pass("timer not testable since it checks for open websocket connections");
         DiHandler.ResetProvider();
         DiHandler.OverrideService<IAhActive, IAhActive>(new Mock<IAhActive>().Object);
         var mockSocket = new Mock<MinecraftSocket>();
@@ -48,6 +47,7 @@ public class MinecraftSocketTests
 
     public class TestSocket : MinecraftSocket
     {
+        public override bool IsClosed => false;
         public void SetNextFlipTime(DateTime time)
         {
             NextFlipTime = time;
