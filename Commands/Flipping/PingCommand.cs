@@ -48,8 +48,15 @@ public class PingCommand : McCommand
         var average = thisSession.Average();
         var lowest = thisSession.Min();
         db?.AddTag("minping", lowest);
-        if(average > 80 && socket.CurrentRegion == "eu")
+        if (average > 80 && socket.CurrentRegion == "eu")
             socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>("Your ping is quite high, you might want to consider switching to the US region.", "us", "Click to switch to us servers"));
+        else if (average > 60 && socket.CurrentRegion == "eu"
+            && await socket.UserAccountTier() >= Shared.AccountTier.PREMIUM_PLUS
+            && socket.ModAdapter is AfVersionAdapter)
+        {
+            socket.Dialog(db => db.MsgLine("You seem to be an automatic flipper but connected to the EU, we gonna move you to US to reduce ping"));
+            socket.ExecuteCommand("/cofl switchRegion us");
+        }
         Console.Write($"Ping of {ping}ms from {socket.SessionInfo.McName} {socket.ClientIp} {socket.SessionInfo.McUuid} {average}");
         Console.WriteLine($" {socket.sessionLifesycle?.UserId?.Value}");
         socket.Dialog(db => db.MsgLine($"Your Ping to execute SkyCofl commands is: {McColorCodes.AQUA}{socket.FormatPrice(average)}ms")
