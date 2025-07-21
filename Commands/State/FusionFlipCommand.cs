@@ -15,17 +15,26 @@ public class FusionFlipCommand : ReadOnlyListCommand<FuseFlip>
 {
     protected override void Format(MinecraftSocket socket, DialogBuilder db, FuseFlip elem)
     {
-        db.MsgLine($"Combine {string.Join(" and ", elem.Inputs.Select(i => $"{i.Key}{McColorCodes.GRAY}x{i.Value}"))} to {McColorCodes.AQUA}{elem.Output} {McColorCodes.RESET}for {socket.FormatPrice(elem.OutputValue)}",
+        db.MsgLine($"Combine {string.Join(" and ", elem.Inputs.Select(i => $"{McColorCodes.GOLD}{i.Key}{McColorCodes.GRAY}x{i.Value}"))} to {McColorCodes.AQUA}{elem.Output} {McColorCodes.RESET}for {McColorCodes.GOLD}{socket.FormatPrice(elem.OutputValue)}",
                 $"/bz {elem.Output}",
-                $"click to open the bz of {elem.Output}\n{McColorCodes.GRAY}do that before you buy the things to fuse"
+                $"click to open the bz of {elem.Output}\n{McColorCodes.GRAY}to check the price yourself"
                 + $"\n{McColorCodes.GRAY}Volume: {elem.Volume}")
-            .ForEach(elem.Inputs, (db, ing) => db.MsgLine($"{McColorCodes.GRAY}- bz {McColorCodes.RESET}{ing.Key} x{ing.Value}", "/bz " + ing.Key, "Open the bazaar to place buy order for this item \n(click)"));
+            .ForEach(elem.Inputs, (db, ing) => db.MsgLine($"{McColorCodes.GRAY}- bz {McColorCodes.RESET}{ing.Key} {McColorCodes.GRAY}x{ing.Value}", "/bz " + ing.Key, "Open the bazaar to place buy order for this item \n(click)"));
     }
 
     protected override async Task<IEnumerable<FuseFlip>> GetElements(MinecraftSocket socket, string val)
     {
         var bazaarFlipApi = socket.GetService<IBazaarFlipperApi>();
-        return await bazaarFlipApi.FusionGetAsync();
+        var fusions = await bazaarFlipApi.FusionGetAsync();
+
+        if (await socket.UserAccountTier() == Shared.AccountTier.NONE)
+            foreach (var item in fusions.Take(2))
+            {
+                item.Output = $"{McColorCodes.RED}requires at least starter premium";
+                item.Inputs.Add("hidden", item.Inputs.First().Value);
+                item.Inputs.Remove(item.Inputs.First().Key);
+            }
+        return fusions;
     }
 
     protected override string GetId(FuseFlip elem)
