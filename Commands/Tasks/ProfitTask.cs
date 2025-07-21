@@ -7,6 +7,7 @@ public abstract class ProfitTask
 {
     public abstract Task<TaskResult> Execute(TaskParams parameters);
     public abstract string Description { get; }
+    public virtual string Name => GetType().Name.Replace("Task", "");
 
     protected async Task<T> GetOrUpdateCache<T>(TaskParams parameters, Func<Task<T>> factory, float maxageMinutes = 5) where T : new()
     {

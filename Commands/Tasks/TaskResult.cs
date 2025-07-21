@@ -10,4 +10,5 @@ public class TaskResult
     /// Indicates if the task is mostly passive, meaning it can be large in parallel to others (requiring mostly waiting)
     /// </summary>
     public bool MostlyPassive { get; set; }
+    public string Name { get; set; }
 }

@@ -20,16 +20,19 @@ public abstract class IslandTask : ProfitTask
     {
         var locations = parameters.LocationProfit
             .Where(l => locationNames.Contains(l.Key))
-            .Select(l => (data: l.Value, perHour: l.Value.Profit / (l.Value.EndTime - l.Value.StartTime).TotalHours))
-            .OrderByDescending(l => l.perHour)
+            .Select(l => (data: l.Value,
+                totalProfit:l.Value.Sum(l=>l.Profit),
+                totalTime: TimeSpan.FromHours(l.Value.Sum(l=>(l.EndTime - l.StartTime).TotalHours)),
+                perHour: l.Value.Sum(l=>l.Profit) / l.Value.Sum(l=>(l.EndTime - l.StartTime).TotalHours)))
+            .OrderByDescending(l => l.totalTime < TimeSpan.FromMinutes(1) ? l.perHour / 100 : l.perHour)
             .ToList();
         if (locations.Count == 0)
         {
             return Task.FromResult(new TaskResult
             {
                 ProfitPerHour = 0,
-                Message = $"No {RegionName} activity tracked so far.",
-                Details = $"Please visit {RegionName} island \nand do some activities \nso we can calculate the profitability."
+                Message = $"No {Name} activity tracked so far.",
+                Details = $"Please do {RegionName} island \nand do some activities \nso we can calculate the profitability."
             });
         }
         if (!IsPossibleAt(parameters.TestTime))
@@ -40,19 +43,25 @@ public abstract class IslandTask : ProfitTask
                 Details = "Its time locked in some way"
             });
         var bestLocation = locations.First();
-        var formattedDuration = parameters.Socket.formatProvider.FormatTime(bestLocation.data.EndTime - bestLocation.data.StartTime);
-        var itemBreakDown = bestLocation.data.ItemsCollected
-            .OrderByDescending(i => i.Value)
-            .Take(3)
-            .Select(i => $"{i.Key} {McColorCodes.GRAY}x{i.Value}")
+        var totalTime = locations.Sum(l => l.data.Where(d=>d.EndTime-d.StartTime < TimeSpan.FromHours(1)).Sum(d => (d.EndTime - d.StartTime).TotalHours));
+        var formattedDuration = parameters.Socket.formatProvider.FormatTime(TimeSpan.FromHours(totalTime));
+        var items = bestLocation.data.SelectMany(i => i.ItemsCollected)
+            .GroupBy(i => i.Key, i => i.Value)
+            .ToDictionary(g => g.Key, g => g.Sum())
+            .OrderByDescending(i => i.Value);
+        var itemBreakDown = items
+            .Take(8)
+            .Select(i => $"{McColorCodes.YELLOW}{i.Key} {McColorCodes.GRAY}x{i.Value}")
             .Aggregate((a, b) => a + "\n" + b);
+        var totalProfit = locations.Sum(l => l.totalProfit);
+        var perHour = totalProfit / totalTime;
+        var itemCount = items.Sum(i => i.Value);
         return Task.FromResult(new TaskResult
         {
-            ProfitPerHour = (int)bestLocation.perHour,
-            Message = $"{RegionName}: {McColorCodes.AQUA}{bestLocation.data.Location} with {parameters.Socket.FormatPrice(bestLocation.data.Profit)} over {formattedDuration}.",
+            ProfitPerHour = (int)perHour,
+            Message = $"{Name} with {McColorCodes.AQUA}{parameters.Socket.FormatPrice(totalProfit)} {McColorCodes.GRAY}with {McColorCodes.GREEN}{itemCount} items {McColorCodes.GRAY}over {formattedDuration}.",
             Details = $"Total locations considered: {locations.Count}\n" +
-                      $"Best start: {bestLocation.data.StartTime:f}\n" +
-                      $"Duration: {formattedDuration}\n"
+                      $"Time tracked: {formattedDuration}\n"
                       + $"Items collected:\n{itemBreakDown}",
             OnClick = "/warp " + RegionName
         });

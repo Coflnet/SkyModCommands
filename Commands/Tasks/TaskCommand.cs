@@ -24,6 +24,8 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
     {
         _tasks.Add<KatTask>();
         _tasks.Add<ForgeTask>();
+        _tasks.Add<GalateaDivingTask>();
+        _tasks.Add<GalateaFishingTask>();
         _tasks.Add<GalateaTask>();
         _tasks.Add<JerryTask>();
     }
@@ -31,12 +33,12 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, TaskResult elem)
     {
-        db.MsgLine($"§6{socket.FormatPrice(elem.ProfitPerHour)} coins/h {McColorCodes.GRAY}{elem.Message}", elem.OnClick, elem.Details);
+        db.MsgLine($"§6{socket.FormatPrice(elem.ProfitPerHour)} /h {McColorCodes.GRAY}{elem.Message}", elem.OnClick, elem.Details);
     }
 
     protected override async Task<IEnumerable<TaskResult>> GetElements(MinecraftSocket socket, string val)
     {
-        var locationProfit = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdProfitLocationGetAsync(socket.SessionInfo.McUuid);
+        var locationProfit = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdProfitHistoryGetAsync(socket.SessionInfo.McUuid, DateTime.UtcNow, 300);
         var extractedState = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdExtractedGetAsync(socket.SessionInfo.McName);
         var parameters = new TaskParams
         {
@@ -44,7 +46,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             ExtractedInfo = extractedState,
             Socket = socket,
             Cache = Cache,
-            LocationProfit = locationProfit.ToDictionary(l => l.Location),
+            LocationProfit = locationProfit.GroupBy(l=>l.Location).ToDictionary(l => l.Key, l => l.ToArray()),
             MaxAvailableCoins = socket.SessionInfo.Purse > 0 ? socket.SessionInfo.Purse : 1000000000 // Default to 1 billion coins if not set
         };
         var all = await Task.WhenAll(_tasks.Select(async t =>
