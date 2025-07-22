@@ -74,9 +74,9 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine("found profile id " + item);
                 socket.SessionInfo.ProfileId = item.Substring("Profile ID: ".Length);
             }
-            if (item.Contains("BONUS GIFT"))
+            if (item.Contains("Chameleon"))
             {
-                Console.WriteLine("Found bonus gift in: " + item);
+                Console.WriteLine("Chameleon: " + item);
             }
 
             if (item.StartsWith("\nClick th"))
