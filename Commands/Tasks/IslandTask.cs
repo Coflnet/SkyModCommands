@@ -21,9 +21,9 @@ public abstract class IslandTask : ProfitTask
         var locations = parameters.LocationProfit
             .Where(l => locationNames.Contains(l.Key))
             .Select(l => (data: l.Value,
-                totalProfit:l.Value.Sum(l=>l.Profit),
-                totalTime: TimeSpan.FromHours(l.Value.Sum(l=>(l.EndTime - l.StartTime).TotalHours)),
-                perHour: l.Value.Sum(l=>l.Profit) / l.Value.Sum(l=>(l.EndTime - l.StartTime).TotalHours)))
+                totalProfit: l.Value.Sum(l => l.Profit),
+                totalTime: TimeSpan.FromHours(l.Value.Sum(l => (l.EndTime - l.StartTime).TotalHours)),
+                perHour: l.Value.Sum(l => l.Profit) / l.Value.Sum(l => (l.EndTime - l.StartTime).TotalHours)))
             .OrderByDescending(l => l.totalTime < TimeSpan.FromMinutes(1) ? l.perHour / 100 : l.perHour)
             .ToList();
         if (locations.Count == 0)
@@ -43,7 +43,7 @@ public abstract class IslandTask : ProfitTask
                 Details = "Its time locked in some way"
             });
         var bestLocation = locations.First();
-        var totalTime = locations.Sum(l => l.data.Where(d=>d.EndTime-d.StartTime < TimeSpan.FromHours(1)).Sum(d => (d.EndTime - d.StartTime).TotalHours));
+        var totalTime = locations.Sum(l => l.data.Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1)).Sum(d => (d.EndTime - d.StartTime).TotalHours));
         var formattedDuration = parameters.Socket.formatProvider.FormatTime(TimeSpan.FromHours(totalTime));
         var items = bestLocation.data.SelectMany(i => i.ItemsCollected)
             .GroupBy(i => i.Key, i => i.Value)
@@ -55,7 +55,7 @@ public abstract class IslandTask : ProfitTask
             .Aggregate((a, b) => a + "\n" + b);
         var totalProfit = locations.Sum(l => l.totalProfit);
         var perHour = totalProfit / totalTime;
-        var itemCount = items.Sum(i => i.Value);
+        var itemCount = items.Where(i => i.Value > 0).Sum(i => i.Value);
         return Task.FromResult(new TaskResult
         {
             ProfitPerHour = (int)perHour,
