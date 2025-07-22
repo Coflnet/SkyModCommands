@@ -50,7 +50,7 @@ public abstract class IslandTask : ProfitTask
             .ToDictionary(g => g.Key, g => g.Sum())
             .OrderByDescending(i => i.Value);
         var itemBreakDown = items
-            .Take(8)
+            .Take(20)
             .Select(i => $"{McColorCodes.YELLOW}{i.Key} {McColorCodes.GRAY}x{i.Value}")
             .Aggregate((a, b) => a + "\n" + b);
         var totalProfit = locations.Sum(l => l.totalProfit);
