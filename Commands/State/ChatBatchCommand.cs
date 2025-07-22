@@ -74,23 +74,28 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine("found profile id " + item);
                 socket.SessionInfo.ProfileId = item.Substring("Profile ID: ".Length);
             }
-            if (item.StartsWith("\nClick th"))
+            if (item.Contains("BONUS GIFT"))
             {
-                Console.WriteLine("found reward link");
-                var match = Regex.Match(item, @"(https://rewards.hypixel.net/claim-reward/[a-f0-9-]+)");
-                if (match.Success)
+                Console.WriteLine("Found bonus gift in: " + item);
+            }
+
+            if (item.StartsWith("\nClick th"))
                 {
-                    try
+                    Console.WriteLine("found reward link");
+                    var match = Regex.Match(item, @"(https://rewards.hypixel.net/claim-reward/[a-f0-9-]+)");
+                    if (match.Success)
                     {
-                        await RewardHandler.SendRewardOptions(socket, match);
-                    }
-                    catch (Exception e)
-                    {
-                        dev.Logger.Instance.Error(e, "Failed to get reward options");
-                        socket.Dialog(db => db.MsgLine("Failed to get reward options. Please report this on our discord."));
+                        try
+                        {
+                            await RewardHandler.SendRewardOptions(socket, match);
+                        }
+                        catch (Exception e)
+                        {
+                            dev.Logger.Instance.Error(e, "Failed to get reward options");
+                            socket.Dialog(db => db.MsgLine("Failed to get reward options. Please report this on our discord."));
+                        }
                     }
                 }
-            }
         }
 
 
