@@ -57,7 +57,7 @@ public class FlipCommand : McCommand
     {
         var state = McColorCodes.DARK_GREEN + "ON";
         if (!socket.SessionInfo.FlipsEnabled)
-            state = McColorCodes.RED + "OFF";
+            state = McColorCodes.RED + "OFF" + $" {McColorCodes.GRAY}(use {McColorCodes.ITALIC}/cl flip never{McColorCodes.RESET}McColorCodes.GRAY to disable permanently)";
         socket.Dialog(db => db.CoflCommand<FlipCommand>("Toggled flips " + state, "", $"Toggle them again\nexecutes {McColorCodes.AQUA}/cofl flip"));
         if (socket.ModAdapter is AfVersionAdapter)
             socket.Dialog(db => db.MsgLine("You are using an auto flipper client and thus have flips always enabled. Stop your client to stop receiving flips"));
