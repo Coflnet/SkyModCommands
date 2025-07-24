@@ -45,7 +45,7 @@ public abstract class IslandTask : ProfitTask
         var bestLocation = locations.First();
         var totalTime = locations.Sum(l => l.data.Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1)).Sum(d => (d.EndTime - d.StartTime).TotalHours));
         var formattedDuration = parameters.Socket.formatProvider.FormatTime(TimeSpan.FromHours(totalTime));
-        var items = bestLocation.data.SelectMany(i => i.ItemsCollected)
+        var items = locations.SelectMany(l=>l.data).SelectMany(i => i.ItemsCollected)
             .GroupBy(i => i.Key, i => i.Value)
             .ToDictionary(g => g.Key, g => g.Sum())
             .OrderByDescending(i => i.Value);
