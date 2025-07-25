@@ -8,7 +8,7 @@ namespace Coflnet.Sky.Commands.MC
         public const string DefaultChatRegex =
                 @"^(You cannot view this auction!|You claimed|\[Bazaar\]|\[NPC\] Kat|�r�cCancelled|�r�6Bazaar!"
                 + @"|You collected|�6[Auction]|BIN Auction started|You cancelled|You purchased "
-                + @"|Profile ID: |You placd a Trap"
+                + @"|Profile ID: |You placd a Trap|\+\d+ .* Attribute \(Level "
                 + @"|You caught |\s+Chameleon" // catching shards
                 + @"|Added items|Removed items" // stash adding notification
                 + @"| - | \+ |Trade completed|Bid of|\nClick the link to |\nClick th' li|You must set it to at least).*";
