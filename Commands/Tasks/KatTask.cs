@@ -39,17 +39,19 @@ public class KatTask : ProfitTask
         var attributeMultiplier = 1 - (attributeLevel * 0.01f);
         var best = katData.Where(k => k.CoreData.Hours != 0).OrderByDescending(k => k.Profit / (k.CoreData.Hours / attributeMultiplier + 0.1)).Skip(1).FirstOrDefault();
         var hours = best.CoreData.Hours / attributeMultiplier;
-        var explanation = $"{McColorCodes.YELLOW}Kat's Favorite {McColorCodes.GRAY}level {attributeLevel} reduces the time by {McColorCodes.AQUA}{attributeMultiplier * 100}%"
-            + $"\nUpgrading {best.CoreData.Name} with kat starting with {best.CoreData.BaseRarity}, you will need.";
+        var explanation = $"{McColorCodes.YELLOW}Kat's Favorite {McColorCodes.GRAY}level {attributeLevel} reduces the time to {McColorCodes.AQUA}{attributeMultiplier * 100}%"
+            + $"\n{McColorCodes.GRAY}Upgrading {best.CoreData.Name} with kat starting with {best.CoreData.BaseRarity}, you will need:";
         if (best.CoreData.Material != null)
             explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material} {McColorCodes.GRAY}x{best.CoreData.Amount}";
+        else 
+            explanation += $"\nno extra materials";
         if (best.CoreData.Material2 != null)
             explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material2} {McColorCodes.GRAY}x{best.CoreData.Amount2}";
         if (best.CoreData.Material3 != null)
             explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material3} {McColorCodes.GRAY}x{best.CoreData.Amount3}";
         if (best.CoreData.Material4 != null)
             explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material4} {McColorCodes.GRAY}x{best.CoreData.Amount4}";
-        explanation += $"You will spend {formatProvider.FormatPrice(best.PurchaseCost)} to buy the auction {formatProvider.FormatPrice((long)best.MaterialCost)} on materials "
+        explanation += $"\nYou will spend {formatProvider.FormatPrice(best.PurchaseCost)} to buy the auction \n{formatProvider.FormatPrice((long)best.MaterialCost)} on materials "
            + $"and {formatProvider.FormatPrice((long)best.UpgradeCost)} on kat"
            + $"\n{McColorCodes.YELLOW}Total time {McColorCodes.GRAY}{formatProvider.FormatTime(TimeSpan.FromHours(hours))}"
            + $"\n{McColorCodes.YELLOW}Total profit {McColorCodes.GRAY}{formatProvider.FormatPrice((long)best.Profit)}";
