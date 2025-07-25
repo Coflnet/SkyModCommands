@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -30,11 +31,30 @@ public class KatTask : ProfitTask
             };
         }
         // skip top one as its usually quickly bought, add 6 minutes for getting materials and setup
-        var best = katData.Where(k=>k.CoreData.Hours != 0).OrderByDescending(k => k.Profit / (k.CoreData.Hours + 0.1)).Skip(1).FirstOrDefault();
+        var attributeLevel = parameters.ExtractedInfo.AttributeLevel?.GetValueOrDefault("Kat's Favorite") ?? 0;
+        var attributeMultiplier = 1 - (attributeLevel * 0.01f);
+        var best = katData.Where(k => k.CoreData.Hours != 0).OrderByDescending(k => k.Profit / (k.CoreData.Hours / attributeMultiplier + 0.1)).Skip(1).FirstOrDefault();
+        var hours = best.CoreData.Hours / attributeMultiplier;
+        var explanation = $"{McColorCodes.YELLOW}Kat's Favorite {McColorCodes.GRAY}level {attributeLevel} reduces the time by {McColorCodes.AQUA}{attributeMultiplier * 100}%"
+            + $"\nUpgrading {best.CoreData.Name} with kat starting with {best.CoreData.BaseRarity}, you will need.";
+        if (best.CoreData.Material != null)
+            explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material} {McColorCodes.GRAY}x{best.CoreData.Amount}";
+        if (best.CoreData.Material2 != null)
+            explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material2} {McColorCodes.GRAY}x{best.CoreData.Amount2}";
+        if (best.CoreData.Material3 != null)
+            explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material3} {McColorCodes.GRAY}x{best.CoreData.Amount3}";
+        if (best.CoreData.Material4 != null)
+            explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material4} {McColorCodes.GRAY}x{best.CoreData.Amount4}";
+        var formatProvider = parameters.Socket.formatProvider;
+        explanation += $"You will spend {formatProvider.FormatPrice(best.PurchaseCost)} to buy the auction {formatProvider.FormatPrice((long)best.MaterialCost)} on materials "
+           + $"and {formatProvider.FormatPrice((long)best.UpgradeCost)} on kat"
+           + $"\n{McColorCodes.YELLOW}Total time {McColorCodes.GRAY}{formatProvider.FormatTime(TimeSpan.FromHours(hours))}"
+           + $"\n{McColorCodes.YELLOW}Total profit {McColorCodes.GRAY}{formatProvider.FormatPrice((long)best.Profit)}";
         return new TaskResult
         {
-            ProfitPerHour = (int)(best.Profit / best.CoreData.Hours),
+            ProfitPerHour = (int)(best.Profit / best.CoreData.Hours / attributeMultiplier),
             Message = $"Upgrade {best.CoreData.Name} with kat starting with {best.CoreData.BaseRarity}, click to get cheapest purchase, if its already sold try again in a minute.",
+            Details = explanation,
             OnClick = $"/viewauction {best.OriginAuction}"
         };
     }
