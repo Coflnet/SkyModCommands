@@ -13,13 +13,16 @@ public class KatTask : ProfitTask
         {
             return await parameters.GetService<Crafts.Client.Api.IKatApi>().GetProfitableKatAsync();
         }, 1);
+        var formatProvider = parameters.Socket.formatProvider;
         var expireTime = parameters.ExtractedInfo.KatStatus?.KatEnd;
         if (expireTime == null)
         {
             return new TaskResult
             {
                 ProfitPerHour = 0,
-                Message = "Status of kat is unknown, please open the kat menu and try again"
+                Message = "Status of kat is unknown, please open the kat menu and try again",
+                Details = "The status of kat can only be read if you\n"
+                         +"click on the kat npc in the skyblock hub"
             };
         }
         if (expireTime > DateTime.UtcNow)
@@ -27,7 +30,8 @@ public class KatTask : ProfitTask
             return new TaskResult
             {
                 ProfitPerHour = 0,
-                Message = $"Your kat is currently busy with {parameters.ExtractedInfo.KatStatus.ItemName} for another {parameters.ExtractedInfo.KatStatus.KatEnd - DateTime.UtcNow}."
+                Message = $"Your kat is currently busy with {parameters.ExtractedInfo.KatStatus.ItemName} for another {formatProvider.FormatTime(parameters.ExtractedInfo.KatStatus.KatEnd - DateTime.UtcNow)}.",
+                Details = "Please wait until kat is done with the current task.\nWould you like to get a push notification when kat is done?",
             };
         }
         // skip top one as its usually quickly bought, add 6 minutes for getting materials and setup
@@ -45,7 +49,6 @@ public class KatTask : ProfitTask
             explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material3} {McColorCodes.GRAY}x{best.CoreData.Amount3}";
         if (best.CoreData.Material4 != null)
             explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material4} {McColorCodes.GRAY}x{best.CoreData.Amount4}";
-        var formatProvider = parameters.Socket.formatProvider;
         explanation += $"You will spend {formatProvider.FormatPrice(best.PurchaseCost)} to buy the auction {formatProvider.FormatPrice((long)best.MaterialCost)} on materials "
            + $"and {formatProvider.FormatPrice((long)best.UpgradeCost)} on kat"
            + $"\n{McColorCodes.YELLOW}Total time {McColorCodes.GRAY}{formatProvider.FormatTime(TimeSpan.FromHours(hours))}"
