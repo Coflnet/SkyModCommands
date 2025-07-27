@@ -71,7 +71,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<TaskResult> elements, IEnumerable<TaskResult> toDisplay)
     {
-        if (!socket.Version.StartsWith("1.6.3"))
+        if (!socket.Version.StartsWith("1.6.3") && !socket.Version.StartsWith("1.7.0"))
             db.MsgLine($"{McColorCodes.RED}Active tasks require at least mod version 1.6.3 to work properly");
     }
 
