@@ -47,7 +47,7 @@ public class FlipController : ControllerBase
     }
 
     [HttpGet("for/{playerUuid}/item/{itemUuid}")]
-    public async Task<long?> GetFlipTarget(Guid playerUuid, Guid itemUuid, [FromServices] PriceStorageService priceStorageService)
+    public async Task<long?> GetFlipTarget(Guid playerUuid, Guid itemUuid, [FromServices] IPriceStorageService priceStorageService)
     {
         return await priceStorageService.GetPrice(playerUuid, itemUuid);
     }
