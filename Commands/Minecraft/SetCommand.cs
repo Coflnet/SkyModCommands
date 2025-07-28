@@ -126,7 +126,7 @@ public class SetCommand : McCommand
                 var metaData = setting.o.Value;
                 var shortHandAddition = !string.IsNullOrEmpty(metaData.ShortHand) ? formatSh(metaData.ShortHand) : "";
                 var likelyTargetValue = metaData.Type == "Boolean" ? !(bool)setting.current : setting.current;
-                db.CoflCommand<SetCommand>($"{McColorCodes.AQUA}{setting.o.Key}{shortHandAddition}: {McColorCodes.GREEN}{setting.current}",
+                db.CoflCommand<SetCommand>($"{McColorCodes.AQUA}{setting.o.Key}{shortHandAddition}: {McColorCodes.GREEN}{GetCurrent(setting)}",
                     $"{page} {setting.o.Key} {likelyTargetValue}",
                     $"Click to set {McColorCodes.AQUA}{setting.o.Key}{McColorCodes.GRAY} to {McColorCodes.GREEN}{likelyTargetValue}");
                 if (metaData.Type == "Int64")
@@ -173,6 +173,13 @@ public class SetCommand : McCommand
             $"{page} {setting.o.Key} {lbin}",
             $"Click to set {McColorCodes.AQUA}{setting.o.Key}{McColorCodes.GRAY} to {McColorCodes.GREEN}{lbin}");
         }
+    }
+
+    private static object GetCurrent((KeyValuePair<string, SettingDoc> o, object current) setting)
+    {
+        if(setting.current is HashSet<string> hashSet)
+            return string.Join(", ", hashSet);
+        return setting.current;
     }
 
     private static void PrintChangeCommand(MinecraftSocket socket, int page, DialogBuilder db, (KeyValuePair<string, SettingDoc> o, object current) setting, SettingDoc metaData, long current, int changeAmount)
