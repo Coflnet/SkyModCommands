@@ -59,7 +59,6 @@ public class PriceStorageService : IPriceStorageService
     {
         try
         {
-
             var value = await table.Where(x => x.Uuid == uuid && x.PlayerUuid == playerUuid)
                 .FirstOrDefault().ExecuteAsync();
             return value?.Value ?? 0;

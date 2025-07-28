@@ -46,6 +46,12 @@ public class FlipController : ControllerBase
         Console.WriteLine($"Added {count} users");
     }
 
+    [HttpGet("for/{playerUuid}/item/{itemUuid}")]
+    public async Task<long?> GetFlipTarget(Guid playerUuid, Guid itemUuid, [FromServices] PriceStorageService priceStorageService)
+    {
+        return await priceStorageService.GetPrice(playerUuid, itemUuid);
+    }
+
     /// <summary>
     /// Indicates status of service, should be 200 (OK)
     /// </summary>

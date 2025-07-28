@@ -372,6 +372,12 @@ namespace Coflnet.Sky.Commands.MC
 
                 socket.sessionLifesycle.PingTimer?.Change(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(59));
 
+                if (flip.Auction.FlatenedNBT.TryGetValue("uuid", out var uuid) && !string.IsNullOrEmpty(uuid))
+                {
+                    var target = (flip.Finder == LowPricedAuction.FinderType.USER && !item.Context.ContainsKey("target")) ? -1 : item.Target;
+                    await socket.GetService<IPriceStorageService>().SetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid), target);
+                }
+
                 if (timeToSend > TimeSpan.FromSeconds(15) && socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM)
                     && flip.Finder != LowPricedAuction.FinderType.FLIPPER && !(item.Interesting.FirstOrDefault()?.StartsWith("Bed") ?? false))
                 {

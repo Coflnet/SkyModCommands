@@ -31,8 +31,6 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var uuid = GetUuid(flip.Auction);
         if (uuid == null)
             return result;
-        var target = (flip.Finder == LowPricedAuction.FinderType.USER && !flip.Context.ContainsKey("target")) ? -1 : flip.Target;
-        await socket.GetService<IPriceStorageService>().SetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid), target);
         return result;
     }
 
