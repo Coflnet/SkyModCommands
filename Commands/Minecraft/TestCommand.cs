@@ -17,13 +17,13 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            socket.Send(Response.Create("registerKeybind", new KeybindRegister[] { new() { Name = "/cofl lb", DefaultKey = "F" }, new() { Name = "test2", DefaultKey = "Z" } }));
+            return;
             socket.Send(Response.Create("highlightBlocks", new BlockPos[] { new() { X = 9, Y = 102, Z = 15 },new() { X = 9, Y = 104, Z = 15 } }));
             socket.ExecuteCommand("/cofl getinventory");
             socket.ExecuteCommand("/sacks");
             await Task.Delay(500);
             socket.ExecuteCommand("/cofl closegui");
-            return;
-            socket.Send(Response.Create("registerKeybind", new KeybindRegister[] { new() { Name = "/cofl lb", DefaultKey = "F" }, new() { Name = "test2", DefaultKey = "Z" } }));
             socket.Send(Response.Create("proxy", new ProxyRequest[] { new() { uploadTo = "https://sky.coflnet.com/api/data/proxy?test", id = "guploadTest", url = "https://willhaben.at" } }));
             socket.Send(Response.Create("runSequence", new Sequence
             {
