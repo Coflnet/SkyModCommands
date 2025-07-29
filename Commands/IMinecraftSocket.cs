@@ -29,6 +29,7 @@ namespace Coflnet.Sky.Commands.MC
 
         event Action OnConClose;
         bool IsClosed { get; }
+        List<LowPricedAuction> LastPurchased { get; }
 
         void Close();
         void Dialog(Func<SocketDialogBuilder, DialogBuilder> creation);

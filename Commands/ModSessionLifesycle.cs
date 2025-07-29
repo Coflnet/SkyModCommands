@@ -758,12 +758,25 @@ namespace Coflnet.Sky.Commands.MC
                 await FlipSettings.Update();
                 FlipSettings.Value.RecompileMatchers();
             }
-            if (FlipSettings.Value?.ModSettings?.TempBlacklistSpam == false)
-                return;
+
+
+            var threshold = FlipSettings.Value?.ModSettings?.TempBlacklistThreshold ?? 20;
+            var boughtLast30Min = socket.LastPurchased.Where(l => l.Auction.Start > DateTime.UtcNow.AddMinutes(-30)).ToList();
+            var boughtToMany = boughtLast30Min.GroupBy(l=>l.Auction.Tag).Where(g=>g.Count() > 2 && g.Count() * 100 / boughtLast30Min.Count() >= threshold).ToList();
+            foreach (var item in boughtToMany)
+            {
+                AddTempFilter(item.Key);
+                socket.Dialog(db=>db.Msg($"Temporarily blacklisted {item.First().Auction.ItemName} as you bought {item.Count()} recently which is more than {threshold}% of your flips in the last 30 minutes"
+                    ,null, "More than usual items of one type usually indicate \n"
+                    +"that the value is dropping due to a hypixel update\n"
+                    +$"To adjust the threshold run {McColorCodes.AQUA}/cofl set modtempBlacklistThreshold <percentage>"));
+            }
+
             var toBlock = socket.LastSent.Where(s =>
                     s.Auction.Start > DateTime.UtcNow - TimeSpan.FromMinutes(3) &&
                     s.TargetPrice > s.Auction.StartingBid * 2 &&
                     !preApiService.IsSold(s.Auction.Uuid)
+                    && FlipSettings.Value?.ModSettings?.TempBlacklistSpam == true
                 )
                 .GroupBy(s => s.Auction.Tag).Where(g => g.Count() >= 10).ToList();
             var playersToBlock = BlockPlayerBaiting(preApiService);
@@ -772,7 +785,7 @@ namespace Coflnet.Sky.Commands.MC
                 AddTempFilter(item.Key);
                 socket.SendMessage(COFLNET + $"Temporarily blacklisted {item.First().Auction.ItemName} for spamming");
             }
-            if (toBlock.Count > 0 || playersToBlock.Count > 0)
+            if (toBlock.Count > 0 || playersToBlock.Count > 0 || boughtToMany.Count > 0)
             {
                 await FlipSettings.Update();
                 FlipSettings.Value.RecompileMatchers();

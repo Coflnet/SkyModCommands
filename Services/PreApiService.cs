@@ -339,6 +339,7 @@ public class PreApiService : BackgroundService, IPreApiService
             return;
         }
         var flip = flips.First();
+        connection.LastPurchased.Add(flip);
         var uuid = flip.Auction.Uuid;
         logger.LogInformation($"Found flip that was bought by {connection.SessionInfo.McUuid} {uuid} at {DateTime.UtcNow}");
         PublishSell(uuid, connection.UserAccountTier().Result);

@@ -79,6 +79,10 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        public virtual bool IsClosed => ReadyState == WebSocketState.Closed || ReadyState == WebSocketState.Closing;
+
+        public List<LowPricedAuction> LastPurchased { get; } = new List<LowPricedAuction>();
+
         private static Timer? tenSecTimer;
         private static IAhActive ahActive => DiHandler.GetService<IAhActive>();
         public IAhActive AhActive => ahActive;
@@ -794,7 +798,7 @@ namespace Coflnet.Sky.Commands.MC
             });
             return span;
         }
-        public virtual bool IsClosed => ReadyState == WebSocketState.Closed || ReadyState == WebSocketState.Closing;
+
         public virtual bool SendMessage(params ChatPart[] parts)
         {
             if (ReadyState != WebSocketState.Open && ReadyState != WebSocketState.Connecting)
