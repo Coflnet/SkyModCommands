@@ -242,6 +242,8 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<UploadSettingsCommand>();
             Commands.Add<MinionCommand>();
             Commands.Add<FusionFlipCommand>();
+            Commands.Add<SearchCommand>();
+            Commands.Add<HighlightItemCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
