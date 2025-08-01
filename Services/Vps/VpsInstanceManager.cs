@@ -584,12 +584,23 @@ public class VpsInstanceManager
     internal async Task DeleteProxy(string ip)
     {
         await proxyTable.Where(p => p.IP == ip).Delete().ExecuteAsync();
+        var allInstances = await vpsTable.ExecuteAsync();
+        foreach (var instance in allInstances.Where(i => i.PublicIp == ip))
+        {
+            var isOn = instance.Context.ContainsKey("turnedOff") && instance.Context["turnedOff"] == "true";
+            if (isOn)
+                await this.TurnOffVps(instance);
+            instance.PublicIp = null; // remove proxy from instances
+            await UpdateAndPublish(instance);
+            if (isOn)
+                await TurnOnVps(instance); // turn it back on if it was off
+        }
         logger.LogInformation($"Deleted proxy {ip}");
     }
 
     internal async Task ResetVps(Instance instance, string mcName, string appKind)
     {
-        if(instance.PaidUntil > DateTime.UtcNow.AddDays(2))
+        if (instance.PaidUntil > DateTime.UtcNow.AddDays(2))
         {
             throw new CoflnetException("too_far_in_future", "You can only switch the instance if it has less than 2 days left");
         }
