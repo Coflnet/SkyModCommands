@@ -217,11 +217,15 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 Activity.Current?.SetTag("error", "no uuid").Log(JsonConvert.SerializeObject(item.First));
                 // try to find in sent by name
-                var fromSent = socket.LastSent.Where(x => GetItemName(x.Auction).Replace("§8!", "").Replace("§8.", "") == item.First.ItemName && x.Auction.Tag == item.First.Tag).FirstOrDefault();
+                var fromSent = socket.LastSent.Where(x => GetItemName(x.Auction).Replace("§8!", "").Replace("§8.", "") == item.First.ItemName && x.Auction.Tag == item.First.Tag)
+                    .OrderByDescending(i => i.TargetPrice).FirstOrDefault();
                 var price = fromSent?.TargetPrice ?? item.Second.Median;
                 using var stackableSpan = socket.CreateActivity("listAuction", span);
                 if (fromSent != null && item.First.Count == fromSent.Auction.Count)
+                {
+                    price = Math.Max(price, item.Second.Median * 95 / 100);
                     stackableSpan.Log($"Found {fromSent.Auction.ItemName} in sent using price {price}");
+                }
                 else if (item.First.Count > 1)
                 {
                     try
