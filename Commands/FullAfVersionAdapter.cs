@@ -259,6 +259,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 continue;
             }
+            listingSpan?.SetTag("uuid", uuid);
             await SendListing(listingSpan, item.First, (long)target, index, uuid);
             listed++;
         }
