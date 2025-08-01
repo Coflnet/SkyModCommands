@@ -215,9 +215,9 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             var productApi = socket.GetService<IProductsApi>();
             LicenseSetting settings = await GetCurrentLicenses(socket);
             var usedLicense = settings.Licenses.FirstOrDefault(l => l.UseOnAccount == uuid);
-            if (settings.Licenses.Any(l => l.UseOnAccount == uuid))
+            if (usedLicense != null)
             {
-                socket.Dialog(db => db.MsgLine($"Extending license for {name}"));
+                socket.Dialog(db => db.MsgLine($"Extending license for {name} {McColorCodes.GRAY}({uuid})"));
             }
             else
             {
