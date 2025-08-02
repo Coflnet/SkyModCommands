@@ -6,6 +6,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using System.Diagnostics;
 using Coflnet.Sky.Api.Client.Api;
+using Microsoft.EntityFrameworkCore;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -144,20 +145,25 @@ namespace Coflnet.Sky.Commands.MC
                 $"You can create an auction like 123,{McColorCodes.AQUA}{bid}{McCommand.DEFAULT_COLOR}\n"
                 + $"Verification generally works faster with\n"
                 + "creating an auction but is less convenient"));
-            if (targetAuction != null)
+            if (targetAuction == null)
+            {
+                socket.SendMessage($"Please create an auction yourself for any item you want. The starting bid has to end with {McColorCodes.AQUA}{bid.ToString().PadLeft(3, '0')}{McCommand.DEFAULT_COLOR}\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}");
+                return;
+            }
+            try
             {
                 if (socket.ModAdapter is AfVersionAdapter)
                 {
                     await Task.Delay(5000);
-                    SaveAuction cheapBin;
+                    List<SaveAuction> cheapBins;
                     using (var db = new HypixelContext())
-                        cheapBin = db.Auctions.Where(x => x.Bin && x.StartingBid < 1000 && x.HighestBidAmount == 0 && x.End > DateTime.UtcNow && x.Id > db.Auctions.Max(a => a.Id) - 100_000).FirstOrDefault();
+                        cheapBins = await db.Auctions.Where(x => x.Bin && x.StartingBid < 1000 && x.HighestBidAmount == 0 && x.End > DateTime.UtcNow && x.Id > db.Auctions.Max(a => a.Id) - 100_000).Take(20).ToListAsync();
                     // autoverify
                     socket.Dialog(db => db.MsgLine("Attempting to autoverify with a pseudo flip."));
                     var circumventTracker = socket.GetService<CircumventTracker>();
                     var flip = FlipperService.LowPriceToFlip(new LowPricedAuction()
                     {
-                        Auction = cheapBin,
+                        Auction = cheapBins.OrderBy(x => Random.Shared.Next()).FirstOrDefault(),
                         TargetPrice = bid + 1000,
                         DailyVolume = 1,
                         Finder = LowPricedAuction.FinderType.EXTERNAL
@@ -172,8 +178,11 @@ namespace Coflnet.Sky.Commands.MC
                 SessionInfo.VerificationBidAuctioneer = targetAuction.Seller;
                 SessionInfo.VerificationBidAmount = bid;
             }
-            else
-                socket.SendMessage($"Please create an auction yourself for any item you want. The starting bid has to end with {McColorCodes.AQUA}{bid.ToString().PadLeft(3, '0')}{McCommand.DEFAULT_COLOR}\nyou can also bid another number with the same digits at the end\neg. 1,234,{McColorCodes.AQUA}{bid}");
+            catch (Exception e)
+            {
+                socket.Error(e, "Could not send verification instructions");
+                socket.SendMessage(McColorCodes.RED + "Failed to send you a test flip for automatic authentication, please verify manually");
+            }
         }
 
         private bool IsLastVerifyRequestRecent()
