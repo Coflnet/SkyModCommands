@@ -46,7 +46,8 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 Amount = price < 100_000 ? 64 : 4
             };
             socket.Send(Response.Create("bzRecommend", recommend));
-            socket.Dialog(db => db.MsgLine($"Recommending an order of {McColorCodes.GREEN}{recommend.Amount}x {McColorCodes.YELLOW}{recommend.ItemName} {McColorCodes.GRAY}for {McColorCodes.GREEN}{socket.FormatPrice((long)recommend.Price)}{McColorCodes.GRAY}"));
+            socket.Dialog(db => db.MsgLine($"Recommending an order of {McColorCodes.GREEN}{recommend.Amount}x {McColorCodes.YELLOW}{recommend.ItemName} {McColorCodes.GRAY}for {McColorCodes.GREEN}{socket.FormatPrice((long)recommend.Price)}{McColorCodes.GRAY}",
+                $"/bz {recommend.ItemName}", "click to open on bazaar"));
 
             // time to be interupted by better orders (TODO) or just wait for demand to change
             await Task.Delay(TimeSpan.FromMinutes(2));
