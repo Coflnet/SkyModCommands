@@ -23,17 +23,19 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
     protected override string Title => "Top Bazaar Flips";
     protected override string NoMatchText => $"No match found, maybe a typo or manipulated items are hidden";
 
-    private static string GetSearchValue(BazaarFlip f, string name)
+    public static string GetSearchValue(string tag, string name)
     {
-        if (f.ItemTag.StartsWith("ENCHANTMENT_"))
+        if (tag.StartsWith("ENCHANTMENT_"))
         {
             // remove enchant from end
             name = name.Substring(0, name.Length - 10);
-            var number = Regex.Match(f.ItemTag, @"\d+").Value;
+            var number = Regex.Match(tag, @"\d+").Value;
             var converted = Roman.To(int.Parse(number));
             name = $"{name.Trim()} {converted}";
         }
-        if (f.ItemTag.StartsWith("ENCHANTMENT_ULTIMATE"))
+        if (name.EndsWith("Shard"))
+            name = name.Replace(" Shard", "");
+        if (tag.StartsWith("ENCHANTMENT_ULTIMATE"))
         {
             name = name.Replace("ultimate ", "", StringComparison.OrdinalIgnoreCase);
         }
@@ -76,7 +78,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var isManipulated = elem.IsManipulated;
         var color = isManipulated ? McColorCodes.GRAY : McColorCodes.GREEN;
         db.MsgLine($"{McColorCodes.GRAY}>{(isManipulated ? "[!]" + McColorCodes.STRIKE : McColorCodes.YELLOW)}{elem.ItemName}{McColorCodes.GRAY}: est {color}{socket.FormatPrice((long)profit)} per hour",
-                $"/bz {GetSearchValue(elem.Flip, elem.ItemName)}",
+                $"/bz {GetSearchValue(elem.Flip.ItemTag, elem.ItemName)}",
                 $"{(isManipulated ? McColorCodes.RED + $"Probably manipulated preceed with caution\nYou can hide manipulated items with \n{McColorCodes.AQUA}/cl s hideManipulated true\n\n" : "")}"
                 + $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)} {McColorCodes.GRAY}incl. {socket.FormatPrice((long)fees)} fees"
                 + $"\n{McColorCodes.GRAY}avg {socket.FormatPrice(hourlyVolume)} sales per hour"

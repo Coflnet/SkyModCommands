@@ -244,6 +244,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<FusionFlipCommand>();
             Commands.Add<SearchCommand>();
             Commands.Add<HighlightItemCommand>();
+            Commands.Add<GetBazaarFlipsCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
