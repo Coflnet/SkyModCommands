@@ -14,7 +14,7 @@ public class UploadSettingsCommand : McCommand
         foreach (var setting in settings)
         {
             var current = await updater.GetCurrentValue(socket, setting.Key);
-            if (current.ToString() != setting.Value)
+            if (current?.ToString() != setting.Value)
             {
                 await updater.Update(socket, setting.Key, setting.Value);
                 socket.Dialog(db => db.MsgLine($"Updated {setting.Key} to {setting.Value}", null, $"From {current}"));
