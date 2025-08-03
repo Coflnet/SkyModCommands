@@ -17,8 +17,11 @@ public class UploadSettingsCommand : McCommand
             if (current?.ToString() != setting.Value)
             {
                 await updater.Update(socket, setting.Key, setting.Value);
-                socket.Dialog(db => db.MsgLine($"Updated {setting.Key} to {setting.Value}", null, $"From {current}"));
+                socket.Dialog(db => db.Msg($"Updated {setting.Key} to {setting.Value}", null, $"From {current}"));
             }
         }
+        socket.Settings.Changer = socket.SessionInfo.ConnectionId;
+        socket.Settings.LastChanged = "mod";
+        await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
     }
 }
