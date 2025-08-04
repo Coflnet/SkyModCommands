@@ -55,9 +55,10 @@ public class KatTask : ProfitTask
            + $"and {formatProvider.FormatPrice((long)best.UpgradeCost)} on kat"
            + $"\n{McColorCodes.YELLOW}Total time {McColorCodes.GRAY}{formatProvider.FormatTime(TimeSpan.FromHours(hours))}"
            + $"\n{McColorCodes.YELLOW}Total profit {McColorCodes.GRAY}{formatProvider.FormatPrice((long)best.Profit)}";
+        var feeAndRiskFactor = 0.97;
         return new TaskResult
         {
-            ProfitPerHour = (int)(best.Profit / best.CoreData.Hours / attributeMultiplier),
+            ProfitPerHour = (int)(best.Profit * feeAndRiskFactor / (best.CoreData.Hours + 0.1) / attributeMultiplier),
             Message = $"Upgrade {best.CoreData.Name} with kat starting with {best.CoreData.BaseRarity}, click to get cheapest purchase, if its already sold try again in a minute.",
             Details = explanation,
             OnClick = $"/viewauction {best.OriginAuction}"
