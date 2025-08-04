@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Models.Mod;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
@@ -71,7 +72,8 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
 
-            var line = int.Parse(args[1]);
+            if (!int.TryParse(args[1], out var line) || line < 0)
+                throw new CoflnetException("invalid_line", "Invalid arguments, try clicking on the action you want to perform after running `/cofl lore` instead of typing it yourself");
             if (!Enum.TryParse<DescriptionField>(args[2], true, out DescriptionField field))
             {
                 socket.SendMessage(McColorCodes.RED + "Usage: " + McColorCodes.GRAY + "lore <line> <FieldType>");
