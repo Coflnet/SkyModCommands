@@ -22,7 +22,7 @@ public class KatTask : ProfitTask
                 ProfitPerHour = 0,
                 Message = "Status of kat is unknown, please open the kat menu and try again",
                 Details = "The status of kat can only be read if you\n"
-                         +"click on the kat npc in the skyblock hub"
+                         + "click on the kat npc in the skyblock hub"
             };
         }
         if (expireTime > DateTime.UtcNow)
@@ -43,7 +43,7 @@ public class KatTask : ProfitTask
             + $"\n{McColorCodes.GRAY}Upgrading {best.CoreData.Name} with kat starting with {best.CoreData.BaseRarity}, you will need:";
         if (best.CoreData.Material != null)
             explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material} {McColorCodes.GRAY}x{best.CoreData.Amount}";
-        else 
+        else
             explanation += $"\nno extra materials";
         if (best.CoreData.Material2 != null)
             explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material2} {McColorCodes.GRAY}x{best.CoreData.Amount2}";
