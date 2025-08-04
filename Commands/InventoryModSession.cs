@@ -36,10 +36,7 @@ namespace Coflnet.Sky.Commands.MC
                     CommandPrefixes = new string[] { "/cofl", "/colf", "/ch" },
                     AutoStart = true,
                     CollectTab = true,
-                    AllowProxy = true,
-                    CollectLobbyChanges = true,
-                    CollectInvClick = true,
-                    CollectEntities = true
+                    AllowProxy = true
                 };
             });
             if (socket.IsClosed)
