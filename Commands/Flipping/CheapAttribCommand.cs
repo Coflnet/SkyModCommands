@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Coflnet.Core.Tracing;
 using Coflnet.Sky.Bazaar.Client.Api;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.PlayerState.Client.Api;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -29,6 +32,9 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
                 Console.WriteLine($"Missing shard name for {item.ProductId}, please add it to ShardNameToAttributeName in CheapAttribCommand.cs");
         }
 
+        Activity.Current.Log($"Found {notUnlocked.Count} not unlocked and {unlocked.Count} unlocked attributes");
+        Activity.Current.Log(JsonConvert.SerializeObject(extractedInfo));
+
         return notUnlocked.Select(i => new CheapAttribute
         {
             Name = ShardNameToAttributeName.GetValueOrDefault(i.Key, i.Key),
@@ -46,7 +52,10 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, CheapAttribute elem)
     {
-        db.MsgLine($"{McColorCodes.YELLOW}{elem.Name} {McColorCodes.GOLD}{socket.FormatPrice(elem.Price)}", "/bz " + elem.Tag.Replace("SHARD_", ""), $"Click to open bazaar for {McColorCodes.AQUA}{elem.Name}");
+        db.MsgLine($"{McColorCodes.YELLOW}{elem.Name} {McColorCodes.GOLD}{socket.FormatPrice(elem.Price)}",
+            "/bz " + elem.Tag.Replace("SHARD_", ""),
+            $"Click to open bazaar for {McColorCodes.AQUA}{elem.Name}"
+          + $"\n{McColorCodes.GRAY}Shard: {McColorCodes.YELLOW}{elem.Tag.Replace("SHARD_", "")}\n{McColorCodes.GRAY}Type: {McColorCodes.YELLOW}{elem.Type}");
     }
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<CheapAttribute> elements, IEnumerable<CheapAttribute> toDisplay)
@@ -227,7 +236,7 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
             },
             { "SHARD_HIDEONDRA", "Kuudra's Box"
             },
-            { "SHARD_ABYSSAL_LANTERNFISH", "Dwarven Serendipity"
+            { "SHARD_ABYSSAL_LANTERN", "Dwarven Serendipity"
             },
             { "SHARD_ARACHNE", "Essence of Arthropods"
             },
@@ -420,6 +429,7 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
             { "SHARD_STARBORN", "Echo of Elemental"
             },
             {"SHARD_HUMMINGBIRD", "Chop"},
+            {"SHARD_TITANOBOA", "Bayou Biter"},
         };
 
 
