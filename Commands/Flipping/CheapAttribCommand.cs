@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,18 +20,24 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
         var SellPrice = bazaarPrices.ToDictionary(i => i.ProductId, i => i.SellPrice);
 
         var extractedInfo = (await extractedTask)?.AttributeLevel ?? new();
-        var notUnlocked = SellPrice.Where(i => !extractedInfo.ContainsKey(ShardNameToAttributeName.GetValueOrDefault(i.Key,"nope")) && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
-        var unlocked = SellPrice.Where(i => extractedInfo.TryGetValue(ShardNameToAttributeName.GetValueOrDefault(i.Key,"nope"), out var level) && level < 10 && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
+        var notUnlocked = SellPrice.Where(i => !extractedInfo.ContainsKey(ShardNameToAttributeName.GetValueOrDefault(i.Key, "nope")) && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
+        var unlocked = SellPrice.Where(i => extractedInfo.TryGetValue(ShardNameToAttributeName.GetValueOrDefault(i.Key, "nope"), out var level) && level < 10 && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
+
+        foreach (var item in bazaarPrices)
+        {
+            if (!ShardNameToAttributeName.ContainsKey(item.ProductId))
+                Console.WriteLine($"Missing shard name for {item.ProductId}, please add it to ShardNameToAttributeName in CheapAttribCommand.cs");
+        }
 
         return notUnlocked.Select(i => new CheapAttribute
         {
-            Name = ShardNameToAttributeName[i.Key],
+            Name = ShardNameToAttributeName.GetValueOrDefault(i.Key, i.Key),
             Tag = i.Key,
             Price = i.Value,
             Type = "unlock"
         }).Concat(unlocked.Select(i => new CheapAttribute
         {
-            Name = ShardNameToAttributeName[i.Key],
+            Name = ShardNameToAttributeName.GetValueOrDefault(i.Key, i.Key),
             Tag = i.Key,
             Price = i.Value,
             Type = "upgrade"
@@ -180,7 +187,7 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
             },
             { "SHARD_BRUISER", "Ender Ruler"
             },
-            { "SHARD_STRIDERSURFER", "Magmatic Ruler"
+            { "SHARD_STRIDER_SURFER", "Magmatic Ruler"
             },
             { "SHARD_RANA", "Battle Frog"
             },
@@ -388,7 +395,7 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
             },
             { "SHARD_BURNINGSOUL", "Attack Speed"
             },
-            { "SHARD_CINDERBAT", "Magic Find"
+            { "SHARD_CINDER_BAT", "Magic Find"
             },
             { "SHARD_MEGALITH", "Hunter's Karma"
             },
@@ -413,7 +420,6 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
             { "SHARD_STARBORN", "Echo of Elemental"
             },
             {"SHARD_HUMMINGBIRD", "Chop"},
-            {"SHARD_STRIDER_SURFER", "Magmatic Ruler"},
         };
 
 
