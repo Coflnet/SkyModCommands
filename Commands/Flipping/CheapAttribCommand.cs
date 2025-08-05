@@ -13,14 +13,14 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
 
     protected override async Task<IEnumerable<CheapAttribute>> GetElements(MinecraftSocket socket, string val)
     {
-        var extractedTask = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdExtractedGetAsync(socket.SessionInfo.McUuid);
+        var extractedTask = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdExtractedGetAsync(socket.SessionInfo.McName);
         var bazaarPrices = (await socket.GetService<IBazaarApi>().GetAllPricesAsync()).Where(i => i.ProductId.StartsWith("SHARD_"));
         var buyPrice = bazaarPrices.ToDictionary(i => i.ProductId, i => i.BuyPrice);
         var SellPrice = bazaarPrices.ToDictionary(i => i.ProductId, i => i.SellPrice);
 
-        var extractedInfo = await extractedTask ?? new PlayerState.Client.Model.ExtractedInfo();
-        var notUnlocked = SellPrice.Where(i => !extractedInfo.AttributeLevel.ContainsKey(ShardNameToAttributeName[i.Key]) && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
-        var unlocked = SellPrice.Where(i => extractedInfo.AttributeLevel.TryGetValue(ShardNameToAttributeName[i.Key], out var level) && level < 10 && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
+        var extractedInfo = (await extractedTask )?.AttributeLevel ?? new ();
+        var notUnlocked = SellPrice.Where(i => !extractedInfo.ContainsKey(ShardNameToAttributeName[i.Key]) && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
+        var unlocked = SellPrice.Where(i => extractedInfo.TryGetValue(ShardNameToAttributeName[i.Key], out var level) && level < 10 && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
 
         return notUnlocked.Select(i => new CheapAttribute
         {
