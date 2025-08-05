@@ -68,7 +68,7 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
 
     protected override string GetId(CheapAttribute elem)
     {
-        return elem.Tag;
+        return elem.Tag + elem.Type;
     }
     public class CheapAttribute
     {
