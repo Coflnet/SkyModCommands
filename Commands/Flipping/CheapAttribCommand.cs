@@ -18,9 +18,9 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
         var buyPrice = bazaarPrices.ToDictionary(i => i.ProductId, i => i.BuyPrice);
         var SellPrice = bazaarPrices.ToDictionary(i => i.ProductId, i => i.SellPrice);
 
-        var extractedInfo = (await extractedTask )?.AttributeLevel ?? new ();
-        var notUnlocked = SellPrice.Where(i => !extractedInfo.ContainsKey(ShardNameToAttributeName[i.Key]) && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
-        var unlocked = SellPrice.Where(i => extractedInfo.TryGetValue(ShardNameToAttributeName[i.Key], out var level) && level < 10 && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
+        var extractedInfo = (await extractedTask)?.AttributeLevel ?? new();
+        var notUnlocked = SellPrice.Where(i => !extractedInfo.ContainsKey(ShardNameToAttributeName.GetValueOrDefault(i.Key,"nope")) && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
+        var unlocked = SellPrice.Where(i => extractedInfo.TryGetValue(ShardNameToAttributeName.GetValueOrDefault(i.Key,"nope"), out var level) && level < 10 && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
 
         return notUnlocked.Select(i => new CheapAttribute
         {
@@ -411,7 +411,8 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
             { "SHARD_MOLTHORN", "Almighty"
             },
             { "SHARD_STARBORN", "Echo of Elemental"
-            }
+            },
+            {"SHARD_HUMMINGBIRD", "Chop"}
         };
 
 
