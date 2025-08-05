@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC;
 [CommandDescription("Shows you the cheapest attributes to upgrade or unlock")]
 public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAttribute>
 {
-
+    protected override string Title => "Cheapest Attributes";
     protected override async Task<IEnumerable<CheapAttribute>> GetElements(MinecraftSocket socket, string val)
     {
         var extractedTask = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdExtractedGetAsync(socket.SessionInfo.McName);
@@ -61,8 +61,8 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<CheapAttribute> elements, IEnumerable<CheapAttribute> toDisplay)
     {
         db.MsgLine("Cost per one shard is displayed")
-            .CoflCommand<CheapAttribCommand>(McColorCodes.YELLOW + "only unlock ", "unlock", "Filter for unlocking shards")
-            .CoflCommand<CheapAttribCommand>(McColorCodes.GREEN + "only upgrade ", "upgrade", "Filter for upgrading shards")
+            .CoflCommandButton<CheapAttribCommand>(McColorCodes.YELLOW + "only unlock ", "unlock", "Filter for unlocking shards")
+            .CoflCommandButton<CheapAttribCommand>(McColorCodes.GREEN + "only upgrade ", "upgrade", "Filter for upgrading shards")
             .If(() => elements.Count(e => e.Type == "unlock") >= 174, db => db.MsgLine($"You have many attributes to unlock, make sure to open your attribute menu so we can see which you already have and make sure to only show ones you are missing"));
     }
 
