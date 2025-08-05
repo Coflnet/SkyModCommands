@@ -47,7 +47,7 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
             Tag = i.Key,
             Price = i.Value,
             Type = "upgrade"
-        })).Where(i => i.Price > 0).Take(50);
+        })).Where(i => i.Price > 0).ToList();
     }
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, CheapAttribute elem)
