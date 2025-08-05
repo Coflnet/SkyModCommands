@@ -412,7 +412,8 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
             },
             { "SHARD_STARBORN", "Echo of Elemental"
             },
-            {"SHARD_HUMMINGBIRD", "Chop"}
+            {"SHARD_HUMMINGBIRD", "Chop"},
+            {"SHARD_STRIDER_SURFER", "Magmatic Ruler"},
         };
 
 
