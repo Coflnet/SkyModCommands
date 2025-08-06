@@ -293,6 +293,10 @@ public class FullAfVersionAdapter : AfVersionAdapter
                     .Select(f => f.TargetPrice).DefaultIfEmpty((int)flips.Select(f => f.TargetPrice).Average()).Average();
             listingSpan.Log($"Found {flips.Count} flips for average price {target}");
         }
+        else
+        {
+            listingSpan.Log($"Found {flips.Count} flips but they are too old, using mostly median {item.Second.Median}");
+        }
         var checkFilters = new Dictionary<string, string>() {
                 { "UId", uuid },
                 { "EndAfter", (DateTime.UtcNow - TimeSpan.FromDays(4)).ToUnix().ToString() } };
@@ -323,6 +327,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         if (socket.Settings.ModSettings.QuickSell)
         {
             target = SniperClient.InstaSellPrice(item.Second).Item1 * (item.Second.Volume > 5 ? 1 : 0.98);
+            listingSpan.Log("Set instasell price to " + target);
             socket.Dialog(db => db.MsgLine($"{McColorCodes.DARK_RED} [QuickSelling] {McColorCodes.GRAY} {item.First.ItemName} {McColorCodes.GRAY} for {McColorCodes.GOLD} {target}.")
                 .MsgLine($"{McColorCodes.GRAY}Might be undervalued use {McColorCodes.AQUA}/cofl set quicksell false{McColorCodes.GRAY} to disable"));
             await Task.Delay(2000);
