@@ -43,7 +43,7 @@ public abstract class IslandTask : ProfitTask
                 Details = "Its time locked in some way"
             });
         var bestLocation = locations.First();
-        var totalTime = locations.Sum(l => l.data.Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1)).Sum(d => (d.EndTime - d.StartTime).TotalHours));
+        var totalTime = locations.Sum(l => l.data.Sum(d => (d.EndTime - d.StartTime).TotalHours));
         var formattedDuration = parameters.Socket.formatProvider.FormatTime(TimeSpan.FromHours(totalTime));
         var items = locations.SelectMany(l=>l.data).SelectMany(i => i.ItemsCollected)
             .GroupBy(i => i.Key, i => i.Value)
