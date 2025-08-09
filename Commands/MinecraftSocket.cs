@@ -568,7 +568,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             try
             {
-                var parallelAllowed = 2;
+                var parallelAllowed = 3;
                 if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
                     parallelAllowed = 6;
                 else if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
