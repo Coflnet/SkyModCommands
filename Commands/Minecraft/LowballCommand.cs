@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Client.Model;
 using Coflnet.Sky.Commands.Shared;
@@ -38,7 +39,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             }
             else if (args[0] == "always")
             {
-                socket.sessionLifesycle.AccountSettings.Value.GetLowballs = true;
+                socket.sessionLifesycle.AccountSettings.Value.BlockLowballs = false;
                 await socket.sessionLifesycle.AccountSettings.Update();
                 service.Enable(socket);
                 socket.Dialog(db => db.MsgLine("§aLowballing is now enabled permanently."));
@@ -46,7 +47,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             }
             else if (args[0] == "never")
             {
-                socket.sessionLifesycle.AccountSettings.Value.GetLowballs = false;
+                socket.sessionLifesycle.AccountSettings.Value.BlockLowballs = true;
                 await socket.sessionLifesycle.AccountSettings.Update();
                 service.Disable(null);
                 socket.Dialog(db => db.MsgLine("§cLowballing is now disabled permanently."));
@@ -203,7 +204,7 @@ public class LowballSerivce
     {
         foreach (var item in lowballers)
         {
-            if (item.Value.Socket.IsClosed)
+            if (item.Value.Socket.IsClosed || item.Value.Socket.HasFlippingDisabled())
             {
                 lowballers.Remove(item.Key);
                 continue;
