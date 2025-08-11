@@ -21,7 +21,9 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
         if (item.Options == null)
         {
             db.MsgLine($" {item.ItemName} for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
-                        "/viewauction " + item.AuctuinUuid, "Click to view the auction");
+                        "/viewauction " + item.AuctuinUuid,
+                            $"{McColorCodes.YELLOW}Click to view the auction\n" +
+                            $"{McColorCodes.GRAY}That is {socket.FormatPrice(item.TotalPrice)} total for {item.TotalPrice/item.PricePerExp} exp");
             return;
         }
         // armor sets
