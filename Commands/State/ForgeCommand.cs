@@ -44,33 +44,10 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
 
     public static async Task<IEnumerable<ForgeFlip>> GetPossibleFlips(MinecraftSocket socket)
     {
-        var forgeApi = socket.GetService<IForgeApi>();
-        var stateApi = socket.GetService<IPlayerStateApi>();
-        var profileApi = socket.GetService<IProfileClient>();
-        var extractedTask = stateApi.PlayerStatePlayerIdExtractedGetAsync(socket.SessionInfo.McName);
-        var forgeUnlockedTask = profileApi.GetForgeData(socket.SessionInfo.McUuid, "current");
-        var forgeFlips = await forgeApi.GetAllForgeAsync();
-        var unlocked = await forgeUnlockedTask;
-        var extractedInfo = await extractedTask;
-        if (extractedInfo.HeartOfTheMountain?.Tier > 0)
-            unlocked.HotMLevel = extractedInfo.HeartOfTheMountain.Tier;
-        var result = new List<ForgeFlip>();
-        foreach (var item in forgeFlips)
-        {
-            if (unlocked.HotMLevel < item.RequiredHotMLevel)
-                continue;
-            if (item.ProfitPerHour <= 0)
-                continue;
-            if (unlocked.QuickForgeSpeed != 0)
-            {
-                item.Duration = (int)((float)item.Duration * unlocked.QuickForgeSpeed);
-            }
-            if (item.ProfitPerHour > 1_000_000_000) // probably a calculation error, use daily volume instead
-                item.ProfitPerHour = (item.CraftData.SellPrice - item.CraftData.CraftCost) * item.CraftData.Volume;
-            result.Add(item);
-        }
-        return result.OrderByDescending(r => r.ProfitPerHour);
+        var forgeService = socket.GetService<ForgeFlipService>();
+        return await forgeService.GetForgeFlips(socket.SessionInfo.McName, socket.SessionInfo.McUuid);
     }
+
 
     protected override string GetId(ForgeFlip elem)
     {
