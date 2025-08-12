@@ -46,9 +46,10 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
     {
         var api = socket.GetService<IBazaarFlipperApi>();
         var items = socket.GetService<Items.Client.Api.IItemsApi>();
+        var purse = socket.SessionInfo.Purse <= 0 ? 1_000_000 : socket.SessionInfo.Purse;
         var topFlips = await api.FlipsGetAsync();
         var names = (await items.ItemNamesGetAsync()).ToDictionary(i => i.Tag, i => i.Name);
-        var all = topFlips.Select(f =>
+        var all = topFlips.Where(f=>f.BuyPrice < purse).Select(f =>
         {
             var profitmargin = f.BuyPrice / f.MedianBuyPrice;
             var isManipulated = profitmargin > 2 || profitmargin > 1.5 && f.BuyPrice > 7_500_000;
