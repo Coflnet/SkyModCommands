@@ -46,7 +46,15 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
     {
         var service = socket.GetService<IAttributeApi>();
         var raw = await service.ApiAttributeCraftsGetWithHttpInfoAsync();
-        return JsonConvert.DeserializeObject<List<AttributeFlip>>(raw.RawContent);
+        var deserialized = JsonConvert.DeserializeObject<List<AttributeFlip>>(raw.RawContent);
+        foreach (var item in deserialized)
+        {
+            if (NBT.IsPet(item.Tag) && item.EndingKey.Tier > item.StartingKey.Tier)
+            {
+                item.Ingredients.Add(new() { AttributeName = "Kat pet upgrade" });
+            }
+        }
+        return deserialized;
     }
 
     protected override string GetId(AttributeFlip elem)
