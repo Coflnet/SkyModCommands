@@ -45,6 +45,12 @@ namespace Coflnet.Sky.Commands.MC
             if (Settings == null || socket.HasFlippingDisabled())
                 return;
 
+            if (!Settings.IsCompiled)
+            {
+                BlockedFlip(flip, "compiling");
+                return;
+            }
+
             var start = DateTime.UtcNow;
 
             // Early exit conditions
