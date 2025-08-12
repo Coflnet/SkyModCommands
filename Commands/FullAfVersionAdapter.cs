@@ -285,6 +285,10 @@ public class FullAfVersionAdapter : AfVersionAdapter
             }
             listingSpan.Log($"keys:{item.Second.MedianKey}\n{item.Second.ItemKey}");
             target = item.Second.Median;
+            if (item.Second.MedianKey != item.Second.ItemKey)
+            {
+                target = await CheckForExpensiveCraftCost(item, listingSpan, target);
+            }
         }
         else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-2)))
         {
@@ -336,6 +340,27 @@ public class FullAfVersionAdapter : AfVersionAdapter
         }
 
         return (flowControl: true, value: target);
+    }
+
+    private async Task<double> CheckForExpensiveCraftCost((SaveAuction First, Sniper.Client.Model.PriceEstimate Second) item, Activity listingSpan, double target)
+    {
+        // does not match check craft cost to avoid undervaluing
+        var breakdown = await socket.GetService<IModApi>().ApiModPricingBreakdownPostAsync(new() { new(){
+                    Count = item.First.Count,
+                    Enchantments = item.First.Enchantments.GroupBy(e=>e.Type).Select(g=>g.First()).ToDictionary( e=>e.Type.ToString(), e=>(int)e.Level),
+                    ExtraAttributes = item.First.FlatenedNBT.ToDictionary(y => y.Key, y => (object)y.Value),
+                    ItemName = item.First.ItemName,
+                    Tag = item.First.Tag,
+                } });
+        var valueSum = breakdown.Sum(b => b.CraftPrice.Sum(c => c.Price));
+        var possibleSellAt = valueSum / 3;
+        if (possibleSellAt > target)
+        {
+            listingSpan.Log($"The craft cost of {item.First.ItemName} {item.First.Tag} is more than 3x higher than the closest median at {valueSum}, using 1/3rd of craft cost as target");
+            target = possibleSellAt;
+        }
+
+        return target;
     }
 
     private bool IsFinderEnabled(Flip f)
