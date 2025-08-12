@@ -38,7 +38,8 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
                 $"/viewauction {elem.AuctionToBuy}",
                 $"click to open the auction in question\n{McColorCodes.GRAY}do that before you buy the things to upgrade"
                 + $"\n{McColorCodes.GRAY}Volume: {elem.Volume}")
-            .ForEach(elem.Ingredients, (db, ing) => db.MsgLine($"{McColorCodes.GRAY}- {McColorCodes.RESET}{ing.AttributeName}"));
+            .ForEach(elem.Ingredients, (db, ing) => db.MsgLine($"{McColorCodes.GRAY}- {McColorCodes.RESET}{ing.AttributeName}", null,
+                $"This is estimated to cost {McColorCodes.AQUA}{socket.FormatPrice(ing.Price)}"));
     }
 
     protected override async Task<IEnumerable<AttributeFlip>> GetElements(MinecraftSocket socket, string val)
