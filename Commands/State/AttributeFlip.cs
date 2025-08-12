@@ -35,7 +35,7 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, AttributeFlip elem)
     {
-        db.MsgLine($"{McColorCodes.GREEN}{elem.Tag} {McColorCodes.RED}{socket.FormatPrice(elem.AuctionPrice)} {McColorCodes.GRAY}+{McColorCodes.RED}{socket.FormatPrice(elem.EstimatedCraftingCost)} {McColorCodes.RESET}to {McColorCodes.AQUA}{socket.FormatPrice(elem.Target)} {McColorCodes.RESET}apply:",
+        db.MsgLine($"{McColorCodes.GREEN}{elem.ItemName} {McColorCodes.RED}{socket.FormatPrice(elem.AuctionPrice)} {McColorCodes.GRAY}+{McColorCodes.RED}{socket.FormatPrice(elem.EstimatedCraftingCost)} {McColorCodes.RESET}to {McColorCodes.AQUA}{socket.FormatPrice(elem.Target)} {McColorCodes.RESET}apply:",
                 $"/viewauction {elem.AuctionToBuy}",
                 $"click to open the auction in question\n"
                 + $"{McColorCodes.GRAY}do that before you buy the things to upgrade\n"
@@ -47,15 +47,18 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
 
     protected override async Task<IEnumerable<AttributeFlip>> GetElements(MinecraftSocket socket, string val)
     {
+        var itemNamesTask = socket.GetService<Items.Client.Api.IItemsApi>().ItemNamesGetAsync();
         var service = socket.GetService<IAttributeApi>();
         var raw = await service.ApiAttributeCraftsGetWithHttpInfoAsync();
         var deserialized = JsonConvert.DeserializeObject<List<AttributeFlip>>(raw.RawContent);
+        var names = (await itemNamesTask)?.ToDictionary(i => i.Tag, i => i.Name) ?? [];
         foreach (var item in deserialized.ToList())
         {
             if (NBT.IsPet(item.Tag) && (item.EndingKey.Tier > item.StartingKey.Tier || item.StartingKey.Modifiers.FirstOrDefault(k => k.Key == "exp").Value != item.EndingKey.Modifiers.FirstOrDefault(k => k.Key == "exp").Value))
             {
                 deserialized.Remove(item); // remove pet exp or kat leveling
             }
+            item.ItemName = BazaarCommand.GetSearchValue(item.Tag, names.GetValueOrDefault(item.Tag, item.Tag));
         }
         return deserialized;
     }
@@ -145,6 +148,7 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
         //     Gets or Sets Tag
         [DataMember(Name = "tag", EmitDefaultValue = true)]
         public string Tag { get; set; }
+        public string ItemName { get; set; }
 
         //
         // Summary:
