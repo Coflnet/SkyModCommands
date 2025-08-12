@@ -51,7 +51,14 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
         {
             if (NBT.IsPet(item.Tag) && item.EndingKey.Tier > item.StartingKey.Tier)
             {
-                item.Ingredients.Add(new() { AttributeName = "Kat pet upgrade" });
+                item.Ingredients.Add(new() { AttributeName = $"Kat pet upgrade to {item.EndingKey.Tier}" });
+            }
+            if (NBT.IsPet(item.Tag))
+            {
+                var endExp = float.Parse(item.EndingKey.Modifiers.FirstOrDefault(f => f.Key == "exp").Value ?? "7");
+                var startExp = float.Parse(item.StartingKey.Modifiers.FirstOrDefault(f => f.Key == "exp").Value ?? "0");
+                if (endExp > startExp)
+                    item.Ingredients.Add(new() { AttributeName = $"Add ~{socket.FormatPrice(4_225_538 * (endExp - startExp))} exp" });
             }
         }
         return deserialized;
@@ -189,6 +196,6 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
         // Summary:
         //     Gets or Sets Volume
         [DataMember(Name = "volume", EmitDefaultValue = false)]
-        public float Volume { get; private set; }
+        public float Volume { get; set; }
     }
 }
