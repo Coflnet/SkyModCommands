@@ -27,6 +27,7 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
     public AttributeFlipCommand()
     {
         sorters.Add("price", e => e.OrderByDescending(a => a.Target));
+        sorters.Add("profit", e => e.OrderByDescending(a => a.Target - a.EstimatedCraftingCost - a.AuctionPrice));
         sorters.Add("vol", e => e.OrderByDescending(a => a.Volume));
         sorters.Add("volume", e => e.OrderByDescending(a => a.Volume));
         sorters.Add("age", e => e.OrderByDescending(a => a.FoundAt));
@@ -34,9 +35,11 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, AttributeFlip elem)
     {
-        db.MsgLine($"{McColorCodes.GREEN}{elem.Tag} {McColorCodes.RESET}to {McColorCodes.AQUA}{socket.FormatPrice(elem.Target)} {McColorCodes.RESET}apply:",
+        db.MsgLine($"{McColorCodes.GREEN}{elem.Tag} {McColorCodes.RED}{elem.AuctionPrice} {McColorCodes.GRAY}+{McColorCodes.RED}{elem.EstimatedCraftingCost} {McColorCodes.RESET}to {McColorCodes.AQUA}{socket.FormatPrice(elem.Target)} {McColorCodes.RESET}apply:",
                 $"/viewauction {elem.AuctionToBuy}",
-                $"click to open the auction in question\n{McColorCodes.GRAY}do that before you buy the things to upgrade"
+                $"click to open the auction in question\n"
+                + $"{McColorCodes.GRAY}do that before you buy the things to upgrade\n"
+                + $"Estimated profit: {McColorCodes.AQUA}{socket.FormatPrice(elem.Target - elem.EstimatedCraftingCost - elem.AuctionPrice)}"
                 + $"\n{McColorCodes.GRAY}Volume: {elem.Volume}")
             .ForEach(elem.Ingredients, (db, ing) => db.MsgLine($"{McColorCodes.GRAY}- {McColorCodes.RESET}{ing.AttributeName}", null,
                 $"This is estimated to cost {McColorCodes.AQUA}{socket.FormatPrice(ing.Price)}"));
@@ -52,13 +55,6 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
             if (NBT.IsPet(item.Tag) && item.EndingKey.Tier > item.StartingKey.Tier)
             {
                 item.Ingredients.Add(new() { AttributeName = $"Kat pet upgrade to {item.EndingKey.Tier}" });
-            }
-            if (NBT.IsPet(item.Tag))
-            {
-                var endExp = float.Parse(item.EndingKey.Modifiers.FirstOrDefault(f => f.Key == "exp").Value ?? "7");
-                var startExp = float.Parse(item.StartingKey.Modifiers.FirstOrDefault(f => f.Key == "exp").Value ?? "0");
-                if (endExp > startExp)
-                    item.Ingredients.Add(new() { AttributeName = $"Add ~{socket.FormatPrice(4_225_538 * (endExp - startExp))} exp" });
             }
         }
         return deserialized;
@@ -155,6 +151,7 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
         //     Gets or Sets AuctionToBuy
         [DataMember(Name = "auctionToBuy", EmitDefaultValue = true)]
         public string AuctionToBuy { get; set; }
+        public long AuctionPrice { get; set; }
 
         //
         // Summary:
