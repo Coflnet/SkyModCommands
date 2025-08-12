@@ -47,7 +47,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (!Settings.IsCompiled)
             {
-                BlockedFlip(flip, "compiling");
+                BlockedFlip(flip, "loading settings");
                 return;
             }
 
