@@ -49,6 +49,7 @@ public class FlipCommand : McCommand
                 socket.sessionLifesycle.UpdateConnectionTier(await socket.sessionLifesycle.TierManager.GetCurrentCached());
                 break;
         }
+        socket.sessionLifesycle.FlipSettings.Value.MatchesSettings(BlacklistCommand.GetTestFlip("test"));
         await socket.TriggerTutorial<Flipping>();
 
     }
