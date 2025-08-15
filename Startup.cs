@@ -27,6 +27,7 @@ using Coflnet.Sky.Core.Services;
 using Coflnet.Sky.ModCommands.Services.Vps;
 
 namespace Coflnet.Sky.ModCommands;
+
 public class Startup
 {
     public Startup(IConfiguration configuration)
@@ -75,6 +76,7 @@ public class Startup
         services.AddSingleton<IConnectionMultiplexer, IConnectionMultiplexer>(s => s.GetRequiredService<ConnectionMultiplexer>());
         services.AddSingleton<IBaseApi, BaseApi>(s => new BaseApi(Configuration["PROXY_BASE_URL"]));
         services.AddSingleton<IProxyApi, ProxyApi>(s => new ProxyApi(Configuration["PROXY_BASE_URL"]));
+        services.AddSingleton<DiscordBot.Client.Api.IMessageApi>(new DiscordBot.Client.Api.MessageApi(Configuration["DISCORD_BOT_BASE_URL"]));
         RegisterScyllaSession(services);
         services.AddHostedService(s => s.GetRequiredService<PreApiService>());
         services.AddSingleton<IAhActive, AhActiveService>();

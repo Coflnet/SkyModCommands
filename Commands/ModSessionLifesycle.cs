@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Cassandra;
+using Coflnet.DiscordBot.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
@@ -136,6 +138,31 @@ namespace Coflnet.Sky.Commands.MC
             await SubscribetoCommands();
             if (!(socket.sessionLifesycle.AccountSettings?.Value?.BlockLowballs ?? false) && socket.ModAdapter is not AfVersionAdapter)
                 socket.GetService<LowballSerivce>().Enable(socket);
+            await socket.TryAsyncTimes(async () =>
+            {
+                var messageService = socket.GetService<IMessageApi>();
+                var devlog = await messageService.GetMessagesAsync("devlog", DateTime.UtcNow.RoundDown(TimeSpan.FromHours(1)));
+                var mostRecent = devlog.Where(d => d.CreatedAt > DateTime.UtcNow.AddDays(-1)).OrderByDescending(m => m.CreatedAt).FirstOrDefault();
+                if (mostRecent == null)
+                    return;
+                var content = mostRecent?.Content ?? "";
+                var match = Regex.Match(content, @"https://[^\s\)\]]+", RegexOptions.IgnoreCase);
+                var commandLink = Regex.Match(content, @"`(\/[^´]+)", RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    var url = match.Value;
+                    SendMessage(COFLNET + "Latest change:\n" + content, url, $"Open {url}");
+                }
+                else if (commandLink.Success)
+                {
+                    var command = commandLink.Groups[1].Value;
+                    socket.Dialog(db => db.MsgLine($"Latest change:\n" + content, command, $"Click to execute {command}"));
+                }
+                else
+                {
+                    SendMessage(COFLNET + "Latest change:\n" + content, "https://discord.com/channels/267680588666896385/888932870318612490", "Open Discord for full update log");
+                }
+            }, "latest change message");
         }
 
         private async Task SubscribetoCommands()
@@ -168,14 +195,14 @@ namespace Coflnet.Sky.Commands.MC
             if (ignore)
                 return;
             while (UserId.Value == null)
-                {
-                    socket.ModAdapter.SendLoginPrompt(GetAuthLink(stringId));
-                    await Task.Delay(TimeSpan.FromSeconds(300 * index++)).ConfigureAwait(false);
+            {
+                socket.ModAdapter.SendLoginPrompt(GetAuthLink(stringId));
+                await Task.Delay(TimeSpan.FromSeconds(300 * index++)).ConfigureAwait(false);
 
-                    if (UserId.Value != default)
-                        return;
-                    socket.Dialog(d=>d.MsgLine($"do {McColorCodes.AQUA}/cofl nologin{McColorCodes.RESET} to stop receiving this (or click this message)", "/cofl nologin"));
-                }
+                if (UserId.Value != default)
+                    return;
+                socket.Dialog(d => d.MsgLine($"do {McColorCodes.AQUA}/cofl nologin{McColorCodes.RESET} to stop receiving this (or click this message)", "/cofl nologin"));
+            }
         }
 
         public async Task LoggedIn(string userId)
@@ -762,14 +789,14 @@ namespace Coflnet.Sky.Commands.MC
 
             var threshold = FlipSettings.Value?.ModSettings?.TempBlacklistThreshold ?? 20;
             var boughtLast30Min = socket.LastPurchased.Where(l => l.Auction.Start > DateTime.UtcNow.AddMinutes(-30)).ToList();
-            var boughtToMany = boughtLast30Min.GroupBy(l=>l.Auction.Tag).Where(g=>g.Count() > 2 && g.Count() * 100 / boughtLast30Min.Count() >= threshold).ToList();
+            var boughtToMany = boughtLast30Min.GroupBy(l => l.Auction.Tag).Where(g => g.Count() > 2 && g.Count() * 100 / boughtLast30Min.Count() >= threshold).ToList();
             foreach (var item in boughtToMany)
             {
                 AddTempFilter(item.Key);
-                socket.Dialog(db=>db.Msg($"Temporarily blacklisted {item.First().Auction.ItemName} as you bought {item.Count()} recently which is more than {threshold}% of your flips in the last 30 minutes"
-                    ,null, "More than usual items of one type usually indicate \n"
-                    +"that the value is dropping due to a hypixel update\n"
-                    +$"To adjust the threshold run {McColorCodes.AQUA}/cofl set modtempBlacklistThreshold <percentage>"));
+                socket.Dialog(db => db.Msg($"Temporarily blacklisted {item.First().Auction.ItemName} as you bought {item.Count()} recently which is more than {threshold}% of your flips in the last 30 minutes"
+                    , null, "More than usual items of one type usually indicate \n"
+                    + "that the value is dropping due to a hypixel update\n"
+                    + $"To adjust the threshold run {McColorCodes.AQUA}/cofl set modtempBlacklistThreshold <percentage>"));
             }
 
             var toBlock = socket.LastSent.Where(s =>
@@ -886,7 +913,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task RemoveTempFilters()
         {
-            if(FlipSettings.Value == null)
+            if (FlipSettings.Value == null)
                 return;
             var update = false;
             RemoveFilterFromList(FlipSettings.Value.WhiteList);

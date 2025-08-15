@@ -47,7 +47,7 @@ public class AfVersionAdapter : ModVersionAdapter
             }, "whitelist find", 1);
         }
         Activity.Current?.SetTag("finder", flip.Finder);
-        Activity.Current?.SetTag("target", flip.MedianPrice);
+        Activity.Current?.SetTag("target", flip.Target);
         Activity.Current?.SetTag("itemName", name);
 
         return true;
