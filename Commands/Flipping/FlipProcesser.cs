@@ -360,10 +360,6 @@ namespace Coflnet.Sky.Commands.MC
                     preApiFlipSent.Inc();
                 await Task.Delay(500);
 
-                // this is actually syncronous
-                await socket.GetService<IFlipReceiveTracker>()
-                    .ReceiveFlip(item.Auction.Uuid, socket.sessionLifesycle.SessionInfo.McUuid, sendTime);
-
                 flip.AdditionalProps["csend"] = (timeToSend).ToString();
 
                 socket.LastSent.Enqueue(flip);
@@ -383,6 +379,9 @@ namespace Coflnet.Sky.Commands.MC
                     var target = (flip.Finder == LowPricedAuction.FinderType.USER && !item.Context.ContainsKey("target")) ? -1 : item.Target;
                     await socket.GetService<IPriceStorageService>().SetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid), target);
                 }
+                // this has to run after IPriceStorageService.SetPrice to ensure the flip is tracked correctly on prem+
+                await socket.GetService<IFlipReceiveTracker>()
+                    .ReceiveFlip(item.Auction.Uuid, socket.sessionLifesycle.SessionInfo.McUuid, sendTime);
 
                 if (timeToSend > TimeSpan.FromSeconds(15) && socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM)
                     && flip.Finder != LowPricedAuction.FinderType.FLIPPER && !(item.Interesting.FirstOrDefault()?.StartsWith("Bed") ?? false))
