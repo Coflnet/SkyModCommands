@@ -243,7 +243,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
                     TargetUser = virtualuser
                 });
                 var previousExpire = await socket.GetService<PremiumService>().GetCurrentTier(virtualuser);
-                await userApi.UserUserIdServicePurchaseProductSlugPostAsync(virtualuser, subargs[1], reference);
+                await DoOrRetryPurchase(subargs, userApi, virtualuser, reference);
                 for (int i = 0; i < 10; i++)
                 {
                     if (usedLicense.Expires > previousExpire.Item2)
@@ -290,6 +290,30 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 1 ", $"add {name} premium_plus-week {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 1 week")
             .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}/ 4 weeks  ", $"add {name} premium_plus-weeks {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 4 weeks")
             .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}/ 11 weeks  ", $"add {name} premium_plus-months {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 11 weeks"));
+    }
+
+    private static async Task DoOrRetryPurchase(string[] subargs, IUserApi userApi, string virtualuser, string reference)
+    {
+        try
+        {
+            await userApi.UserUserIdServicePurchaseProductSlugPostAsync(virtualuser, subargs[1], reference);
+        }
+        catch (Payments.Client.Client.ApiException e)
+        {
+            if (!e.Message.Contains("same reference found"))
+            {
+                await Task.Delay(5000);
+                try
+                {
+                    await userApi.UserUserIdServicePurchaseProductSlugPostAsync(virtualuser, subargs[1], reference);
+                }
+                catch (Exception ei)
+                {
+                    if (!ei.Message.Contains("same reference found"))
+                        throw;
+                }
+            }
+        }
     }
 
     private static async Task<LicenseSetting> GetCurrentLicenses(MinecraftSocket socket)
