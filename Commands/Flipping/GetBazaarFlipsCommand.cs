@@ -37,7 +37,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             var flips = await flipApi.DemandGetAsync();
             var recommended = flips.OrderByDescending(f => f.CurrentProfitPerHour).Take(3).OrderByDescending(f => Random.Shared.Next()).First();
             var item = await bazaarApi.GetHistoryGraphAsync(recommended.ItemTag);
-            var price = item.OrderByDescending(h => h.Timestamp).First().Sell + 0.1;
+            var price = item.OrderByDescending(h => h.Timestamp).First().Buy + 0.1;
             var recommend = new OrderRecommend
             {
                 ItemName = BazaarCommand.GetSearchValue(recommended.ItemTag, names[recommended.ItemTag]),
