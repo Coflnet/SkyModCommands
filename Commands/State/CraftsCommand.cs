@@ -33,7 +33,7 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
     }
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Crafts.Models.ProfitableCraft elem)
     {
-        var ingedientList = string.Join('\n', elem.Ingredients.Select(i => $"{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost {McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}"));
+        var ingedientList = string.Join('\n', elem.Ingredients.Select(i => FormatIngredientText(socket, i)));
         var hoverText = $"{McColorCodes.GRAY}Ingredients for {elem.ItemName}:\n" + ingedientList
         + $"\n{McColorCodes.GRAY}CraftCost: {McColorCodes.GOLD}{socket.FormatPrice(elem.CraftCost)}"
         + $"\n{McColorCodes.GRAY}Volume: {McColorCodes.GREEN}{socket.FormatPrice(elem.Volume)}  {McColorCodes.YELLOW}Show recipe breakdown"
@@ -45,6 +45,13 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
             hoverText = $"{McColorCodes.GRAY}You need starter premium or higher to see the top 3\n{McColorCodes.YELLOW}Click to buy a tier";
         }
         db.MsgLine($" {elem.ItemName} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice(elem.Median)} {McColorCodes.YELLOW}[Open Recipe]", click, hoverText);
+    }
+
+    private static string FormatIngredientText(MinecraftSocket socket, Ingredient i)
+    {
+        if (i.Type == "craft")
+            return $"SubCraft: {McColorCodes.AQUA}{i.ItemId} {McColorCodes.GRAY}x{i.Count} {McColorCodes.GRAY}cost ~{McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}{McColorCodes.GRAY}(cheaper)";
+        return $"{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost {McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}";
     }
 
     protected override DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<ProfitableCraft> toDisplay, int totalPages)
@@ -83,8 +90,8 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
     protected override IEnumerable<ProfitableCraft> FilterElementsForProfile(MinecraftSocket socket, IEnumerable<ProfitableCraft> elements)
     {
         var filtered = elements.Where(f => f.CraftCost < socket.SessionInfo.Purse).ToList();
-        if(filtered.Count != elements.Count())
-            socket.Dialog(db=>db.MsgLine($"Filtered {elements.Count() - filtered.Count} crafts that cost more than your purse ({socket.FormatPrice(socket.SessionInfo.Purse)})"));
+        if (filtered.Count != elements.Count())
+            socket.Dialog(db => db.MsgLine($"Filtered {elements.Count() - filtered.Count} crafts that cost more than your purse ({socket.FormatPrice(socket.SessionInfo.Purse)})"));
         return filtered;
     }
 
