@@ -99,7 +99,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<Element> elements, IEnumerable<Element> toDisplay)
     {
-        db.MsgLine($"Assuming you can buy all required feathers at {McColorCodes.AQUA}{socket.FormatPrice(toDisplay.Average(e=>e.Cost / e.FeathersRequired))} coins")
+        db.MsgLine($"Assuming you can buy all required feathers at {McColorCodes.AQUA}{socket.FormatPrice(toDisplay.Average(e => e.Cost / e.FeathersRequired))} coins");
     }
 
     protected override string GetId(Element elem)

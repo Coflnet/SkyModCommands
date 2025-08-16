@@ -50,7 +50,7 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
     private static string FormatIngredientText(MinecraftSocket socket, Ingredient i)
     {
         if (i.Type == "craft")
-            return $"SubCraft: {McColorCodes.AQUA}{i.ItemId} {McColorCodes.GRAY}x{i.Count} {McColorCodes.GRAY}cost ~{McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}{McColorCodes.GRAY}(cheaper)";
+            return $"{McColorCodes.YELLOW} craft {McColorCodes.GOLD}{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost ~{McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}{McColorCodes.GRAY}(cheaper)";
         return $"{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost {McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}";
     }
 
