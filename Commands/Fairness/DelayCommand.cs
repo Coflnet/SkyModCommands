@@ -31,7 +31,7 @@ namespace Coflnet.Sky.Commands.MC
             if (await socket.UserAccountTier() == 0 && socket.SessionInfo.SessionTier == AccountTier.NONE)
             {
                 Activity.Current?.AddTag("freeVersion", true);
-                socket.Dialog(db => db.MsgLine($"You are using the {McColorCodes.YELLOW}free version{DEFAULT_COLOR} and are thus delayed by over a minute.", "https://sky.coflnet.com/premium", "Opens the premium page")
+                socket.Dialog(db => db.MsgLine($"You are using the {McColorCodes.YELLOW}free version{DEFAULT_COLOR} receive flips ~40seconds late.", "https://sky.coflnet.com/premium", "Opens the premium page")
                             .MsgLine($"Purchase premium to remove delay. {McColorCodes.AQUA}/cofl buy", "/cofl buy", "Shows the premium options"));
                 return;
             }
