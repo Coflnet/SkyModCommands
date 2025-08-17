@@ -33,6 +33,15 @@ public class LeaderboardCommand : McCommand
             var displayName = names.Where(n => n.Key == data.UserId).Select(d => d.Value).FirstOrDefault() ?? "unknown";
             PrintLine(socket, db, data, displayName);
         }), db => db.MsgLine("To see the top results you need to have premium plus.")).MsgLine($"You are rank: §6{socket.FormatPrice(rank)}"));
+
+        await RefreshAllOlderthanOneHour(socket, leaderboardData);
+    }
+
+    private static async Task RefreshAllOlderthanOneHour(MinecraftSocket socket, System.Collections.Generic.List<BoardScore> leaderboardData)
+    {
+        await socket.GetService<FlipTrackingService>().GetPlayerFlips(
+            leaderboardData.Where(l => l.TimeStamp < DateTime.UtcNow.AddHours(-1)).Select(l => l.UserId),
+            TimeSpan.FromDays(7));
     }
 
     protected virtual void PrintLine(MinecraftSocket socket, DialogBuilder db, BoardScore data, string displayName)
