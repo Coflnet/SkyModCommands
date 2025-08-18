@@ -17,6 +17,8 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            socket.sessionLifesycle.StartTimer();
+            return;
             socket.Send(Response.Create("registerKeybind", new KeybindRegister[] { new() { Name = "/cofl lb", DefaultKey = "F" }, new() { Name = "test2", DefaultKey = "Z" } }));
             return;
             socket.Send(Response.Create("highlightBlocks", new BlockPos[] { new() { X = 9, Y = 102, Z = 15 },new() { X = 9, Y = 104, Z = 15 } }));
