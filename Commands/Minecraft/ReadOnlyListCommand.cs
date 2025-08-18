@@ -48,7 +48,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
 
     protected virtual DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<T> toDisplay, int totalPages)
     {
-        return DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})")
+        return DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})", $"{page+1}", $"Click to go to next page ({page+1})")
                     .ForEach(toDisplay, (db, elem) => Format(socket, db, elem));
     }
 
