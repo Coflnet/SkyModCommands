@@ -21,7 +21,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     key = o.Key,
                     name = o.Value.RealName,
-                    value = await updater.GetCurrentValue(socket, o.Key),
+                    value = socket.ModAdapter is AfVersionAdapter ? null : await updater.GetCurrentValue(socket, o.Key),
                     info = o.Value.Info,
                     type = o.Value.Type,
                     category = o.Key.Substring(0, 3) switch
@@ -29,6 +29,7 @@ namespace Coflnet.Sky.Commands.MC
                         "mod" => "mod",
                         "sho" => "visibility",
                         "pri" => "privacy",
+                        "lor" => "lore",
                         _ => "general"
                     }
                 }))));
