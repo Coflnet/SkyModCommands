@@ -17,7 +17,9 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            socket.sessionLifesycle.StartTimer();
+            socket.Send(Response.Create("proxy", new ProxyRequest[] { new() { uploadTo = "https://sky.coflnet.com/api/data/proxy?test", id = "guploadTestu", url = "https://www.vinted.de/items/6899998079" } }));
+            socket.Send(Response.Create("openurl", "https://sky.coflnet.com/item/HYPERION"));
+            
             return;
             socket.Send(Response.Create("registerKeybind", new KeybindRegister[] { new() { Name = "/cofl lb", DefaultKey = "F" }, new() { Name = "test2", DefaultKey = "Z" } }));
             return;
