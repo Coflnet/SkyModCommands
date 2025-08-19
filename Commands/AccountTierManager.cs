@@ -120,7 +120,7 @@ public class AccountTierManager : IAccountTierManager
     }
     private async Task<(AccountTier tier, DateTime expiresAt)> CalculateCurrentTierWithExpire(bool force = false)
     {
-        if (string.IsNullOrEmpty(userId))
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(socket.SessionInfo.McUuid))
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
         using var span = socket.CreateActivity("tierCalc", socket.ConSpan);
         span?.SetTag("conId", socket.SessionInfo.ConnectionId);
@@ -186,8 +186,8 @@ public class AccountTierManager : IAccountTierManager
             if (session.LastActive < DateTime.UtcNow - TimeSpan.FromSeconds(5))
             {
                 session.LastActive = DateTime.UtcNow;
-                session.Tier = expires.Item1;
-                Console.WriteLine($"Updating activity on session {socket.SessionInfo.ConnectionId} for {socket.SessionInfo.McUuid} to {session.LastActive}");
+                session.Tier = socket.SessionInfo.SessionTier;
+                Console.WriteLine($"Updating activity on session {socket.SessionInfo.ConnectionId} for {socket.SessionInfo.McUuid} to {session.LastActive} {session.Tier}");
                 await SyncState(startValue);
             }
         }
