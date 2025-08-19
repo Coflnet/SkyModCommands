@@ -151,9 +151,10 @@ public class AccountTierManager : IAccountTierManager
         }
         var sessions = activeSessions.Value.Sessions;
         sessions.RemoveAll(s => s?.ConnectionId == null || string.IsNullOrEmpty(s.MinecraftUuid) || s?.ConnectedAt < DateTime.UtcNow - TimeSpan.FromDays(2));
-        if (!sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId))
+        var thisSession = sessions.FirstOrDefault(s => s?.ConnectionId == socket.SessionInfo.ConnectionId);
+        if (thisSession == null)
         {
-            sessions.Add(new ActiveSession()
+            thisSession = new ActiveSession()
             {
                 ConnectionId = socket.SessionInfo.ConnectionId,
                 ClientSessionId = socket.SessionInfo.clientSessionId,
@@ -163,15 +164,15 @@ public class AccountTierManager : IAccountTierManager
                 LastActive = DateTime.UtcNow,
                 Version = socket.Version,
                 MinecraftUuid = socket.SessionInfo.McUuid
-            });
+            };
+            sessions.Add(thisSession);
             Console.WriteLine($"Added session {socket.SessionInfo.ConnectionId} for {socket.SessionInfo.McUuid}");
             await Task.Delay(sessions.Count * 500);
             await SyncState(startValue);
         }
         else
         {
-            var session = sessions.First(s => s?.ConnectionId == socket.SessionInfo.ConnectionId);
-            if (session?.Outdated ?? true)
+            if (thisSession?.Outdated ?? true)
             {
                 activeSessions?.Dispose();
                 var sameClient = sessions.Where(s => s?.ClientSessionId == socket.SessionInfo.clientSessionId && !s.Outdated).Any();
@@ -183,11 +184,11 @@ public class AccountTierManager : IAccountTierManager
                 span.Log(JsonConvert.SerializeObject(sessions));
                 return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(5));
             }
-            if (session.LastActive < DateTime.UtcNow - TimeSpan.FromSeconds(5))
+            if (thisSession.LastActive < DateTime.UtcNow - TimeSpan.FromSeconds(5))
             {
-                session.LastActive = DateTime.UtcNow;
-                session.Tier = socket.SessionInfo.SessionTier;
-                Console.WriteLine($"Updating activity on session {socket.SessionInfo.ConnectionId} for {socket.SessionInfo.McUuid} to {session.LastActive} {session.Tier}");
+                thisSession.LastActive = DateTime.UtcNow;
+                thisSession.Tier = socket.SessionInfo.SessionTier;
+                Console.WriteLine($"Updating activity on session {socket.SessionInfo.ConnectionId} for {socket.SessionInfo.McUuid} to {thisSession.LastActive} {thisSession.Tier}");
                 await SyncState(startValue);
             }
         }
@@ -258,10 +259,13 @@ public class AccountTierManager : IAccountTierManager
         }
         if (useEmailOnThisCon && expires.Item1 > AccountTier.NONE)
         {
+            span.Log("using account tier " + expires.Item1);
+            thisSession.Tier = expires.Item1;
             return (expires.Item1, expires.Item2);
         }
+        thisSession.Tier = AccountTier.NONE;
         span.Log("none");
-        return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(10));
+        return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(15));
     }
 
     private static bool IsNotPreApi((AccountTier, DateTime) expires)
