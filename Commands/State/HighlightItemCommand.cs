@@ -38,7 +38,10 @@ public class HighlightItemCommand : McCommand
         }
         if (itemResult.Position != null)
         {
+            await Task.Delay(800); // Wait for the world to load
             socket.Dialog(db => db.Msg($"Found {itemResult.Item.ItemName} in {itemResult.Chestname} at {itemResult.Position.X}, {itemResult.Position.Y}, {itemResult.Position.Z}"));
+            socket.Send(Response.Create("highlightBlocks", new BlockPos[] { new() { X = itemResult.Position.X, Y = itemResult.Position.Y, Z = itemResult.Position.Z } }));
+            await Task.Delay(2500); // Wait for the world to load
             socket.Send(Response.Create("highlightBlocks", new BlockPos[] { new() { X = itemResult.Position.X, Y = itemResult.Position.Y, Z = itemResult.Position.Z } }));
         }
     }
