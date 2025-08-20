@@ -142,7 +142,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 var messageService = socket.GetService<IMessageApi>();
                 var devlog = await messageService.GetMessagesAsync("devlog", DateTime.UtcNow.RoundDown(TimeSpan.FromHours(1)));
-                var mostRecent = devlog.Where(d => d.CreatedAt > DateTime.UtcNow.AddDays(-1)).OrderByDescending(m => m.CreatedAt).FirstOrDefault();
+                var mostRecent = devlog.Where(d => d.CreatedAt > DateTime.UtcNow.AddDays(-1) && d.Content.Contains("➡️")).OrderByDescending(m => m.CreatedAt).FirstOrDefault();
                 if (mostRecent == null)
                     return;
                 var content = mostRecent?.Content ?? "";
