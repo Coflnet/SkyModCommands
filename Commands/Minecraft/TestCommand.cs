@@ -17,10 +17,26 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            socket.Send(Response.Create("proxy", new ProxyRequest[] { new() { uploadTo = "https://sky.coflnet.com/api/data/proxy?test", id = "guploadTestu", url = "https://www.vinted.de/items/6899998079" } }));
-            socket.Send(Response.Create("openurl", "https://sky.coflnet.com/item/HYPERION"));
-            
+            var request = new ProxyRequest()
+            {
+                regex = @"SkyCofl",
+                uploadTo = "https://sky.coflnet.com/api/data/proxy?test",
+                id = "guploadTestu",
+                url = "https://sky.coflnet.com"
+            };
+            //socket.Send(Response.Create("proxy", new ProxyRequest[] { request, request, request, request, request, request, request, request, request, request, request, request, request, request, request, request }));
+            socket.Send(Response.Create("registerKeybind", new KeybindRegister[] { new() { Name = "/cofl lb 2", DefaultKey = "N" },
+                new() { Name = "openitemurl", DefaultKey = "Z" },
+                new() { Name = "openitemurl", DefaultKey = "R" },
+                new() { Name = "openitemurl", DefaultKey = "C" },
+                new() { Name = "openitemurl", DefaultKey = "O" },
+                new() { Name = "openitemurl", DefaultKey = "V" } }));
+            // socket.Send(Response.Create("openurl", "https://sky.coflnet.com/item/HYPERION"));
+            socket.Dialog(db => db.Msg("Sent proxy request, awaiting response"));
+            //await Task.Delay(10000);
             return;
+            socket.Send(Response.Create("proxy", new ProxyRequest[0]));
+            socket.Dialog(db => db.Msg("Sent empty proxy request, awaiting response"));
             socket.Send(Response.Create("registerKeybind", new KeybindRegister[] { new() { Name = "/cofl lb", DefaultKey = "F" }, new() { Name = "test2", DefaultKey = "Z" } }));
             return;
             socket.Send(Response.Create("highlightBlocks", new BlockPos[] { new() { X = 9, Y = 102, Z = 15 },new() { X = 9, Y = 104, Z = 15 } }));
@@ -76,6 +92,7 @@ namespace Coflnet.Sky.Commands.MC
         public string uploadTo { get; set; }
         public string id { get; set; }
         public string url { get; set; }
+        public string regex { get; set; }
     }
 
     public class Sequence

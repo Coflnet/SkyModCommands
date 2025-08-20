@@ -26,6 +26,11 @@ public class HotkeyCommand : McCommand
         socket.SessionInfo.SelectedItem = auction;
         socket.Dialog(db => db.MsgLine($"Item received {auction.ItemName}", null, auction.Context["lore"]));
 
+        if (parts[0] == "openitemurl")
+        {
+            socket.Send(Response.Create("openurl", "https://sky.coflnet.com/item/"  + auction.Tag));
+            return;
+        }
         var sniperService = socket.GetService<ISniperClient>();
         var filterTask = RequestFilters(socket, auction);
         var values = await sniperService.GetPrices([auction]);
