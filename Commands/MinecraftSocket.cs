@@ -421,6 +421,7 @@ namespace Coflnet.Sky.Commands.MC
 
             ModAdapter = Version switch
             {
+                "1.7.3" => new BinGuiVersionAdapter(this),
                 "1.7.0" => new BinGuiVersionAdapter(this),
                 "1.6.3" => new BinGuiVersionAdapter(this),
                 "1.6.0" => new BinGuiVersionAdapter(this),
