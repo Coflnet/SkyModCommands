@@ -97,6 +97,11 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
         if (context.Length <= "offer xy".Length)
         {
             var auction = ConvertToAuction(item);
+            if(auction.FlatenedNBT.ContainsKey("donated_museum"))
+            {
+                socket.Dialog(db => db.MsgLine($"§cYou cannot trade museum items, please select another item."));
+                return;
+            }
             var price = await socket.GetService<ISniperClient>().GetPrices([auction]);
             Console.WriteLine(JsonConvert.SerializeObject(item));
             Console.WriteLine(JsonConvert.SerializeObject(auction));
@@ -110,7 +115,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
                 .CoflCommand<LowballCommand>($"At: §a{socket.FormatPrice(highPrice)} coins: {McColorCodes.YELLOW}{GetBuyerCount(serivce, auction, highPrice, price)} buyers\n", $"offer {highPrice} {index}", $"offer item for\n{socket.FormatPrice(highPrice)} ")
                 .CoflCommand<LowballCommand>($"At: §e{socket.FormatPrice(mediumPrice)} coins: {McColorCodes.YELLOW}{GetBuyerCount(serivce, auction, mediumPrice, price)} buyers\n", $"offer {mediumPrice} {index}", $"offer item for\n{socket.FormatPrice(mediumPrice)} ")
                 .CoflCommand<LowballCommand>($"At: §c{socket.FormatPrice(lowPrice)} coins: {McColorCodes.YELLOW}{GetBuyerCount(serivce, auction, lowPrice, price)} buyers\n", $"offer {lowPrice} {index}", $"offer item for\n{socket.FormatPrice(lowPrice)} ")
-                .MsgLine($"From ah in ~{(1 / price[0].Volume) * 24} hours: ~{socket.FormatPrice(price[0].Median * 0.95)} coins"));
+                .MsgLine($"From ah in ~{socket.FormatPrice(1 / price[0].Volume * 24)} hours: ~{socket.FormatPrice(price[0].Median * 0.95)} coins"));
             // 5% for fees and likelyness of relist fees
             return;
         }
