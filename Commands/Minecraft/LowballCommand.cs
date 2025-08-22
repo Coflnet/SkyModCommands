@@ -97,7 +97,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
         if (context.Length <= "offer xy".Length)
         {
             var auction = ConvertToAuction(item);
-            if(auction.FlatenedNBT.ContainsKey("donated_museum"))
+            if (auction.FlatenedNBT.ContainsKey("donated_museum"))
             {
                 socket.Dialog(db => db.MsgLine($"§cYou cannot trade museum items, please select another item."));
                 return;
@@ -171,6 +171,8 @@ public class LowballSerivce
                 lowballers.Remove(item.Key);
                 continue;
             }
+            if (item.Value.Socket.ModAdapter is not AfVersionAdapter)
+                continue; // only non macroers will see this offer
             var matchInfo = item.Value.Socket.Settings.MatchesSettings(FlipperService.LowPriceToFlip(median));
             if (matchInfo.Item1)
             {
@@ -207,6 +209,18 @@ public class LowballSerivce
 
     internal void Offer(Core.SaveAuction auction, long price, Sniper.Client.Model.PriceEstimate priceEstimate, MinecraftSocket socket)
     {
+        var lowballOffer = new LowballOffer()
+        {
+            Auction = auction,
+            Price = price,
+            PriceEstimate = priceEstimate,
+            SellerName = socket.SessionInfo.McName
+        };
+        NotifyUsers(lowballOffer);
+    }
+
+    private void NotifyUsers(LowballOffer lowballOffer)
+    {
         foreach (var item in lowballers)
         {
             if (item.Value.Socket.IsClosed || item.Value.Socket.HasFlippingDisabled())
@@ -216,22 +230,30 @@ public class LowballSerivce
             }
             var median = new Core.LowPricedAuction()
             {
-                Auction = auction,
-                TargetPrice = priceEstimate.Median,
-                DailyVolume = priceEstimate.Volume,
+                Auction = lowballOffer.Auction,
+                TargetPrice = lowballOffer.PriceEstimate.Median,
+                DailyVolume = lowballOffer.PriceEstimate.Volume,
                 Finder = Core.LowPricedAuction.FinderType.SNIPER_MEDIAN
             };
             var instance = FlipperService.LowPriceToFlip(median);
             var matchInfo = item.Value.Socket.Settings.MatchesSettings(instance);
             if (matchInfo.Item1)
             {
-                var sellerName = socket.SessionInfo.McName;
+                var sellerName = lowballOffer.SellerName;
                 var flipMessage = item.Value.Socket.formatProvider.FormatFlip(instance);
                 item.Value.Socket.Dialog(db => db.Msg($"§7[§6§lLowball Offer§7]§r from {McColorCodes.AQUA}{sellerName}")
                     .MsgLine(flipMessage, "/visit " + sellerName, $"Click to visit {sellerName} to complete the trade"));
             }
             else
-                Console.WriteLine($"Lowball offer {auction.ItemName} for {price} coins did not match for {item.Value.Socket.SessionInfo.McName}, reason: {matchInfo.Item2}");
+                Console.WriteLine($"Lowball offer {lowballOffer.Auction.ItemName} for {lowballOffer.Price} coins did not match for {item.Value.Socket.SessionInfo.McName}, reason: {matchInfo.Item2}");
         }
+    }
+
+    public class LowballOffer
+    {
+        public Core.SaveAuction Auction { get; set; }
+        public long Price { get; set; }
+        public Sniper.Client.Model.PriceEstimate PriceEstimate { get; set; }
+        public string SellerName { get; set; }
     }
 }
