@@ -642,7 +642,8 @@ namespace Coflnet.Sky.Commands.MC
             if (tier == AccountTier.NONE)
             {
                 await Task.Delay(800).ConfigureAwait(false);
-                await TierManager.RefreshTier();
+                if (expire < DateTime.UtcNow.AddMinutes(1)) // only refresh if it expires shortly (marked for non fully loaded)
+                    await TierManager.RefreshTier();
                 (tier, expire) = await TierManager.GetCurrentTierWithExpire();
             }
             socket.SessionInfo.SessionTier = tier;
