@@ -165,7 +165,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 static string GetDisplayableContent(DiscordBot.Client.Model.DiscordMessage mostRecent)
                 {
-                    return mostRecent?.Content ?? "".Replace("➡️".Last().ToString(), "");
+                    return mostRecent?.Content ?? "".Replace("➡️", "➡"); // minecraft can't display the box
                 }
             }, "latest change message");
         }
