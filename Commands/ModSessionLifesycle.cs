@@ -288,7 +288,10 @@ namespace Coflnet.Sky.Commands.MC
         public async Task ApplyFlipSettings(FlipSettings settings, Activity span)
         {
             if (settings == null)
+            {
+                span.Log("settings are null, not applying");
                 return;
+            }
             var testFlip = BlacklistCommand.GetTestFlip("test");
             if (settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.CraftCost))
                 testFlip.Finder = LowPricedAuction.FinderType.CraftCost;
@@ -639,6 +642,7 @@ namespace Coflnet.Sky.Commands.MC
             if (tier == AccountTier.NONE)
             {
                 await Task.Delay(800).ConfigureAwait(false);
+                await TierManager.RefreshTier();
                 (tier, expire) = await TierManager.GetCurrentTierWithExpire();
             }
             socket.SessionInfo.SessionTier = tier;
