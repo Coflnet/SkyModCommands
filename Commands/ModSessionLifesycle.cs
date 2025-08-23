@@ -145,7 +145,7 @@ namespace Coflnet.Sky.Commands.MC
                 var mostRecent = devlog.Where(d => d.CreatedAt > DateTime.UtcNow.AddDays(-1) && d.Content.Contains("➡️")).OrderByDescending(m => m.CreatedAt).FirstOrDefault();
                 if (mostRecent == null)
                     return;
-                var content = mostRecent?.Content ?? "";
+                var content = GetDisplayableContent(mostRecent);
                 var match = Regex.Match(content, @"https://[^\s\)\]]+", RegexOptions.IgnoreCase);
                 var commandLink = Regex.Match(content, @"`(\/[^´]+)", RegexOptions.IgnoreCase);
                 if (match.Success)
@@ -161,6 +161,11 @@ namespace Coflnet.Sky.Commands.MC
                 else
                 {
                     SendMessage(COFLNET + "Latest change:\n" + content, "https://discord.com/channels/267680588666896385/888932870318612490", "Open Discord for full update log");
+                }
+
+                static string GetDisplayableContent(DiscordBot.Client.Model.DiscordMessage mostRecent)
+                {
+                    return mostRecent?.Content ?? "".Replace("➡️".Last().ToString(), "");
                 }
             }, "latest change message");
         }
