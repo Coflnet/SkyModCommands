@@ -33,6 +33,17 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
         sorters.Add("age", e => e.OrderByDescending(a => a.FoundAt));
     }
 
+    public override async Task Execute(MinecraftSocket socket, string args)
+    {
+        if (!await socket.RequirePremium())
+        {
+            socket.Dialog(db => db.CoflCommand<PurchaseCommand>("Attribute flips are advanced craft like flips where you apply enchants, books, reforges etc to increase the value of an item and sel it for a profit.", null, 
+            "Because of how complex and advanced this is \nit is part of our premium offering"));
+            return;
+        }
+        await base.Execute(socket, args);
+    }
+
     protected override void Format(MinecraftSocket socket, DialogBuilder db, AttributeFlip elem)
     {
         db.MsgLine($"{McColorCodes.GREEN}{elem.ItemName} {McColorCodes.RED}{socket.FormatPrice(elem.AuctionPrice)} {McColorCodes.GRAY}+{McColorCodes.RED}{socket.FormatPrice(elem.EstimatedCraftingCost)} {McColorCodes.RESET}to {McColorCodes.AQUA}{socket.FormatPrice(elem.Target)} {McColorCodes.RESET}apply:",

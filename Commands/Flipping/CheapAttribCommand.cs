@@ -450,4 +450,19 @@ public static class CommonDialogExtension
             "premium_plus", $"Click to purchase prem+"));
         return false;
     }
+
+    public static async Task<bool> RequirePremium(this IMinecraftSocket socket)
+    {
+        var tier = await socket.UserAccountTier();
+        if (tier >= Shared.AccountTier.PREMIUM)
+        {
+            return true;
+        }
+        socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
+            $"{McColorCodes.RED}{McColorCodes.BOLD}ABORTED\n"
+            + $"{McColorCodes.RED}You need to be a premium user to use this command"
+            + $"{McColorCodes.YELLOW}\n[Click to purchase premium]",
+            "premium", $"Click to purchase premium"));
+        return false;
+    }
 }
