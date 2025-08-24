@@ -277,6 +277,10 @@ namespace Coflnet.Sky.Commands.MC
             Console.WriteLine("subbing to events for" + val + " from " + SessionInfo.McName);
             targetSub = socket.GetService<EventBrokerClient>().SubEvents(val, onchange =>
             {
+                if (onchange.SourceType == "bazaar" && onchange.SourceSubId == "outbid")
+                {
+                    onchange.Link = "/managebazaarorders";
+                }
                 SendMessage(COFLNET + onchange.Message, onchange.Link, string.IsNullOrEmpty(onchange.Link) ? "Has no clickable link" : $"Will click on\n{onchange.Link}");
             });
             if (val.Length != 32)
