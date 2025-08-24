@@ -27,12 +27,12 @@ public abstract class ReadOnlyListCommand<T> : McCommand
             elements = sorter(elements).ToList();
             arguments = RemoveSortArgument(arguments);
         }
+        elements = FilterElementsForProfile(socket, elements).ToList();
         if (!int.TryParse(arguments, out int page) && arguments.Length > 1)
         {
             // search
             elements = elements.Where(e => GetId(e).ToLower().Contains(arguments.ToLower())).ToList();
         }
-        elements = FilterElementsForProfile(socket, elements).ToList();
         if (page < 0)
             page = elements.Count / PageSize + page;
         if (page == 0)
@@ -48,7 +48,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
 
     protected virtual DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<T> toDisplay, int totalPages)
     {
-        return DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})", $"{page+1}", $"Click to go to next page ({page+1})")
+        return DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})", $"/cofl {Slug} {page+1}", $"Click to go to next page ({page+1})")
                     .ForEach(toDisplay, (db, elem) => Format(socket, db, elem));
     }
 
