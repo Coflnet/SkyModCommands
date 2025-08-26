@@ -12,6 +12,7 @@ using Coflnet.Sky.ModCommands.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using SaveAuction = Coflnet.Sky.Core.SaveAuction;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -128,13 +129,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
         socket.SessionInfo.AhSlotsOpen = listSpace - activeAuctionCount;
     }
 
-    private IEnumerable<LowPricedAuction> LastSentFlips()
+    private IEnumerable<Core.LowPricedAuction> LastSentFlips()
     {
         return socket.LastSent
                 // Flips can be relisted for a different price, 
                 // by ordering by start the last listing is chosen
                 .OrderByDescending(ls => ls.Auction.Start)
-                .Where(x => x.Finder != LowPricedAuction.FinderType.USER);
+                .Where(x => x.Finder != Core.LowPricedAuction.FinderType.USER);
     }
 
     private async Task<List<SaveAuction>> WaitForInventory()
@@ -366,7 +367,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
     private bool IsFinderEnabled(Flip f)
     {
         var finderString = f.FinderType.ToString();
-        return socket.Settings.AllowedFinders.HasFlag(Enum.Parse<LowPricedAuction.FinderType>(finderString switch
+        return socket.Settings.AllowedFinders.HasFlag(Enum.Parse<Core.LowPricedAuction.FinderType>(finderString switch
         {
             "SNIPERMEDIAN" => "SNIPER_MEDIAN",
             _ => finderString
