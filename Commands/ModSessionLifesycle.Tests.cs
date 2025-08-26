@@ -88,9 +88,10 @@ public class ModSessionLifesycleTests
         };
         if (replace)
             settings = JsonConvert.DeserializeObject<FlipSettings>(json);
+        settings.BlockHighCompetitionFlips = false;
         ClearStateFilters(settings.BlackList);
         ClearStateFilters(settings.WhiteList);
-            lifesycle.FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => settings);
+        lifesycle.FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => settings);
         for (int i = 0; i < 3; i++)
         {
             lifesycle.FlipProcessor.PingUpdate();

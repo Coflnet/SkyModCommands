@@ -356,7 +356,7 @@ namespace Coflnet.Sky.Commands.MC
                 return; // no need to track sold flips
             _ = socket.TryAsyncTimes(async () =>
             {
-                if (socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.SUPER_PREMIUM))
+                if (socket.sessionLifesycle.TierManager?.HasAtLeast(AccountTier.SUPER_PREMIUM) ?? false)
                     preApiFlipSent.Inc();
                 await Task.Delay(500);
 
