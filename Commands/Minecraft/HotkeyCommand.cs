@@ -37,12 +37,12 @@ public class HotkeyCommand : McCommand
         string filterLink = await GetLinkFromFilters(auction, filterTask);
         var price = values.First();
         var instaSell = SniperClient.InstaSellPrice(price);
-        var auctionId = await GetAuction(socket, price.Lbin.AuctionId);
+        var lbinAuction = await GetAuction(socket, price.Lbin.AuctionId);
         var formattedInstasell = socket.FormatPrice(instaSell.Item1);
         socket.Dialog(db => db.MsgLine($"The value of this item is {McColorCodes.AQUA}{socket.FormatPrice(price.Median)}", null,
                         $"Took into account these modifiers:\n{price.MedianKey}")
             .If(() => price.Lbin.AuctionId != 0, db => db
-                .MsgLine($"Lowest bin sits at {McColorCodes.AQUA}{socket.FormatPrice(price.Lbin.Price)}", "/viewauction " + auctionId, "click to open lbin on ah"))
+                .MsgLine($"Lowest bin sits at {McColorCodes.AQUA}{socket.FormatPrice(price.Lbin.Price)}", "/viewauction " + lbinAuction.Uuid, "click to open lbin on ah"))
             .Msg($"To sell quickly list at {McColorCodes.AQUA}{formattedInstasell}", $"copy:{formattedInstasell}", "click to copy")
                 .MsgLine($"{McColorCodes.GRAY}[put into chat]", $"suggest:{formattedInstasell}", "click to put \nsuggestion into chat")
                 .Button($"Open filter on website", filterLink, "Click to view on SkyCofl Website"));
@@ -50,6 +50,8 @@ public class HotkeyCommand : McCommand
 
     private static async Task<SaveAuction?> GetAuction(MinecraftSocket socket, long uid)
     {
+        if(uid == 0)
+            return null;
         var auctionClient = socket.GetService<Sky.Api.Client.Api.IAuctionsApi>();
         var auction = await auctionClient.ApiAuctionAuctionUuidGetWithHttpInfoAsync(AuctionService.Instance.GetUuid(uid));
         return JsonConvert.DeserializeObject<SaveAuction>(auction.RawContent);
