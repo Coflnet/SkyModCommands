@@ -30,7 +30,7 @@ public class AhFlipsCommand : ReadOnlyListCommand<UnsoldFlip>
     {
         if (!await socket.RequirePremium())
             return [];
-        var trackerApi = socket.GetService<TrackerApi>();
+        var trackerApi = socket.GetService<ITrackerApi>();
         var unsold = await trackerApi.GetUnsoldFlipsAsync(DateTime.UtcNow.AddMinutes(-1), 30);
         return unsold;
     }
