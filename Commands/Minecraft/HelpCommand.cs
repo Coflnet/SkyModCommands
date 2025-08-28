@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 [CommandDescription("Prints help for the mod", "Usage: /cofl help [topic]")]
@@ -70,10 +71,11 @@ public class HelpCommand : McCommand
             var description = c.Value.GetType().GetCustomAttributes(typeof(CommandDescriptionAttribute), true).FirstOrDefault() as CommandDescriptionAttribute;
             return (c.Key, Command: c.Value, description: description?.Description ?? "no help yet");
         }).GroupBy(c => c.Command);
-        foreach (var item in withDescription)
-        {
-            Console.WriteLine($"{item.Key} {item.First().description}");
-        }
+        var allUpdate = Response.Create("commandUpdate", withDescription.ToDictionary(g => g.Key.Slug,
+            g => g.Select(i => i.description).First()
+        ));
+        allUpdate.type = "commandUpdate";
+        socket.Send(allUpdate);
         var toDisplay = withDescription.Skip(page * pageSize).Take(pageSize);
         var pageToNavigateTo = page + 2;
         if (pageToNavigateTo > withDescription.Count() / pageSize +1)
