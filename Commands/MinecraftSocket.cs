@@ -422,19 +422,6 @@ namespace Coflnet.Sky.Commands.MC
 
             ModAdapter = Version switch
             {
-                string v when v.StartsWith("1.8.") => new BinGuiVersionAdapter(this),
-                string v when v.StartsWith("1.7.") => new BinGuiVersionAdapter(this),
-                string v when v.StartsWith("1.6.") => new BinGuiVersionAdapter(this),
-                "1.5.7-Alpha" => new BinGuiVersionAdapter(this),
-                "1.5.6-Alpha" => new BinGuiVersionAdapter(this),
-                "1.5.5-Alpha" => new BinGuiVersionAdapter(this),
-                "1.5.4-Alpha" => new BinGuiVersionAdapter(this),
-                "1.5.2-Alpha" => new BinGuiVersionAdapter(this),
-                "1.5.0-Alpha" => new BinGuiVersionAdapter(this),
-                "1.4-Alpha" => new InventoryVersionAdapter(this),
-                "1.4.2-Alpha" => new InventoryVersionAdapter(this),
-                "1.4.3-Alpha" => new InventoryVersionAdapter(this),
-                "1.4.4-Alpha" => new InventoryVersionAdapter(this),
                 "1.3.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.2-Alpha" => new SecondVersionAdapter(this),
@@ -443,6 +430,11 @@ namespace Coflnet.Sky.Commands.MC
                 "af-2.0.0" => new FullAfVersionAdapter(this),
                 "af-2.0.1" => new FullAfVersionAdapter(this),
                 "1.5.0-afclient" => new AfVersionAdapter(this),
+                string v when v.StartsWith("1.8.") => new BinGuiVersionAdapter(this),
+                string v when v.StartsWith("1.7.") => new BinGuiVersionAdapter(this),
+                string v when v.StartsWith("1.6.") => new BinGuiVersionAdapter(this),
+                string v when v.StartsWith("1.5.") => new BinGuiVersionAdapter(this),
+                string v when v.StartsWith("1.4.") => new InventoryVersionAdapter(this),
                 _ => new FirstModVersionAdapter(this)
             };
             Activity.Current?.SetTag("version", Version);
