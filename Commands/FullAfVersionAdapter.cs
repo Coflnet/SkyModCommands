@@ -259,6 +259,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             if (!abort)
             {
                 listingSpan.Log("triggering abort");
+                skipped++;
                 continue;
             }
             listingSpan?.SetTag("uuid", uuid);
@@ -310,7 +311,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var stored = await storedEstimate;
         if (stored < 0)
         {
-            listingSpan.Log($"Stored price for {item.First.ItemName} was {target}");
+            listingSpan.Log($"Stored price for {item.First.ItemName} was {target} {stored}");
             if (!socket.SessionInfo.SellAll)
                 return (flowControl: false, value: default);
             var foundReason = stored == -1 ? "found by USER finder" : "marked with not list filter";
