@@ -258,6 +258,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             (bool abort, double target) = await GetPrice(apiService, item, uuid, listingSpan);
             if (!abort)
             {
+                listingSpan.Log("triggering abort");
                 continue;
             }
             listingSpan?.SetTag("uuid", uuid);
