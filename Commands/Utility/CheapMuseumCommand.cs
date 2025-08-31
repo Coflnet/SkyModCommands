@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Items.Client.Api;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Services;
 
@@ -27,8 +29,16 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
                             $"{McColorCodes.GRAY}That is {socket.FormatPrice(item.TotalPrice)} total for {item.TotalPrice/item.PricePerExp} exp");
             return;
         }
+        if (item.AuctuinUuid.StartsWith("/cofl recipe "))
+        {
+            db.MsgLine($" {item.ItemName} for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
+                        item.AuctuinUuid,
+                            $"{McColorCodes.YELLOW}Click to view the crafting recipe\n" +
+                            $"{McColorCodes.GRAY}That is {socket.FormatPrice(item.TotalPrice)} total for {item.TotalPrice/item.PricePerExp} exp");
+            return;
+        }
         // armor sets
-        db.MsgLine($" {item.ItemName} Set {McColorCodes.GRAY}for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
+            db.MsgLine($" {item.ItemName} Set {McColorCodes.GRAY}for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
                     null, "Buy all of the ones below to donate")
             .ForEach(item.Options, (db, option, i) => db.MsgLine($" {McColorCodes.AQUA}Item {i + 1}{McColorCodes.GRAY}: {McColorCodes.RESET}{option.name}", "/viewauction " + option.uuid, "Click to view the auction"));
 
@@ -91,6 +101,21 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
             .Log($"Amount: {amount}")
             .Log($"Recent donations: {recentDonations.Count}")
             .Log(string.Join(", ", combinedDonations));
+        if (val == "craft")
+        {
+            socket.Dialog(db => db.MsgLine("Showing only craftable items"));
+            var namesTask = socket.GetService<IItemsApi>().ItemNamesGetAsync();
+            var craftable = await service.GetBestCraftableMuseumItems(combinedDonations, socket.SessionInfo.McUuid, socket.SessionInfo.ProfileId ?? "current", amount);
+            var namesDictionary = (await namesTask).ToDictionary(i => i.Tag, i => i.Name);
+            return craftable.Select(c => new MuseumService.Cheapest
+            {
+                ItemName = c.ItemName,
+                PricePerExp = c.PricePerExp,
+                TotalPrice = c.CraftCost,
+                AuctuinUuid = $"/cofl recipe {c.ItemId}",
+                Options = c.Ingredients.Select(i => (i.ItemId, namesDictionary.GetValueOrDefault(i.ItemId) + $" x{i.Count}")).ToArray()
+            });
+        }
 
         return await service.GetBestMuseumPrices(combinedDonations, amount);
     }
