@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -66,19 +67,32 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
             }
         }
         var alreadDonated = await profileClient.GetAlreadyDonatedToMuseum(socket.SessionInfo.McUuid, socket.SessionInfo.ProfileId ?? "current", age);
-        if (alreadDonated.Count > 0)
-            socket.Dialog(db => db.MsgLine($"Skipping {alreadDonated.Count} items you already donated"));
+        
+        // Get recent donations from chat messages
+        var museumDonationService = socket.GetService<IMuseumDonationService>();
+        var recentDonations = museumDonationService.GetRecentDonations(socket.SessionInfo.McName);
+        
+        // Combine API donations with recent chat-based donations
+        var combinedDonations = new HashSet<string>(alreadDonated);
+        foreach (var recentDonation in recentDonations)
+        {
+            combinedDonations.Add(recentDonation);
+        }
+        
+        if (combinedDonations.Count > 0)
+            socket.Dialog(db => db.MsgLine($"Skipping {combinedDonations.Count} items you already donated (including {recentDonations.Count} recent donations from chat)"));
         else
         {
             socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}No donated items found, do you have museum api on?"));
             await Task.Delay(2000);
         }
-        Activity.Current.Log("Already donated: " + alreadDonated.Count)
+        Activity.Current.Log("Already donated: " + combinedDonations.Count)
             .Log($"Age: {age}")
             .Log($"Amount: {amount}")
-            .Log(string.Join(", ", alreadDonated));
+            .Log($"Recent donations: {recentDonations.Count}")
+            .Log(string.Join(", ", combinedDonations));
 
-        return await service.GetBestMuseumPrices(alreadDonated, amount);
+        return await service.GetBestMuseumPrices(combinedDonations, amount);
     }
 
     protected override DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<MuseumService.Cheapest> toDisplay, int totalPages)

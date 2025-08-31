@@ -60,6 +60,7 @@ public class Startup
                 .EnableDetailedErrors()       // <-- with debugging (remove for production).
         );
         services.AddHostedService<ModBackgroundService>();
+        services.AddHostedService<MuseumDonationCleanupService>();
         services.AddHostedService(s => s.GetRequiredService<FlipperService>());
         services.AddJaeger(Configuration, 1, 1);
         services.AddTransient<CounterService>();
@@ -96,6 +97,7 @@ public class Startup
         services.AddSingleton<StayLoggedOutService>();
         services.AddSingleton<LowballSerivce>();
         services.AddSingleton<IDelayExemptList, DelayExemptionList>();
+        services.AddSingleton<IMuseumDonationService, MuseumDonationService>();
         services.AddCoflService();
     }
 

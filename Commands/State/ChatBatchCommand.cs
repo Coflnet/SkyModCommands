@@ -79,6 +79,13 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine("Chameleon: " + item);
             }
 
+            // Process museum donation messages
+            if (item.Contains("You donated your") && item.Contains("to the Museum!"))
+            {
+                var museumService = socket.GetService<IMuseumDonationService>();
+                await museumService.ProcessChatMessage(socket.SessionInfo?.McName, item);
+            }
+
             if (item.StartsWith("\nClick th"))
                 {
                     Console.WriteLine("found reward link");
