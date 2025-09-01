@@ -11,6 +11,7 @@ namespace Coflnet.Sky.Commands.MC
                 + @"|Profile ID: |You placd a Trap|\+\d+ .* Attribute \(Level "
                 + @"|You caught |\s+Chameleon" // catching shards
                 + @"|Added items|Removed items" // stash adding notification
+                + @"|You donated your" // museum donation
                 + @"| - | \+ |Trade completed|Bid of|\nClick the link to |\nClick th' li|You must set it to at least).*";
 
         public InventoryModSession(MinecraftSocket socket) : base(socket)
