@@ -29,7 +29,7 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
                             $"{McColorCodes.GRAY}That is {socket.FormatPrice(item.TotalPrice)} total for {item.TotalPrice/item.PricePerExp} exp");
             return;
         }
-        if (item.AuctuinUuid.StartsWith("/cofl recipe "))
+        if (item?.AuctuinUuid?.StartsWith("/cofl recipe ") ?? false)
         {
             db.MsgLine($" {item.ItemName} for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
                         item.AuctuinUuid,
