@@ -30,6 +30,15 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
         _tasks.Add<GalateaFishingTask>();
         _tasks.Add<GalateaTask>();
         _tasks.Add<JerryTask>();
+        _tasks.Add<GoldMineTask>();
+        _tasks.Add<DeepCavernsTask>();
+        _tasks.Add<DwarvenMinesMiningTask>();
+        _tasks.Add<TheEndTask>();
+        _tasks.Add<TheParkTask>();
+        _tasks.Add<BackwaterBayouTask>();
+        _tasks.Add<GardenTask>();
+        _tasks.Add<CrimsonIsleTask>();
+
         //_tasks.Add<SlayerTask>();
     }
     public override bool IsPublic => true;
