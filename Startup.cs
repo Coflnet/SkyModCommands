@@ -98,6 +98,7 @@ public class Startup
         services.AddSingleton<LowballSerivce>();
         services.AddSingleton<IDelayExemptList, DelayExemptionList>();
         services.AddSingleton<IMuseumDonationService, MuseumDonationService>();
+        services.AddSingleton<ApiKeyService>();
         services.AddCoflService();
     }
 
