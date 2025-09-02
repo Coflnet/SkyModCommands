@@ -32,11 +32,13 @@ namespace Coflnet.Sky.Commands.MC
                 
                 switch (args?.ToLower())
                 {
+                    case "":
+                    case null:
+                        await GenerateIfNoneExisting(socket, apiKeyService);
+                        break;
                     case "generate":
                     case "create":
                     case "new":
-                    case "":
-                    case null:
                         await GenerateNewApiKey(socket, apiKeyService);
                         break;
                     
@@ -56,6 +58,29 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage($"{COFLNET}{McColorCodes.RED}An error occurred while processing your API key request.");
                 dev.Logger.Instance.Error(ex, "ApiCommand execution failed");
             }
+        }
+
+        private async Task GenerateIfNoneExisting(MinecraftSocket socket, ApiKeyService apiKeyService)
+        {
+            var sessionLifecycle = socket.sessionLifesycle;
+
+            if (sessionLifecycle?.UserId?.Value == null)
+            {
+                await socket.SendLoginPrompt();
+                socket.SendMessage($"{COFLNET}{McColorCodes.RED}You must be logged in to generate an API key.");
+                return;
+            }
+
+            var userKeys = await apiKeyService.GetUserApiKeys(sessionLifecycle.UserId.Value);
+            var activeKeys = userKeys.Where(k => k.IsActive).ToList();
+
+            if (activeKeys.Any())
+            {
+                await ShowUserApiKeys(socket, apiKeyService);
+                return;
+            }
+
+            await GenerateNewApiKey(socket, apiKeyService);
         }
 
         private async Task GenerateNewApiKey(MinecraftSocket socket, ApiKeyService apiKeyService)
