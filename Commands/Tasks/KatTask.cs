@@ -2,16 +2,38 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Crafts.Client.Model;
 
 namespace Coflnet.Sky.Commands.MC.Tasks;
 
 public class KatTask : ProfitTask
 {
+    public record FlipData(KatUpgradeResult katData, PriceSumary sumary)
+    {
+    }
     public override async Task<TaskResult> Execute(TaskParams parameters)
     {
         var katData = await GetOrUpdateCache(parameters, async () =>
         {
-            return await parameters.GetService<Crafts.Client.Api.IKatApi>().GetProfitableKatAsync();
+            var all = await parameters.GetService<Crafts.Client.Api.IKatApi>().GetProfitableKatAsync();
+            var top10 = all.Where(k => k.CoreData.Hours != 0).OrderByDescending(k => k.Profit / (k.CoreData.Hours + 0.1)).Skip(1).Take(10);
+            var result = top10.Select((async i =>
+            {
+                try
+                {
+                    var pricesService = parameters.GetService<PricesService>();
+                    var filter = new Dictionary<string, string>() { { "Rarity", i.TargetRarity.ToString() } };
+                    var sumary = await pricesService.GetSumaryCache(i.CoreData.ItemTag, filter);
+                    return new FlipData(i, sumary);
+                }
+                catch (Exception e)
+                {
+                    dev.Logger.Instance.Error(e, "getting price summary for kat flips");
+                }
+                return null;
+            }));
+            return (await Task.WhenAll(result)).ToList();
         }, 1);
         var formatProvider = parameters.Socket.formatProvider;
         var expireTime = parameters.ExtractedInfo.KatStatus?.KatEnd;
@@ -37,31 +59,35 @@ public class KatTask : ProfitTask
         // skip top one as its usually quickly bought, add 6 minutes for getting materials and setup
         var attributeLevel = parameters.ExtractedInfo.AttributeLevel?.GetValueOrDefault("Kat's Favorite") ?? 0;
         var attributeMultiplier = 1 - (attributeLevel * 0.01f);
-        var best = katData.Where(k => k.CoreData.Hours != 0).OrderByDescending(k => k.Profit / (k.CoreData.Hours / attributeMultiplier + 0.1)).Skip(1).FirstOrDefault();
-        var hours = best.CoreData.Hours / attributeMultiplier;
+        var best = katData.Where(k => k.katData.CoreData.Hours != 0)
+            .OrderByDescending(k => Math.Min(k.katData.Profit,k.sumary.Med) / (k.katData.CoreData.Hours / attributeMultiplier + 0.1) * k.sumary.Volume)
+            .Skip(1).FirstOrDefault();
+        var coreData = best.katData.CoreData;
+        var profit = Math.Min(best.katData.Profit, best.sumary.Med);
+        var hours = coreData.Hours / attributeMultiplier;
         var explanation = $"{McColorCodes.YELLOW}Kat's Favorite {McColorCodes.GRAY}level {attributeLevel} reduces the time to {McColorCodes.AQUA}{attributeMultiplier * 100}%"
-            + $"\n{McColorCodes.GRAY}Upgrading {best.CoreData.Name} with kat starting with {best.CoreData.BaseRarity}, you will need:";
-        if (best.CoreData.Material != null)
-            explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material} {McColorCodes.GRAY}x{best.CoreData.Amount}";
+            + $"\n{McColorCodes.GRAY}Upgrading {coreData.Name} with kat starting with {coreData.BaseRarity}, you will need:";
+        if (coreData.Material != null)
+            explanation += $"\n{McColorCodes.YELLOW}{coreData.Material} {McColorCodes.GRAY}x{coreData.Amount}";
         else
             explanation += $"\nno extra materials";
-        if (best.CoreData.Material2 != null)
-            explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material2} {McColorCodes.GRAY}x{best.CoreData.Amount2}";
-        if (best.CoreData.Material3 != null)
-            explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material3} {McColorCodes.GRAY}x{best.CoreData.Amount3}";
-        if (best.CoreData.Material4 != null)
-            explanation += $"\n{McColorCodes.YELLOW}{best.CoreData.Material4} {McColorCodes.GRAY}x{best.CoreData.Amount4}";
-        explanation += $"\nYou will spend {formatProvider.FormatPrice(best.PurchaseCost)} to buy the auction \n{formatProvider.FormatPrice((long)best.MaterialCost)} on materials "
-           + $"and {formatProvider.FormatPrice((long)best.UpgradeCost)} on kat"
+        if (coreData.Material2 != null)
+            explanation += $"\n{McColorCodes.YELLOW}{coreData.Material2} {McColorCodes.GRAY}x{coreData.Amount2}";
+        if (coreData.Material3 != null)
+            explanation += $"\n{McColorCodes.YELLOW}{coreData.Material3} {McColorCodes.GRAY}x{coreData.Amount3}";
+        if (coreData.Material4 != null)
+            explanation += $"\n{McColorCodes.YELLOW}{coreData.Material4} {McColorCodes.GRAY}x{coreData.Amount4}";
+        explanation += $"\nYou will spend {formatProvider.FormatPrice(best.katData.PurchaseCost)} to buy the auction \n{formatProvider.FormatPrice((long)best.katData.MaterialCost)} on materials "
+           + $"and {formatProvider.FormatPrice((long)best.katData.UpgradeCost)} on kat"
            + $"\n{McColorCodes.YELLOW}Total time {McColorCodes.GRAY}{formatProvider.FormatTime(TimeSpan.FromHours(hours))}"
-           + $"\n{McColorCodes.YELLOW}Total profit {McColorCodes.GRAY}{formatProvider.FormatPrice((long)best.Profit)}";
+           + $"\n{McColorCodes.YELLOW}Total profit {McColorCodes.GRAY}{formatProvider.FormatPrice((long)profit)}";
         var feeAndRiskFactor = 0.97;
         return new TaskResult
         {
-            ProfitPerHour = (int)(best.Profit * feeAndRiskFactor / (best.CoreData.Hours + 0.1) / attributeMultiplier),
-            Message = $"Upgrade {best.CoreData.Name} with kat starting with {best.CoreData.BaseRarity}, click to get cheapest purchase, if its already sold try again in a minute.",
+            ProfitPerHour = (int)(profit * feeAndRiskFactor / (coreData.Hours + 0.1) / attributeMultiplier),
+            Message = $"Upgrade {coreData.Name} with kat starting with {coreData.BaseRarity}, click to get cheapest purchase, if its already sold try again in a minute.",
             Details = explanation,
-            OnClick = $"/viewauction {best.OriginAuction}"
+            OnClick = $"/viewauction {best.katData.OriginAuction}"
         };
     }
 
