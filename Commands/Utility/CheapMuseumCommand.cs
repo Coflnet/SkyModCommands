@@ -18,6 +18,11 @@ namespace Coflnet.Sky.Commands.MC;
 public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
 {
     public override bool IsPublic => true;
+    
+    public CheapMuseumCommand()
+    {
+        sorters["craft"] = (list) => list.OrderBy(i=>i.PricePerExp).ThenBy(i=>i.TotalPrice);
+    }
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, MuseumService.Cheapest item)
     {
@@ -26,7 +31,7 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
             db.MsgLine($" {item.ItemName} for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
                         "/viewauction " + item.AuctuinUuid,
                             $"{McColorCodes.YELLOW}Click to view the auction\n" +
-                            $"{McColorCodes.GRAY}That is {socket.FormatPrice(item.TotalPrice)} total for {item.TotalPrice/item.PricePerExp} exp");
+                            $"{McColorCodes.GRAY}That is {socket.FormatPrice(item.TotalPrice)} total for {item.TotalPrice / item.PricePerExp} exp");
             return;
         }
         if (item?.AuctuinUuid?.StartsWith("/cofl recipe ") ?? false)
@@ -34,13 +39,13 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
             db.MsgLine($" {item.ItemName} for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
                         item.AuctuinUuid,
                             $"{McColorCodes.YELLOW}Click to view the crafting recipe\n" +
-                            $"{McColorCodes.GRAY}That is {socket.FormatPrice(item.TotalPrice)} total for {item.TotalPrice/item.PricePerExp} exp");
+                            $"{McColorCodes.GRAY}That is {socket.FormatPrice(item.TotalPrice)} total for {item.TotalPrice / item.PricePerExp} exp");
             return;
         }
         // armor sets
-            db.MsgLine($" {item.ItemName} Set {McColorCodes.GRAY}for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
-                    null, "Buy all of the ones below to donate")
-            .ForEach(item.Options, (db, option, i) => db.MsgLine($" {McColorCodes.AQUA}Item {i + 1}{McColorCodes.GRAY}: {McColorCodes.RESET}{option.name}", "/viewauction " + option.uuid, "Click to view the auction"));
+        db.MsgLine($" {item.ItemName} Set {McColorCodes.GRAY}for {McColorCodes.AQUA}{item.PricePerExp} coins {McColorCodes.GRAY}per exp",
+                null, "Buy all of the ones below to donate")
+        .ForEach(item.Options, (db, option, i) => db.MsgLine($" {McColorCodes.AQUA}Item {i + 1}{McColorCodes.GRAY}: {McColorCodes.RESET}{option.name}", "/viewauction " + option.uuid, "Click to view the auction"));
 
     }
 
