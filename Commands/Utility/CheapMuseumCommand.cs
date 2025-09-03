@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Coflnet.Sky.Items.Client.Api;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Services;
@@ -109,6 +110,8 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
         if (val == "craft")
         {
             socket.Dialog(db => db.MsgLine("Showing only craftable items"));
+            if (!await socket.RequirePremium())
+                throw new CoflnetException("premium_required", "You need premium to see craftable museum items");
             var namesTask = socket.GetService<IItemsApi>().ItemNamesGetAsync();
             var craftable = await service.GetBestCraftableMuseumItems(combinedDonations, socket.SessionInfo.McUuid, socket.SessionInfo.ProfileId ?? "current", amount);
             var namesDictionary = (await namesTask).ToDictionary(i => i.Tag, i => i.Name);
