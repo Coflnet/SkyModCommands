@@ -784,7 +784,7 @@ namespace Coflnet.Sky.Commands.MC
                             };
                     if (matchType.Item2.StartsWith("white"))
                         filter.Add("ForceBlacklist", "true");
-                    FlipSettings.Value.BlackList.Add(new()
+                    AddBlacklist(new()
                     {
                         DisplayName = "Automatic blacklist of " + item.First().Auction.ItemName,
                         ItemTag = item.First().Auction.Tag,
@@ -844,7 +844,7 @@ namespace Coflnet.Sky.Commands.MC
             foreach (var item in playersToBlock)
             {
                 var player = item.Key;
-                FlipSettings.Value.BlackList.Add(new()
+                AddBlacklist(new()
                 {
                     DisplayName = "Automatic blacklist",
                     filter = new()
@@ -860,15 +860,21 @@ namespace Coflnet.Sky.Commands.MC
 
         private void AddTempFilter(string key)
         {
-            FlipSettings.Value.BlackList.Add(new()
+            AddBlacklist(new ()
             {
                 DisplayName = "automatic blacklist",
                 ItemTag = key,
                 filter = new()
                     {  { "ForceBlacklist", "true" }
                     },
-                Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(8).ToString("s") }
+                Tags = ["removeAfter=" + DateTime.UtcNow.AddHours(8).ToString("s")]
             });
+        }
+
+        public void AddBlacklist(ListEntry toAdd)
+        {
+            if (!FlipSettings.Value.BlackList.Contains(toAdd))
+                FlipSettings.Value.BlackList.Add(toAdd);
         }
 
         private void SendBlockedMessage(int blockedFlipFilterCount)
