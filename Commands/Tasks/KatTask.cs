@@ -23,8 +23,8 @@ public class KatTask : ProfitTask
             {
                 try
                 {
-                    var sumary = parameters.CleanPrices.GetValueOrDefault(i.CoreData.ItemTag, 0);
-                    return new FlipData(i, new() { Med = sumary, Volume = 2 });
+                    var sumary = parameters.CleanPrices.GetValueOrDefault($"{i.CoreData.ItemTag}_{i.CoreData.BaseRarity}_0", 0);
+                    return new FlipData(i, new() { Med = Math.Max(sumary, i.PurchaseCost), Volume = 2 });
                 }
                 catch (Exception e)
                 {
