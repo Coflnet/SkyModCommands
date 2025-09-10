@@ -25,7 +25,7 @@ public class KatTask : ProfitTask
                     var pricesService = parameters.GetService<PricesService>();
                     var filter = new Dictionary<string, string>() { { "Rarity", i.TargetRarity.ToString() } };
                     var sumary = await pricesService.GetSumaryCache(i.CoreData.ItemTag, filter);
-                    return new FlipData(i, sumary);
+                    return new FlipData(i, sumary ?? new(){Med=(long)i.Profit,Volume=1});
                 }
                 catch (Exception e)
                 {
@@ -60,7 +60,7 @@ public class KatTask : ProfitTask
         var attributeLevel = parameters.ExtractedInfo.AttributeLevel?.GetValueOrDefault("Kat's Favorite") ?? 0;
         var attributeMultiplier = 1 - (attributeLevel * 0.01f);
         var best = katData.Where(k => k.katData.CoreData.Hours != 0)
-            .OrderByDescending(k => Math.Min(k.katData.Profit,k.sumary.Med) / (k.katData.CoreData.Hours / attributeMultiplier + 0.1) * k.sumary.Volume)
+            .OrderByDescending(k => Math.Min(k.katData.Profit,k.sumary?.Med ?? k.katData.Profit) / (k.katData.CoreData.Hours / attributeMultiplier + 0.1) * k.sumary?.Volume ?? 1)
             .Skip(1).FirstOrDefault();
         var coreData = best.katData.CoreData;
         var profit = Math.Min(best.katData.Profit, best.sumary.Med);
