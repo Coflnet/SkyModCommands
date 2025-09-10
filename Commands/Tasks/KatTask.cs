@@ -18,14 +18,13 @@ public class KatTask : ProfitTask
         {
             var all = await parameters.GetService<Crafts.Client.Api.IKatApi>().GetProfitableKatAsync();
             var top10 = all.Where(k => k.CoreData.Hours != 0).OrderByDescending(k => k.Profit / (k.CoreData.Hours + 0.1)).Skip(1).Take(10);
+                    var cleanPrices = parameters.GetService<ISniperClient>().GetCleanPrices();
             var result = top10.Select((async i =>
             {
                 try
                 {
-                    var pricesService = parameters.GetService<PricesService>();
-                    var filter = new Dictionary<string, string>() { { "Rarity", i.TargetRarity.ToString() } };
-                    var sumary = await pricesService.GetSumaryCache(i.CoreData.ItemTag, filter);
-                    return new FlipData(i, sumary ?? new(){Med=(long)i.Profit,Volume=1});
+                    var sumary = parameters.CleanPrices.GetValueOrDefault(i.CoreData.ItemTag, 0);
+                    return new FlipData(i, new() { Med = sumary, Volume = 2 });
                 }
                 catch (Exception e)
                 {
@@ -60,7 +59,7 @@ public class KatTask : ProfitTask
         var attributeLevel = parameters.ExtractedInfo.AttributeLevel?.GetValueOrDefault("Kat's Favorite") ?? 0;
         var attributeMultiplier = 1 - (attributeLevel * 0.01f);
         var best = katData.Where(k => k.katData.CoreData.Hours != 0)
-            .OrderByDescending(k => Math.Min(k.katData.Profit,k.sumary?.Med ?? k.katData.Profit) / (k.katData.CoreData.Hours / attributeMultiplier + 0.1) * k.sumary?.Volume ?? 1)
+            .OrderByDescending(k => Math.Min(k.katData.Profit, k.sumary?.Med ?? k.katData.Profit) / (k.katData.CoreData.Hours / attributeMultiplier + 0.1) * k.sumary?.Volume ?? 1)
             .Skip(1).FirstOrDefault();
         var coreData = best.katData.CoreData;
         var profit = Math.Min(best.katData.Profit, best.sumary.Med);
