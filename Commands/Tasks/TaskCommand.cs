@@ -64,8 +64,8 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             Cache = Cache,
             CleanPrices = await cleanPrices,
             BazaarPrices = await bazaarPrices,
-            Names = (await names.ItemNamesGetAsync()).ToDictionary(i => i.Tag, i => i.Name),
-            LocationProfit = locationProfit.Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1)).GroupBy(l=>l.Location).ToDictionary(l => l.Key, l => l.ToArray()),
+            Names = (await names.ItemNamesGetAsync())?.ToDictionary(i => i.Tag, i => i.Name) ?? [],
+            LocationProfit = locationProfit.Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1)).GroupBy(l=>l.Location)?.ToDictionary(l => l.Key, l => l.ToArray()) ?? [],
             MaxAvailableCoins = socket.SessionInfo.Purse > 0 ? socket.SessionInfo.Purse : 1000000000 // Default to 1 billion coins if not set
         };
         var all = await Task.WhenAll(_tasks.Select(async t =>
