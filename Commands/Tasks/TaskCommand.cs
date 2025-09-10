@@ -7,6 +7,7 @@ using Coflnet.Sky.Bazaar.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.PlayerState.Client.Api;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC.Tasks;
 
@@ -50,12 +51,20 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
 
     protected override async Task<IEnumerable<TaskResult>> GetElements(MinecraftSocket socket, string val)
     {
-        var names = socket.GetService<Items.Client.Api.IItemsApi>();
+        var itemsApi = socket.GetService<Items.Client.Api.IItemsApi>();
         var cleanPrices = socket.GetService<ISniperClient>().GetCleanPrices();
         var bazaarPrices = socket.GetService<IBazaarApi>().GetAllPricesAsync();
         var locationProfitTask = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdProfitHistoryGetAsync(socket.SessionInfo.McUuid, DateTime.UtcNow, 300);
+        var namesTask = itemsApi.ItemNamesGetWithHttpInfoAsync();
         var extractedState = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdExtractedGetAsync(socket.SessionInfo.McName);
         var locationProfit = await locationProfitTask;
+        var names = JsonConvert.DeserializeObject<List<Items.Client.Model.ItemPreview>>((await namesTask).RawContent);
+        var nameLookup = names?.ToDictionary(i => i.Tag, i => i.Name) ?? [];
+        if(nameLookup.Count == 0)
+        {
+            socket.SendMessage($"{COFLNET}{McColorCodes.RED}Could not get item names, using tags instead");
+        }
+
         var parameters = new TaskParams
         {
             TestTime = DateTime.UtcNow,
@@ -64,7 +73,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             Cache = Cache,
             CleanPrices = await cleanPrices,
             BazaarPrices = await bazaarPrices,
-            Names = (await names.ItemNamesGetAsync())?.ToDictionary(i => i.Tag, i => i.Name) ?? [],
+            Names = nameLookup,
             LocationProfit = locationProfit.Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1)).GroupBy(l=>l.Location)?.ToDictionary(l => l.Key, l => l.ToArray()) ?? [],
             MaxAvailableCoins = socket.SessionInfo.Purse > 0 ? socket.SessionInfo.Purse : 1000000000 // Default to 1 billion coins if not set
         };
