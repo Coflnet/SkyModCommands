@@ -4,6 +4,7 @@ using System;
 using System.Threading.Tasks;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Newtonsoft.Json;
+using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -11,8 +12,21 @@ public abstract class ReadOnlyListCommand<T> : McCommand
 {
     public override bool IsPublic => true;
     protected Dictionary<string, Func<IEnumerable<T>, IOrderedEnumerable<T>>> sorters = new Dictionary<string, Func<IEnumerable<T>, IOrderedEnumerable<T>>>();
+    protected virtual async Task<bool> CanRun(MinecraftSocket socket)
+    {
+        if (MinimumTier == AccountTier.PREMIUM)
+            return await socket.RequirePremium();
+        if (MinimumTier == AccountTier.PREMIUM_PLUS)
+            return await socket.ReguirePremPlus();
+        return true;
+    }
+    protected virtual AccountTier MinimumTier => AccountTier.NONE;
     public override async Task Execute(MinecraftSocket socket, string args)
     {
+        if (!await CanRun(socket))
+        {
+            return;
+        }
         var arguments = JsonConvert.DeserializeObject<string>(args);
         var title = GetTitle(arguments);
         if (arguments.ToLower() == "help")
@@ -48,7 +62,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
 
     protected virtual DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<T> toDisplay, int totalPages)
     {
-        return DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})", $"/cofl {Slug} {page+1}", $"Click to go to next page ({page+1})")
+        return DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})", $"/cofl {Slug} {page + 1}", $"Click to go to next page ({page + 1})")
                     .ForEach(toDisplay, (db, elem) => Format(socket, db, elem));
     }
 
