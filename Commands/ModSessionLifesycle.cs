@@ -280,6 +280,8 @@ namespace Coflnet.Sky.Commands.MC
                 if (onchange.SourceType == "bazaar" && onchange.SourceSubId == "outbid")
                 {
                     onchange.Link = "/managebazaarorders";
+                    if (socket.Settings.ModSettings.PlaySoundOnOutbid)
+                        socket.ModAdapter.SendSound("entity.experience_orb.pickup", 1);
                 }
                 SendMessage(COFLNET + onchange.Message, onchange.Link, string.IsNullOrEmpty(onchange.Link) ? "Has no clickable link" : $"Will click on\n{onchange.Link}");
             });
