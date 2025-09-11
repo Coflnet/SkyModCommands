@@ -110,7 +110,7 @@ namespace Coflnet.Sky.Commands.MC
                     priceColor,
                     FormatPrice(cost),
                     targetPriceFormatted, // this is {5}
-                    FormatPrice(profit),
+                    profit > 0 ? FormatPrice(profit) : "whitelisted",
                     FormatPrice(flip.ProfitPercentage),
                     FormatPrice(flip.MedianPrice),
                     FormatPrice(flip.LowestBin ?? 0),
