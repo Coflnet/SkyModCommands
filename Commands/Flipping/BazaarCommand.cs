@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Coflnet.Sky.Bazaar.Flipper.Client.Api;
 using Coflnet.Sky.Bazaar.Flipper.Client.Model;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using static Coflnet.Sky.Commands.MC.BazaarCommand;
@@ -22,25 +23,6 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
     public override bool IsPublic => true;
     protected override string Title => "Top Bazaar Flips";
     protected override string NoMatchText => $"No match found, maybe a typo or manipulated items are hidden";
-
-    public static string GetSearchValue(string tag, string name)
-    {
-        if (tag.StartsWith("ENCHANTMENT_"))
-        {
-            // remove enchant from end
-            name = name.Substring(0, name.Length - 10);
-            var number = Regex.Match(tag, @"\d+").Value;
-            var converted = Roman.To(int.Parse(number));
-            name = $"{name.Trim()} {converted}";
-        }
-        if (name.EndsWith("Shard"))
-            name = name.Replace(" Shard", "");
-        if (tag.StartsWith("ENCHANTMENT_ULTIMATE"))
-        {
-            name = name.Replace("ultimate ", "", StringComparison.OrdinalIgnoreCase);
-        }
-        return name;
-    }
 
     protected override async Task<IEnumerable<Element>> GetElements(MinecraftSocket socket, string val)
     {
@@ -79,7 +61,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var isManipulated = elem.IsManipulated;
         var color = isManipulated ? McColorCodes.GRAY : McColorCodes.GREEN;
         db.MsgLine($"{McColorCodes.GRAY}>{(isManipulated ? "[!]" + McColorCodes.STRIKE : McColorCodes.YELLOW)}{elem.ItemName}{McColorCodes.GRAY}: est {color}{socket.FormatPrice((long)profit)} per hour",
-                $"/bz {GetSearchValue(elem.Flip.ItemTag, elem.ItemName)}",
+                $"/bz {BazaarUtils.GetSearchValue(elem.Flip.ItemTag, elem.ItemName)}",
                 $"{(isManipulated ? McColorCodes.RED + $"Probably manipulated preceed with caution\nYou can hide manipulated items with \n{McColorCodes.AQUA}/cl s hideManipulated true\n\n" : "")}"
                 + $"{McColorCodes.YELLOW}{socket.FormatPrice((long)elem.Flip.SellPrice)}->{McColorCodes.GREEN}{socket.FormatPrice((long)elem.Flip.BuyPrice)} {McColorCodes.GRAY}incl. {socket.FormatPrice((long)fees)} fees"
                 + $"\n{McColorCodes.GRAY}avg {socket.FormatPrice(hourlyVolume)} sales per hour"

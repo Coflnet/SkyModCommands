@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.Sniper.Client.Api;
@@ -69,7 +70,7 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
             {
                 deserialized.Remove(item); // remove pet exp or kat leveling
             }
-            item.ItemName = BazaarCommand.GetSearchValue(item.Tag, names.GetValueOrDefault(item.Tag, item.Tag));
+            item.ItemName = BazaarUtils.GetSearchValue(item.Tag, names.GetValueOrDefault(item.Tag, item.Tag));
         }
         return deserialized;
     }

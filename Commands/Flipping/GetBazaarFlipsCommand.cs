@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Bazaar.Client.Api;
 using Coflnet.Sky.Bazaar.Flipper.Client.Api;
+using Coflnet.Sky.Commands.Shared;
 namespace Coflnet.Sky.Commands.MC;
 
 /// <summary>
@@ -40,7 +41,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             var price = item.OrderByDescending(h => h.Timestamp).First().Buy + 0.1;
             var recommend = new OrderRecommend
             {
-                ItemName = BazaarCommand.GetSearchValue(recommended.ItemTag, names[recommended.ItemTag]),
+                ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag, names[recommended.ItemTag]),
                 ItemTag = recommended.ItemTag,
                 Price = price,
                 Amount = price < 100_000 ? 64 : 4
