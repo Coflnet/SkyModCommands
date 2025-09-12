@@ -115,7 +115,7 @@ namespace Coflnet.Sky.Commands.MC
             if (!Settings.BlockHighCompetitionFlips)
                 return true;
             var profit = f.TargetPrice - f.Auction.StartingBid;
-            if (!delayExemptList.IsExempt(f) && profit < 8_000_000 && (f.DailyVolume < 20 || profit < 1_500_000))
+            if (!delayExemptList.IsExempt(f) && profit < 8_000_000 && (f.DailyVolume < 20 || profit < 3_500_000))
                 return true;
             return BlockedFlip(f, "high competition");
         }
