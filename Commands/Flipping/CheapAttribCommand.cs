@@ -17,18 +17,20 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
     protected override string Title => "Cheapest Attributes";
     protected override async Task<IEnumerable<CheapAttribute>> GetElements(MinecraftSocket socket, string val)
     {
+        var itemNamesTask = socket.GetService<Items.Client.Api.IItemsApi>().ItemNamesGetAsync();
         var extractedTask = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdExtractedGetAsync(socket.SessionInfo.McName);
         var bazaarPrices = (await socket.GetService<IBazaarApi>().GetAllPricesAsync()).Where(i => i.ProductId.StartsWith("SHARD_"));
         var buyPrice = bazaarPrices.ToDictionary(i => i.ProductId, i => i.BuyPrice);
         var SellPrice = bazaarPrices.ToDictionary(i => i.ProductId, i => i.SellPrice);
 
         var extractedInfo = (await extractedTask)?.AttributeLevel ?? new();
-        var notUnlocked = SellPrice.Where(i => !extractedInfo.ContainsKey(ShardNameToAttributeName.GetValueOrDefault(i.Key, "nope")) && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
-        var unlocked = SellPrice.Where(i => extractedInfo.TryGetValue(ShardNameToAttributeName.GetValueOrDefault(i.Key, "nope"), out var level) && level < 10 && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
+        var notUnlocked = SellPrice.Where(i => !extractedInfo.ContainsKey(ShardTagToAttributeName.GetValueOrDefault(i.Key, "nope")) && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
+        var unlocked = SellPrice.Where(i => extractedInfo.TryGetValue(ShardTagToAttributeName.GetValueOrDefault(i.Key, "nope"), out var level) && level < 10 && i.Value < 20_000_000_000).OrderBy(i => i.Value).ToList();
+        var names = (await itemNamesTask).ToDictionary(i => i.Tag, i => i.Name);
 
         foreach (var item in bazaarPrices)
         {
-            if (!ShardNameToAttributeName.ContainsKey(item.ProductId))
+            if (!ShardTagToAttributeName.ContainsKey(item.ProductId))
                 Console.WriteLine($"Missing shard name for {item.ProductId}, please add it to ShardNameToAttributeName in CheapAttribCommand.cs");
         }
 
@@ -37,14 +39,16 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
 
         return notUnlocked.Select(i => new CheapAttribute
         {
-            Name = ShardNameToAttributeName.GetValueOrDefault(i.Key, i.Key),
+            Name = ShardTagToAttributeName.GetValueOrDefault(i.Key, i.Key),
             Tag = i.Key,
+            ShardName = names.GetValueOrDefault(i.Key, i.Key),
             Price = i.Value,
             Type = "unlock"
         }).Concat(unlocked.Select(i => new CheapAttribute
         {
-            Name = ShardNameToAttributeName.GetValueOrDefault(i.Key, i.Key),
+            Name = ShardTagToAttributeName.GetValueOrDefault(i.Key, i.Key),
             Tag = i.Key,
+            ShardName = names.GetValueOrDefault(i.Key, i.Key),
             Price = i.Value,
             Type = "upgrade"
         })).Where(i => i.Price > 0).ToList();
@@ -53,9 +57,9 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
     protected override void Format(MinecraftSocket socket, DialogBuilder db, CheapAttribute elem)
     {
         db.MsgLine($"{McColorCodes.YELLOW}{elem.Name} {McColorCodes.GOLD}{socket.FormatPrice(elem.Price)}",
-            "/bz " + elem.Tag.Replace("SHARD_", ""),
+            "/bz " + elem.ShardName,
             $"Click to open bazaar for {McColorCodes.AQUA}{elem.Name}"
-          + $"\n{McColorCodes.GRAY}Shard: {McColorCodes.YELLOW}{elem.Tag.Replace("SHARD_", "")}\n{McColorCodes.GRAY}Type: {McColorCodes.YELLOW}{elem.Type}");
+          + $"\n{McColorCodes.GRAY}Shard: {McColorCodes.YELLOW}{elem.ShardName}\n{McColorCodes.GRAY}Type: {McColorCodes.YELLOW}{elem.Type}");
     }
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<CheapAttribute> elements, IEnumerable<CheapAttribute> toDisplay)
@@ -74,11 +78,12 @@ public class CheapAttribCommand : ReadOnlyListCommand<CheapAttribCommand.CheapAt
     {
         public string Name { get; set; }
         public string Tag { get; set; }
+        public string ShardName { get; set; }
         public double Price { get; set; }
         public string Type { get; set; }
     }
 
-    public Dictionary<string, string> ShardNameToAttributeName = new()
+    public Dictionary<string, string> ShardTagToAttributeName = new()
         {
             { "SHARD_GROVE", "Nature Elemental"
             },
