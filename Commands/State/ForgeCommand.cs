@@ -3,11 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
-using Coflnet.Sky.Crafts.Client.Api;
 using Coflnet.Sky.Crafts.Client.Model;
 using Coflnet.Sky.ModCommands.Dialogs;
-using Coflnet.Sky.PlayerState.Client.Api;
-using FluentAssertions.Extensions;
 
 namespace Coflnet.Sky.Commands.MC;
 
