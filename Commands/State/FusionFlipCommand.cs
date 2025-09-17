@@ -26,7 +26,7 @@ public class FusionFlipCommand : ReadOnlyListCommand<FusionFlipCommand.WithName>
 
     public static string GetName(string tag)
     {
-        return BazaarUtils.GetSearchValue(itemNameCache.GetValueOrDefault(tag), tag);
+        return BazaarUtils.GetSearchValue(tag, itemNameCache.GetValueOrDefault(tag,tag));
     }
 
     protected override async Task<IEnumerable<WithName>> GetElements(MinecraftSocket socket, string val)
