@@ -7,6 +7,7 @@ using Coflnet.Sky.Crafts.Client.Api;
 using Coflnet.Sky.Crafts.Client.Model;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.PlayerState.Client.Api;
+using FluentAssertions.Extensions;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -14,6 +15,10 @@ namespace Coflnet.Sky.Commands.MC;
     "Recognizes your quick forge level and adjusts time accordingly")]
 public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
 {
+    public ForgeCommand()
+    {
+        sorters.Add("profit", (el) => el.OrderByDescending(f => f.ProfitPerHour * f.Duration));
+    }
     protected override void Format(MinecraftSocket socket, DialogBuilder db, ForgeFlip elem)
     {
         var hover = "needed items:\n";
