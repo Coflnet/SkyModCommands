@@ -138,36 +138,52 @@ namespace Coflnet.Sky.Commands.MC
             await SubscribetoCommands();
             if (!(socket.sessionLifesycle.AccountSettings?.Value?.BlockLowballs ?? false) && socket.ModAdapter is not AfVersionAdapter)
                 socket.GetService<LowballSerivce>().Enable(socket);
-            await socket.TryAsyncTimes(async () =>
-            {
-                var messageService = socket.GetService<IMessageApi>();
-                var devlog = await messageService.GetMessagesAsync("devlog", DateTime.UtcNow.RoundDown(TimeSpan.FromHours(1)));
-                var mostRecent = devlog.Where(d => d.CreatedAt > DateTime.UtcNow.AddDays(-1) && d.Content.Contains("➡️")).OrderByDescending(m => m.CreatedAt).FirstOrDefault();
-                if (mostRecent == null)
-                    return;
-                var content = GetDisplayableContent(mostRecent);
-                var match = Regex.Match(content, @"https://[^\s\)\]]+", RegexOptions.IgnoreCase);
-                var commandLink = Regex.Match(content, @"`(\/[^´]+)", RegexOptions.IgnoreCase);
-                if (match.Success)
-                {
-                    var url = match.Value;
-                    SendMessage(COFLNET + "Latest change:\n" + content, url, $"Open {url}");
-                }
-                else if (commandLink.Success)
-                {
-                    var command = commandLink.Groups[1].Value;
-                    socket.Dialog(db => db.MsgLine($"Latest change:\n" + content, command, $"Click to execute {command}"));
-                }
-                else
-                {
-                    SendMessage(COFLNET + "Latest change:\n" + content, "https://discord.com/channels/267680588666896385/888932870318612490", "Open Discord for full update log");
-                }
+            await socket.TryAsyncTimes(SendLastChangeInfo, "latest change message");
+        }
 
-                static string GetDisplayableContent(DiscordBot.Client.Model.DiscordMessage mostRecent)
+        private async Task SendLastChangeInfo()
+        {
+            var messageService = socket.GetService<IMessageApi>();
+            var devlog = await messageService.GetMessagesAsync("devlog", DateTime.UtcNow.RoundDown(TimeSpan.FromHours(1)));
+            var mostRecent = devlog.Where(d => d.CreatedAt > DateTime.UtcNow.AddDays(-1) && d.Content.Contains("➡️")).OrderByDescending(m => m.CreatedAt).FirstOrDefault();
+            if (mostRecent == null)
+                return;
+            var content = GetDisplayableContent(mostRecent);
+            var match = Regex.Match(content, @"https://[^\s\)\]]+", RegexOptions.IgnoreCase);
+            var commandLink = Regex.Match(content, @"`(\/[^´]+)", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                var url = match.Value;
+                SendMessage(COFLNET + "Latest change:\n" + content, url, $"Open {url}");
+            }
+            else if (commandLink.Success)
+            {
+                var command = commandLink.Groups[1].Value;
+                socket.Dialog(db => db.MsgLine($"Latest change:\n" + content, command, $"Click to execute {command}"));
+            }
+            else
+            {
+                SendMessage(COFLNET + "Latest change:\n" + content, "https://discord.com/channels/267680588666896385/888932870318612490", "Open Discord for full update log");
+            }
+
+            try
+            {
+                if (!socket.Version.Contains("af") && (!Version.TryParse(socket.Version, out var clientVer) || clientVer < new Version(1, 7, 5)))
                 {
-                    return (mostRecent?.Content ?? "").Replace("➡️", "➡"); // minecraft can't display the box
+                    socket.Dialog(db => db.MsgLine($"Your mod version is outdated, please update to the latest version to get bug fixes.\n" +
+                        $"Click here to open the github release page.", "https://github.com/Coflnet/SkyblockMod/tags", "Open github page")
+                        .Button("Open modrinth", "https://modrinth.com/mod/skycofl/versions", "Open modrinth page"));
                 }
-            }, "latest change message");
+            }
+            catch
+            {
+                // ignore parse errors
+            }
+
+            static string GetDisplayableContent(DiscordBot.Client.Model.DiscordMessage mostRecent)
+            {
+                return (mostRecent?.Content ?? "").Replace("➡️", "➡"); // minecraft can't display the box
+            }
         }
 
         private async Task SubscribetoCommands()
@@ -862,7 +878,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void AddTempFilter(string key)
         {
-            AddBlacklist(new ()
+            AddBlacklist(new()
             {
                 DisplayName = "automatic blacklist",
                 ItemTag = key,
