@@ -36,11 +36,10 @@ public class FusionFlipCommand : ReadOnlyListCommand<FusionFlipCommand.WithName>
         var data = await bazaarFlipApi.FusionGetWithHttpInfoAsync();
         var fusions = Newtonsoft.Json.JsonConvert.DeserializeObject<List<WithName>>(data.RawContent)
                 .OrderByDescending(f => (f.OutputValue - f.InputCost) * f.Volume).ToList();
-        var itemNames = (await itemNamesTask).ToDictionary(i => i.Tag, i => i.Name);
+        itemNameCache = (await itemNamesTask).ToDictionary(i => i.Tag, i => i.Name);
         foreach (var item in fusions)
         {
-            item.ItemName = itemNames.GetValueOrDefault(item.Output, item.Output);
-            itemNameCache[item.Output] = item.ItemName;
+            item.ItemName = itemNameCache.GetValueOrDefault(item.Output, item.Output);
         }
 
         if (await socket.UserAccountTier() == Shared.AccountTier.NONE)
