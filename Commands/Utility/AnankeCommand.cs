@@ -47,7 +47,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
         { "DYE_NADESHIKO", (25, 0) },
         { "DYE_MATCHA", (150, 0) },
         { "DYE_CELESTE", (250, 0) },
-        { "DYE_BYZANTIUM", (1.072, 0) },
+        { "DYE_BYZANTIUM", (1072, 0) },
         { "DYE_SANGRIA", (94, 0) },
         { "DYE_FLAME", (883, 0) },
         { "DYE_LIVID", (50, 0) },
