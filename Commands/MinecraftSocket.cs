@@ -141,7 +141,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<LoadFlipHistory>();
             Commands.Add<LeaderboardCommand>("lb");
             Commands.Add<LoserboardCommand>();
-            Commands.Add<BuyspeedboardCommand>();
+            Commands.Add<BuyspeedboardCommand>("bsb");
             Commands.Add<TradesCommand>();
             Commands.Add<FlipsCommand>();
             Commands.Add<AhOpenCommand>();
