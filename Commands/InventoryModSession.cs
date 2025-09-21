@@ -12,6 +12,7 @@ namespace Coflnet.Sky.Commands.MC
                 + @"|You caught |\s+Chameleon" // catching shards
                 + @"|Added items|Removed items" // stash adding notification
                 + @"|You donated your" // museum donation
+                + @"|: \d+m$" // chat lowballing discussion
                 + @"| - | \+ |Trade completed|Bid of|\nClick the link to |\nClick th' li|You must set it to at least).*";
 
         public InventoryModSession(MinecraftSocket socket) : base(socket)

@@ -31,7 +31,7 @@ namespace Coflnet.Sky.Commands.MC
             var config = socket.GetService<IConfiguration>();
             var playerId = socket.SessionInfo?.McName;
             if (playerId == "Ekwav" || MinecraftSocket.IsDevMode)
-                Console.WriteLine("produced chat batch " + string.Join(',',batch));
+                Console.WriteLine("produced chat batch " + string.Join(',', batch));
             try
             {
                 socket.GetService<IStateUpdateService>().Produce(playerId, new()
@@ -69,6 +69,11 @@ namespace Coflnet.Sky.Commands.MC
                 await CheckBid(socket, item);
             if (item.StartsWith("You must set it to at least"))
                 socket.SessionInfo.ToLowListingAttempt = item;
+            if (Regex.IsMatch(item, @"\[\d+\] .*: (\d+)m$") && socket.SessionInfo.Purse > 50_000_000)
+            {
+                socket.Dialog(db => db.MsgLine("It looks like you are lowballing, is that correct? If not please report this on our discord.", null,
+                "We are trying to auto detect\nand help with lowballing"));
+            }
             if (item.StartsWith("Profile ID: "))
             {
                 Console.WriteLine("found profile id " + item);
@@ -87,22 +92,22 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             if (item.StartsWith("\nClick th"))
+            {
+                Console.WriteLine("found reward link");
+                var match = Regex.Match(item, @"(https://rewards.hypixel.net/claim-reward/[a-f0-9-]+)");
+                if (match.Success)
                 {
-                    Console.WriteLine("found reward link");
-                    var match = Regex.Match(item, @"(https://rewards.hypixel.net/claim-reward/[a-f0-9-]+)");
-                    if (match.Success)
+                    try
                     {
-                        try
-                        {
-                            await RewardHandler.SendRewardOptions(socket, match);
-                        }
-                        catch (Exception e)
-                        {
-                            dev.Logger.Instance.Error(e, "Failed to get reward options");
-                            socket.Dialog(db => db.MsgLine("Failed to get reward options. Please report this on our discord."));
-                        }
+                        await RewardHandler.SendRewardOptions(socket, match);
+                    }
+                    catch (Exception e)
+                    {
+                        dev.Logger.Instance.Error(e, "Failed to get reward options");
+                        socket.Dialog(db => db.MsgLine("Failed to get reward options. Please report this on our discord."));
                     }
                 }
+            }
         }
 
 
