@@ -4,10 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
-using Coflnet.Sky.McConnect.Api;
 using Coflnet.Sky.ModCommands.Services;
-using Coflnet.Sky.Settings.Client.Api;
-using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
