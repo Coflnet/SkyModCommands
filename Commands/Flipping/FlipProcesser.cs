@@ -54,7 +54,7 @@ namespace Coflnet.Sky.Commands.MC
             var start = DateTime.UtcNow;
 
             // Early exit conditions
-            if (SentFlips.ContainsKey(flip.UId) || !FinderEnabled(flip) || !NotSold(flip) || !CheckHighCompetition(flip))
+            if (SentFlips.ContainsKey(flip.UId) || !FinderEnabled(flip) || !NotSold(flip) || socket.ModAdapter is not AfVersionAdapter && !CheckHighCompetition(flip))
                 return;
 
             var maxCostFromPurse = socket.SessionInfo.Purse * (Settings.ModSettings.MaxPercentOfPurse == 0 ? 100 : Settings.ModSettings.MaxPercentOfPurse) / 100;
