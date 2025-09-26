@@ -49,7 +49,7 @@ public class PingCommand : McCommand
         var lowest = thisSession.Min();
         db?.AddTag("minping", lowest);
         if (average > 80 && socket.CurrentRegion == "eu")
-            socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>("Your ping is quite high, you might want to consider switching to the US region.", "us", "Click to switch to us servers"));
+            socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>("Your ping is quite high, you might want to consider switching to the US region. (you are connected to eu)", "us", "Click to switch to us servers"));
         else if (average > 60 && socket.CurrentRegion == "eu"
             && await socket.UserAccountTier() >= Shared.AccountTier.PREMIUM_PLUS
             && socket.ModAdapter is AfVersionAdapter)
