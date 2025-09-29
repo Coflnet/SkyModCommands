@@ -3,16 +3,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Crafts.Client.Api;
-using Coflnet.Sky.Crafts.Models;
+using Coflnet.Sky.Crafts.Client.Model;
 using Coflnet.Sky.Items.Client.Api;
 using Coflnet.Sky.ModCommands.Dialogs;
-using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
 [CommandDescription("Displays craft flips you can do.",
     "Based on unlocked collectionsAnd slayer level")]
-public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
+public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
 {
     protected override string Title => $"Most profitable Craft Flips you can do (includes collection, skill and slayer level)";
 
@@ -31,7 +30,7 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
         sorters.Add("median", (a) => a.OrderByDescending(f => f.Median - f.CraftCost));
         sorters.Add("bazaar", (a) => a.Where(a => OnBazaar.Contains(a.ItemId)).OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost)));
     }
-    protected override void Format(MinecraftSocket socket, DialogBuilder db, Crafts.Models.ProfitableCraft elem)
+    protected override void Format(MinecraftSocket socket, DialogBuilder db, ProfitableCraft elem)
     {
         var ingedientList = string.Join('\n', elem.Ingredients.Select(i => FormatIngredientText(socket, i)));
         var hoverText = $"{McColorCodes.GRAY}Ingredients for {elem.ItemName}:\n" + ingedientList
@@ -68,7 +67,7 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
                     });
     }
 
-    protected override async Task<IEnumerable<Crafts.Models.ProfitableCraft>> GetElements(MinecraftSocket socket, string val)
+    protected override async Task<IEnumerable<ProfitableCraft>> GetElements(MinecraftSocket socket, string val)
     {
         var craftApi = socket.GetService<ICraftsApi>();
         var profileApi = socket.GetService<IProfileClient>();
@@ -95,13 +94,13 @@ public class CraftsCommand : ReadOnlyListCommand<Crafts.Models.ProfitableCraft>
         return filtered;
     }
 
-    private static async Task<List<Crafts.Models.ProfitableCraft>> NewMethod(ICraftsApi craftApi)
+    private static async Task<List<ProfitableCraft>> NewMethod(ICraftsApi craftApi)
     {
-        var data = await craftApi.GetProfitableWithHttpInfoAsync();
-        return JsonConvert.DeserializeObject<List<Crafts.Models.ProfitableCraft>>(data.RawContent);
+        var data = await craftApi.GetProfitableAsync();
+        return data?.ToList() ?? new List<ProfitableCraft>();
     }
 
-    protected override string GetId(Crafts.Models.ProfitableCraft elem)
+    protected override string GetId(ProfitableCraft elem)
     {
         return elem.ItemId + elem.Median;
     }
