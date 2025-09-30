@@ -299,6 +299,8 @@ public class VpsInstanceManager
 
     internal async Task TurnOnVps(Instance instance)
     {
+        await RefreshOwnershipAsync(instance);
+
         if (instance.PaidUntil < DateTime.UtcNow)
         {
             throw new CoflnetException("expired", "The instance has expired, please renew it");
@@ -316,6 +318,34 @@ public class VpsInstanceManager
         {
             await ReassignVps(instance);
         }
+    }
+
+    private async Task RefreshOwnershipAsync(Instance instance)
+    {
+        if (instance.PaidUntil >= DateTime.UtcNow)
+        {
+            return;
+        }
+
+        var productSlug = GetProductSlug(instance);
+        DateTime ownedUntil;
+        try
+        {
+            ownedUntil = await userApi.UserUserIdOwnsProductSlugUntilGetAsync(instance.OwnerId, productSlug);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to refresh VPS ownership for instance {InstanceId}", instance.Id);
+            return;
+        }
+
+        if (ownedUntil <= instance.PaidUntil)
+        {
+            return;
+        }
+
+        instance.PaidUntil = ownedUntil;
+        await vpsTable.Insert(instance).ExecuteAsync();
     }
 
     internal async Task<IEnumerable<string>> GetVpsLog(Instance instance, DateTimeOffset from, DateTimeOffset to)
@@ -464,15 +494,20 @@ public class VpsInstanceManager
         }
     }
 
-    internal async Task ExtendVps(Instance instance)
+    private static string GetProductSlug(Instance instance)
     {
-        // checks that there is a server available
-        await GetAvailableServer();
-        var kind = instance.AppKind switch
+        return instance.AppKind switch
         {
             "tpm+" => "vps+",
             _ => "vps"
         };
+    }
+
+    internal async Task ExtendVps(Instance instance)
+    {
+        // checks that there is a server available
+        await GetAvailableServer();
+        var kind = GetProductSlug(instance);
         var currentTime = await userApi.UserUserIdOwnsProductSlugUntilGetAsync(instance.OwnerId, kind);
         if (currentTime > DateTime.UtcNow.AddDays(25))
         {
