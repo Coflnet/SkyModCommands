@@ -152,7 +152,16 @@ public class NetworthCommand : ArgumentsCommand
             return (chestTotalLocal, chestBreakdownLocal, chestTopItemsLocal);
         }
 
-        var chestValuesTask = ComputeChestValuesAsync();
+        Task<(decimal chestTotal, List<(string name, decimal value)> breakdown, List<List<Coflnet.Sky.Commands.MC.SearchCommand.ItemLocation>> topItems)> chestValuesTask;
+        if (socket.SessionInfo?.MinecraftUuids != null && socket.SessionInfo.MinecraftUuids.Contains(accountUuid))
+        {
+            chestValuesTask = ComputeChestValuesAsync();
+        }
+        else
+        {
+            socket.Dialog(db => db.MsgLine("Skipping chest valuation as you are not logged in as that user"));
+            chestValuesTask = Task.FromResult((0m, new List<(string, decimal)>(), new List<List<Coflnet.Sky.Commands.MC.SearchCommand.ItemLocation>>()));
+        }
 
         // await both
         await Task.WhenAll(networthTask, chestValuesTask);
@@ -168,30 +177,31 @@ public class NetworthCommand : ArgumentsCommand
             db.ForEach(top, (db, m) => db.MsgLine($"{McColorCodes.DARK_GRAY} - {McColorCodes.RESET}{m.Key} {McColorCodes.GOLD}{socket.FormatPrice(m.Value)}"));
 
             // Append chest totals if available
-            if (chestBreakdown.Count > 0)
+            if (chestBreakdown.Count <= 0)
             {
-                db.LineBreak();
-                db.MsgLine($"{McColorCodes.AQUA}Chest value total: {McColorCodes.GOLD}{socket.FormatPrice((long)chestTotal)}");
-                // show up to 5 chests sorted descending
-                var ordered = chestBreakdown.Select((v, idx) => (v.name, v.value, idx)).OrderByDescending(c => c.value).Take(5).ToList();
-                bool first = true;
-                foreach (var c in ordered)
+                return db;
+            }
+            db.LineBreak();
+            db.MsgLine($"{McColorCodes.AQUA}Chest value total: {McColorCodes.GOLD}{socket.FormatPrice((long)chestTotal)}");
+            // show up to 5 chests sorted descending
+            var ordered = chestBreakdown.Select((v, idx) => (v.name, v.value, idx)).OrderByDescending(c => c.value).Take(5).ToList();
+            bool first = true;
+            foreach (var c in ordered)
+            {
+                // If this is the most valuable chest, make it clickable and show hover with top stacks
+                var idx = c.idx;
+                if (first && chestTopItems != null && idx >= 0 && idx < chestTopItems.Count && chestTopItems[idx].Count > 0)
                 {
-                    // If this is the most valuable chest, make it clickable and show hover with top stacks
-                    var idx = c.idx;
-                    if (first && chestTopItems != null && idx >= 0 && idx < chestTopItems.Count && chestTopItems[idx].Count > 0)
-                    {
-                        first = false;
-                        var topItems = chestTopItems[idx];
-                        // Build hover text
-                        var hover = string.Join('\n', topItems.Select(item => $"{item.Item.ItemName} x{item.Item.Count} - {item.Item.Description}"));
-                        var payload = JsonConvert.SerializeObject(topItems.First());
-                        db.CoflCommand<HighlightItemCommand>($"{McColorCodes.DARK_GRAY} - {McColorCodes.RESET}{c.name} {McColorCodes.GOLD}{socket.FormatPrice((long)c.value)}", payload, hover);
-                    }
-                    else
-                    {
-                        db.MsgLine($"{McColorCodes.DARK_GRAY} - {McColorCodes.RESET}{c.name} {McColorCodes.GOLD}{socket.FormatPrice((long)c.value)}");
-                    }
+                    first = false;
+                    var topItems = chestTopItems[idx];
+                    // Build hover text
+                    var hover = string.Join('\n', topItems.Select(item => $"{item.Item.ItemName} x{item.Item.Count} - {item.Item.Description}"));
+                    var payload = JsonConvert.SerializeObject(topItems.First());
+                    db.CoflCommand<HighlightItemCommand>($"{McColorCodes.DARK_GRAY} - {McColorCodes.RESET}{c.name} {McColorCodes.GOLD}{socket.FormatPrice((long)c.value)}", payload, hover);
+                }
+                else
+                {
+                    db.MsgLine($"{McColorCodes.DARK_GRAY} - {McColorCodes.RESET}{c.name} {McColorCodes.GOLD}{socket.FormatPrice((long)c.value)}");
                 }
             }
 
