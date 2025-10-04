@@ -50,69 +50,98 @@ public class NetworthCommand : ArgumentsCommand
         // Start networth API call and chest valuation in parallel to reduce latency
         var networthTask = pricesApi.ApiNetworthPostAsync(virtualFull);
 
-        var chestValuesTask = Task.Run(async () =>
+        async Task<(decimal chestTotal, List<(string name, decimal value)> breakdown, List<List<Coflnet.Sky.Commands.MC.SearchCommand.ItemLocation>> topItems)> ComputeChestValuesAsync()
         {
-            decimal chestTotalLocal = 0m;
             var chestBreakdownLocal = new List<(string name, decimal value)>();
+            var chestTopItemsLocal = new List<List<Coflnet.Sky.Commands.MC.SearchCommand.ItemLocation>>();
+            decimal chestTotalLocal = 0m;
+
+            var stateApi = socket.GetService<IPlayerStateApi>();
+            var sniper = socket.GetService<Shared.ISniperClient>();
+
             try
             {
-                var stateApi = socket.GetService<IPlayerStateApi>();
                 var allChests = await stateApi.PlayerStatePlayerIdStorageGetAsync(Guid.Parse(accountUuid), Guid.Empty);
-                var sniper = socket.GetService<Shared.ISniperClient>();
 
-                // Collect all auctions into one list and remember offsets per chest
-                var allAuctions = new List<SaveAuction>();
-                var chestOffsets = new List<(string name, int start, int count)>();
-                foreach (var chest in allChests)
+                // Filter chests we want to value and keep order
+                var chests = allChests.Where(c => c.Name != null && c.Name.Contains("Chest") && !c.Name.Contains("Ender")).ToList();
+                if (chests.Count == 0)
                 {
-                    if(chest.Name == null || !chest.Name.Contains("Chest") || chest.Name.Contains("Ender"))
-                        continue; // only count actual chests not already in profile api
-                    int start = allAuctions.Count;
-                    int added = 0;
-                    foreach (var item in chest.Items)
+                    return (0m, chestBreakdownLocal, chestTopItemsLocal);
+                }
+
+                // Build auctions and map each chest+slot to a global auction index
+                var allAuctions = new List<SaveAuction>();
+                var chestIndexMap = new List<List<(int globalIndex, int slot)>>();
+                foreach (var chest in chests)
+                {
+                    var indices = new List<(int, int)>();
+                    for (int slot = 0; slot < chest.Items.Count; slot++)
                     {
                         try
                         {
-                            var a = Coflnet.Sky.Commands.MC.ItemConversionHelpers.ConvertToAuction(item);
+                            var a = Coflnet.Sky.Commands.MC.ItemConversionHelpers.ConvertToAuction(chest.Items[slot]);
                             allAuctions.Add(a);
-                            added++;
+                            indices.Add((allAuctions.Count - 1, slot));
                         }
                         catch
                         {
-                            // skip items that can't be converted
+                            // skip
                         }
                     }
-                    chestOffsets.Add((chest.Name ?? "inventory", start, added));
+                    chestIndexMap.Add(indices);
                 }
 
                 if (allAuctions.Count == 0)
                 {
-                    // nothing to price
-                    foreach (var c in chestOffsets)
-                        chestBreakdownLocal.Add((c.name, 0m));
-                }
-                else
-                {
-                    // Single call for all auctions. The sniper returns results in the same order and may include empty entries.
-                    var prices = (await sniper.GetPrices(allAuctions.ToArray())).ToList();
-
-                    // Map prices back to chests using offsets
-                    for (int ci = 0; ci < chestOffsets.Count; ci++)
+                    foreach (var chest in chests)
                     {
-                        var (name, start, count) = chestOffsets[ci];
-                        decimal chestValue = 0m;
-                        for (int i = 0; i < count; i++)
-                        {
-                            int idx = start + i;
-                            if (idx < 0 || idx >= prices.Count) continue;
-                            var p = prices[idx];
-                            var auction = allAuctions[idx];
-                            var estimated = (decimal)(p?.Median != 0 ? p.Median : p?.Lbin?.Price ?? 0);
-                            chestValue += estimated * auction.Count;
-                        }
-                        chestTotalLocal += chestValue;
-                        chestBreakdownLocal.Add((name, chestValue));
+                        chestBreakdownLocal.Add((chest.Name ?? "inventory", 0m));
+                        chestTopItemsLocal.Add(new List<Coflnet.Sky.Commands.MC.SearchCommand.ItemLocation>());
                     }
+                    return (0m, chestBreakdownLocal, chestTopItemsLocal);
+                }
+
+                var prices = (await sniper.GetPrices(allAuctions.ToArray())).ToList();
+
+                // Compute per-chest totals and top items with minimal nesting
+                for (int ci = 0; ci < chests.Count; ci++)
+                {
+                    var chest = chests[ci];
+                    var indices = chestIndexMap[ci];
+                    decimal chestValue = 0m;
+                    var perItemValues = new List<(decimal value, int slot)>();
+
+                    foreach (var (globalIdx, slot) in indices)
+                    {
+                        if (globalIdx < 0 || globalIdx >= prices.Count) continue;
+                        var p = prices[globalIdx];
+                        var auction = allAuctions[globalIdx];
+                        var estimated = (decimal)(p?.Median != 0 ? p.Median : p?.Lbin?.Price ?? 0);
+                        var stackVal = estimated * auction.Count;
+                        chestValue += stackVal;
+                        perItemValues.Add((stackVal, slot));
+                    }
+
+                    var topSlots = perItemValues.OrderByDescending(x => x.value).Take(5).ToList();
+                    var topLocations = new List<Coflnet.Sky.Commands.MC.SearchCommand.ItemLocation>();
+                    foreach (var (value, slot) in topSlots)
+                    {
+                        var item = chest.Items[slot];
+                        topLocations.Add(new Coflnet.Sky.Commands.MC.SearchCommand.ItemLocation
+                        {
+                            Chestname = chest.Name,
+                            CommandToOpen = null,
+                            Title = null,
+                            Position = chest.Position,
+                            Item = item,
+                            SlotId = slot
+                        });
+                    }
+
+                    chestTotalLocal += chestValue;
+                    chestBreakdownLocal.Add((chest.Name ?? "inventory", chestValue));
+                    chestTopItemsLocal.Add(topLocations);
                 }
             }
             catch (Exception ex)
@@ -120,15 +149,18 @@ public class NetworthCommand : ArgumentsCommand
                 Console.WriteLine("Could not fetch/playerstate or price items: " + ex.Message);
             }
 
-            return (chestTotalLocal: chestTotalLocal, chestBreakdownLocal: chestBreakdownLocal as List<(string, decimal)>);
-        });
+            return (chestTotalLocal, chestBreakdownLocal, chestTopItemsLocal);
+        }
+
+        var chestValuesTask = ComputeChestValuesAsync();
 
         // await both
         await Task.WhenAll(networthTask, chestValuesTask);
         var networth = networthTask.Result;
         var chestResult = chestValuesTask.Result;
-        decimal chestTotal = chestResult.chestTotalLocal;
-        List<(string name, decimal value)> chestBreakdown = chestResult.chestBreakdownLocal;
+        decimal chestTotal = chestResult.chestTotal;
+        List<(string name, decimal value)> chestBreakdown = chestResult.breakdown;
+        var chestTopItems = chestResult.topItems;
         var top = networth.Member.First().Value.ValuePerCategory.OrderByDescending(m => m.Value).Take(3);
         socket.Dialog(db =>
         {
@@ -141,9 +173,25 @@ public class NetworthCommand : ArgumentsCommand
                 db.LineBreak();
                 db.MsgLine($"{McColorCodes.AQUA}Chest value total: {McColorCodes.GOLD}{socket.FormatPrice((long)chestTotal)}");
                 // show up to 5 chests sorted descending
-                foreach (var c in chestBreakdown.OrderByDescending(c => c.value).Take(5))
+                var ordered = chestBreakdown.Select((v, idx) => (v.name, v.value, idx)).OrderByDescending(c => c.value).Take(5).ToList();
+                bool first = true;
+                foreach (var c in ordered)
                 {
-                    db.MsgLine($"{McColorCodes.DARK_GRAY} - {McColorCodes.RESET}{c.name} {McColorCodes.GOLD}{socket.FormatPrice((long)c.value)}");
+                    // If this is the most valuable chest, make it clickable and show hover with top stacks
+                    var idx = c.idx;
+                    if (first && chestTopItems != null && idx >= 0 && idx < chestTopItems.Count && chestTopItems[idx].Count > 0)
+                    {
+                        first = false;
+                        var topItems = chestTopItems[idx];
+                        // Build hover text
+                        var hover = string.Join('\n', topItems.Select(item => $"{item.Item.ItemName} x{item.Item.Count} - {item.Item.Description}"));
+                        var payload = JsonConvert.SerializeObject(topItems.First());
+                        db.CoflCommand<HighlightItemCommand>($"{McColorCodes.DARK_GRAY} - {McColorCodes.RESET}{c.name} {McColorCodes.GOLD}{socket.FormatPrice((long)c.value)}", payload, hover);
+                    }
+                    else
+                    {
+                        db.MsgLine($"{McColorCodes.DARK_GRAY} - {McColorCodes.RESET}{c.name} {McColorCodes.GOLD}{socket.FormatPrice((long)c.value)}");
+                    }
                 }
             }
 
