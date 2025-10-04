@@ -185,19 +185,23 @@ public class NetworthCommand : ArgumentsCommand
             db.MsgLine($"{McColorCodes.AQUA}Chest value total: {McColorCodes.GOLD}{socket.FormatPrice((long)chestTotal)}");
             // show up to 5 chests sorted descending
             var ordered = chestBreakdown.Select((v, idx) => (v.name, v.value, idx)).OrderByDescending(c => c.value).Take(5).ToList();
-            bool first = true;
+            // no longer need the 'first' flag
             foreach (var c in ordered)
             {
-                // If this is the most valuable chest, make it clickable and show hover with top stacks
                 var idx = c.idx;
-                if (first && chestTopItems != null && idx >= 0 && idx < chestTopItems.Count && chestTopItems[idx].Count > 0)
+                var hasTop = chestTopItems != null && idx >= 0 && idx < chestTopItems.Count && chestTopItems[idx].Count > 0;
+
+                if (hasTop)
                 {
-                    first = false;
                     var topItems = chestTopItems[idx];
-                    // Build hover text
-                    var hover = string.Join('\n', topItems.Select(item => $"{item.Item.ItemName} x{item.Item.Count} - {item.Item.Description}"));
+                    // Build hover text with detailed stacks
+                    var hover = string.Join('\n', topItems.Select(item => $"{item.Item.ItemName} x{item.Item.Count}"));
                     var payload = JsonConvert.SerializeObject(topItems.First());
                     db.CoflCommand<HighlightItemCommand>($"{McColorCodes.DARK_GRAY} - {McColorCodes.RESET}{c.name} {McColorCodes.GOLD}{socket.FormatPrice((long)c.value)}", payload, hover);
+
+                    // also show a short inline summary of the top items (up to 3)
+                    var inline = string.Join(", ", topItems.Take(3).Select(i => $"{i.Item.ItemName} x{i.Item.Count}"));
+                    db.MsgLine($"  {McColorCodes.DARK_GRAY}{inline}{McColorCodes.RESET}");
                 }
                 else
                 {
