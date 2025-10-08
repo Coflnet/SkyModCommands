@@ -22,7 +22,7 @@ public class TransferCoinsCommand : McCommand
         }
         if(amount <= 0)
             throw new CoflnetException("invalid_arguments", "Amount has to be greater than 0");
-        string targetUser = await GetUserIdFromMcName(socket, minecraftName);
+        string targetUser = await GetUserIdFromMcName(socket, minecraftName, true);
 
         var userApi = socket.GetService<IUserApi>();
         try
