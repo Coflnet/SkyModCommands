@@ -89,6 +89,12 @@ public class SessionFilterState : IDisposable
             span.Log($"new config {newConfig.Name} {newConfig.Version} > {loadedConfigMetadata.Version}");
             if (newConfig.Version > loadedConfigMetadata.Version)
             {
+                using var updateSpan = socket.CreateActivity("configUpdate", span);
+                updateSpan?.SetTag("newVersion", newConfig.Version);
+                updateSpan?.SetTag("oldVersion", loadedConfigMetadata.Version);
+                updateSpan?.SetTag("configName", newConfig.Name);
+                updateSpan?.SetTag("ownerId", newConfig.OwnerId);
+                updateSpan?.SetTag("userId", socket.UserId);
                 var diffSuffix = "";
                 if (newConfig.Diffs?.TryGetValue(newConfig.Version, out var diff) ?? false)
                 {
@@ -100,6 +106,7 @@ public class SessionFilterState : IDisposable
                     db => db.CoflCommand<UpdateCurrentConfigCommand>($"[click to load]", $"", "load new version\nWill override your current settings")));
                 if (AccountSettings.Value.AutoUpdateConfig)
                 {
+                    updateSpan.Log("auto updating config");
                     MinecraftSocket.Commands["updatecurrentconfig"].Execute(socket, "");
                 }
             }
