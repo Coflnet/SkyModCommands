@@ -49,15 +49,21 @@ public class PreApiCommand : McCommand
                 .CoflCommand<PurchaseCommand>($"{McColorCodes.GREEN}[{McColorCodes.GRAY}Extend pre-api{McColorCodes.GREEN}]", "pre_api", "Click to extend pre-api"));
             return;
         }
-        socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
+        socket.Dialog(db => db.If(() => preapiService.PreApiUserCount >= 2,
+            // limit reached
+            db => db.MsgLine($"{McColorCodes.RED}Pre-api is currently full. Maximum of 2 users are allowed. Please try again later.")
+            .CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.WHITE}notify me when there are less than {preapiService.PreApiUserCount} users using it{McColorCodes.GREEN}]", "notify", "Click to get notified")
+            .LineBreak(),
+            // allow purchase
+            db => db.CoflCommand<PurchaseCommand>(
             $"{McColorCodes.GOLD}You currently don't have {McColorCodes.RED}pre-api\n"
             + $"{McColorCodes.YELLOW}You can click {McColorCodes.AQUA}here{McColorCodes.YELLOW} to purchase it\n",
             "pre_api", $"Click to purchase pre-api")
             .If(() => preapiService.PreApiUserCount == 0,
-                db => db.MsgLine("There is nobody using pre-api currently."),
-                db => db.CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.WHITE}notify me when there are less than {preapiService.PreApiUserCount} users using it{McColorCodes.GREEN}]", "notify", "Click to get notified"))
-                .Break
-            .CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.GRAY}Get last days profit{McColorCodes.GREEN}]", "profit", "Click to see the profit"));
+                db2 => db2.MsgLine("There is nobody using pre-api currently, you can be the first one!", null, "Its limited to 2 users\nso don't hesitate too long"),
+                db2 => db2.CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.WHITE}notify me when there are less than {preapiService.PreApiUserCount} users using it{McColorCodes.GREEN}]", "notify", "Click to get notified"))
+            .LineBreak()
+        ).CoflCommand<PreApiCommand>($"{McColorCodes.GREEN}[{McColorCodes.GRAY}Get last days profit{McColorCodes.GREEN}]", "profit", "Click to see the profit"));
         socket.Dialog(db => db.MsgLine("Pre api is finds about 1/10th of new auctions created. \nAll your delay is removed every 5 minutes until your next purchase and reduced by 30% until pre api expires"));
         if (socket.AccountInfo.Tier >= Shared.AccountTier.SUPER_PREMIUM)
         {
