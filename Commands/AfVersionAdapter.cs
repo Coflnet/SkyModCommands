@@ -104,6 +104,7 @@ public class AfVersionAdapter : ModVersionAdapter
             profitPerc = flip.ProfitPercentage,
             tag = flip.Auction.Tag,
             vol = flip.Volume,
+            seller = flip.Auction.AuctioneerId
         }));
     }
 
