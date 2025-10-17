@@ -172,13 +172,13 @@ public class CircumventTracker
         }
         var betterEstimate = int.Parse(flip.Auction.Context?.GetValueOrDefault("ogEstimate") ?? "2200") * 9 / 10;
         socket.Dialog(db => db.MsgLine("Hello there,")
-            .MsgLine("Sorry to disturb you, but we have noticed you didn't buy any flips in a while.")
+            .MsgLine($"{McColorCodes.YELLOW}Sorry to disturb you, but we have noticed you didn't buy any flips in a while.")
             .MsgLine($"The auction for {flip.Auction.ItemName} was overvalued on purpose to check who would buy it.")
-            .MsgLine($"It is NOT worth the {socket.FormatPrice(flip.Target)} coins you may want to sell at/under {socket.FormatPrice(betterEstimate)}.")
+            .MsgLine($"It is {McColorCodes.RED}NOT worth the {McColorCodes.GOLD}{socket.FormatPrice(flip.Target)} coins {McColorCodes.GRAY}you may want to sell at/under {McColorCodes.GOLD}{socket.FormatPrice(betterEstimate)}.")
             .MsgLine("This is done to check if you try to trick our system by buying flips on a different account.")
-            .MsgLine("As long as you didn't do any modifications/run non-official client versions you have nothing to worry about.")
+            .MsgLine($"{McColorCodes.YELLOW}As long as you didn't do any modifications/run non-official client versions you have nothing to worry about.")
             .MsgLine("If you aren't flipping you may want to turn off flips with /cofl flip. If you are trying to flip you may want to check your settings.")
-            .MsgLine("We are sorry for the inconvenience and hope you have a great day."));
+            .MsgLine($"{McColorCodes.GREEN}We are sorry for the inconvenience and hope you have a great day."));
         await Task.Delay(5000);
         flip.Target = flip.Auction.StartingBid;
         if (adapter is AfVersionAdapter) // send correction
