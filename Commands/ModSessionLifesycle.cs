@@ -159,6 +159,7 @@ namespace Coflnet.Sky.Commands.MC
             else if (commandLink.Success)
             {
                 var command = commandLink.Groups[1].Value;
+                content = content.Replace('`' + command + '`', McColorCodes.AQUA + command + McColorCodes.WHITE);
                 socket.Dialog(db => db.MsgLine($"Latest change:\n" + content, command, $"Click to execute {command}"));
             }
             else
