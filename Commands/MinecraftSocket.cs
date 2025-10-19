@@ -411,6 +411,7 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage("§cYou client did not specify a 'SId', your account is vurnable, please update your client to the latest version");
             }
             SessionInfo.clientSessionId = args["SId"].Truncate(60);
+            SessionInfo.clientConId = args["cId"]?.Truncate(60);
             if (args["version"] == null)
             {
                 Send(Response.Create("error", "the connection query string needs to include 'version' with client version"));

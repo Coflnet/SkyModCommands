@@ -45,6 +45,8 @@ public class ActiveSession
     public string Version;
     [DataMember(Name = "sessionId")]
     public string ClientSessionId;
+    [DataMember(Name = "clientConId")]
+    public string? ClientConId;
     [DataMember(Name = "minecraftUuid")]
     public string MinecraftUuid;
     /// <summary>

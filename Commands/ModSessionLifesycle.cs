@@ -497,6 +497,11 @@ namespace Coflnet.Sky.Commands.MC
                     }
                 }
                 var tier = await TierManager.GetCurrentCached();
+                if (!TierManager.IsNewConnection())
+                {
+                    Console.WriteLine("silent reconnect for " + socket.SessionInfo.McName + " conid " + socket.SessionInfo.clientConId);
+                    return;
+                }
 
                 if (SessionInfo.SentWelcome)
                     return; // don't send hello again

@@ -5,6 +5,8 @@ using Coflnet.Sky.Core;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
+#nullable enable
+
 namespace Coflnet.Sky.Commands.MC
 {
     public class SessionInfo : IDisposable, IPlayerInfo
@@ -13,6 +15,10 @@ namespace Coflnet.Sky.Commands.MC
         /// The sessionId as set by the client
         /// </summary>
         public string clientSessionId = "";
+        /// <summary>
+        /// Client id identifying reconnects
+        /// </summary>
+        public string? clientConId;
         /// <summary>
         /// Cumputed session id out of the <see cref="clientSessionId"/> and the time rounded 
         /// </summary>
@@ -28,9 +34,9 @@ namespace Coflnet.Sky.Commands.MC
         public bool SentWelcome;
 
         [JsonIgnore]
-        public ChannelMessageQueue EventBrokerSub { get; internal set; }
+        public ChannelMessageQueue? EventBrokerSub { get; internal set; }
         [JsonIgnore]
-        public ChannelMessageQueue EventBrokerUserSub { get; internal set; }
+        public ChannelMessageQueue? EventBrokerUserSub { get; internal set; }
 
         /// <summary>
         /// Keeps track of which players a mute note message was already sent
@@ -63,7 +69,7 @@ namespace Coflnet.Sky.Commands.MC
         public bool IsRift { get; internal set; }
         public bool IsMacroBot { get; set; }
         public bool IsDarkAuction { get; set; }
-        public string VerificationBidAuctioneer { get; set; }
+        public string? VerificationBidAuctioneer { get; set; }
         public int VerificationBidAmount { get; set; }
         [JsonIgnore]
         public CaptchaInfo captchaInfo = new();

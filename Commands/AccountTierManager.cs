@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Sockets;
@@ -25,6 +26,7 @@ public interface IAccountTierManager : IDisposable
     bool IsConnectedFromOtherAccount(out string otherAccount, out AccountTier tier);
     event EventHandler<AccountTier>? OnTierChange;
     Task ChangeDefaultTo(string mcUuid);
+    bool IsNewConnection();
 }
 
 public class AccountTierManager : IAccountTierManager
@@ -37,6 +39,7 @@ public class AccountTierManager : IAccountTierManager
     private string userId;
     IAuthUpdate loginNotification;
     public DateTime ExpiresAt => expiresAt;
+    bool isNewConnection = false;
 
     public string? DefaultAccount => activeSessions?.Value?.UseAccountTierOn;
     private bool Disposed { get; set; }
@@ -163,8 +166,11 @@ public class AccountTierManager : IAccountTierManager
                 Ip = (socket as MinecraftSocket)?.ClientIp,
                 LastActive = DateTime.UtcNow,
                 Version = socket.Version,
-                MinecraftUuid = socket.SessionInfo.McUuid
+                MinecraftUuid = socket.SessionInfo.McUuid,
+                ClientConId = socket.SessionInfo.clientConId
             };
+            if (!sessions.Any(s => s?.ClientConId == thisSession.ClientConId) || socket.SessionInfo.clientConId == null)
+                isNewConnection = true;
             sessions.Add(thisSession);
             Console.WriteLine($"Added session {socket.SessionInfo.ConnectionId} for {socket.SessionInfo.McUuid}");
             await Task.Delay(sessions.Count * 500);
@@ -325,5 +331,10 @@ public class AccountTierManager : IAccountTierManager
         var oldActive = activeSessions;
         activeSessions?.Update().ContinueWith(t => oldActive?.Dispose());
         activeSessions = null;
+    }
+
+    public bool IsNewConnection()
+    {
+        return isNewConnection;
     }
 }
