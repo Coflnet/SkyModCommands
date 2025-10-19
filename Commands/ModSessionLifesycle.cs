@@ -478,6 +478,13 @@ namespace Coflnet.Sky.Commands.MC
                         info.LastMacroConnect = DateTime.Now.AddDays(-1);
                     SessionInfo.IsMacroBot = true;
                 }
+                
+                // Register or unregister with proxy service based on account info (no duplication on SessionInfo)
+                var proxyService = socket.GetService<ModCommands.Services.ProxyService>();
+                if (info.ProxyOptIn)
+                    proxyService.RegisterSocket(socket);
+                else
+                    proxyService.UnregisterSocket(socket);
                 var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info, socket.SessionInfo);
                 span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (info.UserId != socket.UserId && socket.UserId?.Length > 2)
@@ -1152,6 +1159,17 @@ namespace Coflnet.Sky.Commands.MC
 
         public void Dispose()
         {
+            // Unregister from proxy service
+            try
+            {
+                var proxyService = socket.GetService<ModCommands.Services.ProxyService>();
+                proxyService?.UnregisterSocket(socket);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to unregister socket from proxy service: {ex.Message}");
+            }
+            
             FlipSettings?.Dispose();
             UserId?.Dispose();
             AccountInfo?.Dispose();

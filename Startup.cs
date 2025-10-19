@@ -99,6 +99,7 @@ public class Startup
         services.AddSingleton<IDelayExemptList, DelayExemptionList>();
         services.AddSingleton<IMuseumDonationService, MuseumDonationService>();
         services.AddSingleton<ApiKeyService>();
+        services.AddSingleton<ProxyService>();
         services.AddCoflService();
     }
 

@@ -270,6 +270,10 @@ public class AccountTierManager : IAccountTierManager
             return (expires.Item1, expires.Item2);
         }
         thisSession.Tier = AccountTier.NONE;
+        if (socket.AccountInfo.ProxyOptIn)
+        {
+            return (AccountTier.STARTER_PREMIUM, DateTime.UtcNow + TimeSpan.FromMinutes(15));
+        }
         span.Log("none");
         return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(15));
     }
