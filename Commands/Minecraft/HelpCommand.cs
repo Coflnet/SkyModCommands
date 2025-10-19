@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
+
 [CommandDescription("Prints help for the mod", "Usage: /cofl help [topic]")]
 public class HelpCommand : McCommand
 {
@@ -75,10 +76,15 @@ public class HelpCommand : McCommand
             g => g.Select(i => i.description).First()
         ));
         allUpdate.type = "commandUpdate";
+        if (socket.Version == "1.7.6" || socket.Version == "1.7.5")
+        {
+            var colorPattern = new System.Text.RegularExpressions.Regex(@"§[0-9A-Fa-f]", System.Text.RegularExpressions.RegexOptions.Compiled);
+            allUpdate.data = colorPattern.Replace(allUpdate.data, "");
+        }
         socket.Send(allUpdate);
         var toDisplay = withDescription.Skip(page * pageSize).Take(pageSize);
         var pageToNavigateTo = page + 2;
-        if (pageToNavigateTo > withDescription.Count() / pageSize +1)
+        if (pageToNavigateTo > withDescription.Count() / pageSize + 1)
             pageToNavigateTo = 1;
         socket.Dialog(d => d.CoflCommand<HelpCommand>($"AvailableCommands are (page {(page + 1)}/{withDescription.Count() / pageSize + 1}):\n", "c " + pageToNavigateTo, "click to get next page")
             .ForEach(toDisplay, (db, c) =>
