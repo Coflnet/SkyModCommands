@@ -318,9 +318,9 @@ namespace Coflnet.Sky.Commands.MC
         {
             StartNewConnectionSpan();
             this.SessionInfo.SessionId = ConSpan.Context.TraceId.ToString();
-            SendMessage(COFLNET + "§7Established connection, loading settings...",
+            SendMessage($"{McColorCodes.BLACK}Connected to SkyCofl",
                         $"https://discord.gg/wvKXfTgCfb",
-                        "Attempting to load your settings on " + System.Net.Dns.GetHostName() + " conId: " + ConSpan.Context.TraceId);
+                        $"Attempting to load your settings on {System.Net.Dns.GetHostName()} conId: {ConSpan.Context.TraceId}");
             base.OnOpen();
             Task.Run(() =>
             {
