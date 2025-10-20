@@ -57,7 +57,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element item)
     {
-        db.MsgLine($" {item.Name} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice((item.Price - item.UnlockCost)/ item.FeathersRequired)} coins per feather",
+        db.MsgLine($" {item.Name} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice((item.Price - item.Cost - item.UnlockCost) / item.FeathersRequired)} coins per feather",
                     "https://sky.coflnet.com/item/" + item.Tag,
                     $"Requires {McColorCodes.AQUA}{item.FeathersRequired} feathers{McColorCodes.GRAY}, total cost: {McColorCodes.AQUA}{socket.FormatPrice(item.Cost + item.UnlockCost)} coins\n"
                     + (item.UnlockCost > 0 ? $"Unlock cost: {McColorCodes.AQUA}{socket.FormatPrice(item.UnlockCost)} coins{McColorCodes.GRAY}(included in total)\n" : "")
@@ -68,7 +68,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
 
     protected override async Task<IEnumerable<Element>> GetElements(MinecraftSocket socket, string val)
     {
-        var namesTask = socket.GetService<Items.Client.Api.IItemsApi>().ItemNamesGetAsync(); 
+        var namesTask = socket.GetService<Items.Client.Api.IItemsApi>().ItemNamesGetAsync();
         var cleanPrices = await socket.GetService<ISniperClient>().GetCleanPrices();
         var names = (await namesTask)?.ToDictionary(i => i.Tag, i => i.Name) ?? [];
         var itemService = socket.GetService<HypixelItemService>();
