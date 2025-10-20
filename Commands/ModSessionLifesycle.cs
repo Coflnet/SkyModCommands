@@ -143,6 +143,8 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendLastChangeInfo()
         {
+            if(!TierManager.IsNewConnection())
+                return;
             var messageService = socket.GetService<IMessageApi>();
             var devlog = await messageService.GetMessagesAsync("devlog", DateTime.UtcNow.RoundDown(TimeSpan.FromHours(1)));
             var mostRecent = devlog.Where(d => d.CreatedAt > DateTime.UtcNow.AddDays(-1) && d.Content.Contains("➡️")).OrderByDescending(m => m.CreatedAt).FirstOrDefault();
