@@ -62,6 +62,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
                     $"Requires {McColorCodes.AQUA}{item.FeathersRequired} feathers{McColorCodes.GRAY}, total cost: {McColorCodes.AQUA}{socket.FormatPrice(item.Cost + item.UnlockCost)} coins\n"
                     + (item.UnlockCost > 0 ? $"Unlock cost: {McColorCodes.AQUA}{socket.FormatPrice(item.UnlockCost)} coins{McColorCodes.GRAY}(included in total)\n" : "")
                     + $"Estimated profit buying at ah: {McColorCodes.AQUA}{socket.FormatPrice(item.Price - item.Cost - item.UnlockCost)} coins\n"
+                    + $"{McColorCodes.GRAY}Estimated sell value: {McColorCodes.AQUA}{socket.FormatPrice(item.Price)} coins\n"
                     + "Click to check history on website");
     }
 
@@ -80,10 +81,8 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
                 Console.WriteLine($"Price for {item.Key} not found in clean prices, skipping.");
                 continue;
             }
-            if (itemService.IsDungeonItemSync(item.Key))
-                price += 100_000_000;
             var (feathersRequired, unlockCost) = item.Value;
-            var costOfFeathers = featherPrice * ((int)feathersRequired + 1);
+            var costOfFeathers = featherPrice * ((int)(feathersRequired + 0.99));
             all.Add(new Element
             {
                 Name = names.GetValueOrDefault(item.Key, item.Key),
