@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Coflnet.Sky.Bazaar.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core.Services;
 using Coflnet.Sky.ModCommands.Dialogs;
@@ -119,8 +120,13 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
     protected override async Task<IEnumerable<Element>> GetElements(MinecraftSocket socket, string val)
     {
         var namesTask = socket.GetService<Items.Client.Api.IItemsApi>().ItemNamesGetAsync();
+        var bazaarTask = socket.GetService<IBazaarApi>().GetAllPricesAsync();
         var cleanPrices = await socket.GetService<ISniperClient>().GetCleanPrices();
         var names = (await namesTask)?.ToDictionary(i => i.Tag, i => i.Name) ?? [];
+        foreach (var listing in await bazaarTask)
+        {
+            cleanPrices[listing.ProductId] = (long)listing.BuyPrice;
+        }
         var itemService = socket.GetService<HypixelItemService>();
         var all = new List<Element>();
         var featherPrice = cleanPrices.GetValueOrDefault("ANANKE_FEATHER");
