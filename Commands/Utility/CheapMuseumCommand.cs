@@ -22,7 +22,8 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
     
     public CheapMuseumCommand()
     {
-        sorters["craft"] = (list) => list.OrderBy(i=>i.PricePerExp).ThenBy(i=>i.TotalPrice);
+        sorters["craft"] = (list) => list.OrderBy(i => i.PricePerExp).ThenBy(i => i.TotalPrice);
+        sorters["double"] = (list) => list.OrderBy(i => i.PricePerExp);
     }
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, MuseumService.Cheapest item)
@@ -48,6 +49,14 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
                 null, "Buy all of the ones below to donate")
         .ForEach(item.Options, (db, option, i) => db.MsgLine($" {McColorCodes.AQUA}Item {i + 1}{McColorCodes.GRAY}: {McColorCodes.RESET}{option.name}", "/viewauction " + option.uuid, "Click to view the auction"));
 
+    }
+
+    protected override void PrintHelp(MinecraftSocket socket)
+    {
+        base.PrintHelp(socket);
+        socket.SendMessage(new DialogBuilder()
+            .MsgLine($"{McColorCodes.GOLD}craft{McColorCodes.RESET}: Shows based on craft price and is usually even cheaper")
+            .MsgLine($"{McColorCodes.GOLD}double{McColorCodes.RESET}: Includes items that are included with others (may lead to double donations)"));
     }
 
     protected override async Task<IEnumerable<MuseumService.Cheapest>> GetElements(MinecraftSocket socket, string val)
@@ -124,8 +133,9 @@ public class CheapMuseumCommand : ReadOnlyListCommand<MuseumService.Cheapest>
                 Options = c.Ingredients.Select(i => (i.ItemId, namesDictionary.GetValueOrDefault(i.ItemId) + $" x{i.Count}")).ToArray()
             });
         }
+        var avoidDoubleDonations = val != "double";
 
-        return await service.GetBestMuseumPrices(combinedDonations, amount);
+        return await service.GetBestMuseumPrices(combinedDonations, amount, avoidDoubleDonations);
     }
 
     protected override DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<MuseumService.Cheapest> toDisplay, int totalPages)

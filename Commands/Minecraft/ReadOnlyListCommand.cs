@@ -31,8 +31,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
         var title = GetTitle(arguments);
         if (arguments.ToLower() == "help")
         {
-            socket.Dialog(db => db.MsgLine(Title).MsgLine($"Usage: {McColorCodes.AQUA}/cofl {Slug} {McColorCodes.GOLD}[sort] {McColorCodes.AQUA}[search|page] ")
-                .If(() => sorters.Count > 0, db => db.MsgLine($"Sort options: {McColorCodes.GOLD}" + string.Join($"{McColorCodes.GRAY}, {McColorCodes.GOLD}", sorters.Keys))));
+            PrintHelp(socket);
             return;
         }
         var elements = (await GetElements(socket, arguments)).ToList();
@@ -58,6 +57,12 @@ public abstract class ReadOnlyListCommand<T> : McCommand
             dialog.MsgLine(NoMatchText);
         PrintSumary(socket, dialog, elements, toDisplay);
         socket.SendMessage(dialog.Build());
+    }
+
+    protected virtual void PrintHelp(MinecraftSocket socket)
+    {
+        socket.Dialog(db => db.MsgLine(Title).MsgLine($"Usage: {McColorCodes.AQUA}/cofl {Slug} {McColorCodes.GOLD}[sort] {McColorCodes.AQUA}[search|page] ")
+                        .If(() => sorters.Count > 0, db => db.MsgLine($"Sort options: {McColorCodes.GOLD}" + string.Join($"{McColorCodes.GRAY}, {McColorCodes.GOLD}", sorters.Keys))));
     }
 
     protected virtual DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<T> toDisplay, int totalPages)
