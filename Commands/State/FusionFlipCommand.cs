@@ -15,6 +15,7 @@ namespace Coflnet.Sky.Commands.MC;
 public class FusionFlipCommand : ReadOnlyListCommand<FusionFlipCommand.WithName>
 {
     private static Dictionary<string, string> itemNameCache = new Dictionary<string, string>();
+    protected override string NoMatchText => "Seems like there are currently no profitable fusion flips, take a look at other bazaar based flips with /cofl bazaar";
     protected override void Format(MinecraftSocket socket, DialogBuilder db, WithName elem)
     {
         db.MsgLine($"Combine {string.Join(" and ", elem.Inputs.Select(i => $"{McColorCodes.GOLD}{GetName(i.Key)}{McColorCodes.GRAY}x{i.Value}"))} to {McColorCodes.AQUA}{elem.ItemName} {McColorCodes.RESET}for {McColorCodes.GOLD}{socket.FormatPrice(elem.OutputValue)}",
