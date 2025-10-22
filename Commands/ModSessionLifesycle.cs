@@ -298,6 +298,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (onchange.SourceType == "bazaar" && onchange.SourceSubId == "outbid")
                 {
+                    if(onchange.Timestamp < DateTime.UtcNow.AddSeconds(-30))
+                        return; // ignore old outbid messages
                     onchange.Link = "/managebazaarorders";
                     if (socket.Settings.ModSettings.PlaySoundOnOutbid)
                         socket.ModAdapter.SendSound("entity.experience_orb.pickup", 1);
