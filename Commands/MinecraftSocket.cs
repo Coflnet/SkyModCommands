@@ -145,6 +145,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<TradesCommand>();
             Commands.Add<FlipsCommand>();
             Commands.Add<AhOpenCommand>();
+            Commands.Add<ProfileOpenCommand>();
             Commands.Add<GetMcNameForCommand>();
             Commands.Add<SetCommand>("s");
             Commands.Add<GetCommand>();

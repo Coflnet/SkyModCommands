@@ -75,7 +75,11 @@ namespace Coflnet.Sky.Commands.MC
                 var hover = $"{McColorCodes.GRAY}Open the ah for the seller";
                 if (seller == "not-found")
                     hover = $"The seller name could not be found. Click to try openening their ah anyways. \nYou can also permanently activate this button instead of the name to improve flip speeds.";
-                var buttonPart = new ChatPart(McColorCodes.GRAY + " sellers ah", $"/cofl ahopen {flip.Auction.AuctioneerId}", hover);
+                ChatPart buttonPart;
+                if (socket.Settings.ModSettings.UseSellProfileButton)
+                    buttonPart = new ChatPart(McColorCodes.GRAY + " sellers profile", $"/cofl profileopen {flip.Auction.AuctioneerId}", $"{McColorCodes.GRAY}Open the profile view for the seller");
+                else
+                    buttonPart = new ChatPart(McColorCodes.GRAY + " sellers ah", $"/cofl ahopen {flip.Auction.AuctioneerId}", hover);
                 var placeholder = "[sellerbtn]";
                 AppendOrInsert(message, parts, buttonPart, placeholder);
             }
@@ -88,6 +92,7 @@ namespace Coflnet.Sky.Commands.MC
                 return seller == "not-found" || string.IsNullOrEmpty(seller);
             }
         }
+
 
         private static void AppendOrInsert(string message, List<ChatPart> parts, ChatPart buttonPart, string placeholder)
         {
