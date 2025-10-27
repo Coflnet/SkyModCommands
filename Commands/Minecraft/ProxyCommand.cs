@@ -10,6 +10,8 @@ namespace Coflnet.Sky.Commands.MC;
 [CommandDescription("Manage proxy opt-in status",
     "Use '/cofl proxy on' to enable proxying requests",
     "Use '/cofl proxy off' to disable proxying requests",
+    "Use '/cofl proxy list' to view your accrued proxy points and exchange options",
+    "Use '/cofl proxy exchange' to convert points to CoflCoins",
     "When enabled, you help by proxying web requests for data collection")]
 public class ProxyCommand : McCommand
 {
@@ -29,7 +31,7 @@ public class ProxyCommand : McCommand
             socket.Dialog(db => db.MsgLine($"§7Proxy status: {(currentStatus ? "§aEnabled" : "§cDisabled")}")
                 .MsgLine("§7Use §e/cofl proxy on §7to enable or §e/cofl proxy off §7to disable")
                 .MsgLine("§7When enabled, you help by proxying web requests for data collection.")
-                .MsgLine("§7Your connection will be used to fetch public web pages."));
+                .MsgLine("§7Your internet will be used to fetch public web pages."));
             return;
         }
 
@@ -63,7 +65,9 @@ public class ProxyCommand : McCommand
     {
         var ps = socket.GetService<ModCommands.Services.ProxyService>();
         var points = await ps.GetPointsAsync(socket.UserId);
-        socket.Dialog(db => db.MsgLine($"§7You have §e{points} §7proxy points."));
+        socket.Dialog(db => db.MsgLine($"§7You have §e{points} §7proxy points.")
+            .MsgLine("§7Exchange options: small=2000->4, medium=20000->50, large=200000->600, giant=2000000->7000")
+            .MsgLine("§7Use §e/cofl proxy exchange <tier> §7or §e/cofl proxy exchange§7 for best automatic conversion."));
     }
 
     private async Task HandleExchange(MinecraftSocket socket, string tierArg)
@@ -124,11 +128,17 @@ public class ProxyCommand : McCommand
         try
         {
             var topup = socket.GetService<TopUpApi>();
+            // include current ISO week (e.g. "2025-01") so the server can enforce one conversion per week
+            var now = DateTime.UtcNow;
+            var cal = System.Globalization.CultureInfo.InvariantCulture.Calendar;
+            var weekNo = cal.GetWeekOfYear(now, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+            var weekKey = $"{now.Year:D4}-{weekNo:D2}";
+
             await topup.TopUpCustomPostAsync(socket.UserId, new()
             {
                 ProductId = "proxy_exchange",
                 Amount = (int)totalCoins,
-                Reference = "proxy-exchange"
+                Reference = "proxy-exchange-" + weekKey
             });
 
             // Deduct points
