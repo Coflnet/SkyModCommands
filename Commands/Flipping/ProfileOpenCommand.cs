@@ -12,7 +12,7 @@ public class ProfileOpenCommand : McCommand
             using var span = socket.CreateActivity("profileopen", socket.ConSpan);
             span.SetTag("name", name);
             socket.ExecuteCommand($"/pv {name}");
-            socket.Dialog(db => db.MsgLine($"Opened profile for §6{name}\n{McColorCodes.RESET}If nothing opens you can click this to put the name in chat", "suggest:/pv" + name, "Click to put the name in chat")
+            socket.Dialog(db => db.MsgLine($"Opened profile for §6{name}\n{McColorCodes.RESET}If nothing opens you can click this to put the name in chat", "suggest:/pv " + name, "Click to put the name in chat")
                 .LineBreak().MsgLine("Or open on skycrypt", "https://sky.shiiyu.moe/stats/" + name));
         }, "opening player profile");
     }
