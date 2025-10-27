@@ -1,6 +1,9 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
+using Microsoft.Extensions.Logging;
+using Coflnet.Payments.Client.Api;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -30,15 +33,127 @@ public class ProxyCommand : McCommand
             return;
         }
 
+        // Subcommands: exchange, list, on/off
+        var parts = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var verb = parts.Length > 0 ? parts[0] : string.Empty;
+
+        if (verb == "exchange" || verb == "convert" || verb == "ex")
+        {
+            var tier = parts.Length > 1 ? parts[1] : "best";
+            await HandleExchange(socket, tier);
+            return;
+        }
+
+        if (verb == "list" || verb == "points")
+        {
+            await HandleList(socket);
+            return;
+        }
+
+        if (verb == "on" || verb == "enable" || verb == "yes" || verb == "off" || verb == "disable" || verb == "no")
+        {
+            await HandleToggle(socket, verb);
+            return;
+        }
+
+        
+    }
+
+    private async Task HandleList(MinecraftSocket socket)
+    {
+        var ps = socket.GetService<ModCommands.Services.ProxyService>();
+        var points = await ps.GetPointsAsync(socket.UserId);
+        socket.Dialog(db => db.MsgLine($"§7You have §e{points} §7proxy points."));
+    }
+
+    private async Task HandleExchange(MinecraftSocket socket, string tierArg)
+    {
+        var tier = tierArg?.ToLower() ?? "best";
+        var ps = socket.GetService<ModCommands.Services.ProxyService>();
+        long pointsLong = await ps.GetPointsAsync(socket.UserId);
+
+        if (pointsLong <= 0)
+        {
+            socket.Dialog(db => db.MsgLine("§cYou have no proxy points to exchange."));
+            return;
+        }
+
+        // Define tiers
+        var tiers = new[] {
+            new { Name = "small", Points = 2000L, Coins = 4 },
+            new { Name = "medium", Points = 20000L, Coins = 50 },
+            new { Name = "large", Points = 200000L, Coins = 600 },
+            new { Name = "giant", Points = 2000_000L, Coins = 7000 }
+        };
+
+        long totalCoins = 0;
+        long pointsToConsume = 0;
+
+        if (tiers.Any(t => t.Name == tier))
+        {
+            var chosen = tiers.First(t => t.Name == tier);
+            var count = pointsLong / chosen.Points;
+            if (count == 0)
+            {
+                socket.Dialog(db => db.MsgLine($"§cYou need at least {chosen.Points} points for the {chosen.Name} exchange."));
+                return;
+            }
+            totalCoins = count * chosen.Coins;
+            pointsToConsume = count * chosen.Points;
+        }
+        else // best
+        {
+            var remaining = pointsLong;
+            foreach (var t in tiers.Reverse())
+            {
+                var count = remaining / t.Points;
+                if (count > 0)
+                {
+                    totalCoins += count * t.Coins;
+                    pointsToConsume += count * t.Points;
+                    remaining -= count * t.Points;
+                }
+            }
+            if (totalCoins == 0)
+            {
+                socket.Dialog(db => db.MsgLine("§cYou don't have enough points for any exchange tier."));
+                return;
+            }
+        }
+
+        try
+        {
+            var topup = socket.GetService<TopUpApi>();
+            await topup.TopUpCustomPostAsync(socket.UserId, new()
+            {
+                ProductId = "proxy_exchange",
+                Amount = (int)totalCoins,
+                Reference = "proxy-exchange"
+            });
+
+            // Deduct points
+            await ps.AdjustPointsAsync(socket.UserId, -pointsToConsume);
+
+            socket.Dialog(db => db.MsgLine($"§aExchanged {pointsToConsume} proxy points for {totalCoins} CoflCoins."));
+        }
+        catch (Exception ex)
+        {
+            socket.GetService<ILogger<ProxyCommand>>().LogError(ex, "Error during proxy exchange topup");
+            socket.Dialog(db => db.MsgLine("§cAn error occurred while exchanging points. Please contact support."));
+        }
+    }
+
+    private async Task HandleToggle(MinecraftSocket socket, string verb)
+    {
         bool optIn;
-        if (args == "on" || args == "enable" || args == "yes")
+        if (verb == "on" || verb == "enable" || verb == "yes")
         {
             optIn = true;
             socket.Dialog(db => db.MsgLine("§aProxy enabled!")
                 .MsgLine("§7You will now receive proxy requests.")
                 .MsgLine("§7Thank you for helping with data collection!"));
         }
-        else if (args == "off" || args == "disable" || args == "no")
+        else if (verb == "off" || verb == "disable" || verb == "no")
         {
             optIn = false;
             socket.Dialog(db => db.MsgLine("§cProxy disabled!")
@@ -60,7 +175,6 @@ public class ProxyCommand : McCommand
 
         // Register or unregister with proxy service
         var proxyService = socket.GetService<ModCommands.Services.ProxyService>();
-        // Register or unregister with proxy service using current account info
         if (accInfo != null)
         {
             if (accInfo.ProxyOptIn)

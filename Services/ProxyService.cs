@@ -33,30 +33,75 @@ public class ProxyService
     {
         try
         {
-            var createTableQuery = @"
-                CREATE TABLE IF NOT EXISTS proxy_responses (
-                    id text PRIMARY KEY,
-                    request_url text,
-                    response_body text,
-                    status_code int,
-                    headers text,
-                    user_id text,
-                    locale text,
-                    created_at timestamp
-                ) WITH default_time_to_live = 3600;";
+            // Use the Table<T> mapping to create tables if they do not exist.
+            // This keeps table creation consistent with other services in the repo
+            // and uses the mapping defined by ProxyResponseTable/ProxyCounterTable.
+            var table = GetTable();
+            table.CreateIfNotExists();
 
-            session.Execute(createTableQuery);
-            logger.LogInformation("Proxy responses table initialized");
+            var counterTable = GetCounterTable();
+            counterTable.CreateIfNotExists();
+
+            // Ensure proxy_responses keeps the desired default TTL (previously set with raw CQL)
+            try
+            {
+                var ks = session.Keyspace;
+                if (!string.IsNullOrEmpty(ks))
+                {
+                    // Query system schema to check current default_time_to_live
+                    try
+                    {
+                        var rows = session.Execute($"SELECT default_time_to_live FROM system_schema.tables WHERE keyspace_name = '{ks}' AND table_name = 'proxy_responses'");
+                        var row = rows.FirstOrDefault();
+                        var current = row != null ? row.GetValue<int?>("default_time_to_live") ?? 0 : 0;
+                        if (current != 3600)
+                        {
+                            // Use TimeWindowCompactionStrategy to avoid large rewrite compactions for TTL-heavy time-series data.
+                            session.Execute("ALTER TABLE " + ks + ".proxy_responses WITH compaction = {'class': 'TimeWindowCompactionStrategy', 'compaction_window_unit':'HOURS', 'compaction_window_size':'1'} AND default_time_to_live = 3600;");
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // If querying system_schema fails for any reason, attempt to ALTER anyway as a best-effort.
+                        try
+                        {
+                            session.Execute("ALTER TABLE " + ks + ".proxy_responses WITH compaction = {'class': 'TimeWindowCompactionStrategy', 'compaction_window_unit':'HOURS', 'compaction_window_size':'1'} AND default_time_to_live = 3600;");
+                        }
+                        catch (Exception exAlterFallback)
+                        {
+                            logger.LogWarning(exAlterFallback, "Failed to set default_time_to_live for proxy_responses table (fallback)");
+                        }
+                    }
+                }
+                else
+                {
+                    // No keyspace on the session, do a best-effort alter by unqualified table name.
+                    // No keyspace on session: best-effort unqualified ALTER. Prefer setting the session keyspace in production.
+                    session.Execute("ALTER TABLE proxy_responses WITH compaction = {'class': 'TimeWindowCompactionStrategy', 'compaction_window_unit':'HOURS', 'compaction_window_size':'1'} AND default_time_to_live = 3600;");
+                }
+            }
+            catch (Exception exAlter)
+            {
+                logger.LogWarning(exAlter, "Failed to set default_time_to_live for proxy_responses table");
+            }
+
+            logger.LogInformation("Proxy responses and counters tables initialized");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to initialize proxy_responses table");
+            logger.LogError(ex, "Failed to initialize proxy tables");
         }
     }
 
     public Table<ProxyResponseTable> GetTable()
     {
         return new Table<ProxyResponseTable>(session);
+    }
+
+    public Table<ProxyCounterTable> GetCounterTable()
+    {
+        // Use default mapping configuration to map ProxyCounterTable to proxy_counters
+        return new Table<ProxyCounterTable>(session);
     }
 
     public void RegisterSocket(MinecraftSocket socket)
@@ -176,6 +221,15 @@ public class ProxyService
             };
 
             await GetTable().Insert(response).ExecuteAsync();
+            // Increment user's proxy counter by 1 (async)
+            try
+            {
+                await IncrementCounterAsync(userId, 1);
+            }
+            catch (Exception exCnt)
+            {
+                logger.LogError(exCnt, $"Failed to increment proxy counter for user {userId}");
+            }
             logger.LogInformation($"Stored proxy response {id} from user {userId}");
             return true;
         }
@@ -184,6 +238,53 @@ public class ProxyService
             logger.LogError(ex, $"Failed to store proxy response {id}");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Increment or decrement the proxy counter for a user. Use negative amounts to decrement.
+    /// </summary>
+    public async Task IncrementCounterAsync(string userId, long amount = 1)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return;
+
+        // Using LINQ update to increment counter column
+        await GetCounterTable()
+            .Where(x => x.UserId == userId)
+            .Select(x => new ProxyCounterTable { RequestCount = amount })
+            .Update()
+            .ExecuteAsync();
+    }
+
+    /// <summary>
+    /// Get the current proxy points for a user. Returns 0 on error or if not present.
+    /// </summary>
+    public async Task<long> GetPointsAsync(string userId)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(userId))
+                return 0;
+
+            return await GetCounterTable()
+                .Where(x => x.UserId == userId)
+                .Select(x => x.RequestCount)
+                .FirstOrDefault()
+                .ExecuteAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Failed to read proxy points for user {userId}");
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Adjust (decrease/increase) points for a user. Use negative delta to subtract.
+    /// </summary>
+    public async Task AdjustPointsAsync(string userId, long delta)
+    {
+        await IncrementCounterAsync(userId, delta);
     }
 
     public async Task<ProxyResponseTable> GetProxyResponse(string id)
