@@ -201,6 +201,25 @@ public class ProxyService
 
         logger.LogInformation($"Sent proxy request {requestId} to user {targetSocket.UserId} for URL {url}");
 
+        // Persist a small placeholder record so we can later map responses back to the user
+        try
+        {
+            var placeholder = new ProxyResponseTable
+            {
+                Id = requestId,
+                RequestUrl = url,
+                UserId = targetSocket.UserId,
+                Locale = locale,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            // Insert will create the row; later the full response will overwrite these columns.
+            await GetTable().Insert(placeholder).ExecuteAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, $"Failed to persist placeholder for proxy request {requestId}");
+        }
+
         return requestId;
     }
 
@@ -208,6 +227,30 @@ public class ProxyService
     {
         try
         {
+            // If userId wasn't provided, try to resolve it from the placeholder row we created when dispatching the request.
+            if (string.IsNullOrEmpty(userId))
+            {
+                try
+                {
+                    var existing = await GetTable().Where(x => x.Id == id).FirstOrDefault().ExecuteAsync();
+                    if (existing != null && !string.IsNullOrEmpty(existing.UserId))
+                    {
+                        userId = existing.UserId;
+                    }
+                    if (existing != null && !string.IsNullOrEmpty(existing.Locale))
+                    {
+                        locale = existing.Locale;
+                    }
+                    if (string.IsNullOrEmpty(requestUrl) && existing != null && !string.IsNullOrEmpty(existing.RequestUrl))
+                    {
+                        requestUrl = existing.RequestUrl;
+                    }
+                }
+                catch (Exception exResolve)
+                {
+                    logger.LogWarning(exResolve, $"Failed to resolve userId for proxy response {id}");
+                }
+            }
             var response = new ProxyResponseTable
             {
                 Id = id,
