@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -35,12 +36,9 @@ public class ProxyController : ControllerBase
             if (string.IsNullOrEmpty(request.Url))
                 return BadRequest(new { error = "URL is required" });
 
-            if (string.IsNullOrEmpty(request.UploadTo))
-                return BadRequest(new { error = "UploadTo is required" });
-
             var requestId = await proxyService.RequestProxy(
                 request.Url,
-                request.UploadTo,
+                request.UploadTo ?? (MinecraftSocket.IsDevMode ? "http://localhost:5005/api/data/proxy" : "https://sky.coflnet.com/api/data/proxy"),
                 request.Locale,
                 request.Regex
             );
@@ -154,20 +152,22 @@ public class ProxyRequestDto
     /// </summary>
     public string Url { get; set; }
 
+#nullable enable
     /// <summary>
     /// The URL to upload the response to
     /// </summary>
-    public string UploadTo { get; set; }
+    public string? UploadTo { get; set; }
 
     /// <summary>
     /// Optional locale filter for selecting proxy users
     /// </summary>
-    public string Locale { get; set; }
+    public string? Locale { get; set; }
 
     /// <summary>
     /// Optional regex pattern to match in the response
     /// </summary>
-    public string Regex { get; set; }
+    public string? Regex { get; set; }
+#nullable disable
 }
 
 /// <summary>
