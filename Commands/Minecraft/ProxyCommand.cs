@@ -28,10 +28,28 @@ public class ProxyCommand : McCommand
             var accountInfo = socket.sessionLifesycle.AccountInfo?.Value;
             var currentStatus = accountInfo?.ProxyOptIn ?? false;
 
-            socket.Dialog(db => db.MsgLine($"§7Proxy status: {(currentStatus ? "§aEnabled" : "§cDisabled")}")
-                .MsgLine("§7Use §e/cofl proxy on §7to enable or §e/cofl proxy off §7to disable")
-                .MsgLine("§7When enabled, you help by proxying web requests for data collection.")
-                .MsgLine("§7Your internet will be used to fetch public web pages."));
+            var statusText = currentStatus ? "§aEnabled" : "§cDisabled";
+            // Hover explains how to toggle. If currently disabled, show how to enable; if enabled, show how to disable.
+            string hoverText;
+            string clickCommand;
+            string explanationText;
+            if (!currentStatus)
+            {
+                hoverText = "§aEnable§7: §e/cofl proxy on\n§7When enabled, you help by proxying web requests for data collection.\n§7Your internet will be used to fetch public web pages.\nTo do that we use your IP address and language setting.";
+                clickCommand = "/cofl proxy on";
+                explanationText = $"§7When enabled, you help by proxying web requests for data collection and earn {McColorCodes.YELLOW}proxy points{McColorCodes.GRAY} as a reward which can be exchanged to {McColorCodes.GOLD}CoflCoins.";
+            }
+            else
+            {
+                hoverText = "§cDisable§7: §e/cofl proxy off\n§7When disabled, you will no longer receive proxy requests.";
+                clickCommand = "/cofl proxy off";
+                explanationText = $"{McColorCodes.GREEN}You are earning Proxy points {McColorCodes.GRAY}Click to view how many you have";
+            }
+
+            socket.Dialog(db => db
+                .MsgLine($"§7Proxy status: {statusText}", clickCommand, hoverText)
+                .MsgLine(explanationText, "/cofl proxy balance",
+                 $"{McColorCodes.YELLOW}Click to view your proxy points and exchange options."));
             return;
         }
 
@@ -46,7 +64,7 @@ public class ProxyCommand : McCommand
             return;
         }
 
-        if (verb == "list" || verb == "points")
+        if (verb == "list" || verb == "points" || verb == "balance")
         {
             await HandleList(socket);
             return;
@@ -58,16 +76,17 @@ public class ProxyCommand : McCommand
             return;
         }
 
-        
+
     }
 
     private async Task HandleList(MinecraftSocket socket)
     {
         var ps = socket.GetService<ModCommands.Services.ProxyService>();
         var points = await ps.GetPointsAsync(socket.UserId);
-        socket.Dialog(db => db.MsgLine($"§7You have §e{points} §7proxy points.")
-            .MsgLine("§7Exchange options: small=2000->4, medium=20000->50, large=200000->600, giant=2000000->7000")
-            .MsgLine("§7Use §e/cofl proxy exchange <tier> §7or §e/cofl proxy exchange§7 for best automatic conversion."));
+        socket.Dialog(db => db.MsgLine($"§7You have §e{points:N0} §7proxy points.")
+            .MsgLine($"§7Exchange options: [hover]", null, $"§6small§7=§a2,000§7→§b4 CoflCoins\n§6medium§7=§a20,000§7→§b50\n§6large§7=§a200,000§7→§b600\n§6giant§7=§a2,000,000§7→§b7000")
+            .MsgLine("§7Use §e/cofl proxy exchange <tier> §7or §e/cofl proxy exchange §7for best automatic conversion.",
+            "/cofl proxy exchange", $"Click to run {McColorCodes.AQUA}/cofl proxy exchange"));
     }
 
     private async Task HandleExchange(MinecraftSocket socket, string tierArg)
