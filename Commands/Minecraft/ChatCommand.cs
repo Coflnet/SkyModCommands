@@ -72,10 +72,19 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + "Seems like you accientially sent a command in chat. If that was intentional, add a . in front to send it as message");
                 return;
             }
-            if (message == "disable")
+            if (message == "disable" || message == "off")
             {
                 socket.SendMessage(COFLNET + $"To turn the chat off just do {McColorCodes.AQUA}/cofl chat");
                 return;
+            }
+            if(message == "help")
+            {
+                socket.Dialog(db => db.MsgLine("Cofl Chat Help")
+                    .MsgLine($"{McColorCodes.AQUA}/cofl chat{McColorCodes.RESET} - Disables the chat")
+                    .MsgLine($"{McColorCodes.AQUA}/cofl mute <player>{McColorCodes.RESET} - Mutes a player so you don't see their messages")
+                    .MsgLine($"{McColorCodes.AQUA}/cofl emoji{McColorCodes.RESET} - Shows available emojis")
+                    .MsgLine($"{McColorCodes.GRAY}For general help check out our wiki [click to open]",
+                        "https://sky.coflnet.com/wiki/mod-commands#chatcommand-alias-c", "Open the wiki"));
             }
             if (string.IsNullOrEmpty(socket.SessionInfo.McName))
                 throw new CoflnetException("no_username", "Sorry we couldn't load your chat profile. Please try again in a few seconds.");
