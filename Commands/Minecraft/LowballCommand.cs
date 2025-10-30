@@ -23,8 +23,58 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
     {
         var args = arguments.Trim('"').Split(' ');
         var service = socket.GetService<LowballSerivce>();
+        var offerService = socket.GetService<Coflnet.Sky.ModCommands.Services.LowballOfferService>();
         if (args.Length == 1)
         {
+            if (args[0] == "list")
+            {
+                if (offerService == null)
+                {
+                    socket.Dialog(db => db.MsgLine("§cLowball listing not available on this server."));
+                    return;
+                }
+
+                var userId = socket.SessionInfo.McUuid;
+                var offers = await offerService.GetOffersByUser(userId, null, 100);
+                if (offers == null || offers.Count == 0)
+                {
+                    socket.Dialog(db => db.MsgLine("§7You have no active lowball offers."));
+                    return;
+                }
+
+                socket.Dialog(db => db.MsgLine("§7Your lowball offers:"));
+                foreach (var o in offers)
+                {
+                    // show item name, price and created time with a clickable [rm]
+                    var line = $"§6{o.ItemName} §7- {socket.FormatPrice(o.AskingPrice)} coins §8({o.CreatedAt.UtcDateTime:yyyy-MM-dd HH:mm}) ";
+                    var removeCmd = $"/cofl lowball remove {o.OfferId}";
+                    socket.Dialog(db => db.MsgLine(line + "§c[rm]", removeCmd, "Remove this lowball offer"));
+                }
+                return;
+            }
+            else if (args[0] == "remove" && args.Length == 2)
+            {
+                if (offerService == null)
+                {
+                    socket.Dialog(db => db.MsgLine("§cLowball removal not available on this server."));
+                    return;
+                }
+
+                if (!Guid.TryParse(args[1], out var offerId))
+                {
+                    socket.Dialog(db => db.MsgLine("§cInvalid offer id. Usage: /cofl lowball remove <offer-uuid>"));
+                    return;
+                }
+
+                var userId = socket.SessionInfo.McUuid;
+                var success = await offerService.DeleteOffer(userId, offerId);
+                if (success)
+                    socket.Dialog(db => db.MsgLine($"§aRemoved lowball offer {offerId}"));
+                else
+                    socket.Dialog(db => db.MsgLine($"§cFailed to remove lowball offer {offerId}. It may not exist or you are not the owner."));
+
+                return;
+            }
             if (args[0] == "on")
             {
                 service.Enable(socket);

@@ -100,6 +100,7 @@ public class Startup
         services.AddSingleton<IMuseumDonationService, MuseumDonationService>();
         services.AddSingleton<ApiKeyService>();
         services.AddSingleton<ProxyService>();
+        services.AddSingleton<LowballOfferService>();
         services.AddCoflService();
     }
 
