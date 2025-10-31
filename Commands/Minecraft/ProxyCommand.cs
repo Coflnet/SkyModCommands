@@ -50,6 +50,43 @@ public class ProxyCommand : McCommand
                 .MsgLine($"§7Proxy status: {statusText}", clickCommand, hoverText)
                 .MsgLine(explanationText, "/cofl proxy balance",
                  $"{McColorCodes.YELLOW}Click to view your proxy points and exchange options."));
+
+            // Show IP info if proxy is enabled
+            if (currentStatus)
+            {
+                var proxyService = socket.GetService<ModCommands.Services.ProxyService>();
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var ipInfo = await proxyService.GetUserIpInfoAsync(socket.UserId);
+                        if (ipInfo != null)
+                        {
+                            var vpnStatus = ipInfo.IsVpn ? "§cVPN" : "§aNo VPN";
+                            var proxyStatus = ipInfo.IsProxy ? "§cProxy" : "§aNo Proxy";
+                            var quality = (!ipInfo.IsVpn && !ipInfo.IsProxy) ? "§a✓ Good" : "§e⚠ May be deprioritized";
+                            
+                            socket.Dialog(db => db.MsgLine($"§7═══ §6Your IP Info §7═══")
+                                .MsgLine($"§7IP: §e{ipInfo.IpAddress}")
+                                .MsgLine($"§7Location: §e{ipInfo.City}, {ipInfo.Region}, {ipInfo.CountryCode}")
+                                .MsgLine($"§7ISP: §e{ipInfo.Isp}")
+                                .MsgLine($"§7Type: {vpnStatus}§7, {proxyStatus}")
+                                .MsgLine($"§7Quality: {quality}")
+                                .MsgLine($"§7Fraud Score: §e{ipInfo.FraudScore ?? 0}§7/100")
+                                .MsgLine($"§8Last checked: {ipInfo.LastUpdated:yyyy-MM-dd HH:mm} UTC"));
+                        }
+                        else
+                        {
+                            socket.Dialog(db => db.MsgLine("§7No IP info available. Enable proxy and wait for checks."));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        socket.GetService<ILogger<ProxyCommand>>().LogError(ex, "Error showing IP info");
+                    }
+                });
+            }
+            
             return;
         }
 
@@ -180,7 +217,8 @@ public class ProxyCommand : McCommand
             optIn = true;
             socket.Dialog(db => db.MsgLine("§aProxy enabled!")
                 .MsgLine("§7You will now receive proxy requests.")
-                .MsgLine("§7Thank you for helping with data collection!"));
+                .MsgLine("§7Thank you for helping with data collection!")
+                .MsgLine("§7Fetching your IP information..."));
         }
         else if (verb == "off" || verb == "disable" || verb == "no")
         {
@@ -207,9 +245,40 @@ public class ProxyCommand : McCommand
         if (accInfo != null)
         {
             if (accInfo.ProxyOptIn)
+            {
                 proxyService.RegisterSocket(socket);
+                
+                // Fetch IP info in background
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var ipInfo = await proxyService.FetchIpInfoAsync(socket);
+                        if (ipInfo != null)
+                        {
+                            var vpnStatus = ipInfo.IsVpn ? "§cVPN" : "§aNot VPN";
+                            var proxyStatus = ipInfo.IsProxy ? "§cProxy" : "§aNot Proxy";
+                            socket.Dialog(db => db.MsgLine($"§7IP Info: §e{ipInfo.IpAddress}")
+                                .MsgLine($"§7Location: §e{ipInfo.City}, {ipInfo.Region}, {ipInfo.CountryCode}")
+                                .MsgLine($"§7ISP: §e{ipInfo.Isp}")
+                                .MsgLine($"§7Status: {vpnStatus}§7, {proxyStatus}")
+                                .MsgLine($"§7Fraud Score: §e{ipInfo.FraudScore ?? 0}"));
+                        }
+                        else
+                        {
+                            socket.Dialog(db => db.MsgLine("§cFailed to fetch IP information. This won't affect proxying."));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        socket.GetService<ILogger<ProxyCommand>>().LogError(ex, "Error fetching IP info");
+                    }
+                });
+            }
             else
+            {
                 proxyService.UnregisterSocket(socket);
+            }
         }
     }
 }
