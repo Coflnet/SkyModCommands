@@ -58,8 +58,9 @@ public class VpsSocket : WebSocketBehavior
 
     private void Distributeupdate(VPsStateUpdate update)
     {
-        logger.LogInformation("Received update {ip} for {target} {id}", IP, update.Instance.HostMachineIp, update.Instance.Id);
-        if (update.Instance.HostMachineIp == IP)
+        var isForThisconnection = update.Instance.HostMachineIp == IP;
+        logger.LogInformation("Received update {ip} for {target} ({forThis}) {id}", IP, update.Instance.HostMachineIp, isForThisconnection, update.Instance.Id);
+        if (isForThisconnection)
         {
             Send(JsonConvert.SerializeObject(Response.Create("configUpdate", update)));
             logger.LogInformation("Sent update {ip} for {target} {id}", IP, update.Instance.HostMachineIp, update.Instance.Id);
