@@ -534,6 +534,60 @@ public class FullAfVersionAdapter : AfVersionAdapter
         socket.sessionLifesycle.FlipSettings.Value.Visibility.Seller = false;
     }
 
+    /// <summary>
+    /// Sends a bazaar order placement recommendation to the client
+    /// </summary>
+    /// <param name="itemTag">The item tag (e.g., "ENCHANTED_DIAMOND")</param>
+    /// <param name="itemName">The display name for the item</param>
+    /// <param name="isSell">True for sell orders, false for buy orders</param>
+    /// <param name="price">The price per unit</param>
+    /// <param name="amount">The amount to order</param>
+    public void SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount)
+    {
+        socket.Send(Response.Create("placeOrder", new
+        {
+            itemName = itemName,
+            isSell = isSell,
+            price = price,
+            amount = amount
+        }));
+    }
+
+    /// <summary>
+    /// Recommends a bazaar sell order for an item using current bazaar prices
+    /// </summary>
+    /// <param name="itemTag">The item tag to sell</param>
+    /// <param name="itemName">The display name</param>
+    /// <param name="amount">Amount to sell (default 64)</param>
+    public async Task RecommendBazaarSellOrder(string itemTag, string itemName, int amount = 64)
+    {
+        try
+        {
+            var bazaarApi = socket.GetService<Bazaar.Client.Api.IBazaarApi>();
+            var priceHistory = await bazaarApi.GetHistoryGraphAsync(itemTag);
+            var latestPrice = priceHistory.OrderByDescending(h => h.Timestamp).FirstOrDefault();
+            
+            if (latestPrice == null)
+            {
+                socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Could not fetch bazaar price for {itemName}"));
+                return;
+            }
+
+            // Use sell price (what buyers pay) for sell orders
+            var sellPrice = latestPrice.Sell;
+            SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount);
+            
+            socket.Dialog(db => db.MsgLine(
+                $"{McColorCodes.GRAY}Recommending sell order: {McColorCodes.YELLOW}{amount}x {itemName} {McColorCodes.GRAY}at {McColorCodes.GREEN}{socket.FormatPrice((long)sellPrice)}{McColorCodes.GRAY} per unit",
+                $"/bz {BazaarUtils.GetSearchValue(itemTag, itemName)}",
+                "Click to open in bazaar"));
+        }
+        catch (Exception e)
+        {
+            socket.Error(e, $"Failed to recommend bazaar sell order for {itemTag}");
+        }
+    }
+
     private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)
     {
         var uid = item.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid" || y.Key == "uid").Value?.Split('-').Last();

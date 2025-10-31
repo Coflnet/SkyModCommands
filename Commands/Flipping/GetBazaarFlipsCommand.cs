@@ -44,9 +44,21 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag, names[recommended.ItemTag]),
                 ItemTag = recommended.ItemTag,
                 Price = price,
-                Amount = price < 100_000 ? 64 : 4
+                Amount = price < 100_000 ? 64 : 4,
+                IsSell = false // buy orders from getbazaarflips
             };
-            socket.Send(Response.Create("bzRecommend", recommend));
+
+            // Use new placeOrder message for FullAfVersionAdapter
+            if (socket is MinecraftSocket ms && ms.ModAdapter is MC.FullAfVersionAdapter fullAf)
+            {
+                fullAf.SendBazaarOrderRecommendation(recommend.ItemTag, recommend.ItemName, recommend.IsSell, recommend.Price, recommend.Amount);
+            }
+            else
+            {
+                // Fallback to old bzRecommend for other adapters
+                socket.Send(Response.Create("bzRecommend", recommend));
+            }
+
             socket.Dialog(db => db.MsgLine($"Recommending an order of {McColorCodes.GREEN}{recommend.Amount}x {McColorCodes.YELLOW}{recommend.ItemName} {McColorCodes.GRAY}for {McColorCodes.GREEN}{socket.FormatPrice((long)recommend.Price)}{McColorCodes.GRAY}",
                 $"/bz {recommend.ItemName}", "click to open on bazaar"));
 
