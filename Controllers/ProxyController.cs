@@ -156,7 +156,7 @@ public class ProxyRequestDto
     /// <summary>
     /// The URL to upload the response to
     /// </summary>
-    public string? UploadTo { get; set; }
+    public string? UploadTo { get; set; } = MinecraftSocket.IsDevMode ? "http://localhost:5005/api/data/proxy" : "https://sky.coflnet.com/api/data/proxy";
 
     /// <summary>
     /// Optional locale filter for selecting proxy users

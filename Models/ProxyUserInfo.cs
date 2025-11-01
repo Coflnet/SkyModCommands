@@ -4,9 +4,9 @@ using Cassandra.Mapping.Attributes;
 namespace Coflnet.Sky.ModCommands.Models;
 
 /// <summary>
-/// Stores IP geolocation and quality information for proxy users
+/// Stores essential IP geolocation information for proxy users
 /// </summary>
-[Table("proxy_user_info")]
+[Table("proxy_user_info_2")]
 public class ProxyUserInfo
 {
     [PartitionKey]
@@ -28,27 +28,13 @@ public class ProxyUserInfo
     [Column("city")]
     public string City { get; set; }
 
-    [Column("region")]
-    public string Region { get; set; }
-
-    [Column("isp")]
-    public string Isp { get; set; }
-
-    [Column("is_vpn")]
-    public bool IsVpn { get; set; }
-
-    [Column("is_proxy")]
-    public bool IsProxy { get; set; }
-
-    [Column("fraud_score")]
-    public int? FraudScore { get; set; }
+    /// <summary>
+    /// ASN type: "isp", "hosting", or "business"
+    /// Prefer ISP types for proxy routing
+    /// </summary>
+    [Column("asn_type")]
+    public string AsnType { get; set; }
 
     [Column("last_updated")]
     public DateTimeOffset LastUpdated { get; set; }
-
-    [Column("ip_quality_raw")]
-    public string IpQualityRaw { get; set; }
-
-    [Column("ip_api_raw")]
-    public string IpApiRaw { get; set; }
 }

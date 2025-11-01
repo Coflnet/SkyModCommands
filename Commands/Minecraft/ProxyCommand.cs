@@ -62,17 +62,19 @@ public class ProxyCommand : McCommand
                         var ipInfo = await proxyService.GetUserIpInfoAsync(socket.UserId);
                         if (ipInfo != null)
                         {
-                            var vpnStatus = ipInfo.IsVpn ? "§cVPN" : "§aNo VPN";
-                            var proxyStatus = ipInfo.IsProxy ? "§cProxy" : "§aNo Proxy";
-                            var quality = (!ipInfo.IsVpn && !ipInfo.IsProxy) ? "§a✓ Good" : "§e⚠ May be deprioritized";
+                            var asnTypeDisplay = ipInfo.AsnType switch
+                            {
+                                "isp" => "§a✓ ISP (Preferred)",
+                                "hosting" => "§e⚠ Hosting",
+                                "business" => "§e⚠ Business",
+                                _ => "§7Unknown"
+                            };
                             
                             socket.Dialog(db => db.MsgLine($"§7═══ §6Your IP Info §7═══")
                                 .MsgLine($"§7IP: §e{ipInfo.IpAddress}")
-                                .MsgLine($"§7Location: §e{ipInfo.City}, {ipInfo.Region}, {ipInfo.CountryCode}")
-                                .MsgLine($"§7ISP: §e{ipInfo.Isp}")
-                                .MsgLine($"§7Type: {vpnStatus}§7, {proxyStatus}")
-                                .MsgLine($"§7Quality: {quality}")
-                                .MsgLine($"§7Fraud Score: §e{ipInfo.FraudScore ?? 0}§7/100")
+                                .MsgLine($"§7Location: §e{ipInfo.City}, {ipInfo.CountryCode}")
+                                .MsgLine($"§7Coordinates: §e{ipInfo.Latitude:F4}, {ipInfo.Longitude:F4}")
+                                .MsgLine($"§7ASN Type: {asnTypeDisplay}")
                                 .MsgLine($"§8Last checked: {ipInfo.LastUpdated:yyyy-MM-dd HH:mm} UTC"));
                         }
                         else
@@ -217,8 +219,7 @@ public class ProxyCommand : McCommand
             optIn = true;
             socket.Dialog(db => db.MsgLine("§aProxy enabled!")
                 .MsgLine("§7You will now receive proxy requests.")
-                .MsgLine("§7Thank you for helping with data collection!")
-                .MsgLine("§7Fetching your IP information..."));
+                .MsgLine("§7Thank you for helping with data collection!"));
         }
         else if (verb == "off" || verb == "disable" || verb == "no")
         {
@@ -256,13 +257,15 @@ public class ProxyCommand : McCommand
                         var ipInfo = await proxyService.FetchIpInfoAsync(socket);
                         if (ipInfo != null)
                         {
-                            var vpnStatus = ipInfo.IsVpn ? "§cVPN" : "§aNot VPN";
-                            var proxyStatus = ipInfo.IsProxy ? "§cProxy" : "§aNot Proxy";
+                            var asnTypeDisplay = ipInfo.AsnType switch
+                            {
+                                "isp" => "§a✓ ISP (Preferred for proxying)",
+                                "hosting" => "§e⚠ Hosting",
+                                "business" => "§e⚠ Business",
+                                _ => "§7Unknown"
+                            };
                             socket.Dialog(db => db.MsgLine($"§7IP Info: §e{ipInfo.IpAddress}")
-                                .MsgLine($"§7Location: §e{ipInfo.City}, {ipInfo.Region}, {ipInfo.CountryCode}")
-                                .MsgLine($"§7ISP: §e{ipInfo.Isp}")
-                                .MsgLine($"§7Status: {vpnStatus}§7, {proxyStatus}")
-                                .MsgLine($"§7Fraud Score: §e{ipInfo.FraudScore ?? 0}"));
+                                .MsgLine($"§7ASN Type: {asnTypeDisplay}"));
                         }
                         else
                         {

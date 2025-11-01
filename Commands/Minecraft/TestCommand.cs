@@ -89,7 +89,7 @@ namespace Coflnet.Sky.Commands.MC
 
     public class ProxyRequest
     {
-        public string uploadTo { get; set; }
+        public string uploadTo { get; set; } = MinecraftSocket.IsDevMode ? "http://localhost:5005/api/data/proxy" : "https://sky.coflnet.com/api/data/proxy";
         public string id { get; set; }
         public string url { get; set; }
         public string regex { get; set; }

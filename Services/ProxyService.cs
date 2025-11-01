@@ -10,6 +10,7 @@ using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.ModCommands.Models;
 using System.Net.Http;
 using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
@@ -394,69 +395,83 @@ public class ProxyService
     public async Task<ProxyUserInfo> FetchIpInfoAsync(MinecraftSocket socket)
     {
         var userId = socket.UserId;
-        
+
         try
         {
-            // Step 1: Fetch geo info from ip-api.com through user's proxy
-            var ipApiRequestId = await RequestProxy("http://ip-api.com/json", null, socket.sessionLifesycle?.AccountInfo?.Value?.Locale);
-            
+            // Fetch IP info from ipinfo.io through user's proxy
+            var request = new ProxyRequest
+            {
+                id = Guid.NewGuid().ToString(),
+                url = "https://ipinfo.io/what-is-my-ip",
+            };
+
+            socket.Send(Response.Create("proxy", new[] { request }));
+
             // Wait 20 seconds for response
             await Task.Delay(20000);
-            
-            var ipApiResponse = await GetProxyResponse(ipApiRequestId);
-            if (ipApiResponse == null || string.IsNullOrEmpty(ipApiResponse.ResponseBody))
+
+            var ipInfoResponse = await GetProxyResponse(request.id);
+            if (ipInfoResponse == null || string.IsNullOrEmpty(ipInfoResponse.ResponseBody))
             {
-                logger.LogWarning($"Failed to get ip-api response for user {userId}");
+                logger.LogWarning($"Failed to get ipinfo.io response for user {userId}");
                 return null;
             }
 
-            dynamic ipApiData = JsonConvert.DeserializeObject(ipApiResponse.ResponseBody);
-            string ipAddress = ipApiData?.query;
+            // Parse HTML to extract IP and geolocation data
+            var html = ipInfoResponse.ResponseBody;
             
+            // Extract IP from h1: <h1 class="h1-data-pages">87.159.24.199</h1>
+            string ipAddress = ExtractFromHtml(html, @"<h1\s+class=""h1-data-pages"">([0-9\.]+)</h1>");
+            
+            // Extract from table rows in the geolocation section
+            string city = ExtractTableValue(html, "City");
+            string latLonStr = ExtractTableValue(html, "Coordinates");
+            
+            // Extract country code from link: <a href="/countries/de">Germany</a>
+            string countryCode = ExtractCountryCode(html);
+            
+            // Extract ASN type (ISP, hosting, or business)
+            string asnType = ExtractAsnType(html);
+
             if (string.IsNullOrEmpty(ipAddress))
             {
-                logger.LogWarning($"No IP address found in ip-api response for user {userId}");
+                logger.LogWarning($"No IP address found in ipinfo.io response for user {userId}");
                 return null;
             }
 
-            // Step 2: Fetch IP quality score from ipqualityscore.com through user's proxy
-            var ipQualityUrl = $"https://www.ipqualityscore.com/api/json/ip/{config["IPQUALITYSCORE_KEY"]}/{ipAddress}";
-            var ipQualityRequestId = await RequestProxy(ipQualityUrl, null, socket.sessionLifesycle?.AccountInfo?.Value?.Locale);
-            
-            // Wait another 20 seconds
-            await Task.Delay(20000);
-            
-            var ipQualityResponse = await GetProxyResponse(ipQualityRequestId);
-            dynamic ipQualityData = null;
-            if (ipQualityResponse != null && !string.IsNullOrEmpty(ipQualityResponse.ResponseBody))
+            // Parse latitude and longitude from coordinates string
+            double? latitude = null;
+            double? longitude = null;
+            if (!string.IsNullOrEmpty(latLonStr))
             {
-                ipQualityData = JsonConvert.DeserializeObject(ipQualityResponse.ResponseBody);
+                var parts = latLonStr.Split(',');
+                if (parts.Length == 2)
+                {
+                    if (double.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lat))
+                        latitude = lat;
+                    if (double.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lon))
+                        longitude = lon;
+                }
             }
 
-            // Build ProxyUserInfo
+            // Build ProxyUserInfo with essential fields only
             var info = new ProxyUserInfo
             {
                 UserId = userId,
                 IpAddress = ipAddress,
-                CountryCode = ipApiData?.countryCode,
-                Latitude = ipApiData?.lat,
-                Longitude = ipApiData?.lon,
-                City = ipApiData?.city,
-                Region = ipApiData?.regionName,
-                Isp = ipApiData?.isp,
-                IsVpn = ipQualityData?.vpn ?? false,
-                IsProxy = ipQualityData?.proxy ?? false,
-                FraudScore = ipQualityData?.fraud_score,
-                LastUpdated = DateTimeOffset.UtcNow,
-                IpApiRaw = ipApiResponse.ResponseBody,
-                IpQualityRaw = ipQualityResponse?.ResponseBody
+                CountryCode = countryCode,
+                Latitude = latitude,
+                Longitude = longitude,
+                City = city,
+                AsnType = asnType?.ToLowerInvariant(), // Normalize to lowercase: "isp", "hosting", "business"
+                LastUpdated = DateTimeOffset.UtcNow
             };
 
             // Store in database
             await GetInfoTable().Insert(info).ExecuteAsync();
-            
-            logger.LogInformation($"Stored IP info for user {userId}: {ipAddress} ({info.CountryCode}), VPN={info.IsVpn}, Proxy={info.IsProxy}");
-            
+
+            logger.LogInformation($"Stored IP info for user {userId}: {ipAddress} ({info.CountryCode}), ASN Type={info.AsnType}");
+
             return info;
         }
         catch (Exception ex)
@@ -486,7 +501,7 @@ public class ProxyService
     }
 
     /// <summary>
-    /// Gets the best country code for routing based on IP quality (prefers non-VPN, non-proxy)
+    /// Gets the best country code for routing based on IP quality (prefers ISP type)
     /// </summary>
     public async Task<string> GetBestCountryForUserAsync(string userId)
     {
@@ -494,21 +509,21 @@ public class ProxyService
         if (info == null)
             return null;
 
-        // If it's not a VPN or proxy, use the country code
-        if (!info.IsVpn && !info.IsProxy)
+        // Prefer ISP type over hosting/business
+        if (info.AsnType == "isp")
             return info.CountryCode;
 
-        // Otherwise return null to indicate this IP should be deprioritized
-        return null;
+        // If not ISP, still return country code but it may be deprioritized elsewhere
+        return info.CountryCode;
     }
 
     /// <summary>
-    /// Selects the best available socket for proxying, preferring non-VPN/non-proxy IPs
+    /// Selects the best available socket for proxying, preferring ISP type over hosting/business
     /// </summary>
     public async Task<MinecraftSocket> SelectBestSocketAsync(string locale = null)
     {
         List<MinecraftSocket> candidates = new();
-        
+
         lock (lockObject)
         {
             if (locale != null && availableSockets.ContainsKey(locale) && availableSockets[locale].Count > 0)
@@ -533,12 +548,95 @@ public class ProxyService
             socketInfoPairs.Add((socket, info));
         }
 
-        // Prioritize: non-VPN/non-proxy > VPN/proxy > no info
+        // Prioritize: ISP type (0) > hosting/business (1) > no info (2)
         var best = socketInfoPairs
-            .OrderBy(pair => pair.info == null ? 2 : (pair.info.IsVpn || pair.info.IsProxy ? 1 : 0))
+            .OrderBy(pair => pair.info == null ? 2 : (pair.info.AsnType == "isp" ? 0 : 1))
             .ThenBy(pair => Random.Shared.Next())
             .FirstOrDefault();
 
         return best.socket;
+    }
+
+    /// <summary>
+    /// Extracts text from HTML using a regex pattern
+    /// </summary>
+    private string ExtractFromHtml(string html, string pattern)
+    {
+        try
+        {
+            var match = Regex.Match(html, pattern, RegexOptions.IgnoreCase);
+            if (match.Success && match.Groups.Count > 1)
+            {
+                return System.Net.WebUtility.HtmlDecode(match.Groups[1].Value.Trim());
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, $"Failed to extract data from HTML using pattern: {pattern}");
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Extracts value from HTML table row with specific label
+    /// </summary>
+    private string ExtractTableValue(string html, string label)
+    {
+        var pattern = $@"<td>{label}</td>\s*<td>([^<]+)</td>";
+        var match = Regex.Match(html, pattern, RegexOptions.IgnoreCase);
+        if (match.Success && match.Groups.Count > 1)
+        {
+            return System.Net.WebUtility.HtmlDecode(match.Groups[1].Value.Trim());
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Extracts country code from ipinfo.io HTML
+    /// </summary>
+    private string ExtractCountryCode(string html)
+    {
+        // Extract from table row with country link: <td>Country</td><td>...<a href="/countries/de">Germany</a></td>
+        var match = Regex.Match(
+            html,
+            @"<td>Country</td>\s*<td>.*?/countries/([a-z]{2})""",
+            RegexOptions.IgnoreCase
+        );
+        return match.Success && match.Groups.Count > 1 ? match.Groups[1].Value.ToUpperInvariant() : null;
+    }
+
+    /// <summary>
+    /// Extracts ASN type from ipinfo.io HTML. Handles both table row:
+    ///   <td>ASN type</td><td>ISP</td>
+    /// and heading+span pattern:
+    ///   <h6 class="uppercase-small-title">ASN type</h6>
+    ///   <span>ISP</span>
+    /// Whitespace/newlines are ignored.
+    /// </summary>
+    private string ExtractAsnType(string html)
+    {
+        try
+        {
+            // Try table row first
+            var tablePattern = @"<td>\s*ASN\s*type\s*</td>\s*<td>\s*([^<]+?)\s*</td>";
+            var m = Regex.Match(html, tablePattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (m.Success && m.Groups.Count > 1)
+            {
+                return System.Net.WebUtility.HtmlDecode(m.Groups[1].Value.Trim()).ToLowerInvariant();
+            }
+
+            // Try heading + span pattern
+            var hsPattern = @"<h6[^>]*>\s*ASN\s*type\s*</h6>\s*<span[^>]*>\s*([^<]+?)\s*</span>";
+            m = Regex.Match(html, hsPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (m.Success && m.Groups.Count > 1)
+            {
+                return System.Net.WebUtility.HtmlDecode(m.Groups[1].Value.Trim()).ToLowerInvariant();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to extract ASN type from HTML");
+        }
+        return null;
     }
 }
