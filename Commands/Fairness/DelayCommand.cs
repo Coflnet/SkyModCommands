@@ -35,7 +35,7 @@ namespace Coflnet.Sky.Commands.MC
                             .MsgLine($"Purchase premium to remove delay. {McColorCodes.AQUA}/cofl buy", "/cofl buy", "Shows the premium options"));
                 return;
             }
-            if (!socket.SessionInfo.FlipsEnabled)
+            if (socket.HasFlippingDisabled())
             {
                 socket.Dialog(db => db.CoflCommand<FlipCommand>("You don't have flips enabled.\nClick to toggle flips", "", "Click to toggle them"));
                 return;
