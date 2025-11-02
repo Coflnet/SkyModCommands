@@ -111,6 +111,11 @@ public class ProxyCommand : McCommand
 
         if (verb == "on" || verb == "enable" || verb == "yes" || verb == "off" || verb == "disable" || verb == "no")
         {
+            if(socket.ModAdapter is AfVersionAdapter afAdapter)
+            {
+                socket.Dialog(db => db.MsgLine("§cProxying is only supported by our official mod which you appear to not be using."));
+                return;
+            }
             await HandleToggle(socket, verb);
             return;
         }
