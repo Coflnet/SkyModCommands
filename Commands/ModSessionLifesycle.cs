@@ -143,7 +143,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendLastChangeInfo()
         {
-            if(!TierManager.IsNewConnection())
+            if (!TierManager.IsNewConnection())
                 return;
             var messageService = socket.GetService<IMessageApi>();
             var devlog = await messageService.GetMessagesAsync("devlog", DateTime.UtcNow.RoundDown(TimeSpan.FromHours(1)));
@@ -298,7 +298,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (onchange.SourceType == "bazaar" && onchange.SourceSubId == "outbid")
                 {
-                    if(onchange.Timestamp < DateTime.UtcNow.AddSeconds(-30))
+                    if (onchange.Timestamp < DateTime.UtcNow.AddSeconds(-30))
                         return; // ignore old outbid messages
                     onchange.Link = "/managebazaarorders";
                     if (socket.Settings.ModSettings.PlaySoundOnOutbid)
@@ -482,13 +482,7 @@ namespace Coflnet.Sky.Commands.MC
                         info.LastMacroConnect = DateTime.Now.AddDays(-1);
                     SessionInfo.IsMacroBot = true;
                 }
-                
-                // Register or unregister with proxy service based on account info (no duplication on SessionInfo)
-                var proxyService = socket.GetService<ModCommands.Services.ProxyService>();
-                if (info.ProxyOptIn)
-                    proxyService.RegisterSocket(socket);
-                else
-                    proxyService.UnregisterSocket(socket);
+
                 var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info, socket.SessionInfo);
                 span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (info.UserId != socket.UserId && socket.UserId?.Length > 2)
@@ -507,6 +501,17 @@ namespace Coflnet.Sky.Commands.MC
                         // multiple connections
                     }
                 }
+
+                _ = socket.TryAsyncTimes(async () =>
+                {
+                    await Task.Delay(100);
+                    // Register or unregister with proxy service based on account info (no duplication on SessionInfo)
+                    var proxyService = socket.GetService<ModCommands.Services.ProxyService>();
+                    if (info.ProxyOptIn)
+                        proxyService.RegisterSocket(socket);
+                    else
+                        proxyService.UnregisterSocket(socket);
+                }, "proxy optin check", 1);
                 var tier = await TierManager.GetCurrentCached();
                 if (!TierManager.IsNewConnection())
                 {
@@ -1173,7 +1178,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Console.WriteLine($"Failed to unregister socket from proxy service: {ex.Message}");
             }
-            
+
             FlipSettings?.Dispose();
             UserId?.Dispose();
             AccountInfo?.Dispose();
