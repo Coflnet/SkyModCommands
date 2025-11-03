@@ -73,9 +73,10 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (IsDevMode)
                     return "1";
-                if (sessionLifesycle?.UserId?.Value == null)
-                    throw new NoLoginException();
-                return sessionLifesycle.UserId.Value;
+                var id = (sessionLifesycle?.UserId?.Value 
+                    ?? sessionLifesycle?.AccountInfo?.Value?.UserId) 
+                    ?? throw new NoLoginException();
+                return id;
             }
         }
 
