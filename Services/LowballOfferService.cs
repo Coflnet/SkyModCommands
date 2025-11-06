@@ -11,6 +11,9 @@ using Coflnet.Sky.ModCommands.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Net.Http;
+using System.Text;
+using System.Globalization;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
@@ -21,6 +24,7 @@ public class LowballOfferService
     private readonly ILogger<LowballOfferService> logger;
     private readonly Kafka.KafkaCreator kafkaCreator;
     private const string KafkaTopic = "sky-lowball-offers";
+    private static readonly HttpClient httpClient = new HttpClient();
 
     public LowballOfferService(ISession session, IConfiguration config, ILogger<LowballOfferService> logger, Kafka.KafkaCreator kafkaCreator)
     {
@@ -123,6 +127,7 @@ public class LowballOfferService
             OfferId = offerId,
             ItemTag = item.Tag,
             ItemName = item.ItemName,
+            MinecraftAccount = Guid.Parse(item.AuctioneerId),
             ApiAuctionJson = json,
             Filters = filters != null ? JsonConvert.SerializeObject(filters) : null,
             AskingPrice = askingPrice,
@@ -136,6 +141,7 @@ public class LowballOfferService
             CreatedAt = createdAt,
             OfferId = offerId,
             UserId = userId,
+            MinecraftAccount = Guid.Parse(item.AuctioneerId),
             ItemName = item.ItemName,
             ApiAuctionJson = json,
             Filters = filters != null ? JsonConvert.SerializeObject(filters) : null,
@@ -153,7 +159,67 @@ public class LowballOfferService
 
         logger.LogInformation($"Created lowball offer {offerId} for user {userId}, item {item.Tag}");
 
+        // Try to post a nicely formatted webhook about the new offer
+        try
+        {
+            await SendWebhookAsync(offer);
+        }
+        catch (Exception ex)
+        {
+            // Ensure webhook failures don't block offer creation
+            logger.LogWarning(ex, "Failed to send lowball webhook");
+        }
+
         return offer;
+    }
+
+    private async Task SendWebhookAsync(LowballOffer offer)
+    {
+        var webhookUrl = config["LOWBALL_WEBHOOK_URL"];
+        if (string.IsNullOrEmpty(webhookUrl))
+        {
+            logger.LogDebug("LOWBALL_WEBHOOK_URL not configured; skipping webhook post");
+            return;
+        }
+
+        // Build Discord-style embed payload
+        var itemImage = $"https://sky.coflnet.com/static/item/{offer.ItemTag}";
+        var sellerIcon = $"https://crafatar.com/avatars/{offer.MinecraftAccount:N}";
+
+        var priceText = offer.AskingPrice.ToString("N0", CultureInfo.InvariantCulture);
+        var itemCountText = offer.ItemCount > 1 ? $" x{offer.ItemCount}" : string.Empty;
+
+        var embed = new
+        {
+            title = "New Lowball Offer",
+            description = $"**{offer.ItemName}**{itemCountText}",
+            color = 3066993, // green-ish
+            thumbnail = new { url = itemImage },
+            author = new { name = offer.UserId, icon_url = sellerIcon },
+            fields = new[]
+            {
+                new { name = "Asking Price", value = priceText, inline = true },
+                new { name = "Offer ID", value = offer.OfferId.ToString(), inline = true }
+            },
+            footer = new { text = "Sky lowball offer" },
+            timestamp = offer.CreatedAt.ToString("o")
+        };
+
+        var payload = new { username = "Lowball Bot", embeds = new[] { embed } };
+
+        var json = JsonConvert.SerializeObject(payload);
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var resp = await httpClient.PostAsync(webhookUrl, content);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync();
+            logger.LogWarning("Lowball webhook POST returned {Status} - {Body}", resp.StatusCode, body);
+        }
+        else
+        {
+            logger.LogInformation("Posted lowball webhook for offer {OfferId}", offer.OfferId);
+        }
     }
 
     private async Task PublishToKafka(LowballOffer offer)

@@ -22,6 +22,9 @@ public class LowballOffer
     [Column("item_tag")]
     public string ItemTag { get; set; }
 
+    [Column("minecraft_account")]
+    public Guid MinecraftAccount { get; set; }
+
     [Column("item_name")]
     public string ItemName { get; set; }
 
@@ -58,6 +61,9 @@ public class LowballOfferByItem
 
     [Column("user_id")]
     public string UserId { get; set; }
+
+    [Column("minecraft_account")]
+    public Guid MinecraftAccount { get; set; }
 
     [Column("item_name")]
     public string ItemName { get; set; }

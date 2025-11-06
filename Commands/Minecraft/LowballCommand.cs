@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Client.Model;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.PlayerState.Client.Model;
 using Newtonsoft.Json;
 
@@ -171,8 +172,9 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
         }
         else
         {
-            var price = Coflnet.Sky.Core.NumberParser.Long(context.Substring(6));
+            var price = Core.NumberParser.Long(context.Substring(6));
             var auction = ConvertToAuction(item);
+            auction.AuctioneerId = socket.SessionInfo.McUuid;
             var priceEstimate = await socket.GetService<ISniperClient>().GetPrices([auction]);
             if (priceEstimate.Count == 0)
             {
@@ -185,6 +187,14 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
                 .MsgLine($"You offered {socket.FormatPrice(price)} coins to lowballers, {McColorCodes.YELLOW}{buyerCount} buyers are interested{McColorCodes.GRAY} in this item at this price currently and may visit your island."));
             Console.WriteLine($"received '{context}'");
             serivce.Offer(auction, price, priceEstimate[0], socket);
+            try
+            {
+                await socket.GetService<LowballOfferService>().CreateOffer(socket.UserId, auction, price);
+            }
+            catch (Exception e)
+            {
+                socket.Error(e, "Failed to create lowball offer in database");
+            }
         }
     }
 
