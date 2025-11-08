@@ -65,7 +65,7 @@ public class SwitchRegionCommand : McCommand
             "130.131", //azure
         };
 
-        if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith))
+        if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith) || true)
         {
             socket.Dialog(db => db.MsgLine("You seem have good connection to linode, switching to us-linode"));
             tobeUsed = "us-linode";
