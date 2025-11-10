@@ -137,6 +137,13 @@ public class AccountTierManager : IAccountTierManager
                 expires = (socket.AccountInfo.Tier, socket.AccountInfo.ExpiresAt);
             else
                 expires = (response.Item1 ?? socket.AccountInfo.Tier, response.Item2);
+            if(socket.AccountInfo.Tier != expires.Item1)
+            {
+                using var updateSpan = socket.CreateActivity("updateAccountInfoTier", span);
+                socket.AccountInfo.Tier = expires.Item1;
+                socket.AccountInfo.ExpiresAt = expires.Item2;
+                await socket.sessionLifesycle.AccountInfo.Update();
+            }
         }
         else
             expires = (lastTier ?? AccountTier.NONE, expiresAt);
