@@ -175,6 +175,10 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             var price = Core.NumberParser.Long(context.Substring(6));
             var auction = ConvertToAuction(item);
             auction.AuctioneerId = socket.SessionInfo.McUuid;
+            auction.Context = new Dictionary<string, string>()
+            {
+                { "lore", item.Description}
+            };
             var priceEstimate = await socket.GetService<ISniperClient>().GetPrices([auction]);
             if (priceEstimate.Count == 0)
             {
