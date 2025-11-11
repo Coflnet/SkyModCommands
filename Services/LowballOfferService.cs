@@ -14,6 +14,8 @@ using Newtonsoft.Json;
 using System.Net.Http;
 using System.Text;
 using System.Globalization;
+using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.PlayerName.Client.Api;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
@@ -185,6 +187,7 @@ public class LowballOfferService
         // Build Discord-style embed payload
         var itemImage = $"https://sky.coflnet.com/static/item/{offer.ItemTag}";
         var sellerIcon = $"https://crafatar.com/avatars/{offer.MinecraftAccount:N}";
+        var name = await DiHandler.GetService<IPlayerNameApi>().PlayerNameNameUuidGetAsync(offer.MinecraftAccount.ToString("N"));
 
         var priceText = offer.AskingPrice.ToString("N0", CultureInfo.InvariantCulture);
         var itemCountText = offer.ItemCount > 1 ? $" x{offer.ItemCount}" : string.Empty;
@@ -195,7 +198,7 @@ public class LowballOfferService
             description = $"**{offer.ItemName}**{itemCountText}",
             color = 3066993, // green-ish
             thumbnail = new { url = itemImage },
-            author = new { name = offer.UserId, icon_url = sellerIcon },
+            author = new { name = name, icon_url = sellerIcon },
             fields = new[]
             {
                 new { name = "Asking Price", value = priceText, inline = true },
