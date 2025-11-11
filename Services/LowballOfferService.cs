@@ -232,9 +232,9 @@ public class LowballOfferService
         }
 
         // Build Discord-style embed payload
-        var itemImage = $"https://sky.coflnet.com/static/item/{offer.ItemTag}";
+        var itemImage = $"https://sky.coflnet.com/static/icon/{offer.ItemTag}";
         var sellerIcon = $"https://crafatar.com/avatars/{offer.MinecraftAccount:N}";
-        var name = await DiHandler.GetService<IPlayerNameApi>().PlayerNameNameUuidGetAsync(offer.MinecraftAccount.ToString("N"));
+        var name = (await DiHandler.GetService<IPlayerNameApi>().PlayerNameNameUuidGetAsync(offer.MinecraftAccount.ToString("N"))).Trim('"');
 
         var priceText = offer.AskingPrice.ToString("N0", CultureInfo.InvariantCulture);
         var targetValue = estimate.Median.ToString("N0", CultureInfo.InvariantCulture);
@@ -246,10 +246,9 @@ public class LowballOfferService
         var embed = new
         {
             title = "New Lowball Offer",
-            description = $"**{cleanItemName}**{itemCountText}",
+            description = $"[**{cleanItemName}**{itemCountText}](https://sky.coflnet.com/item/{offer.ItemTag})",
             color = embedColor,
             thumbnail = new { url = itemImage },
-            author = new { name = name, icon_url = sellerIcon },
             fields = new[]
             {
                 new { name = "Asking Price", value = priceText, inline = true },
@@ -260,7 +259,12 @@ public class LowballOfferService
             timestamp = offer.CreatedAt.ToString("o")
         };
 
-        var payload = new { username = "Lowball Bot", embeds = new[] { embed } };
+        var payload = new
+        {
+            username = name,
+            avatar_url = sellerIcon,
+            embeds = new[] { embed }
+        };
 
         var json = JsonConvert.SerializeObject(payload);
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
