@@ -115,7 +115,7 @@ public class LowballOfferService
                 .ClusteringKey(u => u.OfferId)));
     }
 
-    public async Task<LowballOffer> CreateOffer(string userId, SaveAuction item, long askingPrice, Dictionary<string, string> filters = null)
+    public async Task<LowballOffer> CreateOffer(string userId, SaveAuction item, long askingPrice, Sniper.Client.Model.PriceEstimate estimate, Dictionary<string, string> filters = null)
     {
         var offerId = Guid.NewGuid();
         var createdAt = DateTimeOffset.UtcNow;
@@ -164,7 +164,7 @@ public class LowballOfferService
         // Try to post a nicely formatted webhook about the new offer
         try
         {
-            await SendWebhookAsync(offer);
+            await SendWebhookAsync(offer, estimate);
         }
         catch (Exception ex)
         {
@@ -175,7 +175,54 @@ public class LowballOfferService
         return offer;
     }
 
-    private async Task SendWebhookAsync(LowballOffer offer)
+    /// <summary>
+    /// Extracts the Minecraft color code from the beginning of an item name and converts it to a Discord embed color.
+    /// Minecraft color codes use the § character followed by a hex digit.
+    /// Returns the cleaned item name (without color codes) and the corresponding Discord embed color integer.
+    /// </summary>
+    private (string cleanName, int color) ExtractColorAndCleanItemName(string itemName)
+    {
+        if (string.IsNullOrEmpty(itemName))
+            return (itemName, 3066993); // default green-ish
+
+        // Minecraft color code mapping (§ followed by hex digit to RGB hex values)
+        var colorMap = new Dictionary<char, int>
+        {
+            { '0', 0x000000 }, // Black
+            { '1', 0x0000AA }, // Dark Blue
+            { '2', 0x00AA00 }, // Dark Green
+            { '3', 0x00AAAA }, // Dark Aqua
+            { '4', 0xAA0000 }, // Dark Red
+            { '5', 0xAA00AA }, // Dark Purple
+            { '6', 0xFFAA00 }, // Gold
+            { '7', 0xAAAAAA }, // Gray
+            { '8', 0x555555 }, // Dark Gray
+            { '9', 0x5555FF }, // Blue
+            { 'a', 0x55FF55 }, // Green
+            { 'b', 0x55FFFF }, // Aqua
+            { 'c', 0xFF5555 }, // Red
+            { 'd', 0xFF55FF }, // Light Purple
+            { 'e', 0xFFFF55 }, // Yellow
+            { 'f', 0xFFFFFF }  // White
+        };
+
+        // Check if the item name starts with a color code (§ followed by a hex digit)
+        if (itemName.Length >= 2 && itemName[0] == '§')
+        {
+            char colorCode = itemName[1];
+            if (colorMap.TryGetValue(colorCode, out int hexColor))
+            {
+                // Remove the color code from the item name
+                string cleanName = itemName.Substring(2).TrimStart();
+                return (cleanName, hexColor);
+            }
+        }
+
+        // No color code found, return the original name with default color
+        return (itemName, 3066993); // default green-ish
+    }
+
+    private async Task SendWebhookAsync(LowballOffer offer, Sniper.Client.Model.PriceEstimate estimate)
     {
         var webhookUrl = config["LOWBALL_WEBHOOK_URL"];
         if (string.IsNullOrEmpty(webhookUrl))
@@ -190,21 +237,26 @@ public class LowballOfferService
         var name = await DiHandler.GetService<IPlayerNameApi>().PlayerNameNameUuidGetAsync(offer.MinecraftAccount.ToString("N"));
 
         var priceText = offer.AskingPrice.ToString("N0", CultureInfo.InvariantCulture);
+        var targetValue = estimate.Median.ToString("N0", CultureInfo.InvariantCulture);
         var itemCountText = offer.ItemCount > 1 ? $" x{offer.ItemCount}" : string.Empty;
+
+        // Extract color code from item name and convert to Discord embed color
+        var (cleanItemName, embedColor) = ExtractColorAndCleanItemName(offer.ItemName);
 
         var embed = new
         {
             title = "New Lowball Offer",
-            description = $"**{offer.ItemName}**{itemCountText}",
-            color = 3066993, // green-ish
+            description = $"**{cleanItemName}**{itemCountText}",
+            color = embedColor,
             thumbnail = new { url = itemImage },
             author = new { name = name, icon_url = sellerIcon },
             fields = new[]
             {
                 new { name = "Asking Price", value = priceText, inline = true },
-                new { name = "Offer ID", value = offer.OfferId.ToString(), inline = true }
+                new { name = "Estimated Value", value = targetValue, inline = true },
+                new { name = "Visit Command", value = $"/visit {name}", inline = true }
             },
-            footer = new { text = "Sky lowball offer" },
+            footer = new { text = "SkyCofl lowball offer" },
             timestamp = offer.CreatedAt.ToString("o")
         };
 

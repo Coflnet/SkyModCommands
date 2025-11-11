@@ -193,7 +193,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             serivce.Offer(auction, price, priceEstimate[0], socket);
             try
             {
-                await socket.GetService<LowballOfferService>().CreateOffer(socket.UserId, auction, price);
+                await socket.GetService<LowballOfferService>().CreateOffer(socket.UserId, auction, price, priceEstimate.First());
             }
             catch (Exception e)
             {
