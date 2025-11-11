@@ -16,6 +16,7 @@ using System.Text;
 using System.Globalization;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.PlayerName.Client.Api;
+using System.IO;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
@@ -25,15 +26,17 @@ public class LowballOfferService
     private readonly IConfiguration config;
     private readonly ILogger<LowballOfferService> logger;
     private readonly Kafka.KafkaCreator kafkaCreator;
+    private readonly MinecraftLoreRenderer loreRenderer;
     private const string KafkaTopic = "sky-lowball-offers";
     private static readonly HttpClient httpClient = new HttpClient();
 
-    public LowballOfferService(ISession session, IConfiguration config, ILogger<LowballOfferService> logger, Kafka.KafkaCreator kafkaCreator)
+    public LowballOfferService(ISession session, IConfiguration config, ILogger<LowballOfferService> logger, Kafka.KafkaCreator kafkaCreator, MinecraftLoreRenderer loreRenderer)
     {
         this.session = session;
         this.config = config;
         this.logger = logger;
         this.kafkaCreator = kafkaCreator;
+        this.loreRenderer = loreRenderer;
         InitializeTables();
     }
 
@@ -222,6 +225,27 @@ public class LowballOfferService
         return (itemName, 3066993); // default green-ish
     }
 
+
+    /// <summary>
+    /// Renders Minecraft lore as an image with proper color codes.
+    /// Returns a MemoryStream of the rendered PNG image, or null if lore is empty.
+    /// </summary>
+    private async Task<MemoryStream> RenderLoreAsImageAsync(string lore)
+    {
+        if (string.IsNullOrWhiteSpace(lore))
+            return null;
+
+        try
+        {
+            return await loreRenderer.RenderLoreAsync(lore);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to render lore as image");
+            return null;
+        }
+    }
+
     private async Task SendWebhookAsync(LowballOffer offer, Sniper.Client.Model.PriceEstimate estimate)
     {
         var webhookUrl = config["LOWBALL_WEBHOOK_URL"];
@@ -243,12 +267,25 @@ public class LowballOfferService
         // Extract color code from item name and convert to Discord embed color
         var (cleanItemName, embedColor) = ExtractColorAndCleanItemName(offer.ItemName);
 
+        // Render lore as image
+        MemoryStream loreImageStream = null;
+        try
+        {
+            loreImageStream = await RenderLoreAsImageAsync(offer.Lore);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to render lore image");
+        }
+
+        // Build embed with lore image if available
         var embed = new
         {
             title = "New Lowball Offer",
             description = $"[**{cleanItemName}**{itemCountText}](https://sky.coflnet.com/item/{offer.ItemTag})",
             color = embedColor,
             thumbnail = new { url = itemImage },
+            image = loreImageStream != null ? new { url = "attachment://lore.png" } : null,
             fields = new[]
             {
                 new { name = "Asking Price", value = priceText, inline = true },
@@ -259,17 +296,51 @@ public class LowballOfferService
             timestamp = offer.CreatedAt.ToString("o")
         };
 
-        var payload = new
+        // If we have a lore image, use multipart form data
+        HttpResponseMessage resp;
+        if (loreImageStream != null)
         {
-            username = name,
-            avatar_url = sellerIcon,
-            embeds = new[] { embed }
-        };
+            try
+            {
+                using var formContent = new MultipartFormDataContent();
+                
+                // Add the JSON payload
+                var payloadJson = JsonConvert.SerializeObject(new
+                {
+                    username = name,
+                    avatar_url = sellerIcon,
+                    embeds = new[] { embed }
+                });
+                formContent.Add(new StringContent(payloadJson, Encoding.UTF8, "application/json"), "payload_json");
+                
+                // Add the lore image
+                loreImageStream.Position = 0;
+                var imageContent = new StreamContent(loreImageStream);
+                imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+                formContent.Add(imageContent, "file", "lore.png");
 
-        var json = JsonConvert.SerializeObject(payload);
-        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+                resp = await httpClient.PostAsync(webhookUrl, formContent);
+            }
+            finally
+            {
+                loreImageStream?.Dispose();
+            }
+        }
+        else
+        {
+            // No lore image, send regular JSON
+            var payload = new
+            {
+                username = name,
+                avatar_url = sellerIcon,
+                embeds = new[] { embed }
+            };
 
-        var resp = await httpClient.PostAsync(webhookUrl, content);
+            var json = JsonConvert.SerializeObject(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            resp = await httpClient.PostAsync(webhookUrl, content);
+        }
+
         if (!resp.IsSuccessStatusCode)
         {
             var body = await resp.Content.ReadAsStringAsync();
