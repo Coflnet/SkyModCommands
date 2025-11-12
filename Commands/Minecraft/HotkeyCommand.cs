@@ -31,20 +31,19 @@ public class HotkeyCommand : McCommand
 
         if (parts[0] == "openitemurl")
         {
-            socket.Send(Response.Create("openurl", "https://sky.coflnet.com/item/"  + auction.Tag));
+            socket.Send(Response.Create("openurl", "https://sky.coflnet.com/item/" + auction.Tag));
             return;
         }
         var sniperService = socket.GetService<ISniperClient>();
-        var filterTask = RequestFilters(socket, auction);
         var inventoryTask = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
         var valuesTask = sniperService.GetPrices([auction]);
-        var filterLinkTask = GetLinkFromFilters(auction, filterTask);
+        Task<string> filterLinkTask = GetLinkWithFilters(socket, auction);
         var price = (await valuesTask).First();
         var instaSell = SniperClient.InstaSellPrice(price);
         var lbinAuction = await GetAuction(socket, price.Lbin.AuctionId);
         var inventoryItems = LowballCommand.GetActualInventory(await inventoryTask);
         var filterLink = await filterLinkTask;
-        var auctionItemUUid = auction.FlatenedNBT.TryGetValue("uuid", out var uuidVal) ? uuidVal.Replace("-","") : null;
+        var auctionItemUUid = auction.FlatenedNBT.TryGetValue("uuid", out var uuidVal) ? uuidVal.Replace("-", "") : null;
         var index = inventoryItems
             .Select((i, idx) => new { i, idx })
             .Where(x => x.i.ExtraAttributes != null
@@ -57,12 +56,19 @@ public class HotkeyCommand : McCommand
         var formattedInstasell = socket.FormatPrice(instaSell.Item1);
         socket.Dialog(db => db.MsgLine($"The value of this item is {McColorCodes.AQUA}{socket.FormatPrice(price.Median)}", null,
                 $"Took into account these modifiers:\n{price.MedianKey}")
-            .If(()=>isInInventory, db => db.CoflCommandButton<LowballCommand>($"{McColorCodes.GREEN}Offer this item to a lowballer", $"offer {index}", "Click to offer this item to lowballers").LineBreak())
+            .If(() => isInInventory, db => db.CoflCommandButton<LowballCommand>($"{McColorCodes.GREEN}Offer this item to a lowballer", $"offer {index}", "Click to offer this item to lowballers").LineBreak())
             .If(() => price.Lbin.AuctionId != 0, db => db
             .MsgLine($"Lowest bin sits at {McColorCodes.AQUA}{socket.FormatPrice(price.Lbin.Price)}", "/viewauction " + lbinAuction.Uuid, "click to open lbin on ah"))
             .Msg($"To sell quickly list at {McColorCodes.AQUA}{formattedInstasell}", $"copy:{formattedInstasell}", "click to copy")
             .MsgLine($"{McColorCodes.GRAY}[put into chat]", $"suggest:{formattedInstasell}", "click to put \nsuggestion into chat")
             .Button($"Open filter on website", filterLink, "Click to view on SkyCofl Website"));
+    }
+
+    public static Task<string> GetLinkWithFilters(MinecraftSocket socket, SaveAuction auction)
+    {
+        var filterTask = RequestFilters(socket, auction);
+        var filterLinkTask = GetLinkFromFilters(auction, filterTask);
+        return filterLinkTask;
     }
 
     private static async Task<SaveAuction?> GetAuction(MinecraftSocket socket, long uid)

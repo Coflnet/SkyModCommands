@@ -17,6 +17,7 @@ using System.Globalization;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.PlayerName.Client.Api;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
@@ -118,7 +119,7 @@ public class LowballOfferService
                 .ClusteringKey(u => u.OfferId)));
     }
 
-    public async Task<LowballOffer> CreateOffer(string userId, SaveAuction item, long askingPrice, Sniper.Client.Model.PriceEstimate estimate, Dictionary<string, string> filters = null)
+    public async Task<LowballOffer> CreateOffer(string userId, SaveAuction item, long askingPrice, Sniper.Client.Model.PriceEstimate estimate, string websiteLink, Dictionary<string, string> filters = null)
     {
         var offerId = Guid.NewGuid();
         var createdAt = DateTimeOffset.UtcNow;
@@ -167,7 +168,7 @@ public class LowballOfferService
         // Try to post a nicely formatted webhook about the new offer
         try
         {
-            await SendWebhookAsync(offer, estimate);
+            await SendWebhookAsync(offer, estimate,websiteLink);
         }
         catch (Exception ex)
         {
@@ -216,7 +217,7 @@ public class LowballOfferService
             if (colorMap.TryGetValue(colorCode, out int hexColor))
             {
                 // Remove the color code from the item name
-                string cleanName = itemName.Substring(2).TrimStart();
+                string cleanName = Regex.Replace(itemName, "§.","").TrimStart();
                 return (cleanName, hexColor);
             }
         }
@@ -246,7 +247,7 @@ public class LowballOfferService
         }
     }
 
-    private async Task SendWebhookAsync(LowballOffer offer, Sniper.Client.Model.PriceEstimate estimate)
+    private async Task SendWebhookAsync(LowballOffer offer, Sniper.Client.Model.PriceEstimate estimate, string websiteLink)
     {
         var webhookUrl = config["LOWBALL_WEBHOOK_URL"];
         if (string.IsNullOrEmpty(webhookUrl))
@@ -271,7 +272,8 @@ public class LowballOfferService
         MemoryStream loreImageStream = null;
         try
         {
-            loreImageStream = await RenderLoreAsImageAsync(offer.Lore);
+            var fullText = offer.ItemName + "\n" + offer.Lore;
+            loreImageStream = await RenderLoreAsImageAsync(fullText);
         }
         catch (Exception ex)
         {
@@ -282,7 +284,7 @@ public class LowballOfferService
         var embed = new
         {
             title = "New Lowball Offer",
-            description = $"[**{cleanItemName}**{itemCountText}](https://sky.coflnet.com/item/{offer.ItemTag})",
+            description = $"[**{cleanItemName}**{itemCountText}]({websiteLink})",
             color = embedColor,
             thumbnail = new { url = itemImage },
             image = loreImageStream != null ? new { url = "attachment://lore.png" } : null,

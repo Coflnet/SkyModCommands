@@ -208,7 +208,8 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             serivce.Offer(auction, price, priceEstimate[0], socket);
             try
             {
-                await socket.GetService<LowballOfferService>().CreateOffer(socket.UserId, auction, price, priceEstimate.First());
+                var fullLink  = await HotkeyCommand.GetLinkWithFilters(DiHandler.GetService<MinecraftSocket>(), auction);
+                await socket.GetService<LowballOfferService>().CreateOffer(socket.UserId, auction, price,  priceEstimate.First(), fullLink);
             }
             catch (Exception e)
             {
