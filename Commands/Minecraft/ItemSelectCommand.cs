@@ -18,6 +18,7 @@ public abstract class ItemSelectCommand<T> : McCommand where T : ItemSelectComma
         if (socket.SessionInfo.McName == null)
             throw new CoflnetException("not logged in", "Your minecraft account could not be confirmed, please run /cofl verify");
         var inventory = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
+        inventory = FilterItems(inventory);
         if (args.Length > 1)
         {
             var index = int.Parse(args.Last());
@@ -42,6 +43,16 @@ public abstract class ItemSelectCommand<T> : McCommand where T : ItemSelectComma
                             GetInventoryRepresent(socket, item),
                             $"{context} {i * 9 + j}",
                             $"{hoverPrefix}{item.ItemName}\n{item.Description}")).LineBreak()));
+    }
+
+    /// <summary>
+    /// Modify item options before displaying them to the user 
+    /// </summary>
+    /// <param name="inventory"></param>
+    /// <returns></returns>
+    protected virtual List<PlayerState.Client.Model.Item> FilterItems(List<PlayerState.Client.Model.Item> inventory)
+    {
+        return inventory;
     }
 
     protected static SaveAuction ConvertToAuction(PlayerState.Client.Model.Item item)

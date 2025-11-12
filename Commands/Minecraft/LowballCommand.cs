@@ -136,6 +136,21 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
         }
     }
 
+    /// <summary>
+    /// Only show the user inventory directly
+    /// </summary>
+    /// <param name="inventory"></param>
+    /// <returns></returns>
+    protected override List<PlayerState.Client.Model.Item> FilterItems(List<PlayerState.Client.Model.Item> inventory)
+    {
+        return GetActualInventory(inventory);
+    }
+
+    public static List<PlayerState.Client.Model.Item> GetActualInventory(List<PlayerState.Client.Model.Item> inventory)
+    {
+        return inventory.AsEnumerable().Reverse().Take(4 * 9).Reverse().ToList();
+    }
+
     protected override async Task SelectedItem(MinecraftSocket socket, string context, PlayerState.Client.Model.Item item)
     {
         if (!context.StartsWith("offer "))
@@ -157,9 +172,9 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             Console.WriteLine(JsonConvert.SerializeObject(item));
             Console.WriteLine(JsonConvert.SerializeObject(auction));
             Console.WriteLine(JsonConvert.SerializeObject(price));
-            var highPrice = price[0].Median * 0.92;
-            var mediumPrice = price[0].Median * 0.85;
-            var lowPrice = price[0].Median * 0.8;
+            var highPrice = price[0].Median * 0.91;
+            var mediumPrice = price[0].Median * 0.82;
+            var lowPrice = price[0].Median * 0.70;
             var serivce = socket.GetService<LowballSerivce>();
             var index = context.Split(' ').Last();
             socket.Dialog(db => db.MsgLine($"§7[§6§lOffer§7] §r{item.ItemName}", null, $"{item.ItemName}\n{item.Description}")
