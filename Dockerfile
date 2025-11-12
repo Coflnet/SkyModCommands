@@ -1,11 +1,5 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 as build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /build
-
-# Install required system libraries for image rendering
-RUN apt-get update && apt-get install -y \
-    libfontconfig1 \
-    libfontconfig1-dev \
-    && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth=1 https://github.com/Ekwav/websocket-sharp \
     && git clone --depth=1 https://github.com/Coflnet/HypixelSkyblock.git dev \
@@ -18,7 +12,7 @@ COPY . .
 RUN rm SkyModCommands.sln && dotnet test
 RUN dotnet publish -c release -o /app
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
 # Install required system libraries for image rendering
