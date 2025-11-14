@@ -65,7 +65,7 @@ public class SwitchRegionCommand : McCommand
             "130.131", //azure
         };
 
-        if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith) || true)
+        if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith))
         {
             socket.Dialog(db => db.MsgLine("You seem have good connection to linode, switching to us-linode"));
             tobeUsed = "us-linode";
@@ -77,10 +77,16 @@ public class SwitchRegionCommand : McCommand
             socket.ExecuteCommand($"/cofl connect ws://{tobeUsed}.coflnet.com/modsocket");
             return;
         }
-        if(tobeUsed != MainUs && await CheckReachable(MainUs))
+        if (tobeUsed != MainUs && await CheckReachable(MainUs))
         {
             socket.Dialog(db => db.MsgLine("Switching to us server"));
             socket.ExecuteCommand($"/cofl connect ws://{MainUs}.coflnet.com/modsocket");
+            return;
+        }
+        if(tobeUsed == MainUs && await CheckReachable("us-linode"))
+        {
+            socket.Dialog(db => db.MsgLine("Switching to us-linode server"));
+            socket.ExecuteCommand($"/cofl connect ws://us-linode.coflnet.com/modsocket");
             return;
         }
 
