@@ -103,6 +103,12 @@ namespace Coflnet.Sky.Commands.MC
             
             if (string.IsNullOrEmpty(sessionInfo.ProfileId))
             {
+                var collectingChat = socket.sessionLifesycle.PrivacySettings.Value?.CollectChat ?? false;
+                if(!collectingChat)
+                {
+                    socket.Dialog(db=>db.MsgLine($"{McColorCodes.RED}Generating an API key requires chat collection to be enabled ").CoflCommandButton<SetCommand>("Enable now", "privacycollectChat true", "Click to enable chat collection\nThen switch islands and try again"));
+                    return;
+                }
                 socket.SendMessage($"{COFLNET}{McColorCodes.RED}Profile ID not available. Please change islands so it can be read from chat and then try again.");
                 return;
             }
