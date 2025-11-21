@@ -246,7 +246,7 @@ public class LowballSerivce
                 DailyVolume = est.Volume,
                 Finder = Core.LowPricedAuction.FinderType.SNIPER_MEDIAN
             };
-            if (item.Value.Socket.IsClosed)
+            if (item.Value?.Socket == null || item.Value.Socket.IsClosed)
             {
                 lowballers.Remove(item.Key);
                 continue;
