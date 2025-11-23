@@ -220,7 +220,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 // try to find in sent by name
                 var fromSent = socket.LastSent.Where(x => GetItemName(x.Auction).Replace("§8!", "").Replace("§8.", "") == item.First.ItemName && x.Auction.Tag == item.First.Tag)
                     .OrderByDescending(i => i.TargetPrice).FirstOrDefault();
-                var price = fromSent?.TargetPrice ?? item.Second.Median;
+                var price = fromSent?.TargetPrice ?? (item.Second.Median > item.Second.Lbin.Price ? item.Second.Median : (item.Second.Lbin.Price + item.Second.Median)/2);
                 using var stackableSpan = socket.CreateActivity("listAuction", span);
                 if (fromSent != null && item.First.Count == fromSent.Auction.Count)
                 {
