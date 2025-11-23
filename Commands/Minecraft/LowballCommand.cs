@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -227,7 +228,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
 
 public class LowballSerivce
 {
-    private Dictionary<string, LowballerInfo> lowballers = new();
+    private ConcurrentDictionary<string, LowballerInfo> lowballers = new();
 
     public class LowballerInfo
     {
@@ -237,6 +238,7 @@ public class LowballSerivce
     public int MatchCount(Core.SaveAuction auction, Sniper.Client.Model.PriceEstimate est)
     {
         var count = 0;
+        var keysToRemove = new List<string>();
         foreach (var item in lowballers)
         {
             var median = new Core.LowPricedAuction()
@@ -248,7 +250,7 @@ public class LowballSerivce
             };
             if (item.Value?.Socket == null || item.Value.Socket.IsClosed)
             {
-                lowballers.Remove(item.Key);
+                keysToRemove.Add(item.Key);
                 continue;
             }
             if (item.Value.Socket.ModAdapter is not AfVersionAdapter)
@@ -258,6 +260,10 @@ public class LowballSerivce
             {
                 count++;
             }
+        }
+        foreach (var key in keysToRemove)
+        {
+            lowballers.Remove(key);
         }
         return count;
     }
@@ -301,11 +307,12 @@ public class LowballSerivce
 
     private void NotifyUsers(LowballOffer lowballOffer)
     {
+        var keysToRemove = new List<string>();
         foreach (var item in lowballers)
         {
             if (item.Value.Socket.IsClosed || item.Value.Socket.HasFlippingDisabled())
             {
-                lowballers.Remove(item.Key);
+                keysToRemove.Add(item.Key);
                 continue;
             }
             var median = new Core.LowPricedAuction()
@@ -326,6 +333,10 @@ public class LowballSerivce
             }
             else
                 Console.WriteLine($"Lowball offer {lowballOffer.Auction.ItemName} for {lowballOffer.Price} coins did not match for {item.Value.Socket.SessionInfo.McName}, reason: {matchInfo.Item2}");
+        }
+        foreach (var key in keysToRemove)
+        {
+            lowballers.Remove(key);
         }
     }
 
