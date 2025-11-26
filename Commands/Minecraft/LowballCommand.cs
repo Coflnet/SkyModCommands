@@ -263,7 +263,7 @@ public class LowballSerivce
         }
         foreach (var key in keysToRemove)
         {
-            lowballers.Remove(key);
+            lowballers.Remove(key, out _);
         }
         return count;
     }
@@ -285,7 +285,7 @@ public class LowballSerivce
         }
         if (lowballers.ContainsKey(value.SessionInfo.McUuid))
         {
-            lowballers.Remove(value.SessionInfo.McUuid);
+            lowballers.Remove(value.SessionInfo.McUuid, out _);
         }
         else
         {
@@ -336,7 +336,7 @@ public class LowballSerivce
         }
         foreach (var key in keysToRemove)
         {
-            lowballers.Remove(key);
+            lowballers.Remove(key, out _);
         }
     }
 
