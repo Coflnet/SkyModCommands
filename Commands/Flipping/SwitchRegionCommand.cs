@@ -64,6 +64,7 @@ public class SwitchRegionCommand : McCommand
             "172.23",
             "130.131", //azure
         };
+        var protocol = !Version.TryParse(socket.Version, out var version) || version < new Version(1, 7, 8) ? "ws" : "wss";
 
         if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith))
         {
@@ -74,19 +75,19 @@ public class SwitchRegionCommand : McCommand
         if (await CheckReachable(tobeUsed) || await CheckReachable(tobeUsed))
         {
             socket.Dialog(db => db.MsgLine("Switching to us server"));
-            socket.ExecuteCommand($"/cofl connect ws://{tobeUsed}.coflnet.com/modsocket");
+            socket.ExecuteCommand($"/cofl connect {protocol}://{tobeUsed}.coflnet.com/modsocket");
             return;
         }
         if (tobeUsed != MainUs && await CheckReachable(MainUs))
         {
             socket.Dialog(db => db.MsgLine("Switching to us server"));
-            socket.ExecuteCommand($"/cofl connect ws://{MainUs}.coflnet.com/modsocket");
+            socket.ExecuteCommand($"/cofl connect {protocol}://{MainUs}.coflnet.com/modsocket");
             return;
         }
-        if(tobeUsed == MainUs && await CheckReachable("us-linode"))
+        if (tobeUsed == MainUs && await CheckReachable("us-linode"))
         {
             socket.Dialog(db => db.MsgLine("Switching to us-linode server"));
-            socket.ExecuteCommand($"/cofl connect ws://us-linode.coflnet.com/modsocket");
+            socket.ExecuteCommand($"/cofl connect {protocol}://us-linode.coflnet.com/modsocket");
             return;
         }
 
