@@ -64,7 +64,7 @@ public class SwitchRegionCommand : McCommand
             "172.23",
             "130.131", //azure
         };
-        var protocol = !Version.TryParse(socket.Version, out var version) || version < new Version(1, 7, 8) ? "ws" : "wss";
+        var protocol = !Version.TryParse(socket.Version, out var version) || version < new Version(1, 7, 9) ? "ws" : "wss";
 
         if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith))
         {
