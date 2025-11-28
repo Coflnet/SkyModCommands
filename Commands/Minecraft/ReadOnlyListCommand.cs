@@ -12,7 +12,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
 {
     public override bool IsPublic => true;
     protected Dictionary<string, Func<IEnumerable<T>, IOrderedEnumerable<T>>> sorters = new Dictionary<string, Func<IEnumerable<T>, IOrderedEnumerable<T>>>();
-    protected virtual async Task<bool> CanRun(MinecraftSocket socket)
+    protected virtual async Task<bool> CanRun(MinecraftSocket socket, string args)
     {
         if (MinimumTier == AccountTier.PREMIUM)
             return await socket.RequirePremium();
@@ -23,7 +23,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
     protected virtual AccountTier MinimumTier => AccountTier.NONE;
     public override async Task Execute(MinecraftSocket socket, string args)
     {
-        if (!await CanRun(socket))
+        if (!await CanRun(socket, args))
         {
             return;
         }

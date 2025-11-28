@@ -8,6 +8,7 @@ using Coflnet.Sky.Bazaar.Flipper.Client.Model;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.PlayerState.Client.Api;
 using static Coflnet.Sky.Commands.MC.BazaarCommand;
 namespace Coflnet.Sky.Commands.MC;
 
@@ -24,6 +25,27 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
     protected override string Title => "Top Bazaar Flips";
     protected override string NoMatchText => $"No match found, maybe a typo or manipulated items are hidden";
 
+    protected override async Task<bool> CanRun(MinecraftSocket socket, string args)
+    {
+        var trimmed = Convert<string>(args).ToLower();
+        if (trimmed != "h" && trimmed != "history")
+        {
+            socket.Dialog(db=>db.MsgLine("Check out your profit with /cl bz history", "/cofl bz history", $"Click to view your bazaar profit history\nOr run {McColorCodes.AQUA}/cofl bz h"));
+            return true;
+        }
+
+        var bazaarProfitService = socket.GetService<IBazaarProfitApi>();
+        var info = await bazaarProfitService.BazaarProfitSummaryPlayerUuidGetAsync(Guid.Parse(socket.SessionInfo.McUuid), DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, 500);
+        socket.Dialog(db =>
+            db.MsgLine($"§6Bazaar Profit History (last 7 days)§r")
+            .MsgLine($"§7Total Profit: §a{socket.FormatPrice(info.TotalProfit)}")
+            .MsgLine($"§7Average Daily Profit: §a{socket.FormatPrice(info.TotalProfit / 7)}")
+            .MsgLine($"§7Flips completed: §a{socket.FormatPrice(info.FlipCount)}")
+            .MsgLine($"§7Not yet sold: §a{socket.FormatPrice(info.OutstandingValue)}", null, "Not sold or not claimed\nFlips are only completed when claimed")
+        );
+        return false;
+    }
+
     protected override async Task<IEnumerable<Element>> GetElements(MinecraftSocket socket, string val)
     {
         var api = socket.GetService<IBazaarFlipperApi>();
@@ -33,7 +55,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
             purse = 500_000_000;
         var topFlips = await api.FlipsGetAsync();
         var names = (await items.ItemNamesGetAsync()).ToDictionary(i => i.Tag, i => i.Name);
-        var all = topFlips.Where(f=>f.BuyPrice < purse).Select(f =>
+        var all = topFlips.Where(f => f.BuyPrice < purse).Select(f =>
         {
             var profitmargin = f.BuyPrice / f.MedianBuyPrice;
             var isManipulated = profitmargin > 2 || profitmargin > 1.5 && f.BuyPrice > 7_500_000;
