@@ -178,7 +178,7 @@ namespace Coflnet.Sky.Commands.MC
                     var lastUsedInfo = key.LastUsed?.ToString("yyyy-MM-dd HH:mm") ?? "Never";
                     
                     socket.Dialog(db => db
-                        .MsgLine($"{McColorCodes.AQUA}Key: {McColorCodes.WHITE}{keyPreview}", $"/cofl copy {key.Key}", "Click to copy full key")
+                        .MsgLine($"{McColorCodes.AQUA}Key: {McColorCodes.WHITE}{keyPreview}", $"copy:{key.Key}", "Click to copy full key")
                         .MsgLine($"{McColorCodes.GRAY}Created: {createdDate}")
                         .MsgLine($"{McColorCodes.GRAY}Last Used: {lastUsedInfo}")
                         .MsgLine($"{McColorCodes.GRAY}Usage Count: {key.UsageCount}")
