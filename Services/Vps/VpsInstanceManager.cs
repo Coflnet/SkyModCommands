@@ -198,8 +198,6 @@ public class VpsInstanceManager
         updater.AddSettings(typeof(T), "");
         updater.AddSettings(typeof(TPM.Skip), "skip", s => (s as TPM.TpmPlusConfig).skip);
         updater.AddSettings(typeof(TPM.DoNotRelist), "norelist", s => (s as TPM.TpmPlusConfig).doNotRelist);
-        if (typeof(T) == typeof(TPM.TpmPlusConfig)) // only available in TPM+
-            updater.AddSettings(typeof(TPM.SellInventory), "sell", s => (s as TPM.TpmPlusConfig).sellInventory);
         return updater;
     }
 

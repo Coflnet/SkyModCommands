@@ -111,15 +111,15 @@ public class TPM
 {
     public static readonly string PlusDefault = """
     {
+
     //Put your minecraft IGN here. To use multiple, follow this format: ["account1", "account2"],
     "igns": [""],
     //Used in backend. Get it from the /get_discord_id command in TPM server
     "discordID": "",
     //Refer to https://discord.com/channels/1261825756615540836/1265035635845234792 for help
-    "webhooks": [],
-    //{0} is item. {1} is profit. {2} is price. {3} is target. {4} is buyspeed. {5} is BED or NUGGET. {6} is finder. {7} is the auctionID. {8} is the shortened price. {9} is the bot's username. {10} is the flip volume. {11} is the flip profit percentage
-    "webhookFormat": "You bought [``{0}``](https:\/\/sky.coflnet.com\/auction\/{7}) for ``{2}`` (``{1}`` profit) in ``{4}ms``",
-    
+    "webhook": "",
+    //{0} is item. {1} is profit. {2} is price. {3} is target. {4} is buyspeed. {5} is BED or NUGGET. {6} is finder. {7} is the auctionID. {8} is the shortened price. {9} is the bot's username
+    "webhookFormat": "You bought [``{0}``](https://sky.coflnet.com/auction/{7}) for ``{2}`` (``{1}`` profit) in ``{4}ms``",
     //Send every flip seen to this webhook. Good for testing configs
     "sendAllFlips": "",
     //Flip on a friend's island
@@ -133,20 +133,20 @@ public class TPM
     "angryCoopPrevention": false,
     //Automatically list auctions
     "relist": true,
-    //Pings you when TPM updates (webhook required)
-    "pingOnUpdate": false,
     //Delay between actions. For example, opening flips
     "delay": 250,
-    //Delay for beds. Refer to https://discord.com/channels/1261825756615540836/1275546557508223048 for help
-    "waittime": 15,
     //Set up different list price ranges and their corresponding percent off of target price. (The lower value of the range is inclusive, the higher value is exclusive)
     "percentOfTarget": ["0", "10b", 97],
     //Amount of time (hours) to list an auction.
     //Works the same as percentOfTarget but for time auctions are listed!
     "listHours": ["0", "10b", 48],
+    //Chooses how long it should wait between opening bin auction view and clicking on the nugget (used to manage cofl delay)
+    //Time is in milliseonds
+    //Format is the same as percentOfTarget and listHours but the bounds (aka first and second number) are for profit
+    "delayTime": ["0", "10b", 0],
     //Delay between clicks for bed spam (ideally use 100-125)
     "clickDelay": 125,
-    //Decides the way to  
+    //Decides the way to buy beds
     "bedSpam": false,
     //Won't show spam messages
     "blockUselessMessages": true,
@@ -191,8 +191,8 @@ public class TPM
         "drillWithParts": false,
         //Will automatically get a price from the cofl API and relist auctions that are expired with the new price. False = don't list. True = list
         "expiredAuctions": false,
-        //Pricing to use for expired auctions. Set to 1 if you want to use cofl lore pricing stuff, set to 2:x if you want to cut away x percentage from the price
-        "relistMode": "2:97"
+        // Will not list items in these slots. The very top left of your inventory is slot 9. The skyblock menu in the bottom right is slot 44.
+        "slots": []
 
     },
     //Choose how long to flip for and rest for in hours.
@@ -201,12 +201,8 @@ public class TPM
         //Put your IGN (CAPS MATTER).
         //If you run multiple accounts, put a , after the value (second quote), press enter, and follow the same format as the first.
         //Add an r after the number that you want it to rest for and an F for how long you want it to flip for.
-        "ign": "12r:12f"
 
-    },
-    
-    //Cofl account password. DO NOT SHARE
-    "session": ""
+    }
 
     }
     """;
@@ -216,7 +212,6 @@ public class TPM
     "igns": [""],
     "discordID": "",
     "webhook": "",
-    "webhooks": [""],
     "webhookFormat": "You bought [``{0}``](https:\/\/sky.coflnet.com\/auction\/{7}) for ``{2}`` (``{1}`` profit) in ``{4}ms``",
     "sendAllFlips": "",
     "visitFriend": "",
@@ -224,11 +219,11 @@ public class TPM
     "autoCookie": "1h",
     "angryCoopPrevention": false,
     "relist": true,
-    "pingOnUpdate": false,
     "delay": 250,
     "waittime": 15,
     "percentOfTarget": ["0", "10b", 97],
     "listHours": ["0", "10b", 48],
+    "delayTime": ["0", "10b", 0],
     "clickDelay": 125,
     "bedSpam": false,
     "blockUselessMessages": true,
@@ -250,12 +245,10 @@ public class TPM
         "pingOnFailedListing": false,
         "drillWithParts": true,
         "expiredAuctions": false,
-        "relistMode": "2:97"
+        "slots": []
     },
     "autoRotate": {
-        "ign": "12r:12f"
-    },
-    "session": ""
+    }
     }
     """;
 
@@ -286,18 +279,12 @@ public class TPM
         [DataMember(Name = "expiredAuctions")]
         public bool expiredAuctions;
 
-        [DataMember(Name = "relistMode")]
-        public string relistMode;
+        [DataMember(Name = "slots")]
+        public int[] slots;
     }
 
     public class TpmPlusConfig : TpmConfig
     {
-
-        [DataMember(Name = "delayTime")]
-        public object[] delayTime;
-
-        [DataMember(Name = "sellInventory")]
-        public SellInventory sellInventory;
     }
 
     public class TpmConfig
@@ -336,12 +323,10 @@ public class TPM
         [DataMember(Name = "relist")]
         public bool relist;
 
-        [DataMember(Name = "pingOnUpdate")]
-        public bool pingOnUpdate;
-
         [DataMember(Name = "delay")]
         public int delay;
 
+        [SettingsDoc("Time to wait (in seconds) after listing an item before doing the next action. Only applies to TPM (normal)")]
         [DataMember(Name = "waittime")]
         public float waittime;
 
@@ -350,6 +335,9 @@ public class TPM
 
         [DataMember(Name = "listHours")]
         public object[] listHours;
+
+        [DataMember(Name = "delayTime")]
+        public object[] delayTime;
 
         [DataMember(Name = "clickDelay")]
         public int clickDelay;
@@ -369,9 +357,6 @@ public class TPM
         [DataMember(Name = "doNotRelist")]
         public DoNotRelist doNotRelist;
 
-        [DataMember(Name = "sellInventory")]
-        public SellInventory sellInventory;
-
         [DataMember(Name = "autoRotate")]
         public Dictionary<string, string> autoRotate;
 
@@ -379,14 +364,6 @@ public class TPM
         public string session;
     }
 
-    public class SellInventory
-    {
-        [DataMember(Name = "slots")]
-        public string[] slots;
-
-        [DataMember(Name = "nameContains")]
-        public string[] nameContains;
-    }
 
     public class Skip
     {
