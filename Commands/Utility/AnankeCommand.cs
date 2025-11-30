@@ -15,7 +15,7 @@ namespace Coflnet.Sky.Commands.MC;
 public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
 {
     public override bool IsPublic => true;
-    
+
     // Progress granted per feather for each RNG meter type
     private static Dictionary<string, double> progressPerFeather = new()
     {
@@ -36,7 +36,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
         { "Catacombs M6-M7", 7_000 },
         { "Crystal Nucleus", 17_000 }
     };
-    
+
     // Map items to their RNG meter types and experience requirements
     private static Dictionary<string, (string meterType, double expTarget, long unlockCost)> itemData = new()
     {
@@ -200,14 +200,14 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
         { "ENCHANTMENT_INFINITE_QUIVER_7", ("Catacombs M6-M7", 4_168, 0) },
         { "FIFTH_MASTER_STAR", ("Catacombs M6-M7", 138_940, 9_000_000) },
     };
-    
+
     // Dynamically populated costs dictionary
     private static Dictionary<string, (double feathers, long unlockCost)> costs = PopulateCosts();
-    
+
     private static Dictionary<string, (double feathers, long unlockCost)> PopulateCosts()
     {
         var result = new Dictionary<string, (double feathers, long unlockCost)>();
-        
+
         foreach (var (itemTag, (meterType, expTarget, unlockCost)) in itemData)
         {
             if (progressPerFeather.TryGetValue(meterType, out var progressValue))
@@ -220,7 +220,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
                 Console.WriteLine($"Warning: Unknown meter type '{meterType}' for item '{itemTag}'");
             }
         }
-        
+
         return result;
     }
 
@@ -256,7 +256,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
                 continue;
             }
             var (feathersRequired, unlockCost) = item.Value;
-            var costOfFeathers = featherPrice * ((int)(feathersRequired + 0.99));
+            var costOfFeathers = (long)(featherPrice * (feathersRequired + 0.01));
             all.Add(new Element
             {
                 Name = names.GetValueOrDefault(item.Key, item.Key),
