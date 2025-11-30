@@ -20,9 +20,14 @@ public class FormatProviderTests
             Finder = Core.LowPricedAuction.FinderType.FLIPPER
         });
         var profit = "87,500,032";
-        if(FlipInstance.GetFeeRateForStartingBid(100_000_000) > 5)
+        var feeRate = FlipInstance.GetFeeRateForStartingBid(100_000_000);
+        if(feeRate > 5)
         {
             profit = "162,499,840"; // derpy
+        }
+        else if(feeRate > 3.5)
+        {
+            profit = "112,499,968"; // temporarily higher taxes (e.g. Aurora event)
         }
         Assert.That(output, Is.EqualTo($"\nFLIP:  §82,500,000,000 -> 2,500,000,000 (+-{profit}) "));
     }
