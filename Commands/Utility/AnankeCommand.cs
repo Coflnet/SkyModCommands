@@ -226,12 +226,12 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element item)
     {
-        db.MsgLine($" {item.Name} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice((item.Price - item.Cost - item.UnlockCost) / item.FeathersRequired)} coins per feather",
+        db.MsgLine($" {item.Name} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice((item.SellPrice - item.Cost - item.UnlockCost) / item.FeathersRequired)} coins per feather",
                     "https://sky.coflnet.com/item/" + item.Tag,
-                    $"Requires {McColorCodes.AQUA}{item.FeathersRequired} feathers{McColorCodes.GRAY}, total cost: {McColorCodes.AQUA}{socket.FormatPrice(item.Cost + item.UnlockCost)} coins\n"
+                    $"Requires {McColorCodes.AQUA}{socket.FormatPrice(item.FeathersRequired)} feathers{McColorCodes.GRAY}, total cost: {McColorCodes.AQUA}{socket.FormatPrice(item.Cost + item.UnlockCost)} coins\n"
                     + (item.UnlockCost > 0 ? $"Unlock cost: {McColorCodes.AQUA}{socket.FormatPrice(item.UnlockCost)} coins{McColorCodes.GRAY}(included in total)\n" : "")
-                    + $"Estimated profit buying at ah: {McColorCodes.AQUA}{socket.FormatPrice(item.Price - item.Cost - item.UnlockCost)} coins\n"
-                    + $"{McColorCodes.GRAY}Estimated sell value: {McColorCodes.AQUA}{socket.FormatPrice(item.Price)} coins\n"
+                    + $"Profit buying feathers at ah: {McColorCodes.AQUA}{socket.FormatPrice(item.SellPrice - item.Cost - item.UnlockCost)} coins\n"
+                    + $"{McColorCodes.GRAY}Estimated sell value: {McColorCodes.AQUA}{socket.FormatPrice(item.SellPrice)} coins\n"
                     + "Click to check history on website");
     }
 
@@ -263,11 +263,11 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
                 Tag = item.Key,
                 Cost = costOfFeathers,
                 FeathersRequired = feathersRequired,
-                Price = price,
+                SellPrice = price,
                 UnlockCost = unlockCost
             });
         }
-        return all.OrderByDescending(e => (e.Price - e.Cost - e.UnlockCost));
+        return all.OrderByDescending(e => (e.SellPrice - e.Cost - e.UnlockCost));
     }
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<Element> elements, IEnumerable<Element> toDisplay)
@@ -289,7 +289,7 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
     public class Element
     {
         public string Tag { get; set; }
-        public long Price { get; set; }
+        public long SellPrice { get; set; }
         public long Cost { get; set; }
         public double FeathersRequired { get; set; }
         public string AuctionUuid { get; set; }
