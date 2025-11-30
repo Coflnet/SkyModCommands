@@ -178,7 +178,18 @@ public class VpsInstanceManager
     {
         var updater = GetUpdater<TPM.TpmPlusConfig>();
         var options = updater.ModOptions;
-        return options.ToDictionary(k => k.Key, v => v.Value);
+        var documentation = TpmConfigDocParser.GetTpmPlusDocumentation();
+        
+        return options.ToDictionary(kv => kv.Key, kv =>
+        {
+            var doc = kv.Value;
+            // Enrich with parsed documentation from comments if available
+            if (documentation.TryGetValue(kv.Key, out var parsedDoc) && string.IsNullOrEmpty(doc.Info))
+            {
+                doc.Info = parsedDoc;
+            }
+            return doc;
+        });
     }
 
     private static GenericSettingsUpdater GetUpdater<T>() where T : new()
