@@ -30,17 +30,43 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var trimmed = Convert<string>(args).ToLower();
         if (trimmed != "h" && trimmed != "history")
         {
-            socket.Dialog(db=>db.MsgLine("Check out your profit with /cl bz history", "/cofl bz history", $"Click to view your bazaar profit history\nOr run {McColorCodes.AQUA}/cofl bz h"));
+            socket.Dialog(db => db.MsgLine("Check out your profit with /cl bz history", "/cofl bz history", $"Click to view your bazaar profit history\nOr run {McColorCodes.AQUA}/cofl bz h"));
             return true;
         }
-
         var bazaarProfitService = socket.GetService<IBazaarProfitApi>();
+        if (trimmed == "l" || trimmed == "list")
+        {
+            var completedFlips = await bazaarProfitService.BazaarProfitFlipsPlayerUuidGetAsync(Guid.Parse(socket.SessionInfo.McUuid), DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, 10);
+            socket.Dialog(db =>
+            {
+                db.MsgLine($"§6Last Completed Bazaar Flips§r");
+                if (completedFlips.Count == 0)
+                {
+                    db.MsgLine("§7No completed flips in the last 7 days§r");
+                    return db;
+                }
+                foreach (var flip in completedFlips)
+                {
+                    var profit = flip.Profit;
+                    var color = profit >= 0 ? McColorCodes.GREEN : McColorCodes.RED;
+                    db.MsgLine($"{McColorCodes.GOLD}{flip.Amount}{McColorCodes.GRAY}x§7{flip.ItemName}§r: §a{socket.FormatPrice(flip.BuyPrice)}§r -> §a{socket.FormatPrice(flip.SellPrice)}§r => {color}{socket.FormatPrice(profit)}§r",
+                        $"https://sky.coflnet.com/bazaar/item/{flip.ItemTag}",
+                        $"Bought for {socket.FormatPrice(flip.BuyPrice)}, sold for {socket.FormatPrice(flip.SellPrice)}\n"
+                        + $"Profit: {socket.FormatPrice(profit)}\n"
+                        + $"Items flipped: {flip.Amount}\n"
+                        + $"Click to view {flip.ItemName} on the website");
+                }
+                return db;
+            });
+            return false;
+        }
+
         var info = await bazaarProfitService.BazaarProfitSummaryPlayerUuidGetAsync(Guid.Parse(socket.SessionInfo.McUuid), DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, 500);
         socket.Dialog(db =>
             db.MsgLine($"§6Bazaar Profit History (last 7 days)§r")
             .MsgLine($"§7Total Profit: §a{socket.FormatPrice(info.TotalProfit)}")
             .MsgLine($"§7Average Daily Profit: §a{socket.FormatPrice(info.TotalProfit / 7)}")
-            .MsgLine($"§7Flips completed: §a{socket.FormatPrice(info.FlipCount)}")
+            .MsgLine($"§7Flips completed: §a{socket.FormatPrice(info.FlipCount)}", "/cofl bz l", "Click to view your last completed flips")
             .MsgLine($"§7Not yet sold: §a{socket.FormatPrice(info.OutstandingValue)}", null, "Not sold or not claimed\nFlips are only completed when claimed")
         );
         return false;
