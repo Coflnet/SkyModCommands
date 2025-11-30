@@ -139,7 +139,6 @@ public class VpsInstanceManager
         configValue.skip ??= new();
         GenericSettingsUpdater updater = GetUpdater(instance);
         configValue.doNotRelist ??= new();
-        configValue.sellInventory ??= new();
         configValue.skip ??= new();
         updater.Update(configValue, key, value);
         await UpdateVpsConfig(instance, configValue);

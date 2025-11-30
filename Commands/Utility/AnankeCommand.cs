@@ -226,7 +226,8 @@ public class AnankeCommand : ReadOnlyListCommand<AnankeCommand.Element>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element item)
     {
-        db.MsgLine($" {item.Name} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice((item.SellPrice - item.Cost - item.UnlockCost) / item.FeathersRequired)} coins per feather",
+        var profit = (item.SellPrice - item.Cost - item.UnlockCost) / item.FeathersRequired;
+        db.MsgLine($" {item.Name} {McColorCodes.GRAY}for {(profit > 0 ? McColorCodes.AQUA : McColorCodes.RED)}{socket.FormatPrice(profit)} coins per feather",
                     "https://sky.coflnet.com/item/" + item.Tag,
                     $"Requires {McColorCodes.AQUA}{socket.FormatPrice(item.FeathersRequired)} feathers{McColorCodes.GRAY}, total cost: {McColorCodes.AQUA}{socket.FormatPrice(item.Cost + item.UnlockCost)} coins\n"
                     + (item.UnlockCost > 0 ? $"Unlock cost: {McColorCodes.AQUA}{socket.FormatPrice(item.UnlockCost)} coins{McColorCodes.GRAY}(included in total)\n" : "")
