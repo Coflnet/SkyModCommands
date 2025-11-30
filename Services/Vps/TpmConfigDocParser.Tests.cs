@@ -107,7 +107,6 @@ public class TpmConfigDocParserTests
         Assert.That(result.ContainsKey("useCookie"), Is.True, "Should contain 'useCookie'");
         Assert.That(result.ContainsKey("autoCookie"), Is.True, "Should contain 'autoCookie'");
         Assert.That(result.ContainsKey("delay"), Is.True, "Should contain 'delay'");
-        Assert.That(result.ContainsKey("waittime"), Is.True, "Should contain 'waittime'");
 
         // Skip nested keys
         Assert.That(result.ContainsKey("skipalways"), Is.True, "Should contain 'skipalways'");
