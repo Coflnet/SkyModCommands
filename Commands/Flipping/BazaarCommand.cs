@@ -28,13 +28,14 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
     protected override async Task<bool> CanRun(MinecraftSocket socket, string args)
     {
         var trimmed = Convert<string>(args).ToLower();
-        if (trimmed != "h" && trimmed != "history")
+        var isList = trimmed == "l" || trimmed == "list";
+        if (trimmed != "h" && trimmed != "history" && !isList)
         {
             socket.Dialog(db => db.MsgLine("Check out your profit with /cl bz history", "/cofl bz history", $"Click to view your bazaar profit history\nOr run {McColorCodes.AQUA}/cofl bz h"));
             return true;
         }
         var bazaarProfitService = socket.GetService<IBazaarProfitApi>();
-        if (trimmed == "l" || trimmed == "list")
+        if (isList)
         {
             var completedFlips = await bazaarProfitService.BazaarProfitFlipsPlayerUuidGetAsync(Guid.Parse(socket.SessionInfo.McUuid), DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, 10);
             socket.Dialog(db =>
