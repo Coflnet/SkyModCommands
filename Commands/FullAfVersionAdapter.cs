@@ -94,11 +94,32 @@ public class FullAfVersionAdapter : AfVersionAdapter
             using var listingSpan = socket.CreateActivity("listAuction", span);
             listingSpan?.SetTag("uuid", uuid);
             listingSpan.Log(JsonConvert.SerializeObject(item));
+            
+            // Check if item was changed since purchase
+            var wasItemChanged = ItemComparisonHelper.WasItemChanged(item.Auction, inventoryRepresent);
+            if (wasItemChanged)
+            {
+                listingSpan.Log($"Item {item.Auction.ItemName} was changed since purchase, using market-based pricing only");
+            }
+            
             var marketBased = toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid
                 && PriceIsNoGuess(x))
                 .Select(x => Math.Min(x.Second.Median, x.Second.Lbin.Price)).FirstOrDefault();
             var stored = await socket.GetService<IPriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
-            var targetPrice = Math.Max(item.TargetPrice, Math.Max(marketBased * 0.95, stored));
+            
+            double targetPrice;
+            if (wasItemChanged)
+            {
+                // Item was changed, don't use stored estimate or flip target price
+                targetPrice = marketBased > 0 ? marketBased * 0.95 : toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid)
+                    .Select(x => x.Second.Median).FirstOrDefault();
+                listingSpan.Log($"Item changed, using market price {targetPrice} instead of stored {stored} or target {item.TargetPrice}");
+            }
+            else
+            {
+                targetPrice = Math.Max(item.TargetPrice, Math.Max(marketBased * 0.95, stored));
+            }
+            
             if (stored < 0)
                 continue; // user finder/do not relist
             listingSpan.Log($"Found {item.Auction.ItemName} {item.Auction.Tag} {item.Auction.Uuid} in sent with price {targetPrice} stored {stored}, marked {marketBased}");
@@ -276,7 +297,13 @@ public class FullAfVersionAdapter : AfVersionAdapter
     private async Task<(bool flowControl, double value)> GetPrice(IPlayerApi apiService, (SaveAuction First, Sniper.Client.Model.PriceEstimate Second) item, string uuid, Activity listingSpan)
     {
         var storedEstimate = socket.GetService<IPriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
-        var flips = await GetFlipData(await GetItemPurchases(apiService, uuid));
+        var purchases = await GetItemPurchases(apiService, uuid);
+        var wasItemChanged = await WasItemChangedSincePurchase(purchases, item.First);
+        if (wasItemChanged)
+        {
+            listingSpan.Log($"Item {item.First.ItemName} was changed since purchase, will use market-based pricing only");
+        }
+        var flips = await GetFlipData(purchases);
         var target = (flips.Select(f => (long)f.TargetPrice).DefaultIfEmpty(item.Second.Median).Average() + item.Second.Median) / 2;
         if (flips.Count == 0)
         {
@@ -293,12 +320,17 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 target = await CheckForExpensiveCraftCost(item, listingSpan, target);
             }
         }
-        else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-2)))
+        else if (flips.All(x => x.Timestamp > DateTime.UtcNow.AddDays(-2)) && !wasItemChanged)
         {
-            // all are more recent than a day, still usable
+            // all are more recent than a day and item not changed, still usable
             target = flips.Where(f => (int)f.FinderType < 100 && IsFinderEnabled(f))
                     .Select(f => f.TargetPrice).DefaultIfEmpty((int)flips.Select(f => f.TargetPrice).Average()).Average();
             listingSpan.Log($"Found {flips.Count} flips for average price {target}");
+        }
+        else if (wasItemChanged)
+        {
+            listingSpan.Log($"Found {flips.Count} flips but item was changed since purchase, using median {item.Second.Median}");
+            target = item.Second.Median;
         }
         else
         {
@@ -317,7 +349,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var foundReason = stored == -1 ? "found by USER finder" : "marked with not list filter";
             socket.Dialog(db => db.Msg($"Because you executed {McColorCodes.AQUA}/cofl sellinventory{McColorCodes.GRAY} item {item.First.ItemName} {foundReason} will be sold at market price"));
         }
-        if (stored > 200_000)
+        if (stored > 200_000 && !wasItemChanged)
         {
             listingSpan.Log($"Found stored price for {item.First.ItemName} {item.First.Tag} {item.First.Uuid} using price {stored} instead of {target}");
             target = stored;
@@ -327,6 +359,10 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 listingSpan.Log($"Found {sellAttempts.Count} attempts to sell, reducing target by {reduction}");
                 target *= reduction;
             }
+        }
+        else if (stored > 200_000 && wasItemChanged)
+        {
+            listingSpan.Log($"Found stored price {stored} for {item.First.ItemName} but item was changed since purchase, using market price {target} instead");
         }
         // list at least at 90% of median
         target = Math.Max(target, item.Second.Median * 0.9);
@@ -642,5 +678,33 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var purchases = await apiService.ApiPlayerPlayerUuidBidsGetAsync(socket.SessionInfo.McUuid, 0, checkFilters);
         //CheckedPurchase[uid] = CheckedPurchase.GetValueOrDefault(uid) + 1;
         return purchases;
+    }
+
+    /// <summary>
+    /// Checks if an item was changed since purchase by comparing the FlatenedNBT of the purchase auction
+    /// with the current inventory item.
+    /// </summary>
+    /// <param name="purchases">The list of purchases for this item</param>
+    /// <param name="currentItem">The current state of the item in inventory</param>
+    /// <returns>True if the item was changed, false otherwise</returns>
+    private async Task<bool> WasItemChangedSincePurchase(List<Api.Client.Model.BidResult> purchases, SaveAuction currentItem)
+    {
+        var purchase = purchases.OrderByDescending(x => x.End).FirstOrDefault();
+        if (purchase == null)
+            return false;
+
+        try
+        {
+            var purchaseAuction = await AuctionService.Instance.GetAuctionAsync(purchase.AuctionId, db => db.Include(a => a.Enchantments).Include(a => a.NbtData));
+            if (purchaseAuction == null)
+                return false;
+
+            return ItemComparisonHelper.WasItemChanged(purchaseAuction, currentItem);
+        }
+        catch (Exception ex)
+        {
+            socket.GetService<ILogger<FullAfVersionAdapter>>().LogWarning(ex, "Failed to check if item was changed since purchase for {itemUuid}", currentItem?.FlatenedNBT?.GetValueOrDefault("uuid"));
+            return false;
+        }
     }
 }
