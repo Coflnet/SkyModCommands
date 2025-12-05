@@ -94,32 +94,29 @@ public class FullAfVersionAdapter : AfVersionAdapter
             using var listingSpan = socket.CreateActivity("listAuction", span);
             listingSpan?.SetTag("uuid", uuid);
             listingSpan.Log(JsonConvert.SerializeObject(item));
-            
+
             // Check if item was changed since purchase
             var wasItemChanged = ItemComparisonHelper.WasItemChanged(item.Auction, inventoryRepresent);
             if (wasItemChanged)
             {
                 listingSpan.Log($"Item {item.Auction.ItemName} was changed since purchase, using market-based pricing only");
             }
-            
+
             var marketBased = toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid
                 && PriceIsNoGuess(x))
                 .Select(x => Math.Min(x.Second.Median, x.Second.Lbin.Price)).FirstOrDefault();
             var stored = await socket.GetService<IPriceStorageService>().GetPrice(Guid.Parse(socket.SessionInfo.McUuid), Guid.Parse(uuid));
-            
-            double targetPrice;
+
+            double targetPrice = Math.Max(item.TargetPrice, Math.Max(marketBased * 0.95, stored));
             if (wasItemChanged)
             {
                 // Item was changed, don't use stored estimate or flip target price
-                targetPrice = marketBased > 0 ? marketBased * 0.95 : toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid)
+                var marketBasedNew = marketBased > 0 ? marketBased * 0.95 : toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid)
                     .Select(x => x.Second.Median).FirstOrDefault();
+                targetPrice = Math.Max(marketBasedNew, targetPrice * 0.8);
                 listingSpan.Log($"Item changed, using market price {targetPrice} instead of stored {stored} or target {item.TargetPrice}");
             }
-            else
-            {
-                targetPrice = Math.Max(item.TargetPrice, Math.Max(marketBased * 0.95, stored));
-            }
-            
+
             if (stored < 0)
                 continue; // user finder/do not relist
             listingSpan.Log($"Found {item.Auction.ItemName} {item.Auction.Tag} {item.Auction.Uuid} in sent with price {targetPrice} stored {stored}, marked {marketBased}");
@@ -241,7 +238,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 // try to find in sent by name
                 var fromSent = socket.LastSent.Where(x => GetItemName(x.Auction).Replace("§8!", "").Replace("§8.", "") == item.First.ItemName && x.Auction.Tag == item.First.Tag)
                     .OrderByDescending(i => i.TargetPrice).FirstOrDefault();
-                var price = fromSent?.TargetPrice ?? (item.Second.Median > item.Second.Lbin.Price ? item.Second.Median : (item.Second.Lbin.Price + item.Second.Median)/2);
+                var price = fromSent?.TargetPrice ?? (item.Second.Median > item.Second.Lbin.Price ? item.Second.Median : (item.Second.Lbin.Price + item.Second.Median) / 2);
                 using var stackableSpan = socket.CreateActivity("listAuction", span);
                 if (fromSent != null && item.First.Count == fromSent.Auction.Count)
                 {
@@ -602,7 +599,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var bazaarApi = socket.GetService<Bazaar.Client.Api.IBazaarApi>();
             var priceHistory = await bazaarApi.GetHistoryGraphAsync(itemTag);
             var latestPrice = priceHistory.OrderByDescending(h => h.Timestamp).FirstOrDefault();
-            
+
             if (latestPrice == null)
             {
                 socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Could not fetch bazaar price for {itemName}"));
@@ -612,7 +609,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             // Use sell price (what buyers pay) for sell orders
             var sellPrice = latestPrice.Sell;
             SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount);
-            
+
             socket.Dialog(db => db.MsgLine(
                 $"{McColorCodes.GRAY}Recommending sell order: {McColorCodes.YELLOW}{amount}x {itemName} {McColorCodes.GRAY}at {McColorCodes.GREEN}{socket.FormatPrice((long)sellPrice)}{McColorCodes.GRAY} per unit",
                 $"/bz {BazaarUtils.GetSearchValue(itemTag, itemName)}",
