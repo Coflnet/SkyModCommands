@@ -94,6 +94,7 @@ namespace Coflnet.Sky.Commands.MC
         public string[] ModsFound { get; set; }
         public string ProfileId { get; set; }
         public SaveAuction SelectedItem { get; set; }
+        public DateTime ConnectedAt { get; set; } = DateTime.UtcNow;
 
         public bool SellAll;
 

@@ -76,7 +76,7 @@ public class UploadScoreboardCommand : McCommand
         {
             socket.Dialog(db => db.MsgLine("Flips reenabled because you left non-flippable gamemode"));
         }
-        else if (!wasNotFlippable && socket.SessionInfo.IsNotFlipable)
+        else if (!wasNotFlippable && socket.SessionInfo.IsNotFlipable && socket.SessionInfo.ConnectedAt.AddMinutes(1) < DateTime.UtcNow)
         {
             socket.Dialog(db => db.MsgLine("Flips disabled because you are in a gamemode with no auction house", null, $"You can disable flips generally with {McColorCodes.AQUA}/cofl flip never"));
         }
