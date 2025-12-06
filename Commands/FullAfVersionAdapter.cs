@@ -99,7 +99,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var wasItemChanged = ItemComparisonHelper.WasItemChanged(item.Auction, inventoryRepresent);
             if (wasItemChanged)
             {
-                listingSpan.Log($"Item {item.Auction.ItemName} was changed since purchase, using market-based pricing only");
+                listingSpan.Log($"Item {item.Auction.ItemName} was changed since purchase, using market-based pricing only {JsonConvert.SerializeObject(item)} {JsonConvert.SerializeObject(inventoryRepresent)}");
             }
 
             var marketBased = toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid
