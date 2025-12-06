@@ -114,6 +114,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 var marketBasedNew = marketBased > 0 ? marketBased * 0.95 : toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid)
                     .Select(x => x.Second.Median).FirstOrDefault();
                 listingSpan.Log($"Item changed, using market price {targetPrice} instead of stored {stored} or target {item.TargetPrice}");
+                targetPrice = marketBasedNew;
             }
 
             if (stored < 0)
