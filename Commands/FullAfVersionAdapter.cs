@@ -113,7 +113,6 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 // Item was changed, don't use stored estimate or flip target price
                 var marketBasedNew = marketBased > 0 ? marketBased * 0.95 : toList.Where(x => x.First.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid").Value == uuid)
                     .Select(x => x.Second.Median).FirstOrDefault();
-                targetPrice = Math.Max(marketBasedNew, targetPrice * 0.8);
                 listingSpan.Log($"Item changed, using market price {targetPrice} instead of stored {stored} or target {item.TargetPrice}");
             }
 
