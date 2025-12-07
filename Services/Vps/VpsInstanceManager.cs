@@ -264,7 +264,7 @@ public class VpsInstanceManager
         return update;
     }
 
-    private TPM.TpmPlusConfig CreatedConfigs(Instance instance = null, CreateOptions options = null)
+    public TPM.TpmPlusConfig CreatedConfigs(Instance instance = null, CreateOptions options = null)
     {
         var withoutComments = Regex.Replace(instance?.AppKind == "tpm+" ? TPM.PlusDefault : TPM.NormalDefault, @"//.*\n", "");
         var split = withoutComments.Split("\n").Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
