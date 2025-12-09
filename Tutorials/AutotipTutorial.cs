@@ -7,7 +7,7 @@ public class AutotipTutorial : TutorialBase
 {
     public override void Trigger(DialogBuilder builder, IMinecraftSocket socket)
     {
-        builder.MsgLine($"{McColorCodes.YELLOW}Mod users tip each other", "/tipall",
+        builder.MsgLine($"{McColorCodes.YELLOW}Mod users tip each other. Use {McColorCodes.AQUA}/cofl autotip{McColorCodes.YELLOW} to configure", "/tipall",
             "If you don't want to tip other users"
             + "and earn exp and coins while doing so."
             + $"Use {McColorCodes.AQUA}/cofl autotip disable{McColorCodes.GRAY} to turn it off.");

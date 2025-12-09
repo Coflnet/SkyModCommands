@@ -220,10 +220,8 @@ public class AutotipService
     /// <summary>
     /// Get online players to tip from active connections
     /// </summary>
-    private async Task<List<string>> GetOnlinePlayersInGamemode(string gamemode)
+    private async Task<string> GetOnlinePlayersInGamemode(string gamemode)
     {
-        await Task.Delay(10); // Small delay to simulate processing
-
         var playerNames = new List<string>();
 
         // Get all connected players from active sessions
@@ -239,11 +237,10 @@ public class AutotipService
         // Prefer Ekwav if present and move to front of list
         if (playerNames.Contains("Ekwav"))
         {
-            playerNames.Remove("Ekwav");
-            playerNames.Insert(0, "Ekwav");
+            return "Ekwav";
         }
 
-        return playerNames;
+        return playerNames.OrderBy(_ => Random.Shared.Next()).FirstOrDefault();
     }
 
     /// <summary>
@@ -336,17 +333,13 @@ public class AutotipService
             }
 
             // Get online players in that gamemode
-            var onlinePlayers = await GetOnlinePlayersInGamemode(gamemodeNeedingTip);
+            var targetPlayer = await GetOnlinePlayersInGamemode(gamemodeNeedingTip);
 
-            if (!onlinePlayers.Any())
+            if (targetPlayer == null)
             {
                 logger.LogDebug($"No online players found in {gamemodeNeedingTip}");
                 return;
             }
-
-            // Select a random player to tip
-            var random = new Random();
-            var targetPlayer = onlinePlayers[random.Next(onlinePlayers.Count)];
 
             // Execute automatic tip
             var success = await SendTipToHypixel(socket, targetPlayer, gamemodeNeedingTip);
