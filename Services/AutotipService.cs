@@ -228,6 +228,8 @@ public class AutotipService
         foreach (var connection in activeConnections.Values)
         {
             var playerName = connection.SessionInfo?.McName;
+            if(connection.sessionLifesycle.AccountSettings?.Value.BlockAutotip ?? true)
+                continue;
             if (!string.IsNullOrEmpty(playerName))
             {
                 playerNames.Add(playerName);
@@ -311,19 +313,13 @@ public class AutotipService
         try
         {
             // Check if user has autotip blocked
-            var accountSettings = socket.sessionLifesycle?.AccountSettings?.Value;
-            if (accountSettings != null)
+            var blocksTip = socket.sessionLifesycle?.AccountSettings?.Value.BlockAutotip;
+            if (blocksTip ?? true)
             {
-                // Use reflection to check for BlockAutotip property (in case it doesn't exist in the shared library yet)
-                var blockAutotipProp = accountSettings.GetType().GetProperty("BlockAutotip");
-                if (blockAutotipProp != null && (bool)(blockAutotipProp.GetValue(accountSettings) ?? false))
-                {
-                    logger.LogDebug($"Autotip blocked for user {socket.SessionInfo?.McName}");
-                    return;
-                }
+                logger.LogDebug($"Autotip blocked for user {socket.SessionInfo?.McName}");
+                return;
             }
 
-            // Find gamemodes where user hasn't tipped anyone recently
             var gamemodeNeedingTip = await FindGamemodeNeedingTip(socket.UserId);
 
             if (gamemodeNeedingTip == null)
