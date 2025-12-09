@@ -62,9 +62,6 @@ public class AutotipService
             var entryTable = GetAutotipTable();
             entryTable.CreateIfNotExists();
 
-            var recentTable = GetRecentTable();
-            recentTable.CreateIfNotExists();
-
             // Set 7-day TTL on both tables to keep recent data manageable
             var keyspace = session.Keyspace;
             if (!string.IsNullOrEmpty(keyspace))
@@ -130,7 +127,7 @@ public class AutotipService
         return new Table<AutotipEntry>(session, new MappingConfiguration().Define(
             new Map<AutotipEntry>()
                 .PartitionKey(u => u.UserId)
-                .ClusteringKey(u => u.Gamemode, SortOrder.Descending)
+                .TableName("autotip_entries")
                 .ClusteringKey(u => u.TippedAt, SortOrder.Descending)
                 .Column(u => u.TippedPlayerUuid, cm => cm.WithName("tipped_player_uuid"))
                 .Column(u => u.TippedPlayerName, cm => cm.WithName("tipped_player_name"))
@@ -139,22 +136,6 @@ public class AutotipService
         ));
     }
 
-    /// <summary>
-    /// Get the recent tips by gamemode table
-    /// </summary>
-    public Table<AutotipRecentEntry> GetRecentTable()
-    {
-        return new Table<AutotipRecentEntry>(session, new MappingConfiguration().Define(
-            new Map<AutotipRecentEntry>()
-                .PartitionKey(u => u.Gamemode)
-                .ClusteringKey(u => u.UserId, SortOrder.Descending)
-                .ClusteringKey(u => u.TippedAt, SortOrder.Descending)
-                .Column(u => u.TippedPlayerUuid, cm => cm.WithName("tipped_player_uuid"))
-                .Column(u => u.TippedPlayerName, cm => cm.WithName("tipped_player_name"))
-                .Column(u => u.Amount, cm => cm.WithName("amount"))
-                .Column(u => u.IsAutomatic, cm => cm.WithName("is_automatic"))
-        ));
-    }
 
     /// <summary>
     /// Register an active connection for autotip processing
@@ -237,7 +218,6 @@ public class AutotipService
 
             // Store in both tables
             await GetAutotipTable().Insert(entry).ExecuteAsync();
-            await GetRecentTable().Insert(recentEntry).ExecuteAsync();
 
             logger.LogDebug($"Recorded tip: {userId} -> {targetPlayer} ({gamemode}, {amount} coins, auto: {isAutomatic})");
         }
