@@ -10,13 +10,10 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Coflnet.Sky.Commands.MC;
 
 [CommandDescription(
-    "Tip players in supported gamemodes",
-    "Usage: /tip <player> <gamemode>",
-    "Supported gamemodes: arcade, skywars, tntgames, legacy",
-    "Each player can only tip one other player per gamemode",
-    "Tips are automatically sent every minute to online players",
-    "Use /cofl set blockAutotip true to disable automatic tipping")]
-public class TipCommand : McCommand
+    "Manage the autotip feature",
+    "Enables or disables automatic tipping of players",
+    "You can also view your autotip statistics")]
+public class AutoTipCommand : McCommand
 {
     public override bool IsPublic => true;
 
@@ -24,52 +21,16 @@ public class TipCommand : McCommand
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(arguments))
+            var subCommand = Convert<string>(arguments).ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(subCommand))
             {
                 // Show help and usage
                 socket.Dialog(db => db
                     .MsgLine($"{McColorCodes.YELLOW}Autotip Command Help:")
-                    .MsgLine($"{McColorCodes.AQUA}Usage: /tip <player> <gamemode>")
-                    .MsgLine($"{McColorCodes.GRAY}Supported gamemodes: {string.Join(", ", AutotipService.SupportedGamemodes)}")
-                    .MsgLine($"{McColorCodes.GRAY}Each player can only tip one other player per gamemode")
-                    .MsgLine($"{McColorCodes.GRAY}Tips are automatically sent every minute")
-                    .MsgLine($"{McColorCodes.YELLOW}Examples:")
-                    .MsgLine($"{McColorCodes.WHITE}/tip Notch arcade")
-                    .MsgLine($"{McColorCodes.WHITE}/tip Hypixel skywars")
-                    .MsgLine($"{McColorCodes.GRAY}To disable autotip: {McColorCodes.AQUA}/cofl set blockAutotip true")
+                    .MsgLine($"{McColorCodes.GRAY}/cofl autotip enable {McColorCodes.WHITE}- Enable automatic tipping")
+                    .MsgLine($"{McColorCodes.GRAY}/cofl autotip disable {McColorCodes.WHITE}- Disable automatic tipping")
+                    .MsgLine($"{McColorCodes.GRAY}/cofl autotip stats {McColorCodes.WHITE}- View your autotip statistics")
                 );
-                return;
-            }
-
-            var args = arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            
-            if (args.Length < 2)
-            {
-                socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.RED}Please provide both player name and gamemode. Usage: /tip <player> <gamemode>"));
-                return;
-            }
-
-            var targetPlayer = args[0];
-            var gamemode = args[1].ToLowerInvariant();
-
-            // Validate gamemode
-            if (!AutotipService.SupportedGamemodes.Contains(gamemode))
-            {
-                socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.RED}Unsupported gamemode '{gamemode}'. Supported: {string.Join(", ", AutotipService.SupportedGamemodes)}"));
-                return;
-            }
-
-            // Validate player name
-            if (string.IsNullOrWhiteSpace(targetPlayer) || targetPlayer.Length < 3 || targetPlayer.Length > 16)
-            {
-                socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.RED}Invalid player name. Player names must be 3-16 characters long."));
-                return;
-            }
-
-            // Check if user is logged in
-            if (string.IsNullOrEmpty(socket.UserId))
-            {
-                socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.RED}You must be logged in to use the tip command. Please use /cofl login"));
                 return;
             }
 
@@ -81,40 +42,31 @@ public class TipCommand : McCommand
                 return;
             }
 
-            // Execute the manual tip
-            var success = await autotipService.ExecuteManualTip(socket, targetPlayer, gamemode);
-            
-            if (success)
+            if (subCommand == "enable")
             {
-                socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.GREEN}Successfully sent tip to {McColorCodes.AQUA}{targetPlayer}{McColorCodes.GREEN} in {McColorCodes.YELLOW}{gamemode}{McColorCodes.GREEN}!"));
-                
-                // Show info about automatic tipping
+                socket.sessionLifesycle.AccountSettings.Value.BlockAutotip = false;
+                await socket.sessionLifesycle.AccountSettings.Update();
+                socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.GREEN}Autotip has been enabled."));
+            }
+            else if (subCommand == "disable")
+            {
+                socket.sessionLifesycle.AccountSettings.Value.BlockAutotip = true;
+                await socket.sessionLifesycle.AccountSettings.Update();
+                socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.YELLOW}Autotip has been disabled."));
+            }
+            else if (subCommand == "stats")
+            {
+                System.Collections.Generic.List<ModCommands.Models.AutotipEntry> stats = await autotipService.GetUserTipHistory(socket.SessionInfo.McUuid);
                 socket.Dialog(db => db
-                    .MsgLine($"{McColorCodes.GRAY}Automatic tips are sent every minute to online players")
-                    .MsgLine($"{McColorCodes.GRAY}To disable autotip: {McColorCodes.AQUA}/cofl set blockAutotip true")
+                    .MsgLine($"{McColorCodes.YELLOW}Autotip Statistics:")
+                    .MsgLine($"{McColorCodes.GRAY}Tips Sent in the last week: {McColorCodes.WHITE}{stats.Count}")
                 );
             }
             else
             {
-                // Check if autotip is blocked
-                var accountSettings = socket.sessionLifesycle?.AccountSettings?.Value;
-                bool isBlocked = false;
-                if (accountSettings != null)
-                {
-                    // Use reflection to check for BlockAutotip property (in case it doesn't exist in the shared library yet)
-                    var blockAutotipProp = accountSettings.GetType().GetProperty("BlockAutotip");
-                    isBlocked = blockAutotipProp != null && (bool)(blockAutotipProp.GetValue(accountSettings) ?? false);
-                }
-
-                if (isBlocked)
-                {
-                    socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.YELLOW}Autotip is currently disabled. Enable it with: {McColorCodes.AQUA}/cofl set blockAutotip false"));
-                }
-                else
-                {
-                    socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.RED}Failed to send tip. You may have already tipped someone in {gamemode} recently."));
-                }
+                socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.RED}Unknown subcommand. Please use 'enable', 'disable' or 'stats'."));
             }
+
         }
         catch (ArgumentException ex)
         {

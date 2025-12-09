@@ -11,6 +11,7 @@ using Cassandra.Mapping;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Models;
+using Coflnet.Sky.ModCommands.Tutorials;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -129,7 +130,7 @@ public class AutotipService
         return new Table<AutotipEntry>(session, new MappingConfiguration().Define(
             new Map<AutotipEntry>()
                 .PartitionKey(u => u.UserId)
-                .ClusteringKey(u => u.Gamemode)
+                .ClusteringKey(u => u.Gamemode, SortOrder.Descending)
                 .ClusteringKey(u => u.TippedAt, SortOrder.Descending)
                 .Column(u => u.TippedPlayerUuid, cm => cm.WithName("tipped_player_uuid"))
                 .Column(u => u.TippedPlayerName, cm => cm.WithName("tipped_player_name"))
@@ -146,7 +147,7 @@ public class AutotipService
         return new Table<AutotipRecentEntry>(session, new MappingConfiguration().Define(
             new Map<AutotipRecentEntry>()
                 .PartitionKey(u => u.Gamemode)
-                .ClusteringKey(u => u.UserId)
+                .ClusteringKey(u => u.UserId, SortOrder.Descending)
                 .ClusteringKey(u => u.TippedAt, SortOrder.Descending)
                 .Column(u => u.TippedPlayerUuid, cm => cm.WithName("tipped_player_uuid"))
                 .Column(u => u.TippedPlayerName, cm => cm.WithName("tipped_player_name"))
@@ -178,47 +179,6 @@ public class AutotipService
         }
     }
 
-    /// <summary>
-    /// Execute a manual tip command
-    /// </summary>
-    public async Task<bool> ExecuteManualTip(IMinecraftSocket socket, string targetPlayer, string gamemode)
-    {
-        if (!SupportedGamemodes.Contains(gamemode.ToLowerInvariant()))
-        {
-            throw new ArgumentException($"Gamemode '{gamemode}' is not supported. Supported gamemodes: {string.Join(", ", SupportedGamemodes)}");
-        }
-
-        // Check if user has blocked autotip
-        var accountSettings = socket.sessionLifesycle?.AccountSettings?.Value;
-        if (accountSettings != null)
-        {
-            // Use reflection to check for BlockAutotip property (in case it doesn't exist in the shared library yet)
-            var blockAutotipProp = accountSettings.GetType().GetProperty("BlockAutotip");
-            if (blockAutotipProp != null && (bool)(blockAutotipProp.GetValue(accountSettings) ?? false))
-            {
-                return false; // Silently fail as user has disabled autotip
-            }
-        }
-
-        // Check if we already tipped someone in this gamemode recently
-        var recent = await HasRecentTipInGamemode(socket.UserId, gamemode.ToLowerInvariant());
-        if (recent)
-        {
-            throw new InvalidOperationException($"You have already tipped someone in {gamemode} recently. Each player can only tip one other player per gamemode.");
-        }
-
-        // Execute the tip (this would integrate with Hypixel's tip system)
-        var success = await SendTipToHypixel(socket, targetPlayer, gamemode);
-        
-        if (success)
-        {
-            // Record the tip in database
-            await RecordTip(socket.UserId, targetPlayer, gamemode, 100, false); // Default tip amount of 100 coins
-            logger.LogInformation($"Manual tip sent from {socket.SessionInfo?.McName} to {targetPlayer} in {gamemode}");
-        }
-
-        return success;
-    }
 
     /// <summary>
     /// Check if user has tipped someone in the specified gamemode recently
@@ -321,22 +281,13 @@ public class AutotipService
     /// </summary>
     private async Task<bool> SendTipToHypixel(IMinecraftSocket socket, string targetPlayer, string gamemode)
     {
-        // This is a mock implementation. In reality, this would:
-        // 1. Send the /tip command through the socket to Minecraft
-        // 2. Wait for confirmation or error response
-        // 3. Return success status
-
         try
         {
             // Send tip command to Minecraft
-            socket.Send(Response.Create("tip_command", new { 
-                command = $"/tip {targetPlayer}",
-                gamemode = gamemode
-            }));
+            socket.ExecuteCommand($"/tip {targetPlayer} {gamemode}");
 
-            await Task.Delay(100); // Simulate command execution time
-            
-            logger.LogInformation($"Sent tip command: /tip {targetPlayer} in {gamemode}");
+            logger.LogInformation($"Sent tip command: /tip {targetPlayer} {gamemode} from {socket.SessionInfo?.McName}");
+            await socket.TriggerTutorial<AutotipTutorial>();
             return true;
         }
         catch (Exception e)
@@ -370,6 +321,7 @@ public class AutotipService
 
         foreach (var connection in activeConnections.Values.ToList())
         {
+            await Task.Delay(100); // Stagger to avoid spikes
             tasks.Add(ProcessConnectionAutotip(connection));
         }
 

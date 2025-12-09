@@ -252,6 +252,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<MayorFlipsCommand>();
             Commands.Add<SettingsCommand>();
             Commands.Add<ProxyCommand>();
+            Commands.Add<AutoTipCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
