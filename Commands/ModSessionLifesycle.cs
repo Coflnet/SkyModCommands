@@ -270,6 +270,18 @@ namespace Coflnet.Sky.Commands.MC
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
             Activity.Current.Log("applied flip settings");
             await socket.TryAsyncTimes(FilterState.SubToConfigChanges, "config subscribe");
+            
+            // Register with autotip service
+            try
+            {
+                var autotipService = socket.GetService<AutotipService>();
+                autotipService?.RegisterConnection(socket);
+                Activity.Current.Log("registered with autotip service");
+            }
+            catch (Exception e)
+            {
+                Activity.Current.Log("failed to register with autotip service: " + e.Message);
+            }
         }
 
 
@@ -1170,6 +1182,17 @@ namespace Coflnet.Sky.Commands.MC
 
         public void Dispose()
         {
+            // Unregister from autotip service
+            try
+            {
+                var autotipService = socket.GetService<AutotipService>();
+                autotipService?.UnregisterConnection(UserId?.Value);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to unregister from autotip service: {ex.Message}");
+            }
+
             // Unregister from proxy service
             try
             {
