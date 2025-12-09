@@ -27,14 +27,14 @@ public class AutotipService
     private readonly ILogger<AutotipService> logger;
 
     // Supported gamemodes as defined in the requirements
-    public static readonly string[] SupportedGamemodes = { "arcade", "skywars", "tntgames", "legacy" };
-    
+    public static readonly string[] SupportedGamemodes = ["arcade", "skywars", "tntgames", "legacy", "smash", "uhc", "cnc", "walls", "warlords", "blitz", "tnt"];
+
     // Cache to track recent tips to avoid spamming
     private readonly ConcurrentDictionary<string, DateTime> recentTips = new();
-    
+
     // Timer for automatic tipping
     private readonly Timer autotipTimer;
-    
+
     // All active connections that should run autotip
     private readonly ConcurrentDictionary<string, IMinecraftSocket> activeConnections = new();
 
@@ -43,12 +43,12 @@ public class AutotipService
         this.session = session;
         this.config = config;
         this.logger = logger;
-        
+
         InitializeTables();
-        
+
         // Start the 1-minute autotip timer
         autotipTimer = new Timer(ExecuteAutotipCycle, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5));
-        
+
         logger.LogInformation("AutotipService initialized with 1-minute timer");
     }
 
@@ -169,7 +169,7 @@ public class AutotipService
         try
         {
             var cutoff = DateTimeOffset.UtcNow.AddHours(-1); // Consider tips from last hour as "recent"
-            
+
             var recent = await GetAutotipTable()
                 .Where(t => t.UserId == userId && t.Gamemode == gamemode && t.TippedAt > cutoff)
                 .Take(1)
@@ -205,16 +205,6 @@ public class AutotipService
                 IsAutomatic = isAutomatic
             };
 
-            var recentEntry = new AutotipRecentEntry
-            {
-                Gamemode = gamemode.ToLowerInvariant(),
-                UserId = userId,
-                TippedAt = now,
-                TippedPlayerUuid = targetUuid ?? "unknown",
-                TippedPlayerName = targetPlayer,
-                Amount = amount,
-                IsAutomatic = isAutomatic
-            };
 
             // Store in both tables
             await GetAutotipTable().Insert(entry).ExecuteAsync();
@@ -233,9 +223,9 @@ public class AutotipService
     private async Task<List<string>> GetOnlinePlayersInGamemode(string gamemode)
     {
         await Task.Delay(10); // Small delay to simulate processing
-        
+
         var playerNames = new List<string>();
-        
+
         // Get all connected players from active sessions
         foreach (var connection in activeConnections.Values)
         {
@@ -245,14 +235,14 @@ public class AutotipService
                 playerNames.Add(playerName);
             }
         }
-        
+
         // Prefer Ekwav if present and move to front of list
         if (playerNames.Contains("Ekwav"))
         {
             playerNames.Remove("Ekwav");
             playerNames.Insert(0, "Ekwav");
         }
-        
+
         return playerNames;
     }
 
@@ -338,7 +328,7 @@ public class AutotipService
 
             // Find gamemodes where user hasn't tipped anyone recently
             var gamemodeNeedingTip = await FindGamemodeNeedingTip(socket.UserId);
-            
+
             if (gamemodeNeedingTip == null)
             {
                 logger.LogDebug($"No gamemode needs tip for user {socket.SessionInfo?.McName}");
@@ -347,7 +337,7 @@ public class AutotipService
 
             // Get online players in that gamemode
             var onlinePlayers = await GetOnlinePlayersInGamemode(gamemodeNeedingTip);
-            
+
             if (!onlinePlayers.Any())
             {
                 logger.LogDebug($"No online players found in {gamemodeNeedingTip}");
@@ -360,7 +350,7 @@ public class AutotipService
 
             // Execute automatic tip
             var success = await SendTipToHypixel(socket, targetPlayer, gamemodeNeedingTip);
-            
+
             if (success)
             {
                 await RecordTip(socket.UserId, targetPlayer, gamemodeNeedingTip, 100, true);
@@ -381,7 +371,7 @@ public class AutotipService
         try
         {
             var cutoff = DateTimeOffset.UtcNow.AddHours(-1); // Check tips from last hour
-            
+
             // Get recent tips for this user across all gamemodes
             var recentTips = await GetAutotipTable()
                 .Where(t => t.UserId == userId && t.TippedAt > cutoff)
@@ -391,7 +381,7 @@ public class AutotipService
 
             // Find gamemodes that haven't been tipped in
             var availableGamemodes = SupportedGamemodes.Where(g => !tippedGamemodes.Contains(g)).ToList();
-            
+
             if (!availableGamemodes.Any())
                 return null; // All gamemodes have been tipped in recently
 
