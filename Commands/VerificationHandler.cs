@@ -124,7 +124,7 @@ namespace Coflnet.Sky.Commands.MC
             var verification = socket.CreateActivity("Verification", ConSpan);
             var bid = connect.Code;
             Api.Client.Model.AuctionPreview targetAuction = null;
-            foreach (var type in new List<string> { "STICK", "RABBIT_HAT", "WOOD_SWORD", "VACCINE_TALISMAN" })
+            foreach (var type in new List<string> { "STICK", "PICKONIMBUS", "BATTLE_DISC","WINTER_DISC", "VACCINE_TALISMAN" })
             {
                 try
                 {
