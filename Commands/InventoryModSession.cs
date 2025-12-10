@@ -14,6 +14,8 @@ namespace Coflnet.Sky.Commands.MC
                 + @"|You donated your" // museum donation
                 + @"|: \d+m$" // chat lowballing discussion
                 + @"| - | \+ |Trade completed|Bid of|\nClick the link to |\nClick th' li|You must set it to at least).*";
+        public const string DefaultChatBlockRegex =
+            @"^(You tipped ).*";
 
         public InventoryModSession(MinecraftSocket socket) : base(socket)
         {
@@ -32,6 +34,7 @@ namespace Coflnet.Sky.Commands.MC
                     CollectInventory = true,
                     ExtendDescriptions = true,
                     ChatRegex = DefaultChatRegex,
+                    ChatBlockRegex = DefaultChatBlockRegex,
                     CollectChat = true,
                     CollectScoreboard = true,
                     CollectChatClicks = true,
