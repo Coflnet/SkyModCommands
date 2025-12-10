@@ -55,6 +55,8 @@ namespace Coflnet.Sky.Commands.MC
             socket.sessionLifesycle.PrivacySettings.AfterChange += UpdatePrivacySettings;
             if (socket.sessionLifesycle.PrivacySettings.Value.ChatRegex != DefaultChatRegex)
                 socket.sessionLifesycle.PrivacySettings.Value.ChatRegex = DefaultChatRegex;
+            if( socket.sessionLifesycle.PrivacySettings.Value.ChatBlockRegex != DefaultChatBlockRegex)
+                socket.sessionLifesycle.PrivacySettings.Value.ChatBlockRegex = DefaultChatBlockRegex;
             UpdatePrivacySettings(socket.sessionLifesycle.PrivacySettings.Value);
             //if(isDefault)
             //    await socket.sessionLifesycle.PrivacySettings.Update();
