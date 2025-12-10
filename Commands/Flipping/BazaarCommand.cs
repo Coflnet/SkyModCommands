@@ -48,11 +48,11 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
                 }
                 foreach (var flip in completedFlips)
                 {
-                    var profit = flip.Profit;
+                    var profit = (double)flip.Profit/10;
                     var color = profit >= 0 ? McColorCodes.GREEN : McColorCodes.RED;
-                    db.MsgLine($"{McColorCodes.GOLD}{flip.Amount}{McColorCodes.GRAY}x§7{flip.ItemName}§r: §a{socket.FormatPrice(flip.BuyPrice)}§r -> §a{socket.FormatPrice(flip.SellPrice)}§r => {color}{socket.FormatPrice(profit)}§r",
+                    db.MsgLine($"{McColorCodes.GOLD}{flip.Amount}{McColorCodes.GRAY}x§7{flip.ItemName}§r: §a{socket.FormatPrice(flip.BuyPrice/10)}§r -> §a{socket.FormatPrice(flip.SellPrice/10)}§r => {color}{socket.FormatPrice(profit)}§r",
                         $"https://sky.coflnet.com/bazaar/item/{flip.ItemTag}",
-                        $"Bought for {socket.FormatPrice(flip.BuyPrice)}, sold for {socket.FormatPrice(flip.SellPrice)}\n"
+                        $"Bought for {socket.FormatPrice((double)flip.BuyPrice/10)}, sold for {socket.FormatPrice((double)flip.SellPrice/10)}\n"
                         + $"Profit: {socket.FormatPrice(profit)}\n"
                         + $"Items flipped: {flip.Amount}\n"
                         + $"Click to view {flip.ItemName} on the website");
