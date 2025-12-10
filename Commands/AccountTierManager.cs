@@ -214,6 +214,8 @@ public class AccountTierManager : IAccountTierManager
             { // only the latest session updates the state
                 foreach (var session in others.Where(o => o.LastActive < DateTime.UtcNow - TimeSpan.FromHours(2)))
                 {
+                    if(session.ConnectionId == socket.SessionInfo.ConnectionId)
+                        continue; // don't remove self
                     sessions.Remove(session);
                 }
                 if (others.Where(s => !s.Outdated).Any())
