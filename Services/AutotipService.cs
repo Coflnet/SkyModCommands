@@ -27,7 +27,7 @@ public class AutotipService
     private readonly ILogger<AutotipService> logger;
 
     // Supported gamemodes as defined in the requirements
-    public static readonly string[] SupportedGamemodes = ["arcade", "skywars", "tntgames", "legacy", "smash", "uhc", "cnc", "walls", "warlords", "blitz", "tnt"];
+    public static readonly string[] SupportedGamemodes = ["arcade", "skywars", "tntgames", "legacy", "smash", "uhc", "cnc", "warlords", "blitz", "tnt"];
 
     // Cache to track recent tips to avoid spamming
     private readonly ConcurrentDictionary<string, DateTime> recentTips = new();
@@ -220,7 +220,7 @@ public class AutotipService
     /// <summary>
     /// Get online players to tip from active connections
     /// </summary>
-    private async Task<string> GetOnlinePlayersInGamemode(string gamemode)
+    private async Task<string> GetOnlinePlayersInGamemode(IMinecraftSocket socket, string gamemode)
     {
         var playerNames = new List<string>();
 
@@ -228,7 +228,9 @@ public class AutotipService
         foreach (var connection in activeConnections.Values)
         {
             var playerName = connection.SessionInfo?.McName;
-            if(connection.sessionLifesycle.AccountSettings?.Value.BlockAutotip ?? true)
+            if (connection.sessionLifesycle.AccountSettings?.Value.BlockAutotip ?? true)
+                continue;
+            if(connection == socket)
                 continue;
             if (!string.IsNullOrEmpty(playerName))
             {
@@ -329,7 +331,7 @@ public class AutotipService
             }
 
             // Get online players in that gamemode
-            var targetPlayer = await GetOnlinePlayersInGamemode(gamemodeNeedingTip);
+            var targetPlayer = await GetOnlinePlayersInGamemode(socket, gamemodeNeedingTip);
 
             if (targetPlayer == null)
             {
