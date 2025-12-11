@@ -27,10 +27,7 @@ public class AutotipService
     private readonly ILogger<AutotipService> logger;
 
     // Supported gamemodes as defined in the requirements
-    public static readonly string[] SupportedGamemodes = ["arcade", "skywars", "tntgames", "legacy", "smash", "uhc", "cnc", "warlords", "blitz", "tnt"];
-
-    // Cache to track recent tips to avoid spamming
-    private readonly ConcurrentDictionary<string, DateTime> recentTips = new();
+    public static readonly string[] SupportedGamemodes = ["legacy", "blitz", "megawalls", "arcade", "skywars",  "smash", "uhc", "cnc", "warlords",  "tnt"];
 
     // Timer for automatic tipping
     private readonly Timer autotipTimer;
@@ -160,29 +157,6 @@ public class AutotipService
         }
     }
 
-
-    /// <summary>
-    /// Check if user has tipped someone in the specified gamemode recently
-    /// </summary>
-    private async Task<bool> HasRecentTipInGamemode(string userId, string gamemode)
-    {
-        try
-        {
-            var cutoff = DateTimeOffset.UtcNow.AddHours(-1); // Consider tips from last hour as "recent"
-
-            var recent = await GetAutotipTable()
-                .Where(t => t.UserId == userId && t.Gamemode == gamemode && t.TippedAt > cutoff)
-                .Take(1)
-                .ExecuteAsync();
-
-            return recent.Any();
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, $"Error checking recent tips for user {userId} in gamemode {gamemode}");
-            return true; // Err on the side of caution - don't tip if we can't check
-        }
-    }
 
     /// <summary>
     /// Record a completed tip in the database
