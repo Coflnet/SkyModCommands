@@ -56,7 +56,7 @@ public class AutoTipCommand : McCommand
             }
             else if (subCommand == "stats")
             {
-                System.Collections.Generic.List<ModCommands.Models.AutotipEntry> stats = await autotipService.GetUserTipHistory(socket.SessionInfo.McUuid);
+                System.Collections.Generic.List<ModCommands.Models.AutotipEntry> stats = await autotipService.GetUserTipHistory(socket.UserId);
                 socket.Dialog(db => db
                     .MsgLine($"{McColorCodes.YELLOW}Autotip Statistics:")
                     .MsgLine($"{McColorCodes.GRAY}Tips Sent in the last week: {McColorCodes.WHITE}{stats.Count}")

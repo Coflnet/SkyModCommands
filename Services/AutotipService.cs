@@ -44,7 +44,7 @@ public class AutotipService
         InitializeTables();
 
         // Start the 1-minute autotip timer
-        autotipTimer = new Timer(ExecuteAutotipCycle, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5));
+        autotipTimer = new Timer(ExecuteAutotipCycle, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(2.9));
 
         logger.LogInformation("AutotipService initialized with 1-minute timer");
     }
@@ -335,7 +335,7 @@ public class AutotipService
     {
         try
         {
-            var cutoff = DateTimeOffset.UtcNow.AddHours(-1); // Check tips from last hour
+            var cutoff = DateTimeOffset.UtcNow.AddHours(-0.51); // Check tips from last 30mins
 
             // Get recent tips for this user across all gamemodes
             var recentTips = await GetAutotipTable()
