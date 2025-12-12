@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -5,6 +6,7 @@ using Coflnet.Sky.Commands.Shared;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
+
 public class UploadInventory : McCommand
 {
     private InventoryParser parser = new InventoryParser();
@@ -12,7 +14,12 @@ public class UploadInventory : McCommand
     {
         socket.SessionInfo.Inventory = null;
         socket.SessionInfo.Inventory = parser.Parse(arguments).ToList();
-        Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.Inventory));
+        if (arguments.Contains("part"))
+        {
+            Activity.Current.Log(arguments).AddTag("part","any");
+        }
+        else
+            Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.Inventory));
         if (socket.ModAdapter is AfVersionAdapter)
         {
             return;
