@@ -46,7 +46,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
                     db.MsgLine("§7No completed flips in the last 7 days§r");
                     return db;
                 }
-                foreach (var flip in completedFlips)
+                foreach (var flip in completedFlips.AsEnumerable().Reverse())
                 {
                     var profit = (double)flip.Profit/10;
                     var color = profit >= 0 ? McColorCodes.GREEN : McColorCodes.RED;
@@ -55,6 +55,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
                         $"Bought for {socket.FormatPrice((double)flip.BuyPrice/10)}, sold for {socket.FormatPrice((double)flip.SellPrice/10)}\n"
                         + $"Profit: {socket.FormatPrice(profit)}\n"
                         + $"Items flipped: {flip.Amount}\n"
+                        + $"Completed: {socket.formatProvider.FormatTime(DateTime.UtcNow-flip.SoldAt)}n"
                         + $"Click to view {flip.ItemName} on the website");
                 }
                 return db;
