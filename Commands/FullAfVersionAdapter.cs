@@ -695,8 +695,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             var purchaseAuction = await AuctionService.Instance.GetAuctionAsync(purchase.AuctionId, db => db.Include(a => a.Enchantments).Include(a => a.NbtData));
             if (purchaseAuction == null)
                 return false;
-
-            return ItemComparisonHelper.WasItemChanged(purchaseAuction, currentItem);
+            return ItemComparisonHelper.WasItemChanged(purchaseAuction, currentItem) && !currentItem.Tag.Contains("ROD");
         }
         catch (Exception ex)
         {
