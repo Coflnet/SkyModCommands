@@ -202,9 +202,9 @@ public class AutotipService
         foreach (var connection in activeConnections.Values)
         {
             var playerName = connection.SessionInfo?.McName;
-            if (connection.sessionLifesycle.AccountSettings?.Value.BlockAutotip ?? true)
+            if (connection?.sessionLifesycle?.AccountSettings?.Value.BlockAutotip ?? true)
                 continue;
-            if(connection == socket)
+            if (connection == socket)
                 continue;
             if (!string.IsNullOrEmpty(playerName))
             {
@@ -212,7 +212,7 @@ public class AutotipService
             }
         }
 
-        // Prefer Ekwav if present and move to front of list
+        // Prefer Ekwav if present
         if (playerNames.Contains("Ekwav"))
         {
             return "Ekwav";
