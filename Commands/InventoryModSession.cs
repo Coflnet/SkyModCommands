@@ -6,8 +6,8 @@ namespace Coflnet.Sky.Commands.MC
     public class InventoryModSession : ModSessionLifesycle
     {
         public const string DefaultChatRegex =
-                @"^(You cannot view this auction!|You claimed|\[Bazaar\]|\[NPC\] Kat|�r�cCancelled|�r�6Bazaar!"
-                + @"|You collected|�6[Auction]|BIN Auction started|You cancelled|You purchased "
+                @"^(You cannot view this auction!|You claimed|\[Bazaar\]|\[NPC\] Kat|\Cancelled"
+                + @"|You collected|\[Auction\]|BIN Auction started|You cancelled|You purchased "
                 + @"|Profile ID: |You placd a Trap|\+\d+ .* Attribute \(Level "
                 + @"|You caught |\s+Chameleon" // catching shards
                 + @"|Added items|Removed items" // stash adding notification
