@@ -50,13 +50,14 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
                 {
                     var profit = (double)flip.Profit/10;
                     var color = profit >= 0 ? McColorCodes.GREEN : McColorCodes.RED;
-                    db.MsgLine($"{McColorCodes.GOLD}{flip.Amount}{McColorCodes.GRAY}x§7{flip.ItemName}§r: §a{socket.FormatPrice(flip.BuyPrice/10)}§r -> §a{socket.FormatPrice(flip.SellPrice/10)}§r => {color}{socket.FormatPrice(profit)}§r",
+                    db.MsgLine($"{McColorCodes.GOLD}{flip.Amount}{McColorCodes.GRAY}x§7{flip.ItemName}§r: {McColorCodes.YELLOW}{socket.FormatPrice(flip.BuyPrice/10)}§r -> §a{socket.FormatPrice(flip.SellPrice/10)}§r => {color}{socket.FormatPrice(profit)}§r",
                         $"https://sky.coflnet.com/bazaar/item/{flip.ItemTag}",
-                        $"Bought for {socket.FormatPrice((double)flip.BuyPrice/10)}, sold for {socket.FormatPrice((double)flip.SellPrice/10)}\n"
-                        + $"Profit: {socket.FormatPrice(profit)}\n"
-                        + $"Items flipped: {flip.Amount}\n"
-                        + $"Completed: {socket.formatProvider.FormatTime(DateTime.UtcNow-flip.SoldAt)}n"
-                        + $"Click to view {flip.ItemName} on the website");
+                        $"{McColorCodes.GRAY}Bought: {McColorCodes.AQUA}{socket.FormatPrice((double)flip.BuyPrice / 10)}\n" +
+                        $"{McColorCodes.GRAY}Sold:  {McColorCodes.AQUA}{socket.FormatPrice((double)flip.SellPrice / 10)}\n" +
+                        $"{McColorCodes.GRAY}Profit: {(profit >= 0 ? McColorCodes.GREEN : McColorCodes.RED)}{socket.FormatPrice(profit)}{McColorCodes.GRAY}\n" +
+                        $"{McColorCodes.GRAY}Items flipped: {McColorCodes.GOLD}{flip.Amount}\n" +
+                        $"{McColorCodes.GRAY}Completed: {McColorCodes.DARK_GRAY}{socket.formatProvider.FormatTime(DateTime.UtcNow - flip.SoldAt)}\n" +
+                        $"{McColorCodes.YELLOW}Click to view {McColorCodes.AQUA}{flip.ItemName}{McColorCodes.GRAY} on the website");
                 }
                 return db;
             });
