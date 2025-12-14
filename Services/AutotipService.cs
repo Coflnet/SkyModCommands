@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Net.Http;
+using Coflnet.Sky.Proxy.Client.Api;
 using Cassandra;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
@@ -12,8 +14,11 @@ using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Tutorials;
+using Coflnet.Sky.PlayerName.Client.Api;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
@@ -25,28 +30,44 @@ public class AutotipService
     private readonly ISession session;
     private readonly IConfiguration config;
     private readonly ILogger<AutotipService> logger;
+    private readonly IProxyApi proxyApi;
+    private readonly IPlayerNameApi playerNameApi;
 
     // Supported gamemodes as defined in the requirements
     public static readonly string[] SupportedGamemodes = ["legacy", "blitz", "megawalls", "arcade", "skywars",  "smash", "uhc", "cnc", "warlords",  "tnt"];
 
     // Timer for automatic tipping
     private readonly Timer autotipTimer;
+    
+    // Timer for updating booster list (every 30 minutes)
+    private readonly Timer boosterUpdateTimer;
 
     // All active connections that should run autotip
     private readonly ConcurrentDictionary<string, IMinecraftSocket> activeConnections = new();
+    
+    // Cache of active boosters by gamemode
+    private readonly ConcurrentDictionary<string, List<ActiveBooster>> activeBoosters = new();
+    
+    // Lock for booster cache updates
+    private readonly object boosterLock = new();
 
-    public AutotipService(ISession session, IConfiguration config, ILogger<AutotipService> logger)
+    public AutotipService(ISession session, IConfiguration config, ILogger<AutotipService> logger, IProxyApi proxyApi, IPlayerNameApi playerNameApi)
     {
         this.session = session;
         this.config = config;
         this.logger = logger;
+        this.proxyApi = proxyApi;
+        this.playerNameApi = playerNameApi;
 
         InitializeTables();
 
         // Start the 1-minute autotip timer
         autotipTimer = new Timer(ExecuteAutotipCycle, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(2.9));
+        
+        // Start the booster update timer - runs immediately, then every 30 minutes
+        boosterUpdateTimer = new Timer(UpdateBoosterCache, null, dueTime: 0, period: (int)TimeSpan.FromMinutes(30).TotalMilliseconds);
 
-        logger.LogInformation("AutotipService initialized with 1-minute timer");
+        logger.LogInformation("AutotipService initialized with 1-minute timer and 30-minute booster update");
     }
 
     /// <summary>
@@ -157,6 +178,226 @@ public class AutotipService
         }
     }
 
+    /// <summary>
+    /// Update the booster cache from the Hypixel API
+    /// </summary>
+    private async void UpdateBoosterCache(object state)
+    {
+        try
+        {
+            logger.LogInformation("Updating booster cache from Hypixel API");
+            
+            // Request boosters via the proxy API so we don't need a Hypixel API key locally
+            var res = await proxyApi.ProxyHypixelGetAsync("/v2/boosters");
+            if (res == null)
+            {
+                logger.LogWarning("Proxy API returned null for boosters request");
+                return;
+            }
+
+            // The proxy client typically returns a JSON-encoded string, unwrap as done elsewhere
+            var json = JsonConvert.DeserializeObject<string>(res);
+            var boosterResponse = JsonConvert.DeserializeObject<BoosterResponse>(json);
+            if (boosterResponse == null || !boosterResponse.success || boosterResponse.boosters == null || boosterResponse.boosters.Count == 0)
+            {
+                logger.LogInformation("No boosters returned by proxy/hypixel API");
+                lock (boosterLock)
+                {
+                    activeBoosters.Clear();
+                }
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var newBoosters = new ConcurrentDictionary<string, List<ActiveBooster>>();
+            var uuidsToFetch = new HashSet<string>();
+
+            // Filter boosters to only those with >= 30 minutes remaining and supported gamemodes
+            var validBoosters = new List<(BoosterEntry entry, string gamemode)>();
+
+            foreach (var booster in boosterResponse.boosters)
+            {
+                var timeRemaining = booster.length * 1000; // Convert seconds to milliseconds
+                
+                // Only keep boosters that are active for longer than the update interval (30 minutes)
+                // but expiring within 1 hour (prefer boosters that will expire soon)
+                if (timeRemaining >= 30 * 60 * 1000 && timeRemaining <= 60 * 60 * 1000 && GameTypeMapper.IsSupportedForAutotip(booster.gameType))
+                {
+                    var gamemode = GameTypeMapper.GetGamemode(booster.gameType);
+                    if (gamemode != null)
+                    {
+                        validBoosters.Add((booster, gamemode));
+                        // main purchaser
+                        if (!string.IsNullOrEmpty(booster.purchaserUuid))
+                            uuidsToFetch.Add(booster.purchaserUuid);
+
+                        // stacked may be an array of uuids or boolean true; only extract when array
+                        if (booster.stacked != null && booster.stacked.Type == JTokenType.Array)
+                        {
+                            foreach (var t in booster.stacked)
+                            {
+                                try
+                                {
+                                    var s = t.ToString();
+                                    if (!string.IsNullOrEmpty(s))
+                                        uuidsToFetch.Add(s);
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (validBoosters.Count == 0)
+            {
+                logger.LogInformation("No valid boosters found for autotip");
+                lock (boosterLock)
+                {
+                    activeBoosters.Clear();
+                }
+                return;
+            }
+
+            // Fetch all usernames for the booster UUIDs
+            var uuidToNameMap = await FetchPlayerNamesAsync(uuidsToFetch);
+
+            // Build the new booster cache
+            foreach (var item in validBoosters)
+            {
+                var entry = item.entry;
+                var gamemode = item.gamemode;
+                
+                if (!uuidToNameMap.TryGetValue(entry.purchaserUuid, out var playerName))
+                {
+                    logger.LogWarning($"Failed to fetch name for UUID {entry.purchaserUuid}");
+                    // continue building other boosters but skip purchaser entry
+                    playerName = null;
+                }
+
+                var activeBooster = new ActiveBooster
+                {
+                    purchaserUuid = entry.purchaserUuid,
+                    purchaserName = playerName,
+                    gamemode = gamemode,
+                    timeActivated = entry.dateActivated,
+                    timeRemaining = entry.length * 1000
+                };
+
+                if (!newBoosters.ContainsKey(gamemode))
+                {
+                    newBoosters[gamemode] = new List<ActiveBooster>();
+                }
+
+                newBoosters[gamemode].Add(activeBooster);
+                
+                // Also add stacked boosters (if any) as separate entries when their names were resolved
+                if (entry.stacked != null && entry.stacked.Type == JTokenType.Array)
+                {
+                    foreach (var t in entry.stacked)
+                    {
+                        var sid = t.ToString();
+                        if (string.IsNullOrEmpty(sid))
+                            continue;
+                        if (!uuidToNameMap.TryGetValue(sid, out var stackedName))
+                            continue;
+
+                        var stackedBooster = new ActiveBooster
+                        {
+                            purchaserUuid = sid,
+                            purchaserName = stackedName,
+                            gamemode = gamemode,
+                            timeActivated = entry.dateActivated,
+                            timeRemaining = entry.length * 1000
+                        };
+
+                        newBoosters[gamemode].Add(stackedBooster);
+                    }
+                }
+            }
+
+            // Update the cache atomically
+            lock (boosterLock)
+            {
+                activeBoosters.Clear();
+                foreach (var kvp in newBoosters)
+                {
+                    activeBoosters[kvp.Key] = kvp.Value;
+                }
+            }
+
+            var totalBoosters = validBoosters.Count;
+            var gamemodes = string.Join(", ", newBoosters.Keys);
+            logger.LogInformation($"Updated booster cache: {totalBoosters} active boosters across gamemodes: {gamemodes}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating booster cache");
+        }
+    }
+
+    /// <summary>
+    /// Fetch player names for a list of UUIDs
+    /// </summary>
+    private async Task<Dictionary<string, string>> FetchPlayerNamesAsync(HashSet<string> uuids)
+    {
+        var result = new Dictionary<string, string>();
+
+        if (uuids.Count == 0)
+            return result;
+
+        try
+        {
+            var tasks = new List<Task>();
+            var lockObj = new object();
+
+            foreach (var uuid in uuids)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        var name = await playerNameApi.PlayerNameNameUuidGetAsync(uuid);
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            // PlayerNameApi returns name in quotes, trim them
+                            var cleanName = name.Trim('"');
+                            lock (lockObj)
+                            {
+                                result[uuid] = cleanName;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, $"Failed to fetch name for UUID {uuid}");
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error fetching player names");
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Get a list of active boosters for a specific gamemode
+    /// </summary>
+    private List<ActiveBooster> GetBoostersForGamemode(string gamemode)
+    {
+        lock (boosterLock)
+        {
+            return activeBoosters.TryGetValue(gamemode, out var boosters) 
+                ? new List<ActiveBooster>(boosters) 
+                : new List<ActiveBooster>();
+        }
+    }
+
 
     /// <summary>
     /// Record a completed tip in the database
@@ -192,10 +433,27 @@ public class AutotipService
     }
 
     /// <summary>
-    /// Get online players to tip from active connections
+    /// Get online players to tip from active connections, preferring active boosters
     /// </summary>
     private async Task<string> GetOnlinePlayersInGamemode(IMinecraftSocket socket, string gamemode)
     {
+        // First, check if there are any active boosters for this gamemode
+        var boosters = GetBoostersForGamemode(gamemode);
+        
+        if (boosters.Count > 0)
+        {
+            // Select a random booster to prefer
+            if(boosters.Any(b=>b.purchaserName == "Ekwav"))
+            {
+                logger.LogInformation($"Preferring booster Ekwav for {gamemode}");
+                return "Ekwav";
+            }
+            var selectedBooster = boosters[Random.Shared.Next(boosters.Count)];
+            logger.LogInformation($"Preferring booster {selectedBooster.purchaserName} for {gamemode}");
+            return selectedBooster.purchaserName;
+        }
+
+        // Fallback to online players from active connections
         var playerNames = new List<string>();
 
         // Get all connected players from active sessions
@@ -388,7 +646,9 @@ public class AutotipService
     public void Dispose()
     {
         autotipTimer?.Dispose();
+        boosterUpdateTimer?.Dispose();
         activeConnections.Clear();
+        activeBoosters.Clear();
         logger.LogInformation("AutotipService disposed");
     }
 }
