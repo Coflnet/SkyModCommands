@@ -8,7 +8,7 @@ namespace Coflnet.Sky.Commands.MC
     /// </summary>
     public class ChatCollectionRegexTests
     {
-        private Regex regex = new Regex(InventoryModSession.DefaultChatRegex);
+        private Regex regex = new Regex(Shared.PrivacySettings.DefaultChatRegex);
 
         [TestCase("[NPC] Kat: You can pick it up in 59 minutes 22 seconds")]
         [TestCase("[NPC] Kat: I'm currently taking care of your Bee!")]

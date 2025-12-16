@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using static Coflnet.Sky.Core.LowPricedAuction;
 
 namespace Coflnet.Sky.Commands.MC;
+
 [CommandDescription("Sets a setting",
     "Usage: /cl set <setting> <value>",
     "Suggests corrections in case you have a typo",
@@ -100,6 +101,7 @@ public class SetCommand : McCommand
             {
                 DisableTradeTracking = socket.sessionLifesycle.PrivacySettings.Value.DisableTradeStoring,
                 DisableKuudraTracking = socket.sessionLifesycle.PrivacySettings.Value.DisableKuudraTracking,
+                DisableBazaarTracking = socket.sessionLifesycle.PrivacySettings.Value.DisableBazaarTracking
             },
             UserId = socket.UserId
         });
@@ -177,7 +179,7 @@ public class SetCommand : McCommand
 
     private static object GetCurrent((KeyValuePair<string, SettingDoc> o, object current) setting)
     {
-        if(setting.current is HashSet<string> hashSet)
+        if (setting.current is HashSet<string> hashSet)
             return string.Join(", ", hashSet);
         return setting.current;
     }

@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Coflnet.Sky.Api.Client.Model;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -10,7 +11,7 @@ namespace Coflnet.Sky.Commands.MC
             var privacySettings = socket.sessionLifesycle.PrivacySettings.Value;
             if (privacySettings.ChatRegex == ".*")
             {
-                privacySettings.ChatRegex = InventoryModSession.DefaultChatRegex;
+                privacySettings.ChatRegex = Shared.PrivacySettings.DefaultChatRegex;
                 await socket.sessionLifesycle.PrivacySettings.Update();
                 socket.SendMessage(COFLNET + $"Debug disabled, please execute /cofl debug to enable");
                 return;
