@@ -34,20 +34,29 @@ public class AutotipService
     private readonly IPlayerNameApi playerNameApi;
 
     // Supported gamemodes as defined in the requirements
-    public static readonly string[] SupportedGamemodes = ["legacy", "blitz", "megawalls", "arcade", "skywars",  "smash", "uhc", "cnc", "warlords",  "tnt"];
+    public static readonly string[] SupportedGamemodes = ["legacy", "blitz", "megawalls", "arcade", "skywars", "smash", "uhc", "cnc", "warlords", "tnt"];
 
     // Timer for automatic tipping
     private readonly Timer autotipTimer;
-    
+
     // Timer for updating booster list (every 30 minutes)
     private readonly Timer boosterUpdateTimer;
 
+    // Http client for lightweight external lookups (mojang / name resolution)
+    private readonly HttpClient httpClient;
+
     // All active connections that should run autotip
     private readonly ConcurrentDictionary<string, IMinecraftSocket> activeConnections = new();
-    
+    // Last player that was tipped by a given userId (used to act on tip failures)
+    private readonly ConcurrentDictionary<string, string> lastTippedByUserId = new();
+
+    // Global tip blacklist (player name -> marker). If a player is blacklisted here,
+    // autotip should avoid tipping them globally.
+    private readonly ConcurrentDictionary<string, byte> tipBlacklist = new();
+
     // Cache of active boosters by gamemode
     private readonly ConcurrentDictionary<string, List<ActiveBooster>> activeBoosters = new();
-    
+
     // Lock for booster cache updates
     private readonly object boosterLock = new();
 
@@ -63,9 +72,11 @@ public class AutotipService
 
         // Start the 1-minute autotip timer
         autotipTimer = new Timer(ExecuteAutotipCycle, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(2.9));
-        
+
         // Start the booster update timer - runs immediately, then every 30 minutes
         boosterUpdateTimer = new Timer(UpdateBoosterCache, null, dueTime: 0, period: (int)TimeSpan.FromMinutes(30).TotalMilliseconds);
+
+        httpClient = new HttpClient();
 
         logger.LogInformation("AutotipService initialized with 1-minute timer and 30-minute booster update");
     }
@@ -186,7 +197,7 @@ public class AutotipService
         try
         {
             logger.LogInformation("Updating booster cache from Hypixel API");
-            
+
             // Request boosters via the proxy API so we don't need a Hypixel API key locally
             var res = await proxyApi.ProxyHypixelGetAsync("/v2/boosters");
             if (res == null)
@@ -218,7 +229,7 @@ public class AutotipService
             foreach (var booster in boosterResponse.boosters)
             {
                 var timeRemaining = booster.length * 1000; // Convert seconds to milliseconds
-                
+
                 // Only keep boosters that are active for longer than the update interval (30 minutes)
                 // but expiring within 1 hour (prefer boosters that will expire soon)
                 if (timeRemaining >= 30 * 60 * 1000 && timeRemaining <= 60 * 60 * 1000 && GameTypeMapper.IsSupportedForAutotip(booster.gameType))
@@ -267,7 +278,7 @@ public class AutotipService
             {
                 var entry = item.entry;
                 var gamemode = item.gamemode;
-                
+
                 if (!uuidToNameMap.TryGetValue(entry.purchaserUuid, out var playerName))
                 {
                     logger.LogWarning($"Failed to fetch name for UUID {entry.purchaserUuid}");
@@ -290,7 +301,7 @@ public class AutotipService
                 }
 
                 newBoosters[gamemode].Add(activeBooster);
-                
+
                 // Also add stacked boosters (if any) as separate entries when their names were resolved
                 if (entry.stacked != null && entry.stacked.Type == JTokenType.Array)
                 {
@@ -392,8 +403,8 @@ public class AutotipService
     {
         lock (boosterLock)
         {
-            return activeBoosters.TryGetValue(gamemode, out var boosters) 
-                ? new List<ActiveBooster>(boosters) 
+            return activeBoosters.TryGetValue(gamemode, out var boosters)
+                ? new List<ActiveBooster>(boosters)
                 : new List<ActiveBooster>();
         }
     }
@@ -439,16 +450,27 @@ public class AutotipService
     {
         // First, check if there are any active boosters for this gamemode
         var boosters = GetBoostersForGamemode(gamemode);
-        
+
         if (boosters.Count > 0)
         {
             // Select a random booster to prefer
-            if(boosters.Any(b=>b.purchaserName == "Ekwav"))
+            // Respect the global blacklist when selecting boosters
+            if (boosters.Any(b => b.purchaserName == "Ekwav" && !tipBlacklist.ContainsKey("Ekwav")))
             {
                 logger.LogInformation($"Preferring booster Ekwav for {gamemode}");
                 return "Ekwav";
             }
-            var selectedBooster = boosters[Random.Shared.Next(boosters.Count)];
+            // Filter boosters by the global blacklist
+            var candidates = boosters.Where(b => !string.IsNullOrEmpty(b.purchaserName) && !tipBlacklist.ContainsKey(b.purchaserName)).ToList();
+            if (candidates.Count == 0)
+            {
+                // nothing left after filtering - fall back to the raw list
+                candidates = boosters.Where(b => !string.IsNullOrEmpty(b.purchaserName)).ToList();
+                if (candidates.Count == 0)
+                    return null;
+            }
+
+            var selectedBooster = candidates[Random.Shared.Next(candidates.Count)];
             logger.LogInformation($"Preferring booster {selectedBooster.purchaserName} for {gamemode}");
             return selectedBooster.purchaserName;
         }
@@ -466,6 +488,9 @@ public class AutotipService
                 continue;
             if (!string.IsNullOrEmpty(playerName))
             {
+                // Respect global tip blacklist
+                if (tipBlacklist.ContainsKey(playerName))
+                    continue;
                 playerNames.Add(playerName);
             }
         }
@@ -490,6 +515,17 @@ public class AutotipService
             socket.ExecuteCommand($"/tip {targetPlayer} {gamemode}");
 
             logger.LogInformation($"Sent tip command: /tip {targetPlayer} {gamemode} from {socket.SessionInfo?.McName}");
+            try
+            {
+                if (!string.IsNullOrEmpty(socket.UserId))
+                {
+                    lastTippedByUserId[socket.UserId] = targetPlayer;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Failed to store last tipped player");
+            }
             await socket.TriggerTutorial<AutotipTutorial>();
             return true;
         }
@@ -637,6 +673,47 @@ public class AutotipService
         {
             logger.LogError(e, $"Error getting tip history for user {userId}");
             return new List<AutotipEntry>();
+        }
+    }
+
+    /// <summary>
+    /// Notify the service that a tip failed to be applied. If a specific targetName is given
+    /// it indicates the server reported the name cannot be found and we'll schedule a name
+    /// resolution attempt. If targetName is null it usually means the server reported the
+    /// player is offline — add them to the per-user tip blacklist so autotip avoids them.
+    /// </summary>
+    public async Task NotifyTipFailedAsync(IMinecraftSocket socket, string targetName)
+    {
+        try
+        {
+            if (socket == null || string.IsNullOrEmpty(socket.UserId))
+                return;
+
+            var userId = socket.UserId;
+
+            if (!string.IsNullOrEmpty(targetName))
+            {
+                // The server couldn't find a player by that name — schedule a name resolution
+                logger.LogInformation($"Autotip: name not found for '{targetName}', scheduling resolution for user {userId}");
+
+                var nameInfo = await socket.GetPlayerUuid(targetName, false);
+                await IndexerClient.TriggerNameUpdate(nameInfo);
+                return;
+            }
+
+            // No explicit name provided: interpret as 'That player is not online' -> blacklist the last tipped globally
+            if (lastTippedByUserId.TryGetValue(userId, out var last))
+            {
+                if (!string.IsNullOrEmpty(last))
+                {
+                    tipBlacklist.TryAdd(last, 0);
+                    logger.LogInformation($"Autotip: added offline player '{last}' to global tip blacklist");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "NotifyTipFailedAsync failed");
         }
     }
 

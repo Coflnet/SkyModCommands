@@ -108,6 +108,33 @@ namespace Coflnet.Sky.Commands.MC
                     }
                 }
             }
+
+            // Notify Autotip service about tip failures so it can update per-socket state.
+            // The Autotip service should track the last tipped person per socket and expose
+            // a method such as NotifyTipFailedAsync(MinecraftSocket socket, string targetName).
+            if (item.StartsWith("That player is not online, try another user", StringComparison.OrdinalIgnoreCase)
+                || item.StartsWith("can't find a player by the name of", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var autotip = socket.GetService<AutotipService>();
+                    if (autotip != null)
+                    {
+                        // Try to extract the target name when present in the message:
+                        // e.g. "can't find a player by the name of Foo"
+                        string target = null;
+                        var m = Regex.Match(item, @"can't find a player by the name of '?\""?(?<name>[^'\""]+)'?\""?", RegexOptions.IgnoreCase);
+                        if (m.Success)
+                            target = m.Groups["name"].Value.Trim();
+
+                        await autotip.NotifyTipFailedAsync(socket, target);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Activity.Current?.Log("Autotip notify failed: " + ex);
+                }
+            }
         }
 
 
