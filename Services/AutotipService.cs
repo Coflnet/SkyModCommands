@@ -453,7 +453,7 @@ public class AutotipService
         {
             // Select a random booster to prefer
             // Respect the global blacklist when selecting boosters
-            if (boosters.Any(b => b.purchaserName == "Ekwav" && !tipBlacklist.ContainsKey("Ekwav") && !tippedTodayNames.Contains("Ekwav")))
+            if (boosters.Any(b => b.purchaserName == "Ekwav" && !tippedTodayNames.Contains("Ekwav")))
             {
                 logger.LogInformation($"Preferring booster Ekwav for {gamemode}");
                 return "Ekwav";
@@ -736,7 +736,7 @@ public class AutotipService
     /// resolution attempt. If targetName is null it usually means the server reported the
     /// player is offline — add them to the per-user tip blacklist so autotip avoids them.
     /// </summary>
-    public async Task NotifyTipFailedAsync(IMinecraftSocket socket, string targetName)
+    public async Task NotifyTipFailedAsync(IMinecraftSocket socket, string targetName, string message)
     {
         try
         {
@@ -761,7 +761,7 @@ public class AutotipService
                 if (!string.IsNullOrEmpty(last))
                 {
                     tipBlacklist.TryAdd(last, 0);
-                    logger.LogInformation($"Autotip: added offline player '{last}' to global tip blacklist");
+                    logger.LogInformation($"Autotip: added offline player '{last}' to global tip blacklist based on {message}");
                 }
             }
         }

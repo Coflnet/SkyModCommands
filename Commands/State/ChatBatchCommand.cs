@@ -127,7 +127,7 @@ namespace Coflnet.Sky.Commands.MC
                         if (m.Success)
                             target = m.Groups["name"].Value.Trim();
 
-                        await autotip.NotifyTipFailedAsync(socket, target);
+                        await autotip.NotifyTipFailedAsync(socket, target, item);
                     }
                 }
                 catch (Exception ex)
