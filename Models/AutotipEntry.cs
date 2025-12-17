@@ -5,6 +5,7 @@ namespace Coflnet.Sky.ModCommands.Models;
 
 /// <summary>
 /// Represents a completed autotip in the database
+/// Supports both historical tracking and daily duplicate prevention
 /// </summary>
 [Table("autotip_entries")]
 public class AutotipEntry

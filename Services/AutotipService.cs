@@ -71,7 +71,7 @@ public class AutotipService
         InitializeTables();
 
         // Start the 1-minute autotip timer
-        autotipTimer = new Timer(ExecuteAutotipCycle, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(2.9));
+        autotipTimer = new Timer(ExecuteAutotipCycle, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(3));
 
         // Start the booster update timer - runs immediately, then every 30 minutes
         boosterUpdateTimer = new Timer(UpdateBoosterCache, null, dueTime: 0, period: (int)TimeSpan.FromMinutes(30).TotalMilliseconds);
@@ -413,27 +413,25 @@ public class AutotipService
     /// <summary>
     /// Record a completed tip in the database
     /// </summary>
-    private async Task RecordTip(string userId, string targetPlayer, string gamemode, long amount, bool isAutomatic)
+    private void RecordTip(string userId, string targetPlayer, string gamemode, long amount, bool isAutomatic)
     {
         try
         {
             var now = DateTimeOffset.UtcNow;
-            var targetUuid = await GetPlayerUuid(targetPlayer); // This would need to be implemented
 
             var entry = new AutotipEntry
             {
                 UserId = userId,
                 Gamemode = gamemode.ToLowerInvariant(),
+                TippedPlayerUuid = "unknown", // UUID not needed for filtering
                 TippedAt = now,
-                TippedPlayerUuid = targetUuid ?? "unknown",
                 TippedPlayerName = targetPlayer,
                 Amount = amount,
                 IsAutomatic = isAutomatic
             };
 
-
-            // Store in both tables
-            await GetAutotipTable().Insert(entry).ExecuteAsync();
+            // Store in single table - fire and forget
+            _ = GetAutotipTable().Insert(entry).ExecuteAsync();
 
             logger.LogDebug($"Recorded tip: {userId} -> {targetPlayer} ({gamemode}, {amount} coins, auto: {isAutomatic})");
         }
@@ -446,7 +444,7 @@ public class AutotipService
     /// <summary>
     /// Get online players to tip from active connections, preferring active boosters
     /// </summary>
-    private async Task<string> GetOnlinePlayersInGamemode(IMinecraftSocket socket, string gamemode)
+    private string GetOnlinePlayersInGamemode(IMinecraftSocket socket, string gamemode, HashSet<string> tippedTodayNames)
     {
         // First, check if there are any active boosters for this gamemode
         var boosters = GetBoostersForGamemode(gamemode);
@@ -455,24 +453,24 @@ public class AutotipService
         {
             // Select a random booster to prefer
             // Respect the global blacklist when selecting boosters
-            if (boosters.Any(b => b.purchaserName == "Ekwav" && !tipBlacklist.ContainsKey("Ekwav")))
+            if (boosters.Any(b => b.purchaserName == "Ekwav" && !tipBlacklist.ContainsKey("Ekwav") && !tippedTodayNames.Contains("Ekwav")))
             {
                 logger.LogInformation($"Preferring booster Ekwav for {gamemode}");
                 return "Ekwav";
             }
-            // Filter boosters by the global blacklist
-            var candidates = boosters.Where(b => !string.IsNullOrEmpty(b.purchaserName) && !tipBlacklist.ContainsKey(b.purchaserName)).ToList();
-            if (candidates.Count == 0)
+            // Filter boosters by the global blacklist and daily tip tracking
+            var candidates = boosters
+                .Where(b => !string.IsNullOrEmpty(b.purchaserName)
+                    && !tipBlacklist.ContainsKey(b.purchaserName)
+                    && !tippedTodayNames.Contains(b.purchaserName))
+                .ToList();
+            if (candidates.Count > 0)
             {
-                // nothing left after filtering - fall back to the raw list
-                candidates = boosters.Where(b => !string.IsNullOrEmpty(b.purchaserName)).ToList();
-                if (candidates.Count == 0)
-                    return null;
+                var selectedBooster = candidates[Random.Shared.Next(candidates.Count)];
+                logger.LogInformation($"Preferring booster {selectedBooster.purchaserName} for {gamemode}");
+                return selectedBooster.purchaserName;
             }
 
-            var selectedBooster = candidates[Random.Shared.Next(candidates.Count)];
-            logger.LogInformation($"Preferring booster {selectedBooster.purchaserName} for {gamemode}");
-            return selectedBooster.purchaserName;
         }
 
         // Fallback to online players from active connections
@@ -491,17 +489,45 @@ public class AutotipService
                 // Respect global tip blacklist
                 if (tipBlacklist.ContainsKey(playerName))
                     continue;
+
+                // Check if already tipped today in this gamemode
+                if (tippedTodayNames.Contains(playerName))
+                    continue;
+
                 playerNames.Add(playerName);
             }
         }
 
-        // Prefer Ekwav if present
+        // Prefer Ekwav if present and not already tipped today
         if (playerNames.Contains("Ekwav"))
         {
             return "Ekwav";
         }
 
         return playerNames.OrderBy(_ => Random.Shared.Next()).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Get list of player names that were already tipped by this user in the last 24 hours for the given gamemode
+    /// </summary>
+    private async Task<HashSet<string>> GetTippedPlayersLast24Hours(string userId, string gamemode)
+    {
+        try
+        {
+            var cutoff = DateTimeOffset.UtcNow.AddHours(-24);
+            
+            // Query with userId and gamemode - Cassandra will efficiently return all players tipped in this game
+            var tippedPlayers = await GetAutotipTable()
+                .Where(t => t.UserId == userId && t.Gamemode == gamemode.ToLowerInvariant() && t.TippedAt > cutoff)
+                .ExecuteAsync();
+
+            return tippedPlayers.Select(t => t.TippedPlayerName).ToHashSet();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, $"Error getting tipped players in last 24h for user {userId} in {gamemode}");
+            return new HashSet<string>();
+        }
     }
 
     /// <summary>
@@ -534,16 +560,6 @@ public class AutotipService
             logger.LogError(e, $"Failed to send tip to {targetPlayer}");
             return false;
         }
-    }
-
-    /// <summary>
-    /// Get player UUID from name (mock implementation)
-    /// </summary>
-    private async Task<string> GetPlayerUuid(string playerName)
-    {
-        // Mock implementation - in reality would use Mojang API
-        await Task.Delay(10);
-        return Guid.NewGuid().ToString("N");
     }
 
     /// <summary>
@@ -590,7 +606,15 @@ public class AutotipService
                 return;
             }
 
-            var gamemodeNeedingTip = await FindGamemodeNeedingTip(socket.UserId);
+            // Load all tips from last 24 hours once
+            var cutoff = DateTimeOffset.UtcNow.AddHours(-24);
+            var recentTips = await GetAutotipTable()
+                .Where(t => t.UserId == socket.UserId && t.TippedAt > cutoff)
+                .ExecuteAsync();
+            
+            var recentTipsList = recentTips.ToList();
+
+            var gamemodeNeedingTip = FindGamemodeNeedingTip(socket.UserId, recentTipsList);
 
             if (gamemodeNeedingTip == null)
             {
@@ -598,8 +622,14 @@ public class AutotipService
                 return;
             }
 
+            // Get tipped players for this specific gamemode from the already loaded data
+            var tippedInGamemode = recentTipsList
+                .Where(t => t.Gamemode == gamemodeNeedingTip.ToLowerInvariant())
+                .Select(t => t.TippedPlayerName)
+                .ToHashSet();
+
             // Get online players in that gamemode
-            var targetPlayer = await GetOnlinePlayersInGamemode(socket, gamemodeNeedingTip);
+            var targetPlayer = GetOnlinePlayersInGamemode(socket, gamemodeNeedingTip, tippedInGamemode);
 
             if (targetPlayer == null)
             {
@@ -612,7 +642,7 @@ public class AutotipService
 
             if (success)
             {
-                await RecordTip(socket.UserId, targetPlayer, gamemodeNeedingTip, 100, true);
+                RecordTip(socket.UserId, targetPlayer, gamemodeNeedingTip, 100, true);
                 logger.LogInformation($"Automatic tip sent: {socket.SessionInfo?.McName} -> {targetPlayer} in {gamemodeNeedingTip}");
             }
         }
@@ -623,30 +653,54 @@ public class AutotipService
     }
 
     /// <summary>
-    /// Find a gamemode where the user hasn't tipped anyone recently
+    /// Find a gamemode where the user hasn't tipped anyone in the last 24 hours
     /// </summary>
-    private async Task<string> FindGamemodeNeedingTip(string userId)
+    private string FindGamemodeNeedingTip(string userId, List<AutotipEntry> recentTips)
     {
         try
         {
-            var cutoff = DateTimeOffset.UtcNow.AddHours(-0.51); // Check tips from last 30mins
+            // Determine the most recent tip timestamp per gamemode from the provided recentTips
+            // If a gamemode has no tips in the last 24h, treat its last tip as DateTimeOffset.MinValue
+            var now = DateTimeOffset.UtcNow;
+            var cutoff = now.AddMinutes(-30); // need at least 30 minutes since last tip
 
-            // Get recent tips for this user across all gamemodes
-            var recentTips = await GetAutotipTable()
-                .Where(t => t.UserId == userId && t.TippedAt > cutoff)
-                .ExecuteAsync();
+            var lastTipByGamemode = new Dictionary<string, DateTimeOffset>();
 
-            var tippedGamemodes = recentTips.Select(t => t.Gamemode).ToHashSet();
+            // Initialize with MinValue so untipped gamemodes are considered oldest
+            foreach (var gm in SupportedGamemodes)
+            {
+                lastTipByGamemode[gm.ToLowerInvariant()] = DateTimeOffset.MinValue;
+            }
 
-            // Find gamemodes that haven't been tipped in
-            var availableGamemodes = SupportedGamemodes.Where(g => !tippedGamemodes.Contains(g)).ToList();
+            foreach (var tip in recentTips)
+            {
+                if (string.IsNullOrEmpty(tip.Gamemode))
+                    continue;
 
-            if (!availableGamemodes.Any())
-                return null; // All gamemodes have been tipped in recently
+                var gm = tip.Gamemode.ToLowerInvariant();
+                if (!lastTipByGamemode.ContainsKey(gm))
+                    continue;
 
-            // Return random gamemode from available ones
-            var random = new Random();
-            return availableGamemodes[random.Next(availableGamemodes.Count)];
+                // keep the most recent tip time for that gamemode
+                if (tip.TippedAt > lastTipByGamemode[gm])
+                    lastTipByGamemode[gm] = tip.TippedAt;
+            }
+
+            // Select the gamemode whose last tip is the oldest but older than 30 minutes
+            var candidates = lastTipByGamemode
+                .Where(kvp => kvp.Value <= cutoff)
+                .OrderBy(kvp => kvp.Value) // oldest first (MinValue will be first)
+                .ToList();
+
+            if (candidates.Count == 0)
+            {
+                // No gamemode has a last tip older than 30 minutes
+                return null;
+            }
+
+            // Return the gamemode (original casing from SupportedGamemodes) matching the chosen key
+            var chosenKey = candidates.First().Key;
+            return SupportedGamemodes.FirstOrDefault(g => g.ToLowerInvariant() == chosenKey);
         }
         catch (Exception e)
         {
