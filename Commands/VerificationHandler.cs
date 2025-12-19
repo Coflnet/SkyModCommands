@@ -121,7 +121,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendVerificationInstructions(McAccountService.ConnectionRequest connect)
         {
-            var verification = socket.CreateActivity("Verification", ConSpan);
+            using var verification = socket.CreateActivity("Verification", ConSpan);
             var bid = connect.Code;
             Api.Client.Model.AuctionPreview targetAuction = null;
             foreach (var type in new List<string> { "STICK", "PICKONIMBUS", "BATTLE_DISC","WINTER_DISC", "VACCINE_TALISMAN" })
