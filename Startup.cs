@@ -103,6 +103,7 @@ public class Startup
         services.AddSingleton<LowballOfferService>();
         services.AddSingleton<MinecraftLoreRenderer>();
         services.AddSingleton<AutotipService>();
+        services.AddSingleton<YoutuberService>();
         services.AddCoflService();
     }
 
