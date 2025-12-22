@@ -35,12 +35,21 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
             return true;
         }
         var bazaarProfitService = socket.GetService<IBazaarProfitApi>();
+
+        // gather all verified MC accounts for this user
+        var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+
         if (isList)
         {
-            var completedFlips = await bazaarProfitService.BazaarProfitFlipsPlayerUuidGetAsync(Guid.Parse(socket.SessionInfo.McUuid), DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, 10);
+            // request completed flips for all linked accounts in parallel and merge
+            var flipsPerAccount = await Task.WhenAll(accounts.Select(a =>
+                bazaarProfitService.BazaarProfitFlipsPlayerUuidGetAsync(Guid.Parse(a), DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, 10)));
+            var completedFlips = flipsPerAccount.SelectMany(x => x).OrderBy(f => f.SoldAt).ToList();
+            var accountCount = accounts.Count();
+
             socket.Dialog(db =>
             {
-                db.MsgLine($"§6Last Completed Bazaar Flips§r");
+                db.MsgLine(accountCount > 1 ? $"§6Last Completed Bazaar Flips (across {accountCount} accounts)§r" : $"§6Last Completed Bazaar Flips§r");
                 if (completedFlips.Count == 0)
                 {
                     db.MsgLine("§7No completed flips in the last 7 days§r");
@@ -64,13 +73,22 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
             return false;
         }
 
-        var info = await bazaarProfitService.BazaarProfitSummaryPlayerUuidGetAsync(Guid.Parse(socket.SessionInfo.McUuid), DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, 500);
+        // request summaries for all linked accounts and aggregate totals
+        var summaries = await Task.WhenAll(accounts.Select(a =>
+            bazaarProfitService.BazaarProfitSummaryPlayerUuidGetAsync(Guid.Parse(a), DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, 500)));
+
+        var totalProfit = summaries.Sum(s => s.TotalProfit);
+        var flipCount = summaries.Sum(s => s.FlipCount);
+        var outstanding = summaries.Sum(s => s.OutstandingValue);
+        var accountCountSummary = accounts.Count();
+
         socket.Dialog(db =>
             db.MsgLine($"§6Bazaar Profit History (last 7 days)§r")
-            .MsgLine($"§7Total Profit: §a{socket.FormatPrice(info.TotalProfit)}")
-            .MsgLine($"§7Average Daily Profit: §a{socket.FormatPrice(info.TotalProfit / 7)}")
-            .MsgLine($"§7Flips completed: §a{socket.FormatPrice(info.FlipCount)}", "/cofl bz l", "Click to view your last completed flips")
-            .MsgLine($"§7Not yet sold: §a{socket.FormatPrice(info.OutstandingValue)}", null, "Not sold or not claimed\nFlips are only completed when claimed")
+            .If(() => accountCountSummary > 1, d => d.MsgLine($"§7(considering {accountCountSummary} accounts)"))
+            .MsgLine($"§7Total Profit: §a{socket.FormatPrice(totalProfit)}")
+            .MsgLine($"§7Average Daily Profit: §a{socket.FormatPrice(totalProfit / 7)}")
+            .MsgLine($"§7Flips completed: §a{socket.FormatPrice(flipCount)}", "/cofl bz l", "Click to view your last completed flips")
+            .MsgLine($"§7Not yet sold: §a{socket.FormatPrice(outstanding)}", null, "Not sold or not claimed\nFlips are only completed when claimed")
         );
         return false;
     }
