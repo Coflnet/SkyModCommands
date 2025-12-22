@@ -575,12 +575,12 @@ namespace Coflnet.Sky.Commands.MC
                 else if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
                     parallelAllowed = 4;
 
-                if (waiting > parallelAllowed)
+                var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
+                if (waiting > parallelAllowed && (a.type != "chatbatch" && a.type != "uploadScoreboard" || waiting > parallelAllowed + 2))
                 {
                     SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
                     return;
                 }
-                var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
                 if (e.Data.Contains("dialog") && e.Data.Contains("nobestflip"))
                 {
                     HandleCommand(e, null, a);
