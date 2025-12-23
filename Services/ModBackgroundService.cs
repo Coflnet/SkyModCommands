@@ -140,6 +140,8 @@ namespace Coflnet.Sky.ModCommands.Services
                     {
                         AddOption(instances, item);
                     }
+                    logger.LogInformation($"connected to {instances.Count} flip redis instances from {instanceStrings.Length} configured");
+                    break;
                 }
                 catch (Exception e)
                 {
