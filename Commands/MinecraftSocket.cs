@@ -73,8 +73,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (IsDevMode)
                     return "1";
-                var id = (sessionLifesycle?.UserId?.Value 
-                    ?? sessionLifesycle?.AccountInfo?.Value?.UserId) 
+                var id = (sessionLifesycle?.UserId?.Value
+                    ?? sessionLifesycle?.AccountInfo?.Value?.UserId)
                     ?? throw new NoLoginException();
                 return id;
             }
@@ -569,11 +569,11 @@ namespace Coflnet.Sky.Commands.MC
         {
             try
             {
-                var parallelAllowed = 3;
+                var parallelAllowed = 4;
                 if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
-                    parallelAllowed = 6;
+                    parallelAllowed = 8;
                 else if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
-                    parallelAllowed = 4;
+                    parallelAllowed = 6;
 
                 var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
                 if (waiting > parallelAllowed && (a.type != "chatbatch" && a.type != "uploadScoreboard" || waiting > parallelAllowed + 2))
@@ -652,6 +652,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     if (commandType == "chatbatch" && !Regex.IsMatch(JsonConvert.DeserializeObject<string[]>(a.data)[0], sessionLifesycle?.PrivacySettings?.Value?.ChatRegex ?? "noMatch"))
                     {
+                        waiting--;
                         return; // drop unecessary chatbatch
                     }
                 }
@@ -672,10 +673,10 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task InvokeCommand(Response a, McCommand command)
         {
-            if (IsClosed)
-                return;
             try
             {
+                if (IsClosed)
+                    return;
                 await command.Execute(this, a.data).ConfigureAwait(false);
             }
             catch (CoflnetException e)
@@ -1026,7 +1027,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public void ScheduleTimer(ModSettings? mod = null, Activity? timerSpan = null)
         {
-            if(IsClosed)
+            if (IsClosed)
                 return;
             if (mod == null)
                 mod = Settings.ModSettings;
