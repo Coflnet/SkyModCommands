@@ -744,6 +744,12 @@ namespace Coflnet.Sky.Commands.MC
                     _ = socket.TryAsyncTimes(async () =>
                     {
                         await Task.Delay(TimeSpan.FromMinutes(2));
+                        socket.SendSound("note.pling", 1);
+                        await Task.Delay(TimeSpan.FromMilliseconds(500));
+                        socket.SendSound("note.pling", 1);
+                        await Task.Delay(TimeSpan.FromMilliseconds(500));
+                        socket.SendSound("note.pling", 1);
+                        await Task.Delay(TimeSpan.FromMilliseconds(500));
                         socket.Dialog(db => db.Msg(
                             $"{McColorCodes.GOLD}Holiday Special!{McColorCodes.RESET} Get {McColorCodes.AQUA}25% OFF{McColorCodes.RESET} all subscriptions\n" +
                             $"{McColorCodes.YELLOW}Click here to upgrade and support the mod development!",
