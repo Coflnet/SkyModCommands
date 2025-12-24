@@ -270,7 +270,7 @@ namespace Coflnet.Sky.Commands.MC
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
             Activity.Current.Log("applied flip settings");
             await socket.TryAsyncTimes(FilterState.SubToConfigChanges, "config subscribe");
-            
+
             // Register with autotip service
             try
             {
@@ -310,7 +310,7 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (onchange.SourceType == "bazaar" && onchange.SourceSubId == "outbid")
                 {
-                    if(socket.Settings.ModSettings.BlockOutbidMessages)
+                    if (socket.Settings.ModSettings.BlockOutbidMessages)
                         return; // do not show outbid messages
                     if (onchange.Timestamp < DateTime.UtcNow.AddSeconds(-30))
                         return; // ignore old outbid messages
@@ -738,6 +738,18 @@ namespace Coflnet.Sky.Commands.MC
                     socket.Dialog(di => di
                         .Msg($"You are using your {userTier} on a the account with the name {McColorCodes.AQUA}{name}",
                             "/cofl licenses default " + SessionInfo.McName, "Click to change use it on this account"));
+                }
+                if (DateTime.UtcNow < new DateTime(2025, 12, 28))
+                {
+                    _ = socket.TryAsyncTimes(async () =>
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(2));
+                        socket.Dialog(db => db.Msg(
+                            $"{McColorCodes.GOLD}Holiday Special!{McColorCodes.RESET} Get {McColorCodes.AQUA}25% OFF{McColorCodes.RESET} all subscriptions\n" +
+                            $"{McColorCodes.YELLOW}Click here to upgrade and support the mod development!",
+                            "https://sky.coflnet.com/premium?code=CHRISTMAS25",
+                            "Open the purchase website"));
+                    }, "holiday special prompt", 1);
                 }
             }
             if (socket.IsClosed)
