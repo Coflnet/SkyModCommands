@@ -288,7 +288,7 @@ public class ModBackgroundService : BackgroundService
     }
     private static void FixRustMetadata(LowPricedAuction flip)
     {
-        flip.Auction = JsonConvert.DeserializeObject<SaveAuction>(flip.AdditionalProps["auction"]);
+        flip.Auction = ConvertAuction(JsonConvert.DeserializeObject<HypixelAuction>(flip.AdditionalProps["auction"]), DateTime.UtcNow);
         // rarange nbt
         var compound = flip.Auction.NbtData.Root().Get<NbtList>("i")
             ?.Get<NbtCompound>(0);
@@ -309,5 +309,94 @@ public class ModBackgroundService : BackgroundService
         {
             flip.TargetPrice = 0;
         }
+    }
+
+    public static SaveAuction ConvertAuction(HypixelAuction auction, DateTime apiUpdate, DateTime findTime = default)
+    {
+        if (findTime == default)
+            findTime = DateTime.Now;
+        var a = new SaveAuction()
+        {
+            StartingBid = auction.StartingBid,
+            ItemName = auction.ItemName,
+            End = auction.End,
+            Start = auction.Start,
+
+            ProfileId = auction.ProfileId,
+            AuctioneerId = auction.Auctioneer,
+            Uuid = auction.Uuid,
+            Bids = new List<SaveBids>(),
+            Bin = auction.BuyItNow, // missing from nuget package
+            UId = AuctionService.Instance.GetId(auction.Uuid),
+            Context = new Dictionary<string, string>() { { "upT", apiUpdate.ToString() }, { "fT", (findTime - apiUpdate).ToString() }, { "lore", auction.ItemLore } }
+        };
+
+        NBT.FillDetails(a, auction.ItemBytes);
+        if (Enum.TryParse(auction.Tier, true, out Tier tier))
+            a.Tier = tier;
+        else
+            a.OldTier = auction.Tier;
+        if (Enum.TryParse(auction.Category, true, out Category category))
+            a.Category = category;
+        else
+            a.OldCategory = auction.Category;
+
+        if (apiUpdate != default)
+            a.FindTime = apiUpdate;
+        return a;
+    }
+    public class HypixelAuction
+    {
+        public string Uuid { get; set; }
+        public string Auctioneer { get; set; }
+        [Newtonsoft.Json.JsonProperty("profile_id")]
+        public string ProfileId { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("start")]
+        public long _start { get; set; }
+        [JsonIgnore]
+        public DateTime Start
+        {
+            get
+            {
+                var convertToDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                convertToDateTime = convertToDateTime.AddMilliseconds(_start).ToLocalTime();
+                return convertToDateTime;
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("end")]
+        public long _end { get; set; }
+        [JsonIgnore]
+        public DateTime End
+        {
+            get
+            {
+                var convertToDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                convertToDateTime = convertToDateTime.AddMilliseconds(_end).ToLocalTime();
+                return convertToDateTime;
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("item_name")]
+        public string ItemName { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("item_lore")]
+        public string ItemLore { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("category")]
+        public string Category { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("tier")]
+        public string Tier { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("starting_bid")]
+        public long StartingBid { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("item_bytes")]
+        public virtual string ItemBytes { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("bin")]
+        public bool BuyItNow { get; set; }
     }
 }
