@@ -217,7 +217,7 @@ public class ModBackgroundService : BackgroundService
                 }
                 catch (Exception e)
                 {
-                    logger.LogError(e, "bfcs error");
+                    logger.LogError(e, "bfcs error on '{val}'", val.ToString());
                 }
             }, new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token).ConfigureAwait(false);
         });
