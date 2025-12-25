@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using StackExchange.Redis;
 using WebSocketSharp;
 
@@ -184,6 +185,11 @@ namespace Coflnet.Sky.ModCommands.Services
                             FixTfmMetadata(flip);
                             logger.LogInformation($"scheduled tfm {flip.Auction.Uuid}");
                         }
+                        if (flip.Finder == LowPricedAuction.FinderType.Rust)
+                        {
+                            logger.LogInformation($"Received Rust {JsonConvert.SerializeObject(flip)}");
+                            FixRustMetadata(flip);
+                        }
                         if (flip.TargetPrice < flip.Auction.StartingBid + 100_000)
                             return; // not actually flipable abort
                         if (alreadyProcessed.TryGetValue((flip.Auction.Uuid, flip.Finder, flip.TargetPrice), out var last))
@@ -260,6 +266,30 @@ namespace Coflnet.Sky.ModCommands.Services
 
         private static void FixTfmMetadata(LowPricedAuction flip)
         {
+            // rarange nbt
+            var compound = flip.Auction.NbtData.Root().Get<NbtList>("i")
+                ?.Get<NbtCompound>(0);
+            if (flip.Auction.Context == null)
+                flip.Auction.Context = new();
+            NBT.FillFromTag(flip.Auction, compound, true);
+            var lore = string.Join("\n", NBT.GetLore(compound));
+            flip.Auction.Context["lore"] = lore;
+            if (flip.AdditionalProps.TryGetValue("lbin", out var lbin))
+            {
+                flip.TargetPrice = (long)Math.Min(long.Parse(lbin), flip.TargetPrice);
+            }
+            else
+            {
+                flip.AdditionalProps?.TryAdd("capped", "not tfm");
+            }
+            if (Constants.Vanilla.Contains(flip.Auction.Tag.ToLower()) || flip.Auction.Tag.Contains("MIDAS"))
+            {
+                flip.TargetPrice = 0;
+            }
+        }
+        private static void FixRustMetadata(LowPricedAuction flip)
+        {
+            flip.Auction = JsonConvert.DeserializeObject<SaveAuction>(flip.AdditionalProps["auction"]);
             // rarange nbt
             var compound = flip.Auction.NbtData.Root().Get<NbtList>("i")
                 ?.Get<NbtCompound>(0);
