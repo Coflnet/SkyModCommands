@@ -576,7 +576,7 @@ namespace Coflnet.Sky.Commands.MC
                     parallelAllowed = 6;
 
                 var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
-                if (waiting > parallelAllowed && (a.type != "chatbatch" && a.type != "uploadScoreboard" || waiting > parallelAllowed + 2))
+                if (waiting > parallelAllowed && (a.type != "chatbatch" && a.type != "uploadScoreboard" && a.type != "updatePurse" || waiting > parallelAllowed + 2))
                 {
                     SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
                     return;
