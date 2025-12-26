@@ -16,7 +16,7 @@ public class UploadInventory : McCommand
         socket.SessionInfo.Inventory = parser.Parse(arguments).ToList();
         if (arguments.Contains("part"))
         {
-            Activity.Current.Log(arguments).AddTag("part","any");
+            Activity.Current.Log(arguments, 8500).AddTag("part","any");
         }
         else
             Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.Inventory));
