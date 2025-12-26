@@ -14,7 +14,7 @@ public class UploadInventory : McCommand
     {
         socket.SessionInfo.Inventory = null;
         socket.SessionInfo.Inventory = parser.Parse(arguments).ToList();
-        if (!string.IsNullOrEmpty(arguments) && arguments.IndexOf("part", StringComparison.OrdinalIgnoreCase) >= 0)
+        if (!string.IsNullOrEmpty(arguments) && (arguments.Contains("hook") || arguments.Contains("sinker"))&& arguments.IndexOf("part", StringComparison.OrdinalIgnoreCase) >= 0)
         {
             var idx = arguments.IndexOf("part", StringComparison.OrdinalIgnoreCase);
             var start = Math.Max(0, idx - 2000);
