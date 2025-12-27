@@ -233,6 +233,28 @@ namespace Coflnet.Sky.Commands.MC
 
         private bool FinderEnabled(LowPricedAuction flip)
         {
+            // Check if Rust finder is enabled but user doesn't own the addon
+            if (flip.Finder == LowPricedAuction.FinderType.Rust)
+            {
+                // Only check rust addon ownership if Rust finder is actually enabled in settings
+                if (Settings?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Rust) ?? false)
+                {
+                    // Lazy check: only verify ownership when needed
+                    if (socket.SessionInfo.RustAddonOwned != true)
+                    {
+                        if (flip.TargetPrice > 2_000_000 || Random.Shared.NextDouble() < 0.1)
+                            return BlockedFlip(flip, "rust addon not owned");
+                        else
+                            return false;
+                    }
+                }
+                else
+                {
+                    // Rust finder not enabled in settings, skip it
+                    return false;
+                }
+            }
+
             if (Settings?.IsFinderBlocked(flip.Finder) ?? false)
                 if (flip.Finder == LowPricedAuction.FinderType.USER)
                     return false;

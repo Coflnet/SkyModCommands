@@ -84,6 +84,10 @@ namespace Coflnet.Sky.Commands.MC
 
         public AccountTier SessionTier { get; set; }
         /// <summary>
+        /// Indicates whether the user owns the Rust Finder add-on (null = not checked yet)
+        /// </summary>
+        public bool? RustAddonOwned { get; set; }
+        /// <summary>
         /// counts up for 100 not purchased flips
         /// </summary>
         public int NotPurchaseRate { get; set; }

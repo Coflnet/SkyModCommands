@@ -497,6 +497,27 @@ namespace Coflnet.Sky.Commands.MC
                     SessionInfo.IsMacroBot = true;
                 }
 
+                // Check rust addon ownership from payment service (lazy - only when needed)
+                // Store as null initially, will be checked when Rust finder is actually used
+                SessionInfo.RustAddonOwned = null;
+                _ = socket.TryAsyncTimes(async () =>
+                {
+                    // Only check if Rust finder is enabled in settings
+                    if (FlipSettings?.Value?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Rust) ?? false)
+                    {
+                        try
+                        {
+                            var userApi = socket.GetService<Payments.Client.Api.UserApi>();
+                            var owns = await userApi.UserUserIdOwnsUntilPostAsync(info.UserId, new() { "rust-addon" });
+                            SessionInfo.RustAddonOwned = owns.Any(o => o.Key == "rust-addon" && o.Value > DateTime.UtcNow);
+                        }
+                        catch (Exception e)
+                        {
+                            socket.Error(e, "checking rust addon ownership");
+                        }
+                    }
+                }, "check rust addon", 1);
+
                 var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info, socket.SessionInfo);
                 span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (info.UserId != socket.UserId && socket.UserId?.Length > 2)
