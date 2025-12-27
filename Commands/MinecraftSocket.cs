@@ -653,6 +653,7 @@ namespace Coflnet.Sky.Commands.MC
                     if (commandType == "chatbatch" && !Regex.IsMatch(JsonConvert.DeserializeObject<string[]>(a.data)[0], sessionLifesycle?.PrivacySettings?.Value?.ChatRegex ?? "noMatch"))
                     {
                         waiting--;
+                        Console.WriteLine("dropped chatbatch due to regex " + a.data);
                         return; // drop unecessary chatbatch
                     }
                 }
