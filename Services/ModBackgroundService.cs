@@ -294,7 +294,7 @@ public class ModBackgroundService : BackgroundService
             ?.Get<NbtCompound>(0);
         if (flip.Auction.Context == null)
             flip.Auction.Context = new();
-        NBT.FillFromTag(flip.Auction, compound, true);
+        Console.WriteLine($"Fixing rust metadata for {JsonConvert.SerializeObject(flip.Auction)}");
         var lore = string.Join("\n", NBT.GetLore(compound));
         flip.Auction.Context["lore"] = lore;
         if (flip.AdditionalProps.TryGetValue("lbin", out var lbin))
