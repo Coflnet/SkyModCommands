@@ -11,7 +11,7 @@ public class FoundModsCommand : McCommand
     public override Task Execute(MinecraftSocket socket, string arguments)
     {
         var mods = JsonConvert.DeserializeObject<Response>(arguments);
-        var current = socket.AccountInfo.CaptchaType;
+        var current = socket.AccountInfo?.CaptchaType;
         if (current != "optifine" && current != "vertical" && mods.FileNames.Any(n => n.ToLower().Contains("optifine")))
         {
             socket.AccountInfo.CaptchaType = "optifine";
