@@ -16,7 +16,7 @@ namespace Coflnet.Sky.Commands.MC
         "Flip tracking includes modifications to items and craft flips")]
     public class ProfitCommand : McCommand
     {
-        private const int MaxDaysHighestTier = 180;
+        private const int MaxDaysHighestTier = 720;
 
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
