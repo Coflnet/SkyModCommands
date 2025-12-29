@@ -955,7 +955,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             AddBlacklist(new()
             {
-                DisplayName = "automatic blacklist",
+                DisplayName = "auto blacklist " + key,
                 ItemTag = key,
                 filter = new()
                     {  { "ForceBlacklist", "true" }
