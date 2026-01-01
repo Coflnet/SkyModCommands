@@ -440,6 +440,21 @@ public class AutotipService
         }
     }
 
+    /// <summary>
+    /// Count how many network boosters each player has active across all gamemodes
+    /// </summary>
+    private Dictionary<string, int> GetBoosterCountsByPlayer()
+    {
+        lock (boosterLock)
+        {
+            return activeBoosters.Values
+                .SelectMany(boosters => boosters)
+                .Where(b => !string.IsNullOrEmpty(b.purchaserName))
+                .GroupBy(b => b.purchaserName, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
 
     /// <summary>
     /// Record a completed tip in the database
@@ -497,10 +512,19 @@ public class AutotipService
                     && !tippedTodayNames.Contains(b.purchaserName)
                     && !tippedBoostersLastHour.Contains(b.purchaserName))
                 .ToList();
+            
             if (candidates.Count > 0)
             {
-                var selectedBooster = candidates[Random.Shared.Next(candidates.Count)];
-                logger.LogInformation($"Preferring booster {selectedBooster.purchaserName} for {gamemode}");
+                // Prioritize boosters with multiple network boosters active
+                // Since Hypixel tips boosters in all modes, tipping a player with more boosters provides more value
+                var boosterCounts = GetBoosterCountsByPlayer();
+                var sortedCandidates = candidates
+                    .OrderByDescending(b => boosterCounts.TryGetValue(b.purchaserName, out var count) ? count : 0)
+                    .ToList();
+                
+                var selectedBooster = sortedCandidates.First();
+                var boosterCount = boosterCounts.TryGetValue(selectedBooster.purchaserName, out var bc) ? bc : 1;
+                logger.LogInformation($"Preferring booster {selectedBooster.purchaserName} for {gamemode} (has {boosterCount} active network boosters)");
                 return selectedBooster.purchaserName;
             }
 
