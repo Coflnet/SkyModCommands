@@ -228,7 +228,8 @@ public class AutotipService
 
             foreach (var booster in boosterResponse.boosters)
             {
-                var timeRemaining = booster.length * 1000; // Convert seconds to milliseconds
+                var expirationTime = booster.dateActivated * 1000 + booster.length * 1000; // Convert to milliseconds
+                var timeRemaining = expirationTime - now;
 
                 // Only keep boosters that are active for longer than the update interval (30 minutes)
                 // but expiring within 1 hour (prefer boosters that will expire soon)
@@ -292,7 +293,7 @@ public class AutotipService
                     purchaserName = playerName,
                     gamemode = gamemode,
                     timeActivated = entry.dateActivated,
-                    timeRemaining = entry.length * 1000
+                    timeExpires = entry.dateActivated * 1000 + entry.length * 1000
                 };
 
                 if (!newBoosters.ContainsKey(gamemode))
@@ -319,7 +320,7 @@ public class AutotipService
                             purchaserName = stackedName,
                             gamemode = gamemode,
                             timeActivated = entry.dateActivated,
-                            timeRemaining = entry.length * 1000
+                            timeExpires = entry.dateActivated * 1000 + entry.length * 1000
                         };
 
                         newBoosters[gamemode].Add(stackedBooster);

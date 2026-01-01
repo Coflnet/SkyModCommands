@@ -52,7 +52,7 @@ public class ActiveBooster
     public string purchaserName { get; set; }
     public string gamemode { get; set; }
     public long timeActivated { get; set; }
-    public long timeRemaining { get; set; }
+    public long timeExpires { get; set; }
 }
 
 /// <summary>
