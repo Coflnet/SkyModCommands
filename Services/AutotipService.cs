@@ -60,6 +60,9 @@ public class AutotipService
     // Lock for booster cache updates
     private readonly object boosterLock = new();
 
+    // Cache for UUID to player name resolutions
+    private readonly ConcurrentDictionary<string, string> uuidToNameCache = new();
+
     public AutotipService(ISession session, IConfiguration config, ILogger<AutotipService> logger, IProxyApi proxyApi, IPlayerNameApi playerNameApi)
     {
         this.session = session;
@@ -382,6 +385,16 @@ public class AutotipService
                 {
                     try
                     {
+                        // Check cache first
+                        if (uuidToNameCache.TryGetValue(uuid, out var cachedName))
+                        {
+                            lock (lockObj)
+                            {
+                                result[uuid] = cachedName;
+                            }
+                            return;
+                        }
+
                         var name = await playerNameApi.PlayerNameNameUuidGetAsync(uuid);
                         if (!string.IsNullOrEmpty(name))
                         {
@@ -391,6 +404,8 @@ public class AutotipService
                             {
                                 result[uuid] = cleanName;
                             }
+                            // Cache the resolution for future use
+                            uuidToNameCache[uuid] = cleanName;
                         }
                     }
                     catch (Exception ex)
@@ -468,6 +483,58 @@ public class AutotipService
         }
     }
 
+    /// <summary>
+    /// Check if a string is a valid UUID format
+    /// </summary>
+    private bool IsUuid(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return false;
+        
+        // UUIDs are typically 32 hex characters without hyphens or 36 with hyphens
+        if (value.Length == 32 || value.Length == 36)
+        {
+            return Guid.TryParse(value, out _) || Guid.TryParse(value.Insert(8, "-").Insert(13, "-").Insert(18, "-").Insert(23, "-"), out _);
+        }
+        
+        return false;
+    }
+
+    /// <summary>
+    /// Resolve a UUID to a player name, with caching
+    /// </summary>
+    private async Task<string> ResolveUuidToName(string uuid)
+    {
+        if (string.IsNullOrEmpty(uuid) || !IsUuid(uuid))
+            return null;
+
+        // Check cache first
+        if (uuidToNameCache.TryGetValue(uuid, out var cachedName))
+        {
+            return cachedName;
+        }
+
+        try
+        {
+            var name = await playerNameApi.PlayerNameNameUuidGetAsync(uuid);
+            if (!string.IsNullOrEmpty(name))
+            {
+                // PlayerNameApi returns name in quotes, trim them
+                var cleanName = name.Trim('"');
+                // Cache the resolution
+                uuidToNameCache[uuid] = cleanName;
+                logger.LogInformation($"Resolved UUID {uuid} to player name {cleanName}");
+                return cleanName;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, $"Failed to resolve UUID {uuid} to player name");
+        }
+
+        return null;
+    }
+
 
     /// <summary>
     /// Record a completed tip in the database
@@ -537,8 +604,28 @@ public class AutotipService
                 
                 var selectedBooster = sortedCandidates.First();
                 var boosterCount = boosterCounts.TryGetValue(selectedBooster.purchaserName, out var bc) ? bc : 1;
-                logger.LogInformation($"Preferring booster {selectedBooster.purchaserName} for {gamemode} (has {boosterCount} active network boosters)");
-                return selectedBooster.purchaserName;
+                
+                // If the selected booster name is a UUID, try to resolve it
+                var playerName = selectedBooster.purchaserName;
+                if (IsUuid(playerName))
+                {
+                    var resolvedName = ResolveUuidToName(selectedBooster.purchaserUuid).GetAwaiter().GetResult();
+                    if (!string.IsNullOrEmpty(resolvedName) && !IsUuid(resolvedName))
+                    {
+                        playerName = resolvedName;
+                        // Also update the booster cache with the resolved name for future use
+                        foreach (var booster in boosters)
+                        {
+                            if (booster.purchaserUuid == selectedBooster.purchaserUuid)
+                            {
+                                booster.purchaserName = resolvedName;
+                            }
+                        }
+                    }
+                }
+                
+                logger.LogInformation($"Preferring booster {playerName} for {gamemode} (has {boosterCount} active network boosters)");
+                return playerName;
             }
 
         }
