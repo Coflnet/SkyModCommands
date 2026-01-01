@@ -228,7 +228,9 @@ public class AutotipService
 
             foreach (var booster in boosterResponse.boosters)
             {
-                var expirationTime = booster.dateActivated * 1000 + booster.length * 1000; // Convert to milliseconds
+                // dateActivated is already in milliseconds (Unix timestamp)
+                // length is in seconds (remaining time)
+                var expirationTime = booster.dateActivated + booster.length * 1000; // Convert length from seconds to milliseconds
                 var timeRemaining = expirationTime - now;
 
                 // Only keep boosters that are active for longer than the update interval (30 minutes)
@@ -263,7 +265,7 @@ public class AutotipService
 
             if (validBoosters.Count == 0)
             {
-                logger.LogInformation("No valid boosters found for autotip");
+                logger.LogInformation($"No valid boosters found for autotip. Total boosters checked: {boosterResponse.boosters.Count}");
                 lock (boosterLock)
                 {
                     activeBoosters.Clear();
@@ -271,8 +273,20 @@ public class AutotipService
                 return;
             }
 
+            logger.LogInformation($"Found {validBoosters.Count} valid boosters out of {boosterResponse.boosters.Count} total boosters");
+
             // Fetch all usernames for the booster UUIDs
             var uuidToNameMap = await FetchPlayerNamesAsync(uuidsToFetch);
+
+            // For testing/debugging: use UUID as name if name fetch fails
+            foreach (var uuid in uuidsToFetch)
+            {
+                if (!uuidToNameMap.ContainsKey(uuid))
+                {
+                    uuidToNameMap[uuid] = uuid; // Use UUID as fallback name
+                    logger.LogDebug($"Using UUID as name for {uuid}");
+                }
+            }
 
             // Build the new booster cache
             foreach (var item in validBoosters)
@@ -282,9 +296,8 @@ public class AutotipService
 
                 if (!uuidToNameMap.TryGetValue(entry.purchaserUuid, out var playerName))
                 {
-                    logger.LogWarning($"Failed to fetch name for UUID {entry.purchaserUuid}");
-                    // continue building other boosters but skip purchaser entry
-                    playerName = null;
+                    logger.LogWarning($"Failed to fetch name for UUID {entry.purchaserUuid}, using UUID as name");
+                    playerName = entry.purchaserUuid; // Use UUID as fallback
                 }
 
                 var activeBooster = new ActiveBooster
@@ -293,7 +306,7 @@ public class AutotipService
                     purchaserName = playerName,
                     gamemode = gamemode,
                     timeActivated = entry.dateActivated,
-                    timeExpires = entry.dateActivated * 1000 + entry.length * 1000
+                    timeExpires = entry.dateActivated + entry.length * 1000 // dateActivated is in ms, length is in seconds
                 };
 
                 if (!newBoosters.ContainsKey(gamemode))
@@ -320,7 +333,7 @@ public class AutotipService
                             purchaserName = stackedName,
                             gamemode = gamemode,
                             timeActivated = entry.dateActivated,
-                            timeExpires = entry.dateActivated * 1000 + entry.length * 1000
+                            timeExpires = entry.dateActivated + entry.length * 1000 // dateActivated is in ms, length is in seconds
                         };
 
                         newBoosters[gamemode].Add(stackedBooster);

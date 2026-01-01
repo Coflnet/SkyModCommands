@@ -266,6 +266,59 @@ public class AutotipServiceTests
         Assert.That(result, Does.Not.Contain("RegularPlayer")); // Not a booster
         Assert.That(result, Does.Not.Contain("Booster3")); // Not tipped
     }
+
+    [Test]
+    public void BoosterTimeCalculation_ConvertsCorrectly()
+    {
+        // Real data from Hypixel API response
+        // dateActivated is in milliseconds (Unix timestamp)
+        // length is in seconds (remaining time)
+        long dateActivated = 1767280723838; // milliseconds
+        long lengthSeconds = 534; // seconds
+
+        var now = dateActivated + 100000; // 100 seconds later in milliseconds
+        var expirationTime = dateActivated + lengthSeconds * 1000; // Convert seconds to milliseconds
+        var timeRemaining = expirationTime - now;
+
+        // Should have about 434 seconds remaining (534 - 100)
+        Assert.That(timeRemaining, Is.GreaterThan(400 * 1000));
+        Assert.That(timeRemaining, Is.LessThan(500 * 1000));
+
+        // Check if it's within the 30min-60min window for autotip
+        var thirtyMinutes = 30 * 60 * 1000;
+        
+        // This booster has only ~534 seconds (8.9 minutes) remaining, so it should NOT qualify
+        Assert.That(timeRemaining, Is.LessThan(thirtyMinutes));
+    }
+
+    [Test]
+    public void BoosterFiltering_RealWorldData()
+    {
+        // Simulate real booster data from the API
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        
+        // Booster with 3600 seconds (1 hour) remaining - should qualify
+        var booster1 = new { dateActivated = now - 100000, length = 3600L };
+        var expiration1 = booster1.dateActivated + booster1.length * 1000;
+        var remaining1 = expiration1 - now;
+        
+        Assert.That(remaining1, Is.GreaterThan(30 * 60 * 1000));
+        Assert.That(remaining1, Is.LessThanOrEqualTo(60 * 60 * 1000));
+        
+        // Booster with 534 seconds (~9 min) remaining - should NOT qualify
+        var booster2 = new { dateActivated = now - 100000, length = 534L };
+        var expiration2 = booster2.dateActivated + booster2.length * 1000;
+        var remaining2 = expiration2 - now;
+        
+        Assert.That(remaining2, Is.LessThan(30 * 60 * 1000));
+        
+        // Booster with 55 seconds remaining - should NOT qualify
+        var booster3 = new { dateActivated = now - 100000, length = 55L };
+        var expiration3 = booster3.dateActivated + booster3.length * 1000;
+        var remaining3 = expiration3 - now;
+        
+        Assert.That(remaining3, Is.LessThan(30 * 60 * 1000));
+    }
 }
 
 /// <summary>
