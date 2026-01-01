@@ -58,7 +58,49 @@ namespace Coflnet.Sky.Commands.MC
                 "https://sky.coflnet.com/auction/" + best.OriginAuction,
                 $"Click to open best flip purchase\n{McColorCodes.GRAY}The worst flip was \n" + FormatFlip(socket, worst));
 
+            // Display most profitable week stats if querying more than two weeks
+            if (time.TotalDays > 14 && response.Flips.Length > 0)
+            {
+                DisplayMostProfitableWeek(socket, response);
+            }
+        }
 
+        private void DisplayMostProfitableWeek(MinecraftSocket socket, FlipSumary response)
+        {
+            // Group flips by week (using ISO week calculation based on SellTime)
+            var weeklyProfits = response.Flips
+                .GroupBy(f => GetWeekStart(f.SellTime))
+                .Select(g => new
+                {
+                    WeekStart = g.Key,
+                    Profit = g.Sum(f => f.Profit),
+                    FlipCount = g.Count(),
+                    BestFlip = g.OrderByDescending(f => f.Profit).First()
+                })
+                .OrderByDescending(w => w.Profit)
+                .ToList();
+
+            if (weeklyProfits.Count == 0)
+                return;
+
+            var bestWeek = weeklyProfits.First();
+            var weekEnd = bestWeek.WeekStart.AddDays(6);
+
+            socket.Dialog(db => db
+                .MsgLine($"\n{McColorCodes.GOLD}Best Week: {McColorCodes.GRAY}{bestWeek.WeekStart:MMM dd} - {weekEnd:MMM dd}",
+                    null,
+                    $"Weekly breakdown:\n" + string.Join("\n", weeklyProfits.Take(5).Select(w =>
+                        $"{w.WeekStart:MMM dd}: {FormatPrice(socket, w.Profit)} ({w.FlipCount} flips)")))
+                .Msg($" made {FormatPrice(socket, bestWeek.Profit)} from {FormatPrice(socket, bestWeek.FlipCount)} flips",
+                    null,
+                    $"Best flip that week: {bestWeek.BestFlip.ItemName}\n{FormatFlip(socket, bestWeek.BestFlip)}"));
+        }
+
+        private static DateTime GetWeekStart(DateTime date)
+        {
+            // Get the Monday of the week containing the given date
+            int diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+            return date.Date.AddDays(-diff);
         }
         public static string FormatFlip(MinecraftSocket socket, FlipDetails best)
         {
