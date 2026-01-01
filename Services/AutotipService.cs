@@ -409,6 +409,36 @@ public class AutotipService
         }
     }
 
+    /// <summary>
+    /// Check if a player is currently a network booster in any gamemode
+    /// </summary>
+    private bool IsNetworkBooster(string playerName)
+    {
+        if (string.IsNullOrEmpty(playerName))
+            return false;
+
+        lock (boosterLock)
+        {
+            return activeBoosters.Values.Any(boosters => 
+                boosters.Any(b => b.purchaserName?.Equals(playerName, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+    }
+
+    /// <summary>
+    /// Get all currently active booster names across all gamemodes
+    /// </summary>
+    private HashSet<string> GetAllActiveBoosterNames()
+    {
+        lock (boosterLock)
+        {
+            return activeBoosters.Values
+                .SelectMany(boosters => boosters)
+                .Where(b => !string.IsNullOrEmpty(b.purchaserName))
+                .Select(b => b.purchaserName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
 
     /// <summary>
     /// Record a completed tip in the database
@@ -444,7 +474,7 @@ public class AutotipService
     /// <summary>
     /// Get online players to tip from active connections, preferring active boosters
     /// </summary>
-    private string GetOnlinePlayersInGamemode(IMinecraftSocket socket, string gamemode, HashSet<string> tippedTodayNames)
+    private string GetOnlinePlayersInGamemode(IMinecraftSocket socket, string gamemode, HashSet<string> tippedTodayNames, HashSet<string> tippedBoostersLastHour)
     {
         // First, check if there are any active boosters for this gamemode
         var boosters = GetBoostersForGamemode(gamemode);
@@ -458,11 +488,13 @@ public class AutotipService
                 logger.LogInformation($"Preferring booster Ekwav for {gamemode}");
                 return "Ekwav";
             }
-            // Filter boosters by the global blacklist and daily tip tracking
+            // Filter boosters by the global blacklist, daily tip tracking, and hour-since-last-tip rule
+            // Since Hypixel tips boosters in all modes when running one tip, we check if this user tipped this booster in the last hour
             var candidates = boosters
                 .Where(b => !string.IsNullOrEmpty(b.purchaserName)
                     && !tipBlacklist.ContainsKey(b.purchaserName)
-                    && !tippedTodayNames.Contains(b.purchaserName))
+                    && !tippedTodayNames.Contains(b.purchaserName)
+                    && !tippedBoostersLastHour.Contains(b.purchaserName))
                 .ToList();
             if (candidates.Count > 0)
             {
@@ -628,8 +660,19 @@ public class AutotipService
                 .Select(t => t.TippedPlayerName)
                 .ToHashSet();
 
+            // Get all current active boosters
+            var activeBoosterNames = GetAllActiveBoosterNames();
+
+            // Get boosters this user has tipped in the last hour (across all gamemodes)
+            // Since Hypixel tips boosters in all modes, we need to avoid tipping them again within an hour
+            var oneHourAgo = DateTimeOffset.UtcNow.AddHours(-1);
+            var tippedBoostersLastHour = recentTipsList
+                .Where(t => t.TippedAt > oneHourAgo && activeBoosterNames.Contains(t.TippedPlayerName))
+                .Select(t => t.TippedPlayerName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             // Get online players in that gamemode
-            var targetPlayer = GetOnlinePlayersInGamemode(socket, gamemodeNeedingTip, tippedInGamemode);
+            var targetPlayer = GetOnlinePlayersInGamemode(socket, gamemodeNeedingTip, tippedInGamemode, tippedBoostersLastHour);
 
             if (targetPlayer == null)
             {
