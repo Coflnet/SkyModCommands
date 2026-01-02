@@ -20,16 +20,7 @@ namespace Coflnet.Sky.Commands.MC
             var isOwned = socket.SessionInfo.RustAddonOwned;
             if (isOwned == null)
             {
-                try
-                {
-                    var userApi = socket.GetService<Payments.Client.Api.UserApi>();
-                    var owns = await userApi.UserUserIdOwnsUntilPostAsync(socket.UserId, new() { "rust-addon" });
-                    socket.SessionInfo.RustAddonOwned = owns.ContainsKey("rust-addon") && owns["rust-addon"] > DateTime.UtcNow;
-                }
-                catch (Exception e)
-                {
-                    socket.Error(e, "checking rust addon ownership");
-                }
+                await socket.sessionLifesycle.CheckRustOwnership(socket.UserId);
             }
 
             // Build the dialog

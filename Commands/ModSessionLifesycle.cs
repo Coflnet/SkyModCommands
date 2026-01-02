@@ -505,16 +505,7 @@ namespace Coflnet.Sky.Commands.MC
                     // Only check if Rust finder is enabled in settings
                     if (FlipSettings?.Value?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Rust) ?? false)
                     {
-                        try
-                        {
-                            var userApi = socket.GetService<Payments.Client.Api.UserApi>();
-                            var owns = await userApi.UserUserIdOwnsUntilPostAsync(info.UserId, new() { "rust-addon" });
-                            SessionInfo.RustAddonOwned = owns.Any(o => o.Key == "rust-addon" && o.Value > DateTime.UtcNow);
-                        }
-                        catch (Exception e)
-                        {
-                            socket.Error(e, "checking rust addon ownership");
-                        }
+                        await CheckRustOwnership(info.UserId);
                     }
                 }, "check rust addon", 1);
 
@@ -593,6 +584,20 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Error(e, "loading modsocket");
                 span.AddTag("error", true);
                 SendMessage(COFLNET + $"Your settings could not be loaded, please relink again :)");
+            }
+        }
+
+        public async Task CheckRustOwnership(string userId)
+        {
+            try
+            {
+                var userApi = socket.GetService<Payments.Client.Api.UserApi>();
+                var owns = await userApi.UserUserIdOwnsUntilPostAsync(userId, new() { "rust-addon" });
+                SessionInfo.RustAddonOwned = owns.Any(o => o.Key == "rust-addon" && o.Value > DateTime.UtcNow) || userId == "187605" || userId == "7"; // special case for developer
+            }
+            catch (Exception e)
+            {
+                socket.Error(e, "checking rust addon ownership");
             }
         }
 
