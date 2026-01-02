@@ -183,6 +183,7 @@ namespace Coflnet.Sky.Commands.MC
                 LowPricedAuction.FinderType.AI => "AI",
                 LowPricedAuction.FinderType.FLIPPER => "FLIP",
                 LowPricedAuction.FinderType.CraftCost => "Craft",
+                LowPricedAuction.FinderType.Rust => "Rust",
                 _ => "Flip"
             };
         }
