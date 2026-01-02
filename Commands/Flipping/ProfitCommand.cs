@@ -86,8 +86,8 @@ namespace Coflnet.Sky.Commands.MC
             var bestWeek = weeklyProfits.First();
             var weekEnd = bestWeek.WeekStart.AddDays(6);
 
-            socket.Dialog(db => db
-                .MsgLine($"\n{McColorCodes.GOLD}Best Week: {McColorCodes.GRAY}{bestWeek.WeekStart:MMM dd} - {weekEnd:MMM dd}",
+            socket.Dialog(db => db.RemovePrefix()
+                .MsgLine($"{McColorCodes.GOLD}Best Week: {McColorCodes.GRAY}{bestWeek.WeekStart:MMM dd} - {weekEnd:MMM dd}",
                     null,
                     $"Weekly breakdown:\n" + string.Join("\n", weeklyProfits.Take(5).Select(w =>
                         $"{w.WeekStart:MMM dd}: {FormatPrice(socket, w.Profit)} ({w.FlipCount} flips)")))
