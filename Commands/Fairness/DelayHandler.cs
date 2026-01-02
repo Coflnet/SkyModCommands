@@ -61,6 +61,11 @@ public class DelayHandler : IDelayHandler
     {
         if (currentDelay <= TimeSpan.Zero)
             return timeProvider.Now;
+        if(accountInfo.Value?.UserId == "187605" && flipInstance.Finder == Core.LowPricedAuction.FinderType.Rust)
+        {
+            // special agreement
+            return timeProvider.Now;
+        }
         var profit = flipInstance.Profit;
         if (dropoutChance * (profit > 6_000_000 ? 3 : 1) > random.NextDouble())
             await timeProvider.Delay(TimeSpan.FromSeconds(6)).ConfigureAwait(false);
