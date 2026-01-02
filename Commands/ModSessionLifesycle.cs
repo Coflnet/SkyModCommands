@@ -506,6 +506,14 @@ namespace Coflnet.Sky.Commands.MC
                     if (FlipSettings?.Value?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Rust) ?? false)
                     {
                         await CheckRustOwnership(info.UserId);
+                        if(SessionInfo.RustAddonOwned == false)
+                        {
+                            // disable rust finder if ownership not valid
+                            var fs = FlipSettings.Value;
+                            fs.AllowedFinders &= ~LowPricedAuction.FinderType.Rust;
+                            await FlipSettings.Update(fs);
+                            socket.SendMessage(COFLNET + "Your Rust Finder add-on ownership could not be verified, disabling Rust Finder in your finders list.");
+                        }
                     }
                 }, "check rust addon", 1);
 
