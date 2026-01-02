@@ -281,14 +281,11 @@ public class AutotipService
             // Fetch all usernames for the booster UUIDs
             var uuidToNameMap = await FetchPlayerNamesAsync(uuidsToFetch);
 
-            // For testing/debugging: use UUID as name if name fetch fails
-            foreach (var uuid in uuidsToFetch)
+            // Log any UUIDs that couldn't be resolved (these boosters will be excluded)
+            var unresolvedUuids = uuidsToFetch.Except(uuidToNameMap.Keys).ToList();
+            if (unresolvedUuids.Any())
             {
-                if (!uuidToNameMap.ContainsKey(uuid))
-                {
-                    uuidToNameMap[uuid] = uuid; // Use UUID as fallback name
-                    logger.LogDebug($"Using UUID as name for {uuid}");
-                }
+                logger.LogWarning($"Failed to resolve {unresolvedUuids.Count} UUIDs to player names, excluding these boosters: {string.Join(", ", unresolvedUuids)}");
             }
 
             // Build the new booster cache
@@ -297,10 +294,10 @@ public class AutotipService
                 var entry = item.entry;
                 var gamemode = item.gamemode;
 
+                // Skip boosters where we couldn't resolve the UUID to a player name
                 if (!uuidToNameMap.TryGetValue(entry.purchaserUuid, out var playerName))
                 {
-                    logger.LogWarning($"Failed to fetch name for UUID {entry.purchaserUuid}, using UUID as name");
-                    playerName = entry.purchaserUuid; // Use UUID as fallback
+                    continue; // Skip this booster
                 }
 
                 var activeBooster = new ActiveBooster
@@ -327,6 +324,7 @@ public class AutotipService
                         var sid = t.ToString();
                         if (string.IsNullOrEmpty(sid))
                             continue;
+                        // Skip stacked boosters where we couldn't resolve the UUID to a player name
                         if (!uuidToNameMap.TryGetValue(sid, out var stackedName))
                             continue;
 
@@ -501,42 +499,6 @@ public class AutotipService
     }
 
     /// <summary>
-    /// Resolve a UUID to a player name, with caching
-    /// </summary>
-    private async Task<string> ResolveUuidToName(string uuid)
-    {
-        if (string.IsNullOrEmpty(uuid) || !IsUuid(uuid))
-            return null;
-
-        // Check cache first
-        if (uuidToNameCache.TryGetValue(uuid, out var cachedName))
-        {
-            return cachedName;
-        }
-
-        try
-        {
-            var name = await playerNameApi.PlayerNameNameUuidGetAsync(uuid);
-            if (!string.IsNullOrEmpty(name))
-            {
-                // PlayerNameApi returns name in quotes, trim them
-                var cleanName = name.Trim('"');
-                // Cache the resolution
-                uuidToNameCache[uuid] = cleanName;
-                logger.LogInformation($"Resolved UUID {uuid} to player name {cleanName}");
-                return cleanName;
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, $"Failed to resolve UUID {uuid} to player name");
-        }
-
-        return null;
-    }
-
-
-    /// <summary>
     /// Record a completed tip in the database
     /// </summary>
     private void RecordTip(string userId, string targetPlayer, string gamemode, long amount, bool isAutomatic)
@@ -604,24 +566,13 @@ public class AutotipService
                 
                 var selectedBooster = sortedCandidates.First();
                 var boosterCount = boosterCounts.TryGetValue(selectedBooster.purchaserName, out var bc) ? bc : 1;
-                
-                // If the selected booster name is a UUID, try to resolve it
                 var playerName = selectedBooster.purchaserName;
+                
+                // Verify that the selected booster name is not a UUID (should never happen with the new filtering)
                 if (IsUuid(playerName))
                 {
-                    var resolvedName = ResolveUuidToName(selectedBooster.purchaserUuid).GetAwaiter().GetResult();
-                    if (!string.IsNullOrEmpty(resolvedName) && !IsUuid(resolvedName))
-                    {
-                        playerName = resolvedName;
-                        // Also update the booster cache with the resolved name for future use
-                        foreach (var booster in boosters)
-                        {
-                            if (booster.purchaserUuid == selectedBooster.purchaserUuid)
-                            {
-                                booster.purchaserName = resolvedName;
-                            }
-                        }
-                    }
+                    logger.LogError($"Selected booster {playerName} for {gamemode} is a UUID - this should not happen! Skipping tip.");
+                    return null;
                 }
                 
                 logger.LogInformation($"Preferring booster {playerName} for {gamemode} (has {boosterCount} active network boosters)");
