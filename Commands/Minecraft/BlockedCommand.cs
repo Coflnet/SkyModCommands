@@ -143,6 +143,7 @@ namespace Coflnet.Sky.Commands.MC
             else
                 flipsToSend = GetRandomFlips(socket);
 
+            var countByReson = socket.TopBlocked.GroupBy(b => b.Reason).Select(g => new { Reason = g.Key, Count = g.Count() }).ToDictionary(g => g.Reason, g => g.Count);
             Activity.Current.Log(JsonConvert.SerializeObject(flipsToSend));
 
             socket.SendMessage(flipsToSend.SelectMany(b =>
@@ -183,11 +184,17 @@ namespace Coflnet.Sky.Commands.MC
                     new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + b.Flip.Auction.Uuid, "Expand flip options")
                 };
                 if (!string.IsNullOrEmpty(longReason))
+                {
+                    if(countByReson.ContainsKey(b.Reason))
+                    {
+                        var percent = (int)((countByReson[b.Reason] / (float)socket.TopBlocked.Count) * 100);
+                        longReason += $"\n{McColorCodes.YELLOW}This is the reason for {countByReson[b.Reason]} blocked flips ({percent}%)";
+                    }
                     if (socket.ModAdapter is AfVersionAdapter)
                         mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}{longReason}{McColorCodes.GRAY}]", clickAction, longReason));
                     else
                         mainParts.Insert(1, new ChatPart($"{McColorCodes.GRAY}[{McColorCodes.RESET}hover for info{McColorCodes.GRAY}]", clickAction, longReason));
-
+                }
                 return mainParts;
             }).Append(new ChatPart()
             {
@@ -279,8 +286,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private static List<MinecraftSocket.BlockedElement> GetRandomFlips(MinecraftSocket socket)
         {
-            var r = new Random();
-            var grouped = socket.TopBlocked.OrderBy(e => r.Next()).GroupBy(f => f.Reason).OrderByDescending(f => f.Count());
+            var grouped = socket.TopBlocked.OrderBy(e => Random.Shared.Next()).GroupBy(f => f.Reason).OrderByDescending(f => f.Count());
             var flipsToSend = new List<MinecraftSocket.BlockedElement>();
             flipsToSend.AddRange(grouped.First().Take(7 - grouped.Count()));
             flipsToSend.AddRange(grouped.Skip(1).Select(g => g.First()));
