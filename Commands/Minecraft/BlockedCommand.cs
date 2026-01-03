@@ -166,7 +166,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 var text = $"{McColorCodes.DARK_GRAY}> {formatedName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)})";
                 if (string.IsNullOrEmpty(longReason))
-                    text += $" {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}";
+                    longReason = $" {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}";
 
                 if (!string.IsNullOrEmpty(socket.Settings.ModSettings.BlockedFormat))
                     text = socket.formatProvider.FormatFlip(FlipperService.LowPriceToFlip(b.Flip), b.Reason);
