@@ -17,11 +17,22 @@ public class LeaderboardCommand : McCommand
 
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
+        var leaderbaordApi = socket.GetService<ILeaderboardService>();
+        var args = Convert<string>(arguments);
+        if(args == "hideme")
+        {
+            if (!await socket.ReguirePremPlus())
+            {
+                return;
+            }
+            await leaderbaordApi.HideAccount(socket.UserId, socket.SessionInfo.McUuid, socket.sessionLifesycle.TierManager.ExpiresAt);
+            socket.Dialog(db => db.MsgLine("You have been hidden from the flipper leaderboard until your premium plus expires."));
+            return;
+        }
         var isPremPlus = await socket.UserAccountTier() >= Shared.AccountTier.PREMIUM_PLUS;
         var api = socket.GetService<IScoresApi>();
-        var leaderbaordApi = socket.GetService<ILeaderboardService>();
         string boardSlug = GetBoardName();
-        int.TryParse(arguments.Trim('"'), out var page);
+        int.TryParse(args, out var page);
         if (page > 0)
             page--;
         var ownTask = api.ScoresLeaderboardSlugUserUserIdRankGetAsync($"{boardSlug}-{DateTime.UtcNow.RoundDown(TimeSpan.FromDays(7)).ToString("yyyy-MM-dd")}", socket.SessionInfo.McUuid);
