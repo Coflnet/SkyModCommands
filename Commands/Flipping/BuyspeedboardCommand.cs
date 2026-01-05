@@ -37,9 +37,9 @@ public class BuyspeedboardCommand : LeaderboardCommand
     }
 
 
-    protected override void PrintLine(MinecraftSocket socket, DialogBuilder db, BoardScore data, string displayName)
+    protected override void PrintLine(MinecraftSocket socket, DialogBuilder db, LeaderboardService.LeaderboardEntry data)
     {
-        db.MsgLine($"{McColorCodes.RED}{socket.FormatPrice(-data.Score)}ms §7{(displayName)}", $"https://sky.coflnet.com/player/{data.UserId}/flips", "See flips");
+        db.MsgLine($"{McColorCodes.RED}{socket.FormatPrice(-data.Score)}ms §7{data.PlayerName}", $"https://sky.coflnet.com/player/{data.PlayerId}/flips", "See flips");
     }
 
     public static async Task DisableBuySpeedBoard(MinecraftSocket socket, string setting = "true")
@@ -56,6 +56,6 @@ public class BuyspeedboardCommand : LeaderboardCommand
 
     protected override string GetBoardName()
     {
-        return $"sky-buyspeed-{DateTime.UtcNow.RoundDown(TimeSpan.FromDays(7)).ToString("yyyy-MM-dd")}";
+        return $"sky-buyspeed";
     }
 }

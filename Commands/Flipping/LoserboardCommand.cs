@@ -11,11 +11,11 @@ public class LoserboardCommand : LeaderboardCommand
     protected override string Heading => $"Players with the biggest loss this week:";
     protected override string GetBoardName()
     {
-        return $"sky-flippers-loosers-{DateTime.UtcNow.RoundDown(TimeSpan.FromDays(7)).ToString("yyyy-MM-dd")}";
+        return $"sky-flippers-loosers";
     }
 
-    protected override void PrintLine(MinecraftSocket socket, DialogBuilder db, BoardScore data, string displayName)
+    protected override void PrintLine(MinecraftSocket socket, DialogBuilder db, LeaderboardService.LeaderboardEntry data)
     {
-        db.MsgLine($"{McColorCodes.RED}-{socket.FormatPrice(data.Score)} §7{(displayName)}", $"https://sky.coflnet.com/player/{data.UserId}/flips", "See flips");
+        db.MsgLine($"{McColorCodes.RED}-{socket.FormatPrice(data.Score)} §7{data.PlayerName}", $"https://sky.coflnet.com/player/{data.PlayerId}/flips", "See flips");
     }
 }
