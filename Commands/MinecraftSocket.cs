@@ -254,6 +254,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SettingsCommand>();
             Commands.Add<ProxyCommand>();
             Commands.Add<AutoTipCommand>();
+            Commands.Add<ConfirmCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
