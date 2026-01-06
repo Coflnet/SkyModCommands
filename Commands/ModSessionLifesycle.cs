@@ -916,8 +916,9 @@ namespace Coflnet.Sky.Commands.MC
                 AddTempFilter(item.Key);
                 socket.Dialog(db => db.Msg($"Temporarily blacklisted {item.First().Auction.ItemName} as you bought {item.Count()} recently which is more than {threshold}% of your flips in the last 30 minutes"
                     , null, "More than usual items of one type usually indicate \n"
-                    + "that the value is dropping due to a hypixel update\n"
-                    + $"To adjust the threshold run {McColorCodes.AQUA}/cofl set modtempBlacklistThreshold <percentage>"));
+                    + $"that the value is {McColorCodes.ITALIC}dropping due to a hypixel update{McColorCodes.RESET}.\n"
+                    + $"To adjust the threshold run {McColorCodes.GRAY}({McColorCodes.YELLOW}101 to disable{McColorCodes.GRAY})\n"
+                    + $"{McColorCodes.AQUA}/cofl set modtempBlacklistThreshold <percentage>"));
             }
 
             var toBlock = socket.LastSent.Where(s =>
