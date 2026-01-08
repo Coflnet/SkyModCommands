@@ -47,7 +47,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public static string FormatId(ListEntry elem)
         {
-            return $"{elem.ItemTag}{(elem.filter == null ? "" : string.Join(',', elem.filter.Select(f => $"{f.Key}={f.Value}")))}{string.Join(',', elem.Tags ?? new List<string>())}{elem.Order}";
+            return $"{elem.ItemTag}{(elem.filter == null ? "" : string.Join(',', elem.filter.Select(f => $"{f.Key}={f.Value}")))}{string.Join(',', elem.Tags ?? new List<string>())}{elem.Order}{(elem.Disabled ? "disabled" : "")}";
         }
 
         protected override Task<List<ListEntry>> GetList(MinecraftSocket socket)
