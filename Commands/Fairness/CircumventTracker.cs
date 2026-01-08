@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
+#nullable enable
 
 /// <summary>
 /// Handles finding people who circumvent delay
@@ -155,7 +156,7 @@ public class CircumventTracker
             MinecraftUuid = socket.SessionInfo.McUuid,
             UserId = socket.UserId
         });
-        var adapter = (socket as MinecraftSocket).ModAdapter;
+        var adapter = (socket as MinecraftSocket)?.ModAdapter ?? throw new Exception("Minecraft socket required to send flip");
         await adapter.SendFlip(flip);
         await trackTask;
         await Task.Delay(5000);
@@ -185,7 +186,7 @@ public class CircumventTracker
             await adapter.SendFlip(flip);
     }
 
-    private static async Task<SaveAuction> FindAuction(IMinecraftSocket socket)
+    private static async Task<SaveAuction?> FindAuction(IMinecraftSocket socket)
     {
         var oldestStart = DateTime.UtcNow - TimeSpan.FromMinutes(1);
         foreach (var blocked in socket.TopBlocked.Where(b => b.Flip.Auction.Start > oldestStart && b.Flip.Auction.Bin)
@@ -205,10 +206,4 @@ public class CircumventTracker
             .Take(350)
             .Where(a => a.HighestBidAmount == 0 && a.Start > oldestStart && a.StartingBid < 5_000_000).FirstOrDefaultAsync();
     }
-
-    public class State
-    {
-        public string AuctionId;
-    }
-
 }
