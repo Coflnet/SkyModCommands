@@ -148,6 +148,9 @@ namespace Coflnet.Sky.Commands.MC
 
             socket.SendMessage(flipsToSend.SelectMany(b =>
             {
+                // add sent flips back to queue so when they are selected for flip options they are still there if they are at the end of the queue
+                if (!socket.TopBlocked.OrderByDescending(t => t.Now).Take(300).Contains(b))
+                    socket.TopBlocked.Enqueue(b);
                 socket.Settings.GetPrice(FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
                 var formatedName = socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier) + socket.formatProvider.GetItemName(b.Flip.Auction);
                 var longReason = "";
@@ -185,7 +188,7 @@ namespace Coflnet.Sky.Commands.MC
                 };
                 if (!string.IsNullOrEmpty(longReason))
                 {
-                    if(countByReson.ContainsKey(b.Reason))
+                    if (countByReson.ContainsKey(b.Reason))
                     {
                         var percent = (int)((countByReson[b.Reason] / (float)socket.TopBlocked.Count) * 100);
                         longReason += $"\n{McColorCodes.YELLOW}This is the reason for {countByReson[b.Reason]} blocked flips ({percent}%)";
