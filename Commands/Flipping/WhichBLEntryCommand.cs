@@ -33,6 +33,15 @@ namespace Coflnet.Sky.Commands.MC
                 if (Matches(socket.SessionInfo, flip, item))
                 {
                     var bl = BlacklistCommand.FormatEntry(item);
+                    if(string.IsNullOrWhiteSpace(bl))
+                    {
+                        if (args.WL)
+                            socket.Settings.WhiteList.Remove(item);
+                        else
+                            socket.Settings.BlackList.Remove(item);
+                        socket.Dialog(db => db.MsgLine("The matched filter had no item or filter selected, it has been removed from your list to prevent future issues"));
+                        return socket.sessionLifesycle.FlipSettings.Update();
+                    }
                     var text = $"This flip matched the filter {bl} {McColorCodes.GRAY}[{McColorCodes.RED}REMOVE{McColorCodes.GRAY}]";
                     var isWhitelist = args.WL;
                     SendRemoveMessage(socket, item, text, isWhitelist);
