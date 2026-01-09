@@ -1004,6 +1004,7 @@ namespace Coflnet.Sky.Commands.MC
                 {
                     using var span = socket.CreateActivity("blockedcleanup", ConSpan);
                     var service = socket.GetService<IBlockedService>();
+                    span.Log($"Queued count: {socket.TopBlocked.Count}");
                     await service.ArchiveBlockedFlipsUntil(socket.TopBlocked, socket.UserId, 100);
                     return;
                 }

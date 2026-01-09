@@ -220,6 +220,11 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"Note that you don't have premium, flips will show up very late if at all. Eg. the user finder doesn't work. \n{McColorCodes.GREEN}[Click to change that]", "", "Click to select a premium plan"));
             }
 
+            if (flipsToSend.Count > 1)
+            {
+                Activity.Current.Log($"Archiving {flipsToSend.Count} blocked flips");
+                await socket.GetService<IBlockedService>().ArchiveBlockedFlipsUntil(new(flipsToSend), socket.UserId, 0);
+            }
             if (socket.SessionInfo.Purse != 0 && socket.SessionInfo.Purse < 10_000_000)
             {
                 await Task.Delay(2000);
