@@ -213,7 +213,7 @@ public class VpsInstanceManager
         var result = new List<VPsStateUpdate>();
         foreach (var i in instance)
         {
-            if (i.PaidUntil < DateTime.UtcNow)
+            if (i.PaidUntil < DateTime.UtcNow || i.Context.ContainsKey("turnedOff"))
             {
                 // skip expired instances
                 continue;
