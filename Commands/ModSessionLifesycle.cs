@@ -152,7 +152,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             var content = GetDisplayableContent(mostRecent);
             var match = Regex.Match(content, @"https://[^\s\)\]]+", RegexOptions.IgnoreCase);
-            var commandLink = Regex.Match(content, @"`(\/[^´]+)`", RegexOptions.IgnoreCase);
+            var commandLink = Regex.Match(content, @"`(\/[^´]+?)`", RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 var url = match.Value;
