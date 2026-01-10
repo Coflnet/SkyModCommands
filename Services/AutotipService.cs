@@ -831,7 +831,7 @@ public class AutotipService
     /// <summary>
     /// Get tip statistics for a user
     /// </summary>
-    public async Task<List<AutotipEntry>> GetUserTipHistory(string userId, int limit = 50)
+    public async Task<List<AutotipEntry>> GetUserTipHistory(string userId, int limit = 500)
     {
         try
         {
