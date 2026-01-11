@@ -61,6 +61,7 @@ namespace Coflnet.Sky.Commands.MC
         [JsonIgnore]
         public IEnumerable<string> CaptchaSolutions => captchaInfo.CurrentSolutions;
         public long Purse { get; set; }
+        public long Bits { get; set; }
 
         public bool IsIronman { get; internal set; }
         public bool IsBingo { get; internal set; }

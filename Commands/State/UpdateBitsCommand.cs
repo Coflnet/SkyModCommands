@@ -6,7 +6,7 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override Task Execute(MinecraftSocket socket, string arguments)
         {
-            // does nothing for now
+            socket.SessionInfo.Bits = long.Parse(arguments.Trim('"'));
             return Task.CompletedTask;
         }
     }

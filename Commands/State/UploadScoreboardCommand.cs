@@ -59,6 +59,11 @@ public class UploadScoreboardCommand : McCommand
                 await new UpdatePurseCommand().Execute(socket, item.Substring(7).Replace(",", "").Split(" ")[0]);
                 isInSkyblock = true;
             }
+            if(item.StartsWith("Bits:"))
+            {
+                await new UpdateBitsCommand().Execute(socket, item.Substring(6).Replace(",", "").Split(" ")[0]);
+                isInSkyblock = true;
+            }
         }
         var wasNotFlippable = socket.SessionInfo.IsNotFlipable;
         socket.SessionInfo.IsIronman = isIronman;
