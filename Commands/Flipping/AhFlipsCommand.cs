@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
@@ -38,7 +39,8 @@ public class AhFlipsCommand : ReadOnlyListCommand<UnsoldFlip>
         socket.Dialog(db => db.MsgLine("Chcking recently found flips if they are known to be sold", null, "Auctions might still be gone by the time you click on them"));
         var trackerApi = socket.GetService<ITrackerApi>();
         var unsoldResponse = await trackerApi.GetUnsoldFlipsWithHttpInfoAsync(DateTime.UtcNow.AddMinutes(-1.2), 50);
-        var unsold = JsonConvert.DeserializeObject<List<UnsoldFlip>>(unsoldResponse.Data.ToString() ?? "") ?? [];
+        Activity.Current.Log($"Received status code {unsoldResponse.StatusCode} from flip tracker {unsoldResponse.RawContent.Truncate(300)}");
+        var unsold = JsonConvert.DeserializeObject<List<UnsoldFlip>>(unsoldResponse.RawContent) ?? [];
         var uids = unsold.Select(f => f.Uid).ToArray();
         using var db = new HypixelContext();
         var known = db.Auctions.Where(f => uids.Contains(f.UId) && f.End < DateTime.UtcNow).Select(f => f.UId).ToHashSet();
