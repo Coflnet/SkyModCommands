@@ -19,14 +19,25 @@ public class LeaderboardCommand : McCommand
     {
         var leaderbaordApi = socket.GetService<ILeaderboardService>();
         var args = Convert<string>(arguments);
-        if(args == "hideme")
+        if (args == "hideme")
         {
+            if(!socket.SessionInfo.VerifiedMc)
+            {
+                socket.Dialog(db => db.MsgLine("You need to verify your minecraft account to hide yourself from the leaderboard."));
+                return;
+            }
             if (!await socket.ReguirePremPlus())
             {
                 return;
             }
             await leaderbaordApi.HideAccount(socket.UserId, socket.SessionInfo.McUuid, socket.sessionLifesycle.TierManager.ExpiresAt);
             socket.Dialog(db => db.MsgLine("You have been hidden from the flipper leaderboard until your premium plus expires."));
+            return;
+        }
+        if(args == "unhideme")
+        {
+            await leaderbaordApi.UnHideAccount(socket.UserId, socket.SessionInfo.McUuid);
+            socket.Dialog(db => db.MsgLine("You have been unhidden from the flipper leaderboard."));
             return;
         }
         var isPremPlus = await socket.UserAccountTier() >= Shared.AccountTier.PREMIUM_PLUS;
