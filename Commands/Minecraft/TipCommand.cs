@@ -56,10 +56,10 @@ public class AutoTipCommand : McCommand
             }
             else if (subCommand == "stats")
             {
-                System.Collections.Generic.List<ModCommands.Models.AutotipEntry> stats = await autotipService.GetUserTipHistory(socket.UserId);
+                System.Collections.Generic.List<ModCommands.Models.AutotipEntry> stats = await autotipService.GetUserTipHistory(socket.UserId, 1000);
                 socket.Dialog(db => db
                     .MsgLine($"{McColorCodes.YELLOW}Autotip Statistics:")
-                    .MsgLine($"{McColorCodes.GRAY}Tips Sent in the last week: {McColorCodes.WHITE}{stats.Count}")
+                    .MsgLine($"{McColorCodes.GRAY}Tips Sent in the last week: {(stats.Count >=1000?"more than ":"")}{McColorCodes.WHITE}{stats.Count}")
                 );
             }
             else
