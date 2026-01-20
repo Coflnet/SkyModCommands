@@ -24,6 +24,12 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
     public CraftsCommand()
     {
         sorters.Add("profit", (a) => a.OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost)));
+        sorters.Add("order", (a) => a
+            .Select(e =>
+            {
+                e.CraftCost = e.BuyOrderCraftCost;
+                return e;
+            }).OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.BuyOrderCraftCost) * f.Volume));
         sorters.Add("cost", (a) => a.OrderByDescending(f => f.CraftCost));
         sorters.Add("volume", (a) => a.OrderByDescending(f => f.Volume));
         sorters.Add("percent", (a) => a.OrderByDescending(f => (f.SellPrice - f.CraftCost) / f.CraftCost));
