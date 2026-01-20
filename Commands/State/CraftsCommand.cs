@@ -94,7 +94,7 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
 
     protected override IEnumerable<ProfitableCraft> FilterElementsForProfile(MinecraftSocket socket, IEnumerable<ProfitableCraft> elements)
     {
-        var filtered = elements.Where(f => f.CraftCost < socket.SessionInfo.Purse).ToList();
+        var filtered = elements.Where(f => f.CraftCost < socket.SessionInfo.Purse && socket.SessionInfo.Purse > 0).ToList();
         if (filtered.Count != elements.Count())
             socket.Dialog(db => db.MsgLine($"Filtered {elements.Count() - filtered.Count} crafts that cost more than your purse ({socket.FormatPrice(socket.SessionInfo.Purse)})"));
         return filtered;
