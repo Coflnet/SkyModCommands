@@ -304,7 +304,7 @@ public class TPM
         [SettingsDoc("Comma separated list of webhooks")]
         public string[] webhooks;
         [DataMember(Name = "webhook")]
-        [SettingsDoc("TPM (normal) webhook", true)]
+        [SettingsDoc("TPM (normal) webhook")]
         public string webhook;
 
         [DataMember(Name = "webhookFormat")]
