@@ -58,12 +58,19 @@ public class VpsSocket : WebSocketBehavior
 
     private void Distributeupdate(VPsStateUpdate update)
     {
-        var isForThisconnection = update.Instance.HostMachineIp == IP || ShouldDistributeOffState(update);
-        logger.LogInformation("Received update {ip} for {target} ({forThis}) {id}", IP, update.Instance.HostMachineIp, isForThisconnection, update.Instance.Id);
-        if (isForThisconnection)
+        try
         {
-            Send(JsonConvert.SerializeObject(Response.Create("configUpdate", update)));
-            logger.LogInformation("Sent update {ip} for {target} {id}", IP, update.Instance.HostMachineIp, update.Instance.Id);
+            var isForThisconnection = update.Instance.HostMachineIp == IP || ShouldDistributeOffState(update);
+            logger.LogInformation("Received update {ip} for {target} ({forThis}) {id}", IP, update.Instance.HostMachineIp, isForThisconnection, update.Instance.Id);
+            if (isForThisconnection)
+            {
+                Send(JsonConvert.SerializeObject(Response.Create("configUpdate", update)));
+                logger.LogInformation("Sent update {ip} for {target} {id}", IP, update.Instance.HostMachineIp, update.Instance.Id);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Distributing VPS update");
         }
 
         static bool ShouldDistributeOffState(VPsStateUpdate update)
