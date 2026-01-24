@@ -13,17 +13,17 @@ public class LimitsCommand : McCommand
     {
         var client = socket.GetService<IPlayerStateApi>();
         var limits = await client.PlayerStatePlayerIdLimitsGetAsync(socket.SessionInfo.McName);
-        var trade = limits.Trade;
         socket.Dialog(db =>
         {
             db.MsgLine("In the last 24 hours you have:");
-            NewMethod(db, trade, "traded");
+            NewMethod(db, limits.TradeSent / 10, "traded");
+            NewMethod(db, limits.NpcSold / 10, "sold to npc");
             return db;
         });
     }
 
-    private static DialogBuilder NewMethod(SocketDialogBuilder db, List<Limit> trade, string keyword)
+    private static DialogBuilder NewMethod(SocketDialogBuilder db, long amount, string keyword)
     {
-        return db.MsgLine($"{keyword} {McColorCodes.AQUA}{trade.Sum(t => t.Amount)} in {trade.Count} messages", null, string.Join('\n', trade.Select(t => t.Message)));
+        return db.MsgLine($"{keyword} {amount} coins", null);
     }
 }

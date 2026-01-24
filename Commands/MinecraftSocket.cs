@@ -256,6 +256,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<AutoTipCommand>();
             Commands.Add<ConfirmCommand>();
             Commands.Add<BitsCommand>();
+            Commands.Add<NpcCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
