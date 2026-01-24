@@ -12,6 +12,9 @@ namespace Coflnet.Sky.Commands.MC;
     "Based on unlocked collectionsAnd slayer level")]
 public class NpcCommand : ReadOnlyListCommand<Crafts.Client.Model.NpcFlip>
 {
+    protected override string Title => $"Best NPC Flips";
+    protected override int PageSize => 10;
+    protected override bool Hidetop3WithoutPremium => true;
     protected override void Format(MinecraftSocket socket, DialogBuilder db, NpcFlip elem)
     {
         var percentage = (elem.NpcSellPrice - elem.BuyPrice) / (double)elem.BuyPrice * 100;

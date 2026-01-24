@@ -11,6 +11,7 @@ namespace Coflnet.Sky.Commands.MC;
 public abstract class ReadOnlyListCommand<T> : McCommand
 {
     public override bool IsPublic => true;
+    protected virtual bool Hidetop3WithoutPremium => false;
     protected Dictionary<string, Func<IEnumerable<T>, IOrderedEnumerable<T>>> sorters = new Dictionary<string, Func<IEnumerable<T>, IOrderedEnumerable<T>>>();
     protected virtual async Task<bool> CanRun(MinecraftSocket socket, string args)
     {
@@ -68,8 +69,18 @@ public abstract class ReadOnlyListCommand<T> : McCommand
     protected virtual DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<T> toDisplay, int totalPages)
     {
         return DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})", $"/cofl {Slug} {page + 1}", $"Click to go to next page ({page + 1})")
-                    .ForEach(toDisplay, (db, elem) => Format(socket, db, elem));
+        .ForEach(toDisplay, (db, elem, i) =>
+        {
+            if (Hidetop3WithoutPremium && page <= 1 && i <= 2 && !socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
+            {
+                db.MsgLine("Top 3 require starter premium to see");
+            }
+            else
+                Format(socket, db, elem);
+        });
     }
+
+
 
     protected virtual string NoMatchText => "No elements found";
 

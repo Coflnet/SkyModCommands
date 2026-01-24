@@ -18,6 +18,7 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
     public override bool IsPublic => true;
 
     protected override string NoMatchText => "No profitable craft flips found currently :/";
+    protected override bool Hidetop3WithoutPremium => true;
 
     private HashSet<string> OnBazaar = new HashSet<string>();
 
@@ -57,20 +58,6 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
         if (i.Type == "craft")
             return $"{McColorCodes.YELLOW} craft {McColorCodes.GOLD}{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost ~{McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}{McColorCodes.GRAY}(cheaper)";
         return $"{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost {McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}";
-    }
-
-    protected override DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<ProfitableCraft> toDisplay, int totalPages)
-    {
-        return DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})")
-                    .ForEach(toDisplay, (db, elem, i) =>
-                    {
-                        if (page <= 1 && i <= 2 && !socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
-                        {
-                            elem.ItemName = "Top 3 require starter premium to see";
-                            elem.ItemId = "???";
-                        }
-                        Format(socket, db, elem);
-                    });
     }
 
     protected override async Task<IEnumerable<ProfitableCraft>> GetElements(MinecraftSocket socket, string val)
