@@ -29,6 +29,7 @@ public class AutoTipCommand : McCommand
                     .MsgLine($"{McColorCodes.YELLOW}Autotip Command Help:")
                     .MsgLine($"{McColorCodes.GRAY}/cofl autotip enable {McColorCodes.WHITE}- Enable automatic tipping")
                     .MsgLine($"{McColorCodes.GRAY}/cofl autotip disable {McColorCodes.WHITE}- Disable automatic tipping")
+                    .MsgLine($"{McColorCodes.GRAY}/cofl autotip status {McColorCodes.WHITE}- View current autotip status")
                     .MsgLine($"{McColorCodes.GRAY}/cofl autotip stats {McColorCodes.WHITE}- View your autotip statistics")
                 );
                 return;
@@ -54,6 +55,17 @@ public class AutoTipCommand : McCommand
                 await socket.sessionLifesycle.AccountSettings.Update();
                 socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.YELLOW}Autotip has been disabled."));
             }
+            else if (subCommand == "status")
+            {
+                var isBlocked = socket.sessionLifesycle.AccountSettings.Value.BlockAutotip;
+                var statusText = isBlocked ? $"{McColorCodes.RED}Disabled" : $"{McColorCodes.GREEN}Enabled";
+                var actionText = isBlocked ? "enable" : "disable";
+                
+                socket.Dialog(db => db
+                    .MsgLine($"{McColorCodes.YELLOW}Autotip Status: {statusText}")
+                    .MsgLine($"{McColorCodes.GRAY}Automatic tipping is currently {(isBlocked ? "disabled" : "enabled")}")
+                    .MsgLine($"{McColorCodes.GRAY}Use {McColorCodes.AQUA}/cofl autotip {actionText}{McColorCodes.GRAY} to {actionText} it"));
+            }
             else if (subCommand == "stats")
             {
                 System.Collections.Generic.List<ModCommands.Models.AutotipEntry> stats = await autotipService.GetUserTipHistory(socket.UserId, 1000);
@@ -64,7 +76,7 @@ public class AutoTipCommand : McCommand
             }
             else
             {
-                socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.RED}Unknown subcommand. Please use 'enable', 'disable' or 'stats'."));
+                socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.RED}Unknown subcommand. Please use 'enable', 'disable', 'status' or 'stats'."));
             }
 
         }

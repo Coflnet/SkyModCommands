@@ -109,6 +109,13 @@ public class ProxyCommand : McCommand
             return;
         }
 
+        if (verb == "status")
+        {
+            // Explicitly handle status subcommand - same as no args
+            await Execute(socket, "");
+            return;
+        }
+
         if (verb == "on" || verb == "enable" || verb == "yes" || verb == "off" || verb == "disable" || verb == "no")
         {
             if(socket.ModAdapter is AfVersionAdapter afAdapter)

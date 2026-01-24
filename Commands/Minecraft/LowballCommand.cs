@@ -117,7 +117,34 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
                                                 "§c/cofl lowball off - Disable lowballing\n" +
                                                 "§a/cofl lowball always - Enable lowballing permanently\n" +
                                                 "§c/cofl lowball never - Disable lowballing permanently\n" +
+                                                "§6/cofl lowball status - Show current lowball status\n" +
                                                 "§6/cofl lowball - Offer an item in your inventory"));
+                return;
+            }
+            else if (args[0] == "status")
+            {
+                var isPermanentlyBlocked = socket.sessionLifesycle.AccountSettings.Value.BlockLowballs;
+                var isCurrentlyEnabled = service.IsEnabled(socket);
+                
+                string statusText;
+                if (isPermanentlyBlocked)
+                {
+                    statusText = $"{McColorCodes.RED}Permanently Disabled";
+                }
+                else if (isCurrentlyEnabled)
+                {
+                    statusText = $"{McColorCodes.GREEN}Enabled";
+                }
+                else
+                {
+                    statusText = $"{McColorCodes.YELLOW}Temporarily Disabled";
+                }
+                
+                socket.Dialog(db => db
+                    .MsgLine($"{McColorCodes.YELLOW}Lowball Status: {statusText}")
+                    .MsgLine($"{McColorCodes.GRAY}Permanent setting: {(isPermanentlyBlocked ? $"{McColorCodes.RED}Never" : $"{McColorCodes.GREEN}Allow")}")
+                    .MsgLine($"{McColorCodes.GRAY}Current session: {(isCurrentlyEnabled ? $"{McColorCodes.GREEN}Enabled" : $"{McColorCodes.YELLOW}Disabled")}")
+                    .MsgLine($"{McColorCodes.GRAY}Use {McColorCodes.AQUA}/cofl lowball help{McColorCodes.GRAY} to see all options"));
                 return;
             }
             socket.Dialog(db => db.MsgLine($"{McColorCodes.GRAY}To register for lowballing, use {McColorCodes.AQUA}/cofl lowball on", "/cofl lowball on")
@@ -275,6 +302,11 @@ public class LowballSerivce
             Socket = socket,
             Registered = DateTime.Now
         };
+    }
+
+    internal bool IsEnabled(MinecraftSocket socket)
+    {
+        return lowballers.ContainsKey(socket.SessionInfo.McUuid);
     }
 
     internal void Disable(MinecraftSocket value)

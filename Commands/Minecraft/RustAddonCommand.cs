@@ -16,6 +16,21 @@ namespace Coflnet.Sky.Commands.MC
 
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            var args = arguments?.Trim().ToLowerInvariant();
+            
+            // Handle status subcommand (same as default behavior)
+            if (args == "status" || string.IsNullOrEmpty(args))
+            {
+                await ShowStatus(socket);
+                return;
+            }
+            
+            // If there are other arguments, fall through to default behavior
+            await ShowStatus(socket);
+        }
+
+        private async Task ShowStatus(MinecraftSocket socket)
+        {
             var currentTier = await socket.sessionLifesycle.TierManager.GetCurrentCached();
             var isOwned = socket.SessionInfo.RustAddonOwned;
             if (isOwned == null)
