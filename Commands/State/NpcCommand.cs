@@ -15,6 +15,7 @@ public class NpcCommand : ReadOnlyListCommand<Crafts.Client.Model.NpcFlip>
     protected override string Title => $"Best NPC Flips";
     protected override int PageSize => 10;
     protected override int HidetopWithoutPremium => 6;
+    private HashSet<string> OnBazaar = new HashSet<string>();
     protected override void Format(MinecraftSocket socket, DialogBuilder db, NpcFlip elem)
     {
         var percentage = (elem.NpcSellPrice - elem.BuyPrice) / (double)elem.BuyPrice * 100;
@@ -23,12 +24,21 @@ public class NpcCommand : ReadOnlyListCommand<Crafts.Client.Model.NpcFlip>
         + $"\n{McColorCodes.GRAY}Sell Price: {McColorCodes.AQUA}{socket.FormatPrice(elem.NpcSellPrice)}"
         + $"\n{McColorCodes.GRAY}Sells/Hour: {McColorCodes.AQUA}{socket.FormatPrice(elem.HourlySells)}"
         + $"\n{McColorCodes.GRAY}Profit: {McColorCodes.GREEN}{socket.FormatPrice(elem.NpcSellPrice - elem.BuyPrice)} {McColorCodes.GRAY}({percentage:F2}%)";
-        var click = $"/bz {elem.ItemId}";
+        var click = OnBazaar.Contains(elem.ItemId) ? $"/bz {elem.ItemName}" : $"/ahs {elem.ItemName}";
         db.MsgLine($" {McColorCodes.GOLD}{elem.ItemName} {McColorCodes.GRAY}for {McColorCodes.GREEN}{socket.FormatPrice(hourlyProfit)}/h {McColorCodes.YELLOW}[Buy]", click, hoverText);
     }
 
     public override async Task Execute(MinecraftSocket socket, string args)
     {
+        if(OnBazaar.Count == 0)
+        {
+            var itemListTask = socket.GetService<Items.Client.Api.IItemsApi>().ItemsGetAsync();
+            foreach (var item in await itemListTask)
+            {
+                if (item.Flags.Value.HasFlag(Items.Client.Model.ItemFlags.BAZAAR))
+                    OnBazaar.Add(item.Tag);
+            }
+        }
         var counter = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLimitsGetAsync(socket.SessionInfo.McName);
         await base.Execute(socket, args);
         var counters = (await counter).NpcSold / 10;
