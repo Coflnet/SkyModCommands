@@ -18,11 +18,13 @@ public class NpcCommand : ReadOnlyListCommand<Crafts.Client.Model.NpcFlip>
     protected override void Format(MinecraftSocket socket, DialogBuilder db, NpcFlip elem)
     {
         var percentage = (elem.NpcSellPrice - elem.BuyPrice) / (double)elem.BuyPrice * 100;
+        var hourlyProfit = (elem.NpcSellPrice - elem.BuyPrice) * elem.HourlySells;
         var hoverText = $"{McColorCodes.GRAY}Buy Price: {McColorCodes.GOLD}{socket.FormatPrice(elem.BuyPrice)}"
         + $"\n{McColorCodes.GRAY}Sell Price: {McColorCodes.AQUA}{socket.FormatPrice(elem.NpcSellPrice)}"
-        + $"\n{McColorCodes.GRAY}Profit: {McColorCodes.GREEN}{socket.FormatPrice(elem.NpcSellPrice - elem.BuyPrice)}{McColorCodes.GRAY}";
+        + $"\n{McColorCodes.GRAY}Sells/Hour: {McColorCodes.AQUA}{socket.FormatPrice(elem.HourlySells)}"
+        + $"\n{McColorCodes.GRAY}Profit: {McColorCodes.GREEN}{socket.FormatPrice(elem.NpcSellPrice - elem.BuyPrice)} {McColorCodes.GRAY}({percentage:F2}%)";
         var click = $"/bz {elem.ItemId}";
-        db.MsgLine($" {McColorCodes.GOLD}{elem.ItemName} {McColorCodes.GRAY}for {McColorCodes.GREEN}{socket.FormatPrice(percentage)}% {McColorCodes.YELLOW}[Buy]", click, hoverText);
+        db.MsgLine($" {McColorCodes.GOLD}{elem.ItemName} {McColorCodes.GRAY}for {McColorCodes.GREEN}{socket.FormatPrice(hourlyProfit)}/h {McColorCodes.YELLOW}[Buy]", click, hoverText);
     }
 
     public override async Task Execute(MinecraftSocket socket, string args)
@@ -32,7 +34,7 @@ public class NpcCommand : ReadOnlyListCommand<Crafts.Client.Model.NpcFlip>
         var counters = (await counter).NpcSold / 10;
         socket.Dialog(db =>
         {
-            db.MsgLine($"Of the 200m limit you used {McColorCodes.AQUA}{socket.FormatPrice(counters)}{McColorCodes.GRAY} so far ({counters / 200000000.0 * 100:F2}%).");
+            db.RemovePrefix().MsgLine($"Of the 200m limit you used {McColorCodes.AQUA}{socket.FormatPrice(counters)}{McColorCodes.GRAY} so far ({counters / 200000000.0 * 100:F2}%).");
             return db;
         });
     }
@@ -40,7 +42,7 @@ public class NpcCommand : ReadOnlyListCommand<Crafts.Client.Model.NpcFlip>
     protected override async Task<IEnumerable<NpcFlip>> GetElements(MinecraftSocket socket, string val)
     {
         var npcService = socket.GetService<INpcApi>();
-        return (await npcService.GetNpcFlipsAsync()).OrderByDescending(elem=>(elem.NpcSellPrice - elem.BuyPrice) / (double)elem.BuyPrice);
+        return (await npcService.GetNpcFlipsAsync()).OrderByDescending(elem=>(elem.NpcSellPrice - elem.BuyPrice) * elem.HourlySells);
     }
 
     protected override string GetId(NpcFlip elem)
