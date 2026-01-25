@@ -18,7 +18,7 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
     public override bool IsPublic => true;
 
     protected override string NoMatchText => "No profitable craft flips found currently :/";
-    protected override bool Hidetop3WithoutPremium => true;
+    protected override int HidetopWithoutPremium => 3;
 
     private HashSet<string> OnBazaar = new HashSet<string>();
 
