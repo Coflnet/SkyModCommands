@@ -506,7 +506,7 @@ namespace Coflnet.Sky.Commands.MC
                     if (FlipSettings?.Value?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Rust) ?? false)
                     {
                         await CheckRustOwnership(info.UserId);
-                        if(SessionInfo.RustAddonOwned == false)
+                        if (SessionInfo.RustAddonOwned == false)
                         {
                             // disable rust finder if ownership not valid
                             var fs = FlipSettings.Value;
@@ -550,10 +550,12 @@ namespace Coflnet.Sky.Commands.MC
                 if (!TierManager.IsNewConnection())
                 {
                     socket.SessionInfo.SessionTier = tier;
+                    await userIsVerifiedTask;
+                    socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc }));
                     Console.WriteLine("silent reconnect for " + socket.SessionInfo.McName + " conid " + socket.SessionInfo.clientConId);
                     return;
                 }
-                
+
                 if (SessionInfo.SentWelcome)
                     return; // don't send hello again
                 SessionInfo.SentWelcome = true;
