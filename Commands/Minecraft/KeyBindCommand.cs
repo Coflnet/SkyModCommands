@@ -35,7 +35,7 @@ public class KeyBindCommand : ListCommand<KeyValuePair<string, string>, Dictiona
 
     protected override Task<Dictionary<string, string>> GetList(MinecraftSocket socket)
     {
-        return Task.FromResult(socket.Settings.ModSettings.Hotkeys);
+        return Task.FromResult(socket.Settings.ModSettings?.Hotkeys ?? []);
     }
 
     protected override async Task Update(MinecraftSocket socket, Dictionary<string, string> newCol)
