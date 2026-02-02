@@ -27,13 +27,18 @@ public class HotkeyCommand : McCommand
         var lore = string.Join("\n", NBT.GetLore(nbt));
         auction.Context["lore"] = lore;
         socket.SessionInfo.SelectedItem = auction;
-        socket.Dialog(db => db.MsgLine($"Item received {auction.ItemName}", null, auction.Context["lore"]));
-
         if (parts[0] == "openitemurl")
         {
             socket.Send(Response.Create("openurl", "https://sky.coflnet.com/item/" + auction.Tag));
             return;
         }
+        if(socket.Settings.ModSettings.Hotkeys?.TryGetValue(parts[0], out var command) == true)
+        {
+            socket.ExecuteCommand(command);
+            return;
+        }
+        socket.Dialog(db => db.MsgLine($"Item received {auction.ItemName}", null, auction.Context["lore"]));
+
         var sniperService = socket.GetService<ISniperClient>();
         var inventoryTask = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
         var valuesTask = sniperService.GetPrices([auction]);

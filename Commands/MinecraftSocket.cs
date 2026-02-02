@@ -234,6 +234,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<NECCommand>();
             Commands.Add<AhTaxCommand>("t");
             Commands.Add<HotkeyCommand>();
+            Commands.Add<KeyBindCommand>();
             Commands.Add<NetworthCommand>();
             Commands.Add<VpsCommand>();
             Commands.Add<RecipeCommand>();
