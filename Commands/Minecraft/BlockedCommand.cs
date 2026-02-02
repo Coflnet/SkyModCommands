@@ -74,7 +74,12 @@ namespace Coflnet.Sky.Commands.MC
                 "A blacklist entrie in your config",
                 "matched this flip and blocked it.",
                 "You can use the flip menu (✥) to find",
-                "which filter matched and remove it" ] }
+                "which filter matched and remove it" ] },
+            { "ShouldSkipFlip", [
+                "Either your purse was too low to afford",
+                "or the flip was likely already sold",
+                "after waiting for fairness delay"
+            ]}
             };
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
