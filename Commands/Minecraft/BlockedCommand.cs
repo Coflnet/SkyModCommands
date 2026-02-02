@@ -222,7 +222,7 @@ namespace Coflnet.Sky.Commands.MC
                         d => d.MsgLine("Make sure none of your other mods are blocking the chat messages.")));
             if (await socket.UserAccountTier() == AccountTier.NONE)
             {
-                socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"Note that you don't have premium, flips will show up very late if at all. Eg. the user finder doesn't work. \n{McColorCodes.GREEN}[Click to change that]", "", "Click to select a premium plan"));
+                socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"Note that you don't have premium/prem+, flips will show up very late if at all. Eg. the user finder doesn't work. \n{McColorCodes.GREEN}[Click to change that]", "", "Click to select a premium plan"));
             }
 
             if (flipsToSend.Count > 1)
