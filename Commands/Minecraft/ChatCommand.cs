@@ -126,11 +126,6 @@ namespace Coflnet.Sky.Commands.MC
             {
                 chat = socket.GetService<ChatService>();
             }
-            if (chat.MutedUuids?.Contains(socket.SessionInfo.McUuid) ?? false)
-            {
-                Activity.Current.Log("muted user");
-                return; // muted user
-            }
             var sub = await chat.Subscribe(OnMessage(socket));
             var dm = await chat.SubscribeToChannel("dm-" + socket.SessionInfo.McName.ToLower(), OnMessage(socket));
             socket.SessionInfo.ListeningToChat = true;
@@ -165,11 +160,6 @@ namespace Coflnet.Sky.Commands.MC
                         socket.SendMessage(new ChatPart($"{CHAT_PREFIX} Blocked a message from a player you muted", null,
                             $"You muted {m.Name}. (undo with /cofl unmute {m.Name}) \nThis message is displayed once per session and player\nto avoid confusion why messages are not shown to you"));
                         socket.SessionInfo.SentMutedNoteFor.Add(m.Uuid);
-                        return true;
-                    }
-                    if (chat.MutedUuids?.Contains(socket.SessionInfo.McUuid) ?? false)
-                    {
-                        socket.SendMessage(new ChatPart($"Blocked message because you are muted, follow the rules in the future!"));
                         return true;
                     }
                     var color = m.Prefix;
