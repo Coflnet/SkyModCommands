@@ -114,6 +114,8 @@ public class SellConfigCommand : ArgumentsCommand
         // add to own configs
         using var createdConfigs = await SelfUpdatingValue<CreatedConfigs>.Create(socket.UserId, "created_configs", () => new());
         createdConfigs.Value.Configs.Add(name);
+        // remove different casing versions
+        createdConfigs.Value.Configs.RemoveWhere(c => c.Equals(name, StringComparison.OrdinalIgnoreCase) && c != name);
         await createdConfigs.Update();
         using var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
         var owned = ownedConfigs.Value.Configs.FirstOrDefault(c => c.Name == name && c.OwnerId == socket.UserId);
