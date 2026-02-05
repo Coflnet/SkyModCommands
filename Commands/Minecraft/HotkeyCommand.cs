@@ -32,7 +32,21 @@ public class HotkeyCommand : McCommand
             socket.Send(Response.Create("openurl", "https://sky.coflnet.com/item/" + auction.Tag));
             return;
         }
-        if(socket.Settings.ModSettings.Hotkeys?.TryGetValue(parts[0], out var command) == true)
+        if (parts[0] == "openitemmarket")
+        {
+            var isBazaar = await socket.GetService<Items.Client.Api.IItemsApi>().ItemItemTagGetAsync(auction.Tag) is var item && item.Flags!.Value.HasFlag(Items.Client.Model.ItemFlags.BAZAAR);
+            var marketCommand = isBazaar ? $"/bz {auction.ItemName}" : $"/ahs {auction.ItemName}";
+            socket.ExecuteCommand(marketCommand);
+            return;
+        }
+        var inventoryTask = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
+        if (parts[0] == "craftbreakdown")
+        {
+            int itemIndex = await GetItemIndex(auction, inventoryTask);
+            socket.ExecuteCommand("/cofl craftbreakdown " + itemIndex);
+            return;
+        }
+        if (socket.Settings.ModSettings.Hotkeys?.TryGetValue(parts[0], out var command) == true)
         {
             socket.ExecuteCommand(command);
             return;
@@ -40,23 +54,14 @@ public class HotkeyCommand : McCommand
         socket.Dialog(db => db.MsgLine($"Item received {auction.ItemName}", null, auction.Context["lore"]));
 
         var sniperService = socket.GetService<ISniperClient>();
-        var inventoryTask = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLastChestGetAsync(socket.SessionInfo.McName);
         var valuesTask = sniperService.GetPrices([auction]);
         Task<string> filterLinkTask = GetLinkWithFilters(socket, auction);
         var price = (await valuesTask).First();
         var instaSell = SniperClient.InstaSellPrice(price);
         var lbinAuction = await GetAuction(socket, price.Lbin.AuctionId);
-        var inventoryItems = LowballCommand.GetActualInventory(await inventoryTask);
+        int index = await GetItemIndex(auction, inventoryTask);
         var filterLink = await filterLinkTask;
-        var auctionItemUUid = auction.FlatenedNBT.TryGetValue("uuid", out var uuidVal) ? uuidVal.Replace("-", "") : null;
-        var index = inventoryItems
-            .Select((i, idx) => new { i, idx })
-            .Where(x => x.i.ExtraAttributes != null
-                && x.i.ExtraAttributes.TryGetValue("uuid", out var uuid)
-                && (uuid as string)?.Replace("-", "") == auctionItemUUid)
-            .Select(x => x.idx)
-            .DefaultIfEmpty(-1)
-            .First();
+
         var isInInventory = index != -1;
         var formattedInstasell = socket.FormatPrice(instaSell.Item1);
         socket.Dialog(db => db.MsgLine($"The value of this item is {McColorCodes.AQUA}{socket.FormatPrice(price.Median)}", null,
@@ -69,6 +74,21 @@ public class HotkeyCommand : McCommand
             .Button($"Open filter on website", filterLink, "Click to view on SkyCofl Website"));
     }
 
+    private static async Task<int> GetItemIndex(SaveAuction auction, Task<System.Collections.Generic.List<PlayerState.Client.Model.Item>> inventoryTask)
+    {
+        var inventoryItems = LowballCommand.GetActualInventory(await inventoryTask);
+        var auctionItemUUid = auction.FlatenedNBT.TryGetValue("uuid", out var uuidVal) ? uuidVal.Replace("-", "") : null;
+        var index = inventoryItems
+            .Select((i, idx) => new { i, idx })
+            .Where(x => x.i.ExtraAttributes != null
+                && x.i.ExtraAttributes.TryGetValue("uuid", out var uuid)
+                && (uuid as string)?.Replace("-", "") == auctionItemUUid)
+            .Select(x => x.idx)
+            .DefaultIfEmpty(-1)
+            .First();
+        return index;
+    }
+
     public static Task<string> GetLinkWithFilters(MinecraftSocket socket, SaveAuction auction)
     {
         var filterTask = RequestFilters(socket, auction);
@@ -78,7 +98,7 @@ public class HotkeyCommand : McCommand
 
     private static async Task<SaveAuction?> GetAuction(MinecraftSocket socket, long uid)
     {
-        if(uid == 0)
+        if (uid == 0)
             return null;
         var auctionClient = socket.GetService<Sky.Api.Client.Api.IAuctionsApi>();
         var auction = await auctionClient.ApiAuctionAuctionUuidGetWithHttpInfoAsync(AuctionService.Instance.GetUuid(uid));

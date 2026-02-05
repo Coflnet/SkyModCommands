@@ -23,6 +23,17 @@ public class KeyBindCommand : ListCommand<KeyValuePair<string, string>, Dictiona
         return Task.FromResult<IEnumerable<CreationOption>>([new CreationOption() { Element = new(split[0], split[1]) }]);
     }
 
+    protected override Task Help(MinecraftSocket socket, string subArgs)
+    {
+        base.Help(socket, subArgs);
+        socket.Dialog(db => db.RemovePrefix().MsgLine("Available commands for hotkeys:")
+        .MsgLine("- openitemurl: Opens the url of the currently held item")
+        .MsgLine("- openitemmarket: Opens the ah/bazaar of currently held item")
+        .MsgLine("- craftbreakdown: Shows the crafting breakdown of the currently held item")
+        .MsgLine("You can also bind any regular command, just make sure to include the / if it's a command"));
+        return Task.CompletedTask;
+    }
+
     protected override string Format(KeyValuePair<string, string> elem)
     {
         return $"{McColorCodes.AQUA}{elem.Key}{McColorCodes.RESET} => {McColorCodes.YELLOW}{elem.Value}";
