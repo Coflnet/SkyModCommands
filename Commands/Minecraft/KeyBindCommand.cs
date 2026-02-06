@@ -20,23 +20,24 @@ public class KeyBindCommand : ListCommand<KeyValuePair<string, string>, Dictiona
         {
             throw new CoflnetException("invalid_key", "Invalid key. Key must be a single character.");
         }
-        return Task.FromResult<IEnumerable<CreationOption>>([new CreationOption() { Element = new(split[0], split[1]) }]);
+        var kv = new KeyValuePair<string, string>(split[0], split[1]);
+        return Task.FromResult<IEnumerable<CreationOption>>(new[] { new CreationOption() { Element = kv } });
     }
 
     protected override Task Help(MinecraftSocket socket, string subArgs)
     {
         base.Help(socket, subArgs);
-        socket.Dialog(db => db.RemovePrefix().MsgLine("Available commands for hotkeys:")
-        .MsgLine("- openitemurl: Opens the url of the currently held item")
-        .MsgLine("- openitemmarket: Opens the ah/bazaar of currently held item")
-        .MsgLine("- craftbreakdown: Shows the crafting breakdown of the currently held item")
-        .MsgLine("You can also bind any regular command, just make sure to include the / if it's a command"));
+        socket.Dialog(db => db.RemovePrefix().MsgLine($"{McColorCodes.GOLD}Available options for hotkeys add:{McColorCodes.RESET}")
+        .MsgLine($"{McColorCodes.AQUA}- openitemurl{McColorCodes.RESET}: Opens the url of the currently held item", "suggest:/cofl keybind add <key> openitemurl", $"Click to bind opening the item url to a key")
+        .MsgLine($"{McColorCodes.AQUA}- openitemmarket{McColorCodes.RESET}: Opens the ah/bazaar of currently held item", "suggest:/cofl keybind add <key> openitemmarket", $"Click to bind opening the item market page to a key")
+        .MsgLine($"{McColorCodes.AQUA}- craftbreakdown{McColorCodes.RESET}: Shows the crafting breakdown of the currently held item", "suggest:/cofl keybind add <key> craftbreakdown", $"Click to bind showing the crafting breakdown to a key")
+        .MsgLine($"{McColorCodes.DARK_GRAY}You can also bind any regular command, just make sure to include the / if it's a command{McColorCodes.RESET}"));
         return Task.CompletedTask;
     }
 
     protected override string Format(KeyValuePair<string, string> elem)
     {
-        return $"{McColorCodes.AQUA}{elem.Key}{McColorCodes.RESET} => {McColorCodes.YELLOW}{elem.Value}";
+        return $"{McColorCodes.AQUA}{elem.Key}{McColorCodes.RESET} => {McColorCodes.YELLOW}{elem.Value}{McColorCodes.RESET}";
     }
 
     protected override string GetId(KeyValuePair<string, string> elem)
@@ -46,7 +47,7 @@ public class KeyBindCommand : ListCommand<KeyValuePair<string, string>, Dictiona
 
     protected override Task<Dictionary<string, string>> GetList(MinecraftSocket socket)
     {
-        return Task.FromResult(socket.Settings.ModSettings?.Hotkeys ?? []);
+        return Task.FromResult(socket.Settings.ModSettings?.Hotkeys ?? new Dictionary<string, string>());
     }
 
     protected override async Task Update(MinecraftSocket socket, Dictionary<string, string> newCol)
