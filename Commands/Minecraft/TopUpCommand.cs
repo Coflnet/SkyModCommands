@@ -26,6 +26,8 @@ namespace Coflnet.Sky.Commands.MC
                 AddOptionsFor(socket, "p", db, topups);
                 db.Break.MsgLine(Indantation + McColorCodes.DARK_GREEN + "Topup using stripe - only for some of US and EU");
                 AddOptionsFor(socket, "s", db, topups);
+                db.Break.MsgLine(Indantation + McColorCodes.YELLOW + "Topup using crypto - only for some of US and EU");
+                AddOptionsFor(socket, "c", db, topups);
                 db.Break.MsgLine(Indantation + McColorCodes.GOLD + "Topup using lemonsqueezy (all around the globe)");
                 AddOptionsFor(socket, "l", db, topups);
                 socket.SendMessage(db);
@@ -34,12 +36,21 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(new DialogBuilder().Msg($"Contacting payment provider", null, "Can take a few seconds"));
 
             TopUpIdResponse info = new();
-            if(toBuy.StartsWith('s'))
+            if (toBuy.StartsWith('s'))
                 info = await topUpApi.TopUpStripePostAsync(socket.UserId, toBuy, new());
-            else if(toBuy.StartsWith('p'))
+            else if (toBuy.StartsWith('p'))
                 info = await topUpApi.TopUpPaypalPostAsync(socket.UserId, toBuy, new());
-            else if(toBuy.StartsWith('l'))
+            else if (toBuy.StartsWith('l'))
                 info = await topUpApi.TopUpLemonsqueezyPostAsync(socket.UserId, toBuy, new());
+            else if (toBuy.StartsWith('c'))
+            {
+                var accountInfo = socket.sessionLifesycle.AccountInfo.Value;
+                info = await topUpApi.TopUpCoingatePostAsync(socket.UserId, toBuy, new() {
+                    Locale = accountInfo.Locale,
+                    UserEmail = UserService.Instance.GetUserById(int.Parse(accountInfo.UserId)).Email,
+                    UserIp = socket.ClientIp
+                });
+            }
             else
                 throw new CoflnetException("invalid_product", $"The product {toBuy} isn't know, please execute the command without arguments to get options");
             var separationLines = "--------------------\n";
@@ -58,7 +69,7 @@ namespace Coflnet.Sky.Commands.MC
                 var postfix = "";
                 if (item == 21600)
                     postfix += McColorCodes.GRAY + " (100 days prem+)";
-                db.CoflCommand<TopUpCommand>($" {McColorCodes.DARK_GRAY}->{McColorCodes.WHITE}" + socket.FormatPrice(item) + postfix, matching.Slug, 
+                db.CoflCommand<TopUpCommand>($" {McColorCodes.DARK_GRAY}->{McColorCodes.WHITE}" + socket.FormatPrice(item) + postfix, matching.Slug,
                     $"Topup {McColorCodes.AQUA}{socket.FormatPrice(item)}{McColorCodes.GRAY} coins via {McColorCodes.AQUA}{matching.ProviderSlug}{McColorCodes.GRAY} for {McColorCodes.AQUA}{matching.Price} {matching.CurrencyCode}");
             }
         }
