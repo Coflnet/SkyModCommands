@@ -34,7 +34,7 @@ public class HotkeyCommand : McCommand
         }
         if (parts[0] == "openitemmarket")
         {
-            var isBazaar = await socket.GetService<Items.Client.Api.IItemsApi>().ItemItemTagGetAsync(auction.Tag) is var item && item.Flags!.Value.HasFlag(Items.Client.Model.ItemFlags.BAZAAR);
+            bool isBazaar = await IsOnBazaar(socket, auction.Tag);
             var marketCommand = isBazaar ? $"/bz {auction.ItemName}" : $"/ahs {auction.ItemName}";
             socket.ExecuteCommand(marketCommand);
             return;
@@ -72,6 +72,11 @@ public class HotkeyCommand : McCommand
             .Msg($"To sell quickly list at {McColorCodes.AQUA}{formattedInstasell}", $"copy:{formattedInstasell}", "click to copy")
             .MsgLine($"{McColorCodes.GRAY}[put into chat]", $"suggest:{formattedInstasell}", "click to put \nsuggestion into chat")
             .Button($"Open filter on website", filterLink, "Click to view on SkyCofl Website"));
+    }
+
+    public static async Task<bool> IsOnBazaar(IMinecraftSocket socket, string tag)
+    {
+        return await socket.GetService<Items.Client.Api.IItemsApi>().ItemItemTagGetAsync(tag) is var item && item.Flags!.Value.HasFlag(Items.Client.Model.ItemFlags.BAZAAR);
     }
 
     private static async Task<int> GetItemIndex(SaveAuction auction, Task<System.Collections.Generic.List<PlayerState.Client.Model.Item>> inventoryTask)
