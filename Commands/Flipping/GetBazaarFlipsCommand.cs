@@ -28,15 +28,17 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             return;
         }
         socket.Dialog(db => db.MsgLine("Alright, you will receive bazaar flips attempted to be placed optimally within the next few minutes"));
+        var mutationsTask = socket.GetService<IBazaarFlipperApi>().CopperGetAsync();
 
         var items = socket.GetService<Items.Client.Api.IItemsApi>();
         var names = (await items.ItemNamesGetAsync()).ToDictionary(i => i.Tag, i => i.Name);
+        var mutations = (await mutationsTask).Select(m => m.ItemTag).ToHashSet();
         for (var i = 0; i < orderCount; i++)
         {
             var flipApi = socket.GetService<IBazaarFlipperApi>();
             var bazaarApi = socket.GetService<IBazaarApi>();
             var flips = await flipApi.DemandGetAsync();
-            var recommended = flips.OrderByDescending(f => f.CurrentProfitPerHour).Take(3).OrderByDescending(f => Random.Shared.Next()).First();
+            var recommended = flips.OrderByDescending(f => f.CurrentProfitPerHour).Where(f => !mutations.Contains(f.ItemTag)).Take(3).OrderByDescending(f => Random.Shared.Next()).First();
             var item = await bazaarApi.GetHistoryGraphAsync(recommended.ItemTag);
             var price = item.OrderByDescending(h => h.Timestamp).First().Buy + 0.1;
             var recommend = new OrderRecommend
