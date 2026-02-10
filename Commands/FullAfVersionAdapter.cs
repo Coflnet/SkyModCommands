@@ -230,9 +230,11 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 if (socket.Version.StartsWith("af-3") && await HotkeyCommand.IsOnBazaar(socket, item.First.Tag))
                 {
+                    Activity.Current?.Log($"Recommending bazaar sell for {item.First.ItemName} {item.First.Tag}");
                     await RecommendBazaarSellOrder(item.First.Tag, item.First.ItemName, item.First.Count);
                     continue;
                 }
+                Activity.Current?.Log($"No listing target for {item.First.ItemName} {item.First.Tag}");
                 socket.Dialog(db => db.MsgLine($"There was no ah price found for {item.First.ItemName} {item.First.Tag}, this item can't be sold. It takes up space in your inventory until you remove it"));
                 continue;
             }
