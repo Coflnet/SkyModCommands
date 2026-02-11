@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Client.Api;
 using Coflnet.Sky.Commands.Shared;
@@ -16,7 +17,7 @@ using SaveAuction = Coflnet.Sky.Core.SaveAuction;
 
 namespace Coflnet.Sky.Commands.MC;
 
-public class FullAfVersionAdapter : AfVersionAdapter
+public partial class FullAfVersionAdapter : AfVersionAdapter
 {
     protected DateTime lastListing = DateTime.MinValue;
     protected DateTime lastInventoryFullMsg = DateTime.MinValue;
@@ -635,7 +636,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Could not fetch bazaar price for {itemName}"));
                 return;
             }
-
+            //clear formatting from name 
+            itemName = FormatRegex().Replace(itemName, "");
             // Use sell price (what buyers pay) for sell orders
             if (sellPrice < 0)
                 sellPrice = latestPrice.Sell;
@@ -735,4 +737,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             return false;
         }
     }
+
+    [GeneratedRegex("§.")]
+    private static partial Regex FormatRegex();
 }
