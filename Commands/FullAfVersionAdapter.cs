@@ -66,6 +66,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
                     socket.Dialog(db => db.Msg("Auction house full, waiting for something to sell or expire before listing another auction"));
                     socket.Send(Response.Create("collectAuctions", new { }));
                 }
+                await ListBazaar();
                 return; // ah full
             }
         }
@@ -121,14 +122,39 @@ public class FullAfVersionAdapter : AfVersionAdapter
                 continue; // user finder/do not relist
             listingSpan.Log($"Found {item.Auction.ItemName} {item.Auction.Tag} {item.Auction.Uuid} in sent with price {targetPrice} stored {stored}, marked {marketBased}");
             await SendListing(listingSpan, item.Auction, (long)targetPrice, index, uuid);
+            await ListBazaar(inventory);
             return; // created listing
         }
         span.Log($"Checking sellable {toList.Count()} total {inventory.Count}. Space {listSpace} active {activeAuctionCount}");
         await ListItems(span, apiService, inventory, toList, listSpace < 10 ? 14 : listSpace - activeAuctionCount);
+        await ListBazaar(inventory);
 
         static bool PriceIsNoGuess((SaveAuction First, Sniper.Client.Model.PriceEstimate Second) x)
         {
             return x.Second.MedianKey == x.Second.ItemKey;
+        }
+    }
+
+    private async Task ListBazaar(List<SaveAuction> inventory = null)
+    {
+        if (socket.Version.StartsWith("af-2"))
+            return;
+        var tags = inventory.Select(i => i.Tag).ToHashSet();
+        var bazaarItems = await socket.GetService<Bazaar.Client.Api.IOrderBookApi>().GetOrderBooksAsync(tags.ToList());
+        if (inventory == null)
+        {
+            inventory = await WaitForInventory();
+        }
+        var bazaaritemTags = bazaarItems.Where(b => b.Value.Sell?.Count > 0).Select(b => b.Key).ToHashSet();
+        var amounts = inventory.Where(i => bazaaritemTags.Contains(i.Tag)).GroupBy(i => i.Tag).ToDictionary(g => g.Key, g => (g.Sum(i => i.Count), g.First().ItemName));
+        foreach (var item in amounts)
+        {
+            var tag = item.Key;
+            var amount = item.Value.Item1;
+            var name = item.Value.Item2;
+            var price = bazaarItems[tag].Sell.OrderBy(o => o.PricePerUnit).First().PricePerUnit - 0.1;
+            await RecommendBazaarSellOrder(tag, name, amount, price);
+            await Task.Delay(4_000);
         }
     }
 
@@ -230,9 +256,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             {
                 if (socket.Version.StartsWith("af-3") && await HotkeyCommand.IsOnBazaar(socket, item.First.Tag))
                 {
-                    Activity.Current?.Log($"Recommending bazaar sell for {item.First.ItemName} {item.First.Tag}");
-                    await RecommendBazaarSellOrder(item.First.Tag, item.First.ItemName, item.First.Count);
-                    continue;
+                    continue; // handled by bazaar sell recommendation
                 }
                 Activity.Current?.Log($"No listing target for {item.First.ItemName} {item.First.Tag}");
                 socket.Dialog(db => db.MsgLine($"There was no ah price found for {item.First.ItemName} {item.First.Tag}, this item can't be sold. It takes up space in your inventory until you remove it"));
@@ -599,7 +623,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
     /// <param name="itemTag">The item tag to sell</param>
     /// <param name="itemName">The display name</param>
     /// <param name="amount">Amount to sell (default 64)</param>
-    public async Task RecommendBazaarSellOrder(string itemTag, string itemName, int amount = 64)
+    /// <param name="sellPrice"></param>
+    public async Task RecommendBazaarSellOrder(string itemTag, string itemName, int amount = 64, double sellPrice = -1)
     {
         try
         {
@@ -614,7 +639,8 @@ public class FullAfVersionAdapter : AfVersionAdapter
             }
 
             // Use sell price (what buyers pay) for sell orders
-            var sellPrice = latestPrice.Sell;
+            if (sellPrice < 0)
+                sellPrice = latestPrice.Sell;
             SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount);
 
             socket.Dialog(db => db.MsgLine(
