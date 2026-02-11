@@ -143,7 +143,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
         var tags = inventory.Where(i => i != null && i.Tag != null).Select(i => i.Tag).ToHashSet();
         var bazaarItems = await socket.GetService<Bazaar.Client.Api.IOrderBookApi>().GetOrderBooksAsync(tags.ToList());
         var bazaaritemTags = bazaarItems.Where(b => b.Value.Sell?.Count > 0).Select(b => b.Key).ToHashSet();
-        var amounts = inventory.Where(i => bazaaritemTags.Contains(i.Tag)).GroupBy(i => i.Tag).ToDictionary(g => g.Key, g => (g.Sum(i => i.Count), g.First().ItemName));
+        var amounts = inventory.Where(i => i?.Tag != null && bazaaritemTags.Contains(i.Tag)).GroupBy(i => i.Tag).ToDictionary(g => g.Key, g => (g.Sum(i => i.Count), g.First().ItemName));
         foreach (var item in amounts)
         {
             var tag = item.Key;
