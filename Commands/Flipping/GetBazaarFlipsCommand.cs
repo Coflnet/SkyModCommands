@@ -35,6 +35,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
         var mutations = (await mutationsTask).Select(m => m.ItemTag).ToHashSet();
         for (var i = 0; i < orderCount; i++)
         {
+            using var span = socket.CreateActivity("bazaarBuy");
             var flipApi = socket.GetService<IBazaarFlipperApi>();
             var bazaarApi = socket.GetService<IOrderBookApi>();
             var flips = await flipApi.DemandGetAsync();
@@ -55,15 +56,12 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             {
                 fullAf.SendBazaarOrderRecommendation(recommend.ItemTag, recommend.ItemName, recommend.IsSell, recommend.Price, recommend.Amount);
             }
-            else
-            {
-                // Fallback to old bzRecommend for other adapters
-                socket.Send(Response.Create("bzRecommend", recommend));
-            }
+            span.Log($"Recommended order: {recommend.Amount}x {recommend.ItemName} for {socket.FormatPrice((long)recommend.Price)}");
 
             socket.Dialog(db => db.MsgLine($"Recommending an order of {McColorCodes.GREEN}{recommend.Amount}x {McColorCodes.YELLOW}{recommend.ItemName} {McColorCodes.GRAY}for {McColorCodes.GREEN}{socket.FormatPrice((long)recommend.Price)}{McColorCodes.GRAY}",
                 $"/bz {recommend.ItemName}", "click to open on bazaar"));
 
+            span.Dispose();
             // time to be interupted by better orders (TODO) or just wait for demand to change
             await Task.Delay(TimeSpan.FromMinutes(2));
         }
