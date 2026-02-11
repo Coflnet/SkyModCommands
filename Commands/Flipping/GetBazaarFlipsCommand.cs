@@ -36,17 +36,17 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
         for (var i = 0; i < orderCount; i++)
         {
             var flipApi = socket.GetService<IBazaarFlipperApi>();
-            var bazaarApi = socket.GetService<IBazaarApi>();
+            var bazaarApi = socket.GetService<IOrderBookApi>();
             var flips = await flipApi.DemandGetAsync();
             var recommended = flips.OrderByDescending(f => f.CurrentProfitPerHour).Where(f => !mutations.Contains(f.ItemTag)).Take(3).OrderByDescending(f => Random.Shared.Next()).First();
-            var item = await bazaarApi.GetHistoryGraphAsync(recommended.ItemTag);
-            var price = item.OrderByDescending(h => h.Timestamp).First().Buy + 0.1;
+            var item = await bazaarApi.GetOrderBookAsync(recommended.ItemTag);
+            var price = item.Buy.OrderByDescending(h => h.PricePerUnit).First().PricePerUnit + 0.1;
             var recommend = new OrderRecommend
             {
                 ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag, names[recommended.ItemTag]),
                 ItemTag = recommended.ItemTag,
                 Price = price,
-                Amount = price < 100_000 ? 64 : 4,
+                Amount = price < 100_000 ? 64 : price > 5_000_000 ? 1 : 4,
                 IsSell = false // buy orders from getbazaarflips
             };
 
