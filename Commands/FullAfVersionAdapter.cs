@@ -628,6 +628,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
     {
         try
         {
+            using var span = socket.CreateActivity("bazaarSellRecom");
             var bazaarApi = socket.GetService<Bazaar.Client.Api.IBazaarApi>();
             var priceHistory = await bazaarApi.GetHistoryGraphAsync(itemTag);
             var latestPrice = priceHistory.OrderByDescending(h => h.Timestamp).FirstOrDefault();
@@ -641,6 +642,7 @@ public class FullAfVersionAdapter : AfVersionAdapter
             // Use sell price (what buyers pay) for sell orders
             if (sellPrice < 0)
                 sellPrice = latestPrice.Sell;
+            span.Log($"For {itemName} x {amount} recommending sell at {sellPrice}");
             SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount);
 
             socket.Dialog(db => db.MsgLine(
