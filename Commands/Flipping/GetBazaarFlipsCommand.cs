@@ -40,7 +40,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             var flips = await flipApi.DemandGetAsync();
             var recommended = flips.OrderByDescending(f => f.CurrentProfitPerHour).Where(f => !mutations.Contains(f.ItemTag)).Take(3).OrderByDescending(f => Random.Shared.Next()).First();
             var item = await bazaarApi.GetOrderBookAsync(recommended.ItemTag);
-            var price = item.Buy.OrderByDescending(h => h.PricePerUnit).First().PricePerUnit + 0.1;
+            var price = Math.Min(item.Buy.OrderByDescending(h => h.PricePerUnit).First().PricePerUnit, recommended.BuyPrice) + 0.1;
             var recommend = new OrderRecommend
             {
                 ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag, names[recommended.ItemTag]),
