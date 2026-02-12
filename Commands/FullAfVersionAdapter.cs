@@ -633,7 +633,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
 
             if (latestPrice == null)
             {
-                socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Could not fetch bazaar price for {itemName}"));
+                socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Could not fetch bazaar price for {itemName}-{itemTag}"));
                 return;
             }
             //clear formatting from name 
