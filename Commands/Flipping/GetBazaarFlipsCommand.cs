@@ -52,7 +52,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             };
 
             // Use new placeOrder message for FullAfVersionAdapter
-            if (socket is MinecraftSocket ms && ms.ModAdapter is MC.FullAfVersionAdapter fullAf)
+            if (socket is MinecraftSocket ms && ms.ModAdapter is MC.FullAfVersionAdapter fullAf && HasSpaceInInventory(socket))
             {
                 fullAf.SendBazaarOrderRecommendation(recommend.ItemTag, recommend.ItemName, recommend.IsSell, recommend.Price, recommend.Amount);
             }
@@ -65,6 +65,11 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             // time to be interupted by better orders (TODO) or just wait for demand to change
             await Task.Delay(TimeSpan.FromMinutes(2));
         }
+    }
+
+    private static bool HasSpaceInInventory(IMinecraftSocket socket)
+    {
+        return socket.SessionInfo.Inventory.Count(i => i == null) > 10;
     }
 
     public class OrderRecommend
