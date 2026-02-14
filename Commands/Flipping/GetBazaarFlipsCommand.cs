@@ -39,12 +39,32 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             var flipApi = socket.GetService<IBazaarFlipperApi>();
             var bazaarApi = socket.GetService<IOrderBookApi>();
             var flips = await flipApi.DemandGetAsync();
-            var recommended = flips.OrderByDescending(f => f.CurrentProfitPerHour).Where(f => !mutations.Contains(f.ItemTag)).Take(3).OrderByDescending(f => Random.Shared.Next()).First();
+            var recommended = flips
+                .OrderByDescending(f => f.CurrentProfitPerHour)
+                .Where(f => !mutations.Contains(f.ItemTag))
+                .Take(3)
+                .OrderByDescending(_ => Random.Shared.Next())
+                .FirstOrDefault();
+
+            if (recommended == null)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+                continue;
+            }
+
             var item = await bazaarApi.GetOrderBookAsync(recommended.ItemTag);
-            var price = Math.Min(item.Buy.OrderByDescending(h => h.PricePerUnit).First().PricePerUnit, recommended.BuyPrice) + 0.1;
+            var topBuy = item.Buy.OrderByDescending(h => h.PricePerUnit).FirstOrDefault();
+            if (topBuy == null)
+            {
+                socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}No buy orders found for {recommended.ItemTag}, skipping."));
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                continue;
+            }
+
+            var price = Math.Min(topBuy.PricePerUnit, recommended.BuyPrice) + 0.1;
             var recommend = new OrderRecommend
             {
-                ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag, names[recommended.ItemTag]),
+                ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag, names.TryGetValue(recommended.ItemTag, out var dn) ? dn : recommended.ItemTag),
                 ItemTag = recommended.ItemTag,
                 Price = price,
                 Amount = price < 100_000 ? 64 : price > 5_000_000 ? 1 : 4,
