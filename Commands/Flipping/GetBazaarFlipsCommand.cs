@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Bazaar.Client.Api;
 using Coflnet.Sky.Bazaar.Flipper.Client.Api;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 namespace Coflnet.Sky.Commands.MC;
 
 /// <summary>
@@ -52,6 +53,27 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 continue;
             }
 
+            var virtualFlip = new LowPricedAuction()
+            {
+                DailyVolume = recommended.Volume,
+                TargetPrice = (long)recommended.SellPrice,
+                Auction = new SaveAuction
+                {
+                    ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag, names.TryGetValue(recommended.ItemTag, out var dn) ? dn : recommended.ItemTag),
+                    Tag = recommended.ItemTag,
+                    Uuid = recommended.ItemTag,
+                    StartingBid = (long)recommended.BuyPrice,
+                    Enchantments = [],
+                    FlatenedNBT = []
+                }
+            };
+            if (!socket.sessionLifesycle.FlipProcessor.FlipMatchesSetting(virtualFlip, FlipperService.LowPriceToFlip(virtualFlip)))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(20));
+                continue;
+            }
+
+
             var item = await bazaarApi.GetOrderBookAsync(recommended.ItemTag);
             var topBuy = item.Buy.OrderByDescending(h => h.PricePerUnit).FirstOrDefault();
             if (topBuy == null)
@@ -64,7 +86,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             var price = Math.Min(topBuy.PricePerUnit, recommended.BuyPrice) + 0.1;
             var recommend = new OrderRecommend
             {
-                ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag, names.TryGetValue(recommended.ItemTag, out var dn) ? dn : recommended.ItemTag),
+                ItemName = virtualFlip.Auction.ItemName,
                 ItemTag = recommended.ItemTag,
                 Price = price,
                 Amount = price < 100_000 ? 64 : price > 5_000_000 ? 1 : 4,

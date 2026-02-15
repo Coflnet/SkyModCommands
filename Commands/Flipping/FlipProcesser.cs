@@ -168,7 +168,7 @@ namespace Coflnet.Sky.Commands.MC
             return !SentFlips.ContainsKey(flip.UId);  // make sure flips are not sent twice
         }
 
-        private bool FlipMatchesSetting(LowPricedAuction flip, FlipInstance flipInstance)
+        public bool FlipMatchesSetting(LowPricedAuction flip, FlipInstance flipInstance)
         {
             if (flip == null || Settings == null)
                 return false;
