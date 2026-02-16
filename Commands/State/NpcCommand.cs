@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,7 +31,7 @@ public class NpcCommand : ReadOnlyListCommand<Crafts.Client.Model.NpcFlip>
 
     public override async Task Execute(MinecraftSocket socket, string args)
     {
-        if(OnBazaar.Count == 0)
+        if (OnBazaar.Count == 0)
         {
             var itemListTask = socket.GetService<Items.Client.Api.IItemsApi>().ItemsGetAsync();
             foreach (var item in await itemListTask)
@@ -42,9 +43,21 @@ public class NpcCommand : ReadOnlyListCommand<Crafts.Client.Model.NpcFlip>
         var counter = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdLimitsGetAsync(socket.SessionInfo.McName);
         await base.Execute(socket, args);
         var counters = (await counter).NpcSold / 10;
+        const double limit = 500000000.0; // 500m daily NPC sell earning limit
+        var percent = counters / limit * 100.0;
+
+        // Next reset is at 00:00 UTC (12:00 AM GMT). Show absolute info and relative time.
+        var nowUtc = DateTime.UtcNow;
+        var nextResetUtc = nowUtc.Date.AddDays(1);
+        var until = nextResetUtc - nowUtc;
+        var hours = (int)until.TotalHours;
+        var minutes = until.Minutes;
+        var untilStr = hours > 0 ? $"{hours}h {minutes}m" : $"{minutes}m";
+
         socket.Dialog(db =>
         {
-            db.RemovePrefix().MsgLine($"Of the 200m limit you used {McColorCodes.AQUA}{socket.FormatPrice(counters)}{McColorCodes.GRAY} so far ({counters / 200000000.0 * 100:F2}%).");
+            db.RemovePrefix().MsgLine($"Of the {limit / 1000000.0:0}m limit you used {McColorCodes.AQUA}{socket.FormatPrice(counters)}{McColorCodes.GRAY} so far ({percent:F2}%).", null,
+            $"Resets at 12:00 AM GMT (7:00 PM EST / 8:00 PM EDT).\nNext reset in {McColorCodes.AQUA}{untilStr}{McColorCodes.GRAY}.");
             return db;
         });
     }
@@ -52,7 +65,7 @@ public class NpcCommand : ReadOnlyListCommand<Crafts.Client.Model.NpcFlip>
     protected override async Task<IEnumerable<NpcFlip>> GetElements(MinecraftSocket socket, string val)
     {
         var npcService = socket.GetService<INpcApi>();
-        return (await npcService.GetNpcFlipsAsync()).OrderByDescending(elem=>(elem.NpcSellPrice - elem.BuyPrice) * elem.HourlySells);
+        return (await npcService.GetNpcFlipsAsync()).OrderByDescending(elem => (elem.NpcSellPrice - elem.BuyPrice) * elem.HourlySells);
     }
 
     protected override string GetId(NpcFlip elem)
