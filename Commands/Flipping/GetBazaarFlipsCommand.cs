@@ -69,6 +69,8 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             };
             if (!socket.sessionLifesycle.FlipProcessor.FlipMatchesSetting(virtualFlip, FlipperService.LowPriceToFlip(virtualFlip)))
             {
+                using var mismatchSpan = socket.CreateActivity("flipMismatch");
+                mismatchSpan.Log($"Recommended flip for {virtualFlip.Auction.ItemName} does not match settings, skipping, it had {virtualFlip.DailyVolume} volume and profit per hour of {recommended.CurrentProfitPerHour}");
                 await Task.Delay(TimeSpan.FromSeconds(20));
                 continue;
             }
