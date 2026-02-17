@@ -22,6 +22,12 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}You need at least 100,000 coins in your purse to receive bazaar flips, make sure you use a compatible mod/client"));
             return;
         }
+        if(!socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Bazaar))
+        {
+            socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Your settings currently do not allow bazaar flips, please enable the finder to receive bazaar flip recommendations",
+                "/cofl set allowedFinders Bazaar,"+socket.Settings.AllowedFinders.ToString(), "Click to enable"));
+            return;
+        }
         var count = args["orderCount"];
         if (!int.TryParse(count, out var orderCount) || orderCount < 1 || orderCount > 12)
         {
@@ -56,6 +62,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             var virtualFlip = new LowPricedAuction()
             {
                 DailyVolume = recommended.Volume,
+                Finder = LowPricedAuction.FinderType.Bazaar,
                 TargetPrice = (long)recommended.SellPrice,
                 Auction = new SaveAuction
                 {
