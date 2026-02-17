@@ -59,25 +59,28 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 continue;
             }
 
+            var amount = recommended.SellPrice < 100_000 ? 64 : recommended.SellPrice > 5_000_000 ? 1 : 4;
             var virtualFlip = new LowPricedAuction()
             {
                 DailyVolume = recommended.Volume,
                 Finder = LowPricedAuction.FinderType.Bazaar,
-                TargetPrice = (long)recommended.SellPrice,
+                TargetPrice = (long)(recommended.SellPrice * amount),
                 Auction = new SaveAuction
                 {
                     ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag, names.TryGetValue(recommended.ItemTag, out var dn) ? dn : recommended.ItemTag),
                     Tag = recommended.ItemTag,
                     Uuid = recommended.ItemTag,
-                    StartingBid = (long)recommended.BuyPrice,
+                    StartingBid = (long)(recommended.BuyPrice * amount),
                     Enchantments = [],
                     FlatenedNBT = []
                 }
             };
-            if (!socket.sessionLifesycle.FlipProcessor.FlipMatchesSetting(virtualFlip, FlipperService.LowPriceToFlip(virtualFlip)))
+            var flip = FlipperService.LowPriceToFlip(virtualFlip);
+            if (!socket.sessionLifesycle.FlipProcessor.FlipMatchesSetting(virtualFlip, flip))
             {
                 using var mismatchSpan = socket.CreateActivity("flipMismatch");
-                mismatchSpan.Log($"Recommended flip for {virtualFlip.Auction.ItemName} does not match settings, skipping, it had {virtualFlip.DailyVolume} volume and profit per hour of {recommended.CurrentProfitPerHour}");
+                var reason = socket.TopBlocked.FirstOrDefault(b => b.Flip.Auction.Tag == flip.Tag);
+                mismatchSpan.Log($"Recommended flip for {virtualFlip.Auction.ItemName} does not match settings, skipping, it had {virtualFlip.DailyVolume} volume and profit per hour of {recommended.CurrentProfitPerHour} because {reason?.Reason}");
                 await Task.Delay(TimeSpan.FromSeconds(20));
                 continue;
             }
