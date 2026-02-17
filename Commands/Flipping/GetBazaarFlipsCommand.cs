@@ -25,7 +25,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
         if(!socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Bazaar))
         {
             socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Your settings currently do not allow bazaar flips, please enable the finder to receive bazaar flip recommendations",
-                "/cofl set allowedFinders Bazaar,"+socket.Settings.AllowedFinders.ToString(), "Click to enable"));
+                "/cofl set finders Bazaar,"+socket.Settings.AllowedFinders.ToString(), "Click to enable"));
             return;
         }
         var count = args["orderCount"];
