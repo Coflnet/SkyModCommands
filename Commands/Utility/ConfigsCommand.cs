@@ -332,10 +332,10 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         var content = await table.Where(c => c.Type == "config").ExecuteAsync();
         
         // Deduplicate configs by keeping only the one with the most votes
-        var groupedByConfigKey = content.GroupBy(c => new { c.OwnerId, c.ConfigName });
+        var groupedByConfigName = content.GroupBy(c => c.ConfigName);
         var deduplicatedConfigs = new List<ConfigRating>();
         
-        foreach (var group in groupedByConfigKey)
+        foreach (var group in groupedByConfigName)
         {
             var configsInGroup = group.ToList();
             if (configsInGroup.Count > 1)
