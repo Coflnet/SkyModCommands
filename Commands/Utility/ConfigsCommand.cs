@@ -330,7 +330,33 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
     {
         var table = GetTable();
         var content = await table.Where(c => c.Type == "config").ExecuteAsync();
-        return content.OrderByDescending(c => c.Rating).ToList();
+        
+        // Deduplicate configs by keeping only the one with the most votes
+        var groupedByConfigKey = content.GroupBy(c => new { c.OwnerId, c.ConfigName });
+        var deduplicatedConfigs = new List<ConfigRating>();
+        
+        foreach (var group in groupedByConfigKey)
+        {
+            var configsInGroup = group.ToList();
+            if (configsInGroup.Count > 1)
+            {
+                // Keep the one with the most total votes
+                var bestRating = configsInGroup.OrderByDescending(c => c.Upvotes.Count + c.Downvotes.Count).First();
+                deduplicatedConfigs.Add(bestRating);
+                
+                // Delete the old rating entries
+                foreach (var oldRating in configsInGroup.Where(c => c != bestRating))
+                {
+                    await Delete(table, oldRating);
+                }
+            }
+            else
+            {
+                deduplicatedConfigs.Add(configsInGroup.First());
+            }
+        }
+        
+        return deduplicatedConfigs.OrderByDescending(c => c.Rating).ToList();
     }
 
     protected override Task Update(MinecraftSocket socket, List<ConfigRating> newCol)
