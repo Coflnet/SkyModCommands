@@ -68,7 +68,21 @@ namespace Coflnet.Sky.Commands.MC
 
             if (args.Length < 2)
             {
+                socket.Send(Response.Create("getMods", 0));
+                // Immediately send current state so the command is not slowed down by mod loading
                 SendCurrentState(socket, settings);
+                // Fire-and-forget: after a short delay, if Firmament is present send the warning as an addition
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    if (socket.SessionInfo.ModsFound != null && socket.SessionInfo.ModsFound.Any(m => m != null && m.ToLower().Contains("firmament")))
+                    {
+                        var d = DialogBuilder.New;
+                        d.MsgLine($"{McColorCodes.RED}Warning: The Firmament setting `Show Lore Timers` interferes with auctions")
+                            .Msg("[Click here for more info]", "https://discord.com/channels/267680588666896385/1448361704877719572/1448387977775681648", "get more info").LineBreak();
+                        socket.SendMessage(d.Build());
+                    }
+                });
                 return;
             }
 
