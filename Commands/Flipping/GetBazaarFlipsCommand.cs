@@ -58,8 +58,8 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 await Task.Delay(TimeSpan.FromSeconds(10));
                 continue;
             }
-
-            var amount = recommended.SellPrice < 100_000 ? 64 : recommended.SellPrice > 5_000_000 ? 1 : 4;
+            var isNotStackable = recommended.ItemTag.Contains("BOOK");
+            var amount = recommended.SellPrice < 100_000 && !isNotStackable? 64 : recommended.SellPrice > 5_000_000 ? 1 : 4;
             var virtualFlip = new LowPricedAuction()
             {
                 DailyVolume = recommended.Volume,
@@ -101,7 +101,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 ItemName = virtualFlip.Auction.ItemName,
                 ItemTag = recommended.ItemTag,
                 Price = price,
-                Amount = price < 100_000 ? 64 : price > 5_000_000 ? 1 : 4,
+                Amount = amount,
                 IsSell = false // buy orders from getbazaarflips
             };
 
