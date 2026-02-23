@@ -66,14 +66,14 @@ public class DelayHandlerTests
         Assert.That(!second.IsCompleted);
         Assert.That(!third.IsCompleted);
         Assert.That(!fourth.IsCompleted);
-        timeProvider.TickForward(TimeSpan.FromSeconds(0.065));
+        await timeProvider.TickForward(TimeSpan.FromSeconds(0.065));
         Assert.That(fourth.IsCompleted);
         Assert.That(third.IsCompleted);
         Assert.That(!second.IsCompleted);
-        timeProvider.TickForward(TimeSpan.FromSeconds(0.6));
+        await timeProvider.TickForward(TimeSpan.FromSeconds(0.6));
         Assert.That(second.IsCompleted);
         Assert.That(!first.IsCompleted);
-        timeProvider.TickForward(TimeSpan.FromSeconds(0.25));
+        await timeProvider.TickForward(TimeSpan.FromSeconds(0.25));
         Assert.That(first.IsCompleted);
     }
 
@@ -102,14 +102,14 @@ public class DelayHandlerTests
         sessionInfo.VerifiedMc = true;
         var summary = await delayHandler.Update(ids, timeProvider.Now);
         var delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
-        timeProvider.TickForward(TimeSpan.FromSeconds(0.05));
+        await timeProvider.TickForward(TimeSpan.FromSeconds(0.05));
         Assert.That(delayTask.IsCompleted);
         flipInstance.Auction.StartingBid = 5_000_000;
         flipInstance.MedianPrice = 10_100_100;
         flipInstance.Finder = Core.LowPricedAuction.FinderType.SNIPER_MEDIAN;
         delayTask = delayHandler.AwaitDelayForFlip(flipInstance);
         Assert.That(!delayTask.IsCompleted);
-        timeProvider.TickForward(TimeSpan.FromSeconds(1));
+        await timeProvider.TickForward(TimeSpan.FromSeconds(1));
         Assert.That(delayTask.IsCompleted);
 
     }

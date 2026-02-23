@@ -18,16 +18,19 @@ public class MockTimeProvider : ITimeProvider
         return tcs.Task;
     }
 
-    public void TickForward(TimeSpan span)
+    public async Task TickForward(TimeSpan span)
     {
-        var existingTasks = Tasks.OrderBy(t=>t.Value);
-        while (existingTasks.Where(t=>t.Value <= Now + span).Any())
+        var targetTime = Now + span;
+        while (true)
         {
-            var task = existingTasks.First();
+            var existingTasks = Tasks.OrderBy(t=>t.Value).ToList();
+            var task = existingTasks.FirstOrDefault(t => t.Value <= targetTime);
+            if (task.Key == null) break;
+
             Tasks.TryRemove(task.Key, out _);
             task.Key.SetResult();
+            await Task.Delay(1); // Yield to allow continuations to run
         }
         Now += span;
-        Console.WriteLine($"Time is now {Now : mm:ss\\.fff}");
     }
 }

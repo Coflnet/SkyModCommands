@@ -14,7 +14,7 @@ public class MockTimeProviderTests
         var task = timeProvider.Delay(TimeSpan.FromSeconds(1));
         
         // tick forward before await so it return immediately
-        timeProvider.TickForward(TimeSpan.FromSeconds(1));
+        await timeProvider.TickForward(TimeSpan.FromSeconds(1));
         var sw = new Stopwatch();
         await task;
         // less than 1% of time has actually passed
