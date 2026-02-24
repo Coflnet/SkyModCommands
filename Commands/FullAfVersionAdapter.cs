@@ -360,7 +360,8 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         }
         else
         {
-            listingSpan.Log($"Found {flips.Count} flips but they are too old, using mostly median {item.Second.Median}");
+            listingSpan.Log($"Found {flips.Count} flips but they are too old, using mostly median {item.Second.Median} -> {target}");
+            target = item.Second.Median;
         }
         var checkFilters = new Dictionary<string, string>() {
                 { "UId", uuid },
