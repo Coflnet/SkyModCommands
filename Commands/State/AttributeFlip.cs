@@ -28,7 +28,7 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
     public AttributeFlipCommand()
     {
         sorters.Add("price", e => e.OrderByDescending(a => a.Target));
-        sorters.Add("profit", e => e.OrderByDescending(a => a.Target - a.EstimatedCraftingCost - a.AuctionPrice));
+        sorters.Add("profit", e => e.OrderByDescending(a => a.ProfitAfterTax));
         sorters.Add("vol", e => e.OrderByDescending(a => a.Volume));
         sorters.Add("volume", e => e.OrderByDescending(a => a.Volume));
         sorters.Add("age", e => e.OrderByDescending(a => a.FoundAt));
@@ -38,7 +38,7 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
     {
         if (!await socket.RequirePremium())
         {
-            socket.Dialog(db => db.CoflCommand<PurchaseCommand>("Attribute flips are advanced craft like flips where you apply enchants, books, reforges etc to increase the value of an item and sel it for a profit.", null, 
+            socket.Dialog(db => db.CoflCommand<PurchaseCommand>("Attribute flips are advanced craft like flips where you apply enchants, books, reforges etc to increase the value of an item and sel it for a profit.", null,
             "Because of how complex and advanced this is \nit is part of our premium offering"));
             return;
         }
@@ -51,7 +51,7 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
                 $"/viewauction {elem.AuctionToBuy}",
                 $"click to open the auction in question\n"
                 + $"{McColorCodes.GRAY}do that before you buy the things to upgrade\n"
-                + $"Estimated profit: {McColorCodes.AQUA}{socket.FormatPrice(elem.Target - elem.EstimatedCraftingCost - elem.AuctionPrice)}"
+                + $"Estimated profit: {McColorCodes.AQUA}{socket.FormatPrice(elem.ProfitAfterTax)}"
                 + $"\n{McColorCodes.GRAY}Volume: {elem.Volume}")
             .ForEach(elem.Ingredients, (db, ing) => db.MsgLine($"{McColorCodes.GRAY}- {McColorCodes.RESET}{ing.AttributeName}", null,
                 $"This is estimated to cost {McColorCodes.AQUA}{socket.FormatPrice(ing.Price)}"));
@@ -168,7 +168,8 @@ public class AttributeFlipCommand : ReadOnlyListCommand<AttributeFlipCommand.Att
         [DataMember(Name = "auctionToBuy", EmitDefaultValue = true)]
         public string AuctionToBuy { get; set; }
         public long AuctionPrice { get; set; }
-
+        [DataMember(Name = "profitAfterTax", EmitDefaultValue = false)]
+        public long ProfitAfterTax { get; set; }
         //
         // Summary:
         //     Gets or Sets Ingredients
