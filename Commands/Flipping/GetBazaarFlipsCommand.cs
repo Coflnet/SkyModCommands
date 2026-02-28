@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Bazaar.Client.Api;
@@ -22,10 +23,10 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}You need at least 100,000 coins in your purse to receive bazaar flips, make sure you use a compatible mod/client"));
             return;
         }
-        if(!socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Bazaar))
+        if (!socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Bazaar))
         {
             socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Your settings currently do not allow bazaar flips, please enable the finder to receive bazaar flip recommendations",
-                "/cofl set finders Bazaar,"+socket.Settings.AllowedFinders.ToString(), "Click to enable"));
+                "/cofl set finders Bazaar," + socket.Settings.AllowedFinders.ToString(), "Click to enable"));
             return;
         }
         var count = args["orderCount"];
@@ -58,8 +59,8 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 await Task.Delay(TimeSpan.FromSeconds(10));
                 continue;
             }
-            var isNotStackable = recommended.ItemTag.Contains("BOOK");
-            var amount = recommended.SellPrice < 100_000 && !isNotStackable? 64 : recommended.SellPrice > 5_000_000 ? 1 : 4;
+            var isNotStackable = await GetIsNotStackable(socket, recommended);
+            var amount = recommended.SellPrice < 100_000 && !isNotStackable ? 64 : recommended.SellPrice > 5_000_000 ? 1 : 4;
             var virtualFlip = new LowPricedAuction()
             {
                 DailyVolume = recommended.Volume,
@@ -122,6 +123,19 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             // time to be interupted by better orders (TODO) or just wait for demand to change
             await Task.Delay(TimeSpan.FromMinutes(2));
         }
+    }
+
+    private static async Task<bool> GetIsNotStackable(IMinecraftSocket socket, Bazaar.Flipper.Client.Model.DemandFlip recommended)
+    {
+        if (recommended.ItemTag.Contains("BOOK"))
+            return true;
+        var itemData = (await socket.GetService<Core.Services.IHypixelItemStore>().GetItemsAsync()).GetValueOrDefault(recommended.ItemTag);
+        if (itemData == null)
+            return false;
+        if(itemData.Unstackable ?? false)
+            return true;
+        var material = itemData.Material;
+        return material == "BOOK" || material == "CAKE" || material == "POTION" || material == "BOAT";
     }
 
     private static bool HasSpaceInInventory(IMinecraftSocket socket)
