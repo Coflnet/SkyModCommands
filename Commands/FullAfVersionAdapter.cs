@@ -625,6 +625,8 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
     /// <param name="sellPrice"></param>
     public async Task RecommendBazaarSellOrder(string itemTag, string itemName, int amount = 64, double sellPrice = -1)
     {
+        if(itemTag == "SKYBLOCK_MENU")
+            return; // not an item
         try
         {
             using var span = socket.CreateActivity("bazaarSellRecom");
