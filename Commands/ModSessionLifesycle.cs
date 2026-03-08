@@ -67,6 +67,8 @@ namespace Coflnet.Sky.Commands.MC
             MinVolume = 3,
             AllowedFinders = LowPricedAuction.FinderType.FLIPPER_AND_SNIPERS,
             ModSettings = new ModSettings() { ShortNumbers = true },
+            BlackList = [],
+            WhiteList = [],
             Visibility = new VisibilitySettings() { SellerOpenButton = true, ExtraInfoMax = 3, Lore = true }
         };
 
