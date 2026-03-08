@@ -432,7 +432,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private void Registerkeybinds(FlipSettings settings, bool init = false)
         {
-            if (init || settings.ModSettings?.Hotkeys?.Count > 0 && (socket.Settings.ModSettings.Hotkeys == null || !settings.ModSettings.Hotkeys.SequenceEqual(socket.Settings.ModSettings.Hotkeys)))
+            if (init || settings.ModSettings?.Hotkeys?.Count > 0 && (socket.Settings.ModSettings.Hotkeys == null || !settings.ModSettings.Hotkeys.SequenceEqual(socket.Settings.ModSettings.Hotkeys ?? [])))
             {
                 var converted = settings.ModSettings.Hotkeys.Select(kv => new KeybindRegister() { Name = kv.Value.StartsWith("/") ? kv.Key : kv.Value, DefaultKey = kv.Key }).ToArray();
                 socket.Send(Response.Create("registerKeybind", converted));
