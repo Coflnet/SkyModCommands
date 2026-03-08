@@ -21,13 +21,13 @@ public class SearchCommand : ReadOnlyListCommand<SearchCommand.ItemLocation>
     protected override async Task<IEnumerable<ItemLocation>> GetElements(MinecraftSocket socket, string val)
     {
         var stateApi = socket.GetService<IPlayerStateApi>();
-        if(socket.SessionInfo?.ProfileId == null)
+        if (socket.SessionInfo?.ProfileId == null)
         {
             socket.Dialog(db => db.Msg("Please switch islands so we can read the profile id you are on from chat"));
             return [];
         }
         var allChests = await stateApi.PlayerStatePlayerIdStorageGetAsync(Guid.Parse(socket.SessionInfo.McUuid), Guid.Empty);
-        return allChests.SelectMany(c => c.Items.Select((i,index) => new ItemLocation()
+        return allChests.SelectMany(c => c.Items.Select((i, index) => new ItemLocation()
         {
             Chestname = c.Name,
             CommandToOpen = GetCommandForContainer(c).command,
@@ -62,6 +62,8 @@ public class SearchCommand : ReadOnlyListCommand<SearchCommand.ItemLocation>
                 return ("/wardrobe", "Open Wardrobe menu");
             if (i.Name.StartsWith("Sack of"))
                 return ("/sacks", "Open Sacks menu");
+            if (i.Name == "Chest")
+                return ("/warp home", $"Found item in chest at {i.Position?.X}, {i.Position?.Y}, {i.Position?.Z} on your island");
             return (null, $"Found in {McColorCodes.AQUA}{i.Name}{McColorCodes.RESET}\nbut don't know how to open that yet\nplease make a report in our discord");
         }
     }
