@@ -77,7 +77,7 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(COFLNET + $"To turn the chat off just do {McColorCodes.AQUA}/cofl chat");
                 return;
             }
-            if(message == "help")
+            if (message == "help")
             {
                 socket.Dialog(db => db.MsgLine("Cofl Chat Help")
                     .MsgLine($"{McColorCodes.AQUA}/cofl chat{McColorCodes.RESET} - Disables the chat")
@@ -92,7 +92,7 @@ namespace Coflnet.Sky.Commands.MC
             await chat.Send(socket, new ChatService.ModChatMessage()
             {
                 Message = message,
-                SenderName = tier >= AccountTier.PREMIUM_PLUS ? socket.AccountInfo?.NickName ?? socket.SessionInfo.McName : socket.SessionInfo.McName,
+                SenderName = tier >= AccountTier.PREMIUM_PLUS ? GetNickname(socket) ?? socket.SessionInfo.McName : socket.SessionInfo.McName,
                 Tier = tier,
                 SenderUuid = socket.SessionInfo.McUuid
             });
@@ -101,6 +101,16 @@ namespace Coflnet.Sky.Commands.MC
             if (Regex.IsMatch(message, "(people|how|ppl).*(claiming|buy|snipe).*(fast|quick)"))
                 await socket.TriggerTutorial<ModCommands.Tutorials.QuickBuyTutorial>();
 
+        }
+
+        private static string GetNickname(MinecraftSocket socket)
+        {
+            if (socket.AccountInfo?.NickName == null)
+                return null;
+            var nickname = socket.AccountInfo.NickName;
+            if (nickname.Contains("Äkwav") && socket.SessionInfo.McName != "Ekwav")
+                nickname += " (imposter)";
+            return nickname;
         }
 
         private static async Task Togglechat(MinecraftSocket socket)
