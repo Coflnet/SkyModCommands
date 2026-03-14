@@ -207,13 +207,24 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             await PrintLicenseOptions(socket, uuids, "Select the account you want to purchase a license for");
             return;
         }
+        
+        LicenseSetting settings = await GetCurrentLicenses(socket);
+        if (name.Length <= 3 && int.TryParse(name, out var id))
+        {
+            var license = settings.Licenses.FirstOrDefault(l => l.VirtualId == id);
+            if (license != null)
+            {
+                var names = await GetNames(socket, new[] { license.UseOnAccount });
+                name = names.GetValueOrDefault(license.UseOnAccount) ?? name;
+            }
+        }
+
         if (subargs.Length == 3 && subargs[2] == socket.SessionInfo.ConnectionId)
         {
             var uuid = await socket.GetPlayerUuid(name);
             var licenseApi = socket.GetService<ILicenseApi>();
             var userApi = socket.GetService<IUserApi>();
             var productApi = socket.GetService<IProductsApi>();
-            LicenseSetting settings = await GetCurrentLicenses(socket);
             var usedLicense = settings.Licenses.FirstOrDefault(l => l.UseOnAccount == uuid);
             if (usedLicense != null)
             {
