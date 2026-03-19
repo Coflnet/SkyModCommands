@@ -662,8 +662,6 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
     {
         var uid = item.FlatenedNBT.FirstOrDefault(y => y.Key == "uuid" || y.Key == "uid").Value?.Split('-').Last();
         var foundInSent = socket.LastSent.Any(x => x.Auction.FlatenedNBT.FirstOrDefault(y => y.Key == "uid").Value == uid);
-        if (foundInSent)
-            return false;
         if (item.FlatenedNBT.ContainsKey("donated_museum"))
             return true; // sould bound
         if (item.Tag == "RUNEBOOK")
@@ -672,6 +670,9 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
                 socket.Dialog(db => db.MsgLine($"Found {item.ItemName} in inventory, it has to be auctioned manually, please create an auction for it"));
             return true; // rune books have to be auctioned manually
         }
+
+        if (foundInSent)
+            return false;
         // ⬇⬇ sell able items ⬇⬇
         if (socket.SessionInfo.SellAll)
             return false;
