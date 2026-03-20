@@ -29,6 +29,11 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
 
     public override async Task<bool> SendFlip(FlipInstance flip)
     {
+        if (socket.UserId == null && socket.Version.StartsWith("af-3"))
+        {
+            socket.Dialog(db => db.MsgLine($"{McColorCodes.YELLOW}You should login to receive flips, tpye `/cofl verify` to get instructions."));
+            return true;
+        }
         var result = await base.SendFlip(flip);
         var uuid = GetUuid(flip.Auction);
         if (uuid == null)
@@ -625,7 +630,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
     /// <param name="sellPrice"></param>
     public async Task RecommendBazaarSellOrder(string itemTag, string itemName, int amount = 64, double sellPrice = -1)
     {
-        if(itemTag == "SKYBLOCK_MENU")
+        if (itemTag == "SKYBLOCK_MENU")
             return; // not an item
         try
         {
