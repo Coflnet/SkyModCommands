@@ -258,6 +258,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<ConfirmCommand>();
             Commands.Add<BitsCommand>();
             Commands.Add<NpcCommand>();
+            Commands.Add<CopperCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
