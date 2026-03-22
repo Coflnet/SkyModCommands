@@ -17,6 +17,11 @@ public class FusionFlipCommand : ReadOnlyListCommand<FusionFlipCommand.WithName>
 {
     private static Dictionary<string, string> itemNameCache = new Dictionary<string, string>();
     protected override string NoMatchText => "Seems like there are currently no profitable fusion flips, take a look at other bazaar based flips with /cofl bazaar";
+    public FusionFlipCommand()
+    {
+        // proxy sorter to allow filtering
+        sorters.Add("multistep", (list) => list.OrderByDescending(f => f.Steps != null ? (f.OutputValue - f.InputCost) * f.Volume : 0));
+    }
     protected override void Format(MinecraftSocket socket, DialogBuilder db, WithName elem)
     {
         if (elem.Steps != null && elem.Steps.Count > 1)
