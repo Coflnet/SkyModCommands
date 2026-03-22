@@ -17,14 +17,14 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var args = arguments?.Trim().ToLowerInvariant();
-            
+
             // Handle status subcommand (same as default behavior)
             if (args == "status" || string.IsNullOrEmpty(args))
             {
                 await ShowStatus(socket);
                 return;
             }
-            
+
             // If there are other arguments, fall through to default behavior
             await ShowStatus(socket);
         }
@@ -68,27 +68,10 @@ namespace Coflnet.Sky.Commands.MC
             }
             else if (isOwned == false)
             {
-                dialogBuilder.MsgLine($"{McColorCodes.RED}✗ You do not own the Rust Finder add-on");
-                dialogBuilder.Msg($"{McColorCodes.GRAY}Purchase it for {McColorCodes.AQUA}1200 CoflCoins{McColorCodes.GRAY} for 30 days of access.");
-
-                // Check if user can purchase
-                if (currentTier >= AccountTier.PREMIUM)
-                {
-                    dialogBuilder.LineBreak();
-                    dialogBuilder.CoflCommand<PurchaseCommand>(
-                        $"{McColorCodes.LIGHT_PURPLE}Purchase Rust Finder Add-on",
-                        "rust-addon 1",
-                        "Click to purchase the Rust Finder add-on");
-                }
-                else
-                {
-                    dialogBuilder.LineBreak();
-                    dialogBuilder.MsgLine($"{McColorCodes.RED}You need at least {McColorCodes.GOLD}Premium{McColorCodes.WHITE} to purchase this add-on");
-                    dialogBuilder.CoflCommand<PurchaseCommand>(
-                        $"{McColorCodes.GOLD}Upgrade to Premium",
-                        "premium 1",
-                        "Click to purchase Premium");
-                }
+                dialogBuilder.CoflCommand<SetCommand>(
+                    $"{McColorCodes.GRAY}The rust finder is no longer available for purchase. The partner developing it quit the cooperation. \nInstead we recommend taking a look at the AI-finder for advanced flips, please report any misspricings if you find them, you get 600 CoflCoins for each unique item.",
+                    "finders " + (socket.Settings.AllowedFinders | LowPricedAuction.FinderType.AI),
+                    "Click to enable the AI-finder");
             }
             else
             {
@@ -98,7 +81,6 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             dialogBuilder.LineBreak();
-            dialogBuilder.MsgLine($"{McColorCodes.DARK_GRAY}The Rust Finder is an alternatively developed finder.");
 
             socket.SendMessage(dialogBuilder);
         }
