@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
@@ -36,8 +37,7 @@ namespace Coflnet.Sky.Commands.MC
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter (180 days)", "starter_premium 1", $"purchase starter premium for {McColorCodes.AQUA}half a year").LineBreak()
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (hour)", "premium_plus-hour 1", $"Purchase {McColorCodes.GOLD}prem+{McColorCodes.WHITE} for 60 minutes")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter (a day)", "starter_premium-day 1", $"purchase starter premium for a {McColorCodes.AQUA}single day").LineBreak()
-                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (4 weeks) {McColorCodes.BOLD}33% cheaper than 1 week", "premium_plus-weeks", $"Purchase {McColorCodes.GOLD}prem+{McColorCodes.WHITE} for 4 weeks").LineBreak()
-                        .CoflCommand<PurchaseCommand>($" {McColorCodes.LIGHT_PURPLE}Rust Finder Add-on (30 days) {McColorCodes.GRAY}(requires Premium)", "rust-addon 1", $"Purchase {McColorCodes.LIGHT_PURPLE}Rust Finder Add-on"));
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (4 weeks) {McColorCodes.BOLD}33% cheaper than 1 week", "premium_plus-weeks", $"Purchase {McColorCodes.GOLD}prem+{McColorCodes.WHITE} for 4 weeks"));
                 return;
             }
 
@@ -156,45 +156,7 @@ namespace Coflnet.Sky.Commands.MC
 
         private static async Task HandleRustAddonPurchase(IMinecraftSocket socket, string[] parts)
         {
-            var tiermanager = socket.sessionLifesycle.TierManager;
-            var currentTier = await tiermanager.GetCurrentCached();
-            
-            // Check if user has Premium or Premium+
-            if (currentTier < AccountTier.PREMIUM)
-            {
-                socket.SendMessage(new DialogBuilder()
-                    .MsgLine($"{McColorCodes.RED}Error: {McColorCodes.WHITE}You need at least {McColorCodes.GOLD}Premium{McColorCodes.WHITE} to purchase the Rust Finder Add-on")
-                    .CoflCommand<PurchaseCommand>("Click here to buy Premium", "premium 1", "Purchase Premium"));
-                return;
-            }
-
-            var count = 1;
-            if (parts.Length > 1 && int.TryParse(parts[1], out var parsedCount))
-                count = parsedCount;
-
-            // Confirmation dialog
-            if (parts.Length < 4 || parts[2] != socket.SessionInfo.ConnectionId)
-            {
-                var costSum = socket.FormatPrice(1200); // 1200 CoflCoins per 30 days
-
-                socket.Dialog(db => db
-                        .Msg($"Do you want to buy the {McColorCodes.LIGHT_PURPLE}Rust Finder Add-on{McColorCodes.WHITE} ", null, 
-                             "Adds the Rust Finder algorithm to your finders. This finder detects items with hidden stats that are underpriced.")
-                        .Msg($"for a total of {McColorCodes.AQUA}{costSum}{McColorCodes.WHITE}{McColorCodes.ITALIC} cofl coins ")
-                        .MsgLine($"lasting {McColorCodes.AQUA}30 days")
-                        .CoflCommand<PurchaseCommand>(
-                                $"  {McColorCodes.GREEN}Yes  ",
-                                $"rust-addon {count} {socket.SessionInfo.ConnectionId} {DateTime.UtcNow:hh:mm}",
-                                $"Confirm purchase (paying {costSum} cofl coins)")
-                        .DialogLink<EchoDialog>($"  {McColorCodes.RED}No  ", $"Purchase Canceled", $"{McColorCodes.RED}Cancel purchase"));
-                return;
-            }
-
-            var targetConId = parts[2];
-            if (targetConId != socket.SessionInfo.ConnectionId)
-                throw new Core.CoflnetException("no_conid_match", "The purchase was started on a different connection. To prevent loss of coins please start again.");
-
-            await Purchase(socket, socket.GetService<UserApi>(), "rust-addon", count, targetConId + parts[3]);
+            throw new CoflnetException("rust_addon_discontinued", "The Rust Finder add-on is no longer available for purchase. The partner developing it quit the cooperation. Instead we recommend taking a look at the AI-finder for advanced flips, please report any misspricings if you find them, you get 600 CoflCoins for each unique item.");
         }
     }
 }
