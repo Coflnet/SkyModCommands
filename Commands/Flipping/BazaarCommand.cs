@@ -28,8 +28,10 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
     protected override async Task<bool> CanRun(MinecraftSocket socket, string args)
     {
         var trimmed = Convert<string>(args).ToLower();
-        var isList = trimmed == "l" || trimmed == "list";
-        if (trimmed != "h" && trimmed != "history" && !isList)
+        var parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var subCommand = parts.FirstOrDefault();
+        var isList = subCommand == "l" || subCommand == "list";
+        if (subCommand != "h" && subCommand != "history" && !isList)
         {
             socket.Dialog(db => db.MsgLine("Check out your profit with /cl bz history", "/cofl bz history", $"Click to view your bazaar profit history\nOr run {McColorCodes.AQUA}/cofl bz h"));
             return true;
@@ -37,7 +39,23 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var bazaarProfitService = socket.GetService<IBazaarProfitApi>();
 
         // gather all verified MC accounts for this user
-        var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+        var allAccounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
+        IEnumerable<string> accounts;
+        string who = null;
+        if (parts.Length > 1)
+        {
+            // single account name specified, resolve and verify ownership
+            var accountName = parts[1];
+            var uuid = await socket.GetPlayerUuid(accountName);
+            if (!allAccounts.Contains(uuid))
+                throw new CoflnetException("not_verified", $"The account {accountName} is not one of your verified accounts");
+            accounts = new[] { uuid };
+            who = accountName;
+        }
+        else
+        {
+            accounts = allAccounts;
+        }
 
         if (isList)
         {
@@ -49,7 +67,10 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
 
             socket.Dialog(db =>
             {
-                db.MsgLine(accountCount > 1 ? $"§6Last Completed Bazaar Flips (across {accountCount} accounts)§r" : $"§6Last Completed Bazaar Flips§r");
+                var header = who != null ? $"§6Last Completed Bazaar Flips for {who}§r"
+                    : accountCount > 1 ? $"§6Last Completed Bazaar Flips (across {accountCount} accounts)§r"
+                    : $"§6Last Completed Bazaar Flips§r";
+                db.MsgLine(header);
                 if (completedFlips.Count == 0)
                 {
                     db.MsgLine("§7No completed flips in the last 7 days§r");
@@ -83,8 +104,8 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var accountCountSummary = accounts.Count();
 
         socket.Dialog(db =>
-            db.MsgLine($"§6Bazaar Profit History (last 7 days)§r")
-            .If(() => accountCountSummary > 1, d => d.MsgLine($"§7(considering {accountCountSummary} accounts)"))
+            db.MsgLine(who != null ? $"§6Bazaar Profit History for {who} (last 7 days)§r" : $"§6Bazaar Profit History (last 7 days)§r")
+            .If(() => who == null && accountCountSummary > 1, d => d.MsgLine($"§7(considering {accountCountSummary} accounts)"))
             .MsgLine($"§7Total Profit: §a{socket.FormatPrice(totalProfit)}")
             .MsgLine($"§7Average Daily Profit: §a{socket.FormatPrice(totalProfit / 7)}")
             .MsgLine($"§7Flips completed: §a{socket.FormatPrice(flipCount)}", "/cofl bz l", "Click to view your last completed flips")
