@@ -24,6 +24,16 @@ public class TaskParams
         return Socket.GetService<T>();
     }
 
+    /// <summary>
+    /// Shard counts from player state (e.g. attribute shards collected)
+    /// </summary>
+    public Dictionary<string, int> Shards => ExtractedInfo?.ShardCounts ?? new();
+
+    /// <summary>
+    /// Attribute/stat levels from player state
+    /// </summary>
+    public Dictionary<string, int> Stats => ExtractedInfo?.AttributeLevel ?? new();
+
     public Dictionary<string, float> GetPrices()
     {
         var combined = new Dictionary<string, float>();
