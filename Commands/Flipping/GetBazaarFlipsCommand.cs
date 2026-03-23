@@ -13,7 +13,7 @@ namespace Coflnet.Sky.Commands.MC;
 /// </summary>
 public class GetBazaarFlipsCommand : ArgumentsCommand
 {
-    protected override string Usage => "<orderCount=3>";
+    protected override string Usage => "<orderCount=6>";
 
     protected override async Task Execute(IMinecraftSocket socket, Arguments args)
     {
@@ -121,7 +121,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
 
             span.Dispose();
             // time to be interupted by better orders (TODO) or just wait for demand to change
-            await Task.Delay(TimeSpan.FromMinutes(2));
+            await Task.Delay(TimeSpan.FromMinutes(1));
         }
     }
 
