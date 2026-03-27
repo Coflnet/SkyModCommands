@@ -513,6 +513,7 @@ public class VpsInstanceManager
 
     internal async Task ExtendVps(Instance instance)
     {
+        throw new CoflnetException("apps_unvailable", "Currently all apps are unavailable, thanks for your interest but we currently can't service you");
         // checks that there is a server available
         await GetAvailableServer();
         var kind = GetProductSlug(instance);
