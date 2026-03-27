@@ -77,7 +77,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 }
             };
             var flip = FlipperService.LowPriceToFlip(virtualFlip);
-            if(recommended.BuyPrice > socket.sessionLifesycle.FlipProcessor.GetMaxCostFromPurse())
+            if (recommended.BuyPrice > socket.sessionLifesycle.FlipProcessor.GetMaxCostFromPurse())
             {
                 span.Log($"Recommended flip for {virtualFlip.Auction.ItemName} is too expensive for your current purse, skipping, it had {virtualFlip.DailyVolume} volume and profit per hour of {recommended.CurrentProfitPerHour}");
                 await Task.Delay(TimeSpan.FromSeconds(20));
@@ -116,7 +116,12 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
             if (socket is MinecraftSocket ms && ms.ModAdapter is MC.FullAfVersionAdapter fullAf)
             {
                 if (HasSpaceInInventory(socket))
+                {
                     fullAf.SendBazaarOrderRecommendation(recommend.ItemTag, recommend.ItemName, recommend.IsSell, recommend.Price, recommend.Amount);
+                    await Task.Delay(5000);
+                    // empty inventory
+                    await fullAf.TryToListAuction();
+                }
                 else
                     await fullAf.TryToListAuction();
             }
@@ -138,7 +143,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
         var itemData = (await socket.GetService<Core.Services.IHypixelItemStore>().GetItemsAsync()).GetValueOrDefault(recommended.ItemTag);
         if (itemData == null)
             return false;
-        if(itemData.Unstackable ?? false)
+        if (itemData.Unstackable ?? false)
             return true;
         var material = itemData.Material;
         return material == "BOOK" || material == "CAKE" || material == "POTION" || material == "BOAT";
