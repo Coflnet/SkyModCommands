@@ -77,6 +77,12 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 }
             };
             var flip = FlipperService.LowPriceToFlip(virtualFlip);
+            if(recommended.BuyPrice > socket.sessionLifesycle.FlipProcessor.GetMaxCostFromPurse())
+            {
+                span.Log($"Recommended flip for {virtualFlip.Auction.ItemName} is too expensive for your current purse, skipping, it had {virtualFlip.DailyVolume} volume and profit per hour of {recommended.CurrentProfitPerHour}");
+                await Task.Delay(TimeSpan.FromSeconds(20));
+                continue;
+            }
             if (!socket.sessionLifesycle.FlipProcessor.FlipMatchesSetting(virtualFlip, flip))
             {
                 using var mismatchSpan = socket.CreateActivity("flipMismatch");
