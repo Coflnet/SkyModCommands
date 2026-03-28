@@ -95,14 +95,8 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
 
             var item = await bazaarApi.GetOrderBookAsync(recommended.ItemTag);
             var topBuy = item.Buy.OrderByDescending(h => h.PricePerUnit).FirstOrDefault();
-            if (topBuy == null)
-            {
-                socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}No buy orders found for {recommended.ItemTag}, skipping."));
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                continue;
-            }
-
-            var price = Math.Min(topBuy.PricePerUnit, recommended.BuyPrice) + 0.1;
+            // when no orders are present start with 0.1
+            var price = Math.Min(topBuy?.PricePerUnit ?? 0, recommended.BuyPrice) + 0.1;
             var recommend = new OrderRecommend
             {
                 ItemName = virtualFlip.Auction.ItemName,
