@@ -27,7 +27,7 @@ public class SearchCommand : ReadOnlyListCommand<SearchCommand.ItemLocation>
             return [];
         }
         var allChests = await stateApi.PlayerStatePlayerIdStorageGetAsync(Guid.Parse(socket.SessionInfo.McUuid), Guid.Empty);
-        return allChests.SelectMany(c => c.Items.Select((i, index) => new ItemLocation()
+        return allChests.SelectMany(c => (c.Items ?? []).Select((i, index) => new ItemLocation()
         {
             Chestname = c.Name,
             CommandToOpen = GetCommandForContainer(c).command,
