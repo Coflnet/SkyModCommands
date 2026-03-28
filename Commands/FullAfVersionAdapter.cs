@@ -21,10 +21,39 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
 {
     protected DateTime lastListing = DateTime.MinValue;
     protected DateTime lastInventoryFullMsg = DateTime.MinValue;
+    private static HashSet<string> _bazaarTags = new();
+    private static DateTime _bazaarTagsLastRefresh = DateTime.MinValue;
+    private static readonly object _bazaarTagsLock = new();
 
     public FullAfVersionAdapter(MinecraftSocket socket) : base(socket)
     {
         socket.SessionInfo.IsMacroBot = true;
+    }
+
+    /// <summary>
+    /// Checks if a given item tag is on the bazaar using a cached lookup refreshed once per hour.
+    /// </summary>
+    public async Task<bool> IsOnBazaar(string tag)
+    {
+        var tags = await GetBazaarTags();
+        return tags.Contains(tag);
+    }
+
+    private async Task<HashSet<string>> GetBazaarTags()
+    {
+        if (DateTime.UtcNow - _bazaarTagsLastRefresh < TimeSpan.FromHours(1))
+            return _bazaarTags;
+        var items = await socket.GetService<Items.Client.Api.IItemsApi>().ItemsGetAsync();
+        var newTags = items
+            .Where(i => i.Flags.HasValue && i.Flags.Value.HasFlag(Items.Client.Model.ItemFlags.BAZAAR))
+            .Select(i => i.Tag)
+            .ToHashSet();
+        lock (_bazaarTagsLock)
+        {
+            _bazaarTags = newTags;
+            _bazaarTagsLastRefresh = DateTime.UtcNow;
+        }
+        return newTags;
     }
 
     public override async Task<bool> SendFlip(FlipInstance flip)
@@ -146,7 +175,8 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         if (socket.Version.StartsWith("af-2"))
             return;
         inventory ??= await WaitForInventory();
-        var tags = inventory.Where(i => i != null && i.Tag != null).Select(i => i.Tag).ToHashSet();
+        var cachedBazaarTags = await GetBazaarTags();
+        var tags = inventory.Where(i => i != null && i.Tag != null && cachedBazaarTags.Contains(i.Tag)).Select(i => i.Tag).ToHashSet();
         var bazaarItems = await socket.GetService<Bazaar.Client.Api.IOrderBookApi>().GetOrderBooksAsync(tags.ToList());
         var bazaaritemTags = bazaarItems.Where(b => b.Value.Sell?.Count > 0).Select(b => b.Key).ToHashSet();
         var amounts = inventory.Where(i => i?.Tag != null && bazaaritemTags.Contains(i.Tag)).GroupBy(i => i.Tag).ToDictionary(g => g.Key, g => (g.Sum(i => i.Count), g.First().ItemName));
@@ -243,7 +273,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
                 skipped++;
                 continue;
             }
-            if (item.First.Tier == Core.Tier.COMMON && !item.First.Tag.StartsWith("PET"))
+            if (item.First.Tier == Core.Tier.COMMON && !item.First.Tag.StartsWith("PET") && !await IsOnBazaar(item.First.Tag))
             {
                 var itemsApi = socket.GetService<Items.Client.Api.IItemsApi>();
                 var getDetails = await itemsApi.ItemItemTagGetAsync(item.First.Tag);
@@ -257,7 +287,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             }
             if (item.Second.MedianKey == null)
             {
-                if (socket.Version.StartsWith("af-3") && await HotkeyCommand.IsOnBazaar(socket, item.First.Tag))
+                if (socket.Version.StartsWith("af-3") && await IsOnBazaar(item.First.Tag))
                 {
                     continue; // handled by bazaar sell recommendation
                 }
