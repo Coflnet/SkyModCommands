@@ -69,6 +69,11 @@ namespace Coflnet.Sky.Commands.MC
                 await CheckBid(socket, item);
             if (item.StartsWith("You must set it to at least"))
                 socket.SessionInfo.ToLowListingAttempt = item;
+            if(item.Contains("claimed ", StringComparison.OrdinalIgnoreCase) && socket.ModAdapter is AfVersionAdapter af)
+            {
+                // there is room to place orders/auctions again
+                await af.TryToListAuction();
+            }
             if (Regex.IsMatch(item, @"\[\d+\] .*: (\d+)m$") && socket.SessionInfo.Purse > 50_000_000)
             {
                 socket.Dialog(db => db.MsgLine("It looks like you are lowballing, is that correct? If not please report this on our discord.", null,

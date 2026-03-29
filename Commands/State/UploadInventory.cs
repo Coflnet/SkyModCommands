@@ -14,18 +14,19 @@ public class UploadInventory : McCommand
     {
         socket.SessionInfo.Inventory = null;
         socket.SessionInfo.Inventory = parser.Parse(arguments).ToList();
-        if (!string.IsNullOrEmpty(arguments) && (arguments.Contains("hook") || arguments.Contains("sinker"))&& arguments.IndexOf("part", StringComparison.OrdinalIgnoreCase) >= 0)
+        if (!string.IsNullOrEmpty(arguments) && (arguments.Contains("hook") || arguments.Contains("sinker")) && arguments.IndexOf("part", StringComparison.OrdinalIgnoreCase) >= 0)
         {
             var idx = arguments.IndexOf("part", StringComparison.OrdinalIgnoreCase);
             var start = Math.Max(0, idx - 2000);
             var end = Math.Min(arguments.Length, idx + "part".Length + 2000);
             var snippet = arguments.Substring(start, end - start);
-            Activity.Current?.Log(snippet, 8500).AddTag("part","any");
+            Activity.Current?.Log(snippet, 8500).AddTag("part", "any");
         }
         else
         {
             Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.Inventory));
         }
+        Activity.Current.Log("Items in inventory: " + socket.SessionInfo.Inventory.Count);
         if (socket.ModAdapter is AfVersionAdapter)
         {
             return;

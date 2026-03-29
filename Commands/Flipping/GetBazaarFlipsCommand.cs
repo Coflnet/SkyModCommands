@@ -106,15 +106,11 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 IsSell = false // buy orders from getbazaarflips
             };
 
-            // Use new placeOrder message for FullAfVersionAdapter
             if (socket is MinecraftSocket ms && ms.ModAdapter is MC.FullAfVersionAdapter fullAf)
             {
                 if (HasSpaceInInventory(socket))
                 {
                     fullAf.SendBazaarOrderRecommendation(recommend.ItemTag, recommend.ItemName, recommend.IsSell, recommend.Price, recommend.Amount);
-                    await Task.Delay(5000);
-                    // empty inventory
-                    await fullAf.TryToListAuction();
                 }
                 else
                     await fullAf.TryToListAuction();
