@@ -34,8 +34,8 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var isList = subCommand == "l" || subCommand == "list";
         
         // Parse days parameter
-        int days = 7; // default to 7 days
-        if (parts.Length > 0 && int.TryParse(parts.Last(), out var parsedDays))
+        float days = 7; // default to 7 days
+        if (parts.Length > 0 && float.TryParse(parts.Last(), out var parsedDays))
         {
             days = parsedDays;
             // Remove the days parameter from subCommand if it was the only part
