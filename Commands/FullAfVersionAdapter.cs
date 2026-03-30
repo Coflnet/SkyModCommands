@@ -642,6 +642,12 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
     /// <param name="amount">The amount to order</param>
     public void SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount)
     {
+        if(itemName == "Enchanted Book")
+        {
+            // for enchanted books, include enchantments in the name for better clarity
+            itemName = BazaarUtils.GetSearchValue(itemTag, itemTag.Replace("ENCHANTMENT_", "").Replace("_", " ").ToLower());
+            Activity.Current?.Log($"Updated item name for enchanted book recommendation: {itemName}");
+        }
         socket.Send(Response.Create("placeOrder", new
         {
             itemName = itemName,
