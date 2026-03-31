@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Coflnet.Sky.Bazaar.Client.Api;
-using Coflnet.Sky.Bazaar.Flipper.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 namespace Coflnet.Sky.Commands.MC;
@@ -13,144 +8,19 @@ namespace Coflnet.Sky.Commands.MC;
 /// </summary>
 public class GetBazaarFlipsCommand : ArgumentsCommand
 {
-    protected override string Usage => "<orderCount=6>";
+    protected override string Usage => "";
 
-    protected override async Task Execute(IMinecraftSocket socket, Arguments args)
+    protected override Task Execute(IMinecraftSocket socket, Arguments args)
     {
-        var buget = socket.SessionInfo.Purse;
-        if (buget < 100_000)
-        {
-            socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}You need at least 100,000 coins in your purse to receive bazaar flips, make sure you use a compatible mod/client"));
-            return;
-        }
         if (!socket.Settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Bazaar))
         {
             socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Your settings currently do not allow bazaar flips, please enable the finder to receive bazaar flip recommendations",
                 "/cofl set finders Bazaar," + socket.Settings.AllowedFinders.ToString(), "Click to enable"));
-            return;
+            return Task.CompletedTask;
         }
-        var count = args["orderCount"];
-        if (!int.TryParse(count, out var orderCount) || orderCount < 1 || orderCount > 12)
-        {
-            socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}The order count has to be a number between 1 and 12"));
-            return;
-        }
-        socket.Dialog(db => db.MsgLine("Alright, you will receive bazaar flips attempted to be placed optimally within the next few minutes"));
-        var mutationsTask = socket.GetService<IBazaarFlipperApi>().CopperGetAsync();
-
-        var items = socket.GetService<Items.Client.Api.IItemsApi>();
-        var names = (await items.ItemNamesGetAsync()).ToDictionary(i => i.Tag, i => i.Name);
-        var mutations = (await mutationsTask).Select(m => m.ItemTag).ToHashSet();
-        for (var i = 0; i < orderCount; i++)
-        {
-            using var span = socket.CreateActivity("bazaarBuy");
-            var flipApi = socket.GetService<IBazaarFlipperApi>();
-            var bazaarApi = socket.GetService<IOrderBookApi>();
-            var flips = await flipApi.DemandGetAsync();
-            var recommended = flips
-                .OrderByDescending(f => f.CurrentProfitPerHour)
-                .Where(f => !mutations.Contains(f.ItemTag))
-                .Take(3)
-                .OrderByDescending(_ => Random.Shared.Next())
-                .FirstOrDefault();
-
-            if (recommended == null)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(10));
-                continue;
-            }
-            var isNotStackable = await GetIsNotStackable(socket, recommended);
-            var amount = recommended.SellPrice < 100_000 && !isNotStackable ? 64 : recommended.SellPrice > 5_000_000 ? 1 : 4;
-            var virtualFlip = new LowPricedAuction()
-            {
-                DailyVolume = recommended.Volume,
-                Finder = LowPricedAuction.FinderType.Bazaar,
-                TargetPrice = (long)(recommended.SellPrice * amount),
-                Auction = new SaveAuction
-                {
-                    ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag, names.TryGetValue(recommended.ItemTag, out var dn) ? dn : recommended.ItemTag),
-                    Tag = recommended.ItemTag,
-                    Uuid = recommended.ItemTag,
-                    StartingBid = (long)(recommended.BuyPrice * amount),
-                    Enchantments = [],
-                    FlatenedNBT = []
-                }
-            };
-            var flip = FlipperService.LowPriceToFlip(virtualFlip);
-            if (recommended.BuyPrice > socket.sessionLifesycle.FlipProcessor.GetMaxCostFromPurse())
-            {
-                span.Log($"Recommended flip for {virtualFlip.Auction.ItemName} is too expensive for your current purse, skipping, it had {virtualFlip.DailyVolume} volume and profit per hour of {recommended.CurrentProfitPerHour}");
-                await Task.Delay(TimeSpan.FromSeconds(20));
-                continue;
-            }
-            if (!socket.sessionLifesycle.FlipProcessor.FlipMatchesSetting(virtualFlip, flip))
-            {
-                using var mismatchSpan = socket.CreateActivity("flipMismatch");
-                var reason = socket.TopBlocked.FirstOrDefault(b => b.Flip.Auction.Tag == flip.Tag);
-                mismatchSpan.Log($"Recommended flip for {virtualFlip.Auction.ItemName} does not match settings, skipping, it had {virtualFlip.DailyVolume} volume and profit per hour of {recommended.CurrentProfitPerHour} because {reason?.Reason}");
-                await Task.Delay(TimeSpan.FromSeconds(20));
-                continue;
-            }
-
-
-            var item = await bazaarApi.GetOrderBookAsync(recommended.ItemTag);
-            var topBuy = item.Buy.OrderByDescending(h => h.PricePerUnit).FirstOrDefault();
-            // when no orders are present start with 0.1
-            var price = Math.Min(topBuy?.PricePerUnit ?? 0, recommended.BuyPrice) + 0.1;
-            var recommend = new OrderRecommend
-            {
-                ItemName = virtualFlip.Auction.ItemName,
-                ItemTag = recommended.ItemTag,
-                Price = price,
-                Amount = amount,
-                IsSell = false // buy orders from getbazaarflips
-            };
-
-            if (socket is MinecraftSocket ms && ms.ModAdapter is MC.FullAfVersionAdapter fullAf)
-            {
-                if (HasSpaceInInventory(socket))
-                {
-                    fullAf.SendBazaarOrderRecommendation(recommend.ItemTag, recommend.ItemName, recommend.IsSell, recommend.Price, recommend.Amount);
-                }
-                else
-                    await fullAf.TryToListAuction();
-            }
-            span.Log($"Recommended order: {recommend.Amount}x {recommend.ItemName} for {socket.FormatPrice((long)recommend.Price)}");
-
-            socket.Dialog(db => db.MsgLine($"Recommending an order of {McColorCodes.GREEN}{recommend.Amount}x {McColorCodes.YELLOW}{recommend.ItemName} {McColorCodes.GRAY}for {McColorCodes.GREEN}{socket.FormatPrice((long)recommend.Price)}{McColorCodes.GRAY}",
-                $"/bz {recommend.ItemName}", "click to open on bazaar"));
-
-            span.Dispose();
-            // time to be interupted by better orders (TODO) or just wait for demand to change
-            await Task.Delay(TimeSpan.FromMinutes(1));
-        }
+        socket.Dialog(db => db.MsgLine(
+            $"{McColorCodes.GREEN}The bazaar finder is enabled. " +
+            $"{McColorCodes.GRAY}Bazaar flips are now distributed automatically — calling this command is no longer required."));
+        return Task.CompletedTask;
     }
-
-    private static async Task<bool> GetIsNotStackable(IMinecraftSocket socket, Bazaar.Flipper.Client.Model.DemandFlip recommended)
-    {
-        if (recommended.ItemTag.Contains("BOOK"))
-            return true;
-        var itemData = (await socket.GetService<Core.Services.IHypixelItemStore>().GetItemsAsync()).GetValueOrDefault(recommended.ItemTag);
-        if (itemData == null)
-            return false;
-        if (itemData.Unstackable ?? false)
-            return true;
-        var material = itemData.Material;
-        return material == "BOOK" || material == "CAKE" || material == "POTION" || material == "BOAT";
-    }
-
-    private static bool HasSpaceInInventory(IMinecraftSocket socket)
-    {
-        return socket.SessionInfo.Inventory.Count(i => i == null) > 10;
-    }
-
-    public class OrderRecommend
-    {
-        public string ItemName { get; set; }
-        public string ItemTag { get; set; }
-        public double Price { get; set; }
-        public int Amount { get; set; }
-        public bool IsSell { get; set; }
-    }
-
 }

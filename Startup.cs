@@ -61,6 +61,7 @@ public class Startup
         );
         services.AddHostedService<ModBackgroundService>();
         services.AddHostedService<MuseumDonationCleanupService>();
+        services.AddHostedService<BazaarFlipService>();
         services.AddHostedService(s => s.GetRequiredService<FlipperService>());
         services.AddJaeger(Configuration, 1, 1);
         services.AddTransient<CounterService>();
