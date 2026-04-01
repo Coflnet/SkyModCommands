@@ -77,6 +77,12 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 }
             };
             var flip = FlipperService.LowPriceToFlip(virtualFlip);
+            if (recommended.BuyPrice > socket.sessionLifesycle.FlipProcessor.GetMaxCostFromPurse())
+            {
+                span.Log($"Recommended flip for {virtualFlip.Auction.ItemName} is too expensive for your current purse, skipping, it had {virtualFlip.DailyVolume} volume and profit per hour of {recommended.CurrentProfitPerHour}");
+                await Task.Delay(TimeSpan.FromSeconds(20));
+                continue;
+            }
             if (!socket.sessionLifesycle.FlipProcessor.FlipMatchesSetting(virtualFlip, flip))
             {
                 using var mismatchSpan = socket.CreateActivity("flipMismatch");
@@ -89,14 +95,8 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
 
             var item = await bazaarApi.GetOrderBookAsync(recommended.ItemTag);
             var topBuy = item.Buy.OrderByDescending(h => h.PricePerUnit).FirstOrDefault();
-            if (topBuy == null)
-            {
-                socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}No buy orders found for {recommended.ItemTag}, skipping."));
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                continue;
-            }
-
-            var price = Math.Min(topBuy.PricePerUnit, recommended.BuyPrice) + 0.1;
+            // when no orders are present start with 0.1
+            var price = Math.Min(topBuy?.PricePerUnit ?? 0, recommended.BuyPrice) + 0.1;
             var recommend = new OrderRecommend
             {
                 ItemName = virtualFlip.Auction.ItemName,
@@ -106,11 +106,12 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
                 IsSell = false // buy orders from getbazaarflips
             };
 
-            // Use new placeOrder message for FullAfVersionAdapter
             if (socket is MinecraftSocket ms && ms.ModAdapter is MC.FullAfVersionAdapter fullAf)
             {
                 if (HasSpaceInInventory(socket))
+                {
                     fullAf.SendBazaarOrderRecommendation(recommend.ItemTag, recommend.ItemName, recommend.IsSell, recommend.Price, recommend.Amount);
+                }
                 else
                     await fullAf.TryToListAuction();
             }
@@ -132,7 +133,7 @@ public class GetBazaarFlipsCommand : ArgumentsCommand
         var itemData = (await socket.GetService<Core.Services.IHypixelItemStore>().GetItemsAsync()).GetValueOrDefault(recommended.ItemTag);
         if (itemData == null)
             return false;
-        if(itemData.Unstackable ?? false)
+        if (itemData.Unstackable ?? false)
             return true;
         var material = itemData.Material;
         return material == "BOOK" || material == "CAKE" || material == "POTION" || material == "BOAT";

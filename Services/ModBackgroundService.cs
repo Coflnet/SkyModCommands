@@ -188,6 +188,11 @@ public class ModBackgroundService : BackgroundService
                     {
                         logger.LogInformation($"Received Rust {JsonConvert.SerializeObject(flip)}");
                         FixRustMetadata(flip);
+                        if(flip.Auction.Tag.Contains("DRILL"))
+                        {
+                            logger.LogInformation($"skipping drill because it is probably wrong");
+                            return;
+                        }
                     }
                     if (flip.TargetPrice < flip.Auction.StartingBid + 100_000)
                         return; // not actually flipable abort

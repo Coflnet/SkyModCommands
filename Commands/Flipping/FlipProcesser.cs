@@ -56,8 +56,7 @@ namespace Coflnet.Sky.Commands.MC
             // Early exit conditions
             if (SentFlips.ContainsKey(flip.UId) || !FinderEnabled(flip) || !NotSold(flip) || socket.ModAdapter is not AfVersionAdapter && !CheckHighCompetition(flip))
                 return;
-
-            var maxCostFromPurse = socket.SessionInfo.Purse * (Settings.ModSettings.MaxPercentOfPurse == 0 ? 100 : Settings.ModSettings.MaxPercentOfPurse) / 100;
+            long maxCostFromPurse = GetMaxCostFromPurse();
             if (flip.Auction.StartingBid >= maxCostFromPurse && socket.SessionInfo.Purse > 0 && flip.Finder != LowPricedAuction.FinderType.USER)
             {
                 BlockedFlip(flip, "purse check");
@@ -108,6 +107,11 @@ namespace Coflnet.Sky.Commands.MC
             // Prune the LastSent queue
             while (socket.LastSent.Count > 30)
                 socket.LastSent.TryDequeue(out _);
+        }
+
+        public long GetMaxCostFromPurse()
+        {
+            return socket.SessionInfo.Purse * (Settings.ModSettings.MaxPercentOfPurse == 0 ? 100 : Settings.ModSettings.MaxPercentOfPurse) / 100;
         }
 
         private bool CheckHighCompetition(LowPricedAuction f)

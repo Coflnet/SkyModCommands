@@ -18,7 +18,8 @@ namespace Coflnet.Sky.Commands.MC;
     "bazaar flips currently available",
     "It assumes that you make buy and sellers",
     "and includes the §b1.25% bazaar fee",
-    "from the free bazaar community upgrade")]
+    "from the free bazaar community upgrade",
+    "Usage: /bz [days] - default is 7 days")]
 public class BazaarCommand : ReadOnlyListCommand<Element>
 {
     public override bool IsPublic => true;
@@ -31,6 +32,23 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var subCommand = parts.FirstOrDefault();
         var isList = subCommand == "l" || subCommand == "list";
+        
+        // Parse days parameter
+        float days = 7; // default to 7 days
+        if (parts.Length > 0 && float.TryParse(parts.Last(), out var parsedDays))
+        {
+            days = parsedDays;
+            // Remove the days parameter from subCommand if it was the only part
+            if (parts.Length == 1)
+            {
+                subCommand = null;
+            }
+            else if (parts.Length == 2 && (subCommand == "h" || subCommand == "history" || isList))
+            {
+                // Keep subCommand, just remove days from consideration
+            }
+        }
+        
         if (subCommand != "h" && subCommand != "history" && !isList)
         {
             socket.Dialog(db => db.MsgLine("Check out your profit with /cl bz history", "/cofl bz history", $"Click to view your bazaar profit history\nOr run {McColorCodes.AQUA}/cofl bz h"));
@@ -42,7 +60,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var allAccounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
         IEnumerable<string> accounts;
         string who = null;
-        if (parts.Length > 1)
+        if (parts.Length > 1 && !int.TryParse(parts[1], out _))
         {
             // single account name specified, resolve and verify ownership
             var accountName = parts[1];
@@ -61,7 +79,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         {
             // request completed flips for all linked accounts in parallel and merge
             var flipsPerAccount = await Task.WhenAll(accounts.Select(a =>
-                bazaarProfitService.BazaarProfitFlipsPlayerUuidGetAsync(Guid.Parse(a), DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, 10)));
+                bazaarProfitService.BazaarProfitFlipsPlayerUuidGetAsync(Guid.Parse(a), DateTime.UtcNow.AddDays(-days), DateTime.UtcNow, 10)));
             var completedFlips = flipsPerAccount.SelectMany(x => x).OrderBy(f => f.SoldAt).ToList();
             var accountCount = accounts.Count();
 
@@ -73,7 +91,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
                 db.MsgLine(header);
                 if (completedFlips.Count == 0)
                 {
-                    db.MsgLine("§7No completed flips in the last 7 days§r");
+                    db.MsgLine($"§7No completed flips in the last {days} days§r");
                     return db;
                 }
                 foreach (var flip in completedFlips.AsEnumerable().Reverse())
@@ -96,7 +114,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
 
         // request summaries for all linked accounts and aggregate totals
         var summaries = await Task.WhenAll(accounts.Select(a =>
-            bazaarProfitService.BazaarProfitSummaryPlayerUuidGetAsync(Guid.Parse(a), DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, 500)));
+            bazaarProfitService.BazaarProfitSummaryPlayerUuidGetAsync(Guid.Parse(a), DateTime.UtcNow.AddDays(-days), DateTime.UtcNow, 500)));
 
         var totalProfit = summaries.Sum(s => s.TotalProfit);
         var flipCount = summaries.Sum(s => s.FlipCount);
@@ -104,7 +122,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         var accountCountSummary = accounts.Count();
 
         socket.Dialog(db =>
-            db.MsgLine(who != null ? $"§6Bazaar Profit History for {who} (last 7 days)§r" : $"§6Bazaar Profit History (last 7 days)§r")
+            db.MsgLine(who != null ? $"§6Bazaar Profit History for {who} (last {days} days)§r" : $"§6Bazaar Profit History (last {days} days)§r")
             .If(() => who == null && accountCountSummary > 1, d => d.MsgLine($"§7(considering {accountCountSummary} accounts)"))
             .MsgLine($"§7Total Profit: §a{socket.FormatPrice(totalProfit)}")
             .MsgLine($"§7Average Daily Profit: §a{socket.FormatPrice(totalProfit / 7)}")
