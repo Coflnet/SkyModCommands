@@ -95,7 +95,7 @@ public class BazaarFlipService : BackgroundService
             if (ct.IsCancellationRequested) break;
             try
             {
-                if (con.Connection is not MinecraftSocket socket)
+                if (con.Connection is not MinecraftSocket socket || socket.HasFlippingDisabled())
                     continue;
 
                 if (!socket.Settings?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Bazaar) ?? true)
