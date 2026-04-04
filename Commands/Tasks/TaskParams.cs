@@ -12,6 +12,10 @@ public class TaskParams
     public DateTime TestTime { get; set; }
     public PlayerState.Client.Model.ExtractedInfo ExtractedInfo { get; set; }
     public MinecraftSocket Socket { get; set; }
+    /// <summary>
+    /// Format provider for prices and times. Use this instead of Socket for formatting.
+    /// </summary>
+    public ITaskFormatProvider Formatter { get; set; }
     public ConcurrentDictionary<Type, CalculationCache> Cache { get; set; }
     public long MaxAvailableCoins { get; set; } = 1000000000; // Default to 1 billion coins
     public Dictionary<string, Period[]> LocationProfit { get; set; }

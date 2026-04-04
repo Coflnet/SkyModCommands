@@ -48,6 +48,38 @@ public abstract class MethodTask : ProfitTask
     /// </summary>
     protected virtual double PreferredWindowHours => 3;
 
+    // ── Extended method metadata ──
+
+    /// <summary>
+    /// Step-by-step explanation of how to do this method
+    /// </summary>
+    protected virtual string HowTo => $"Go to the relevant location and perform {MethodName}.";
+    /// <summary>
+    /// Items required to get started with this method (tag, name, reason)
+    /// </summary>
+    protected virtual List<RequiredItem> RequiredItems => [];
+    /// <summary>
+    /// Estimated actions per hour (kills, catches, mines, etc.)
+    /// </summary>
+    protected virtual double ActionsPerHour => 0;
+    /// <summary>
+    /// Name of the action unit (kills, catches, runs, mines)
+    /// </summary>
+    protected virtual string ActionUnit => "actions";
+    /// <summary>
+    /// Equipment/effects that can improve drop rates or speed
+    /// </summary>
+    protected virtual List<DropEffect> Effects => [];
+    /// <summary>
+    /// Category for grouping in the API (Fishing, Mining, Slayer, etc.)
+    /// </summary>
+    protected virtual string Category => "Other";
+
+    /// <summary>
+    /// Public accessor for tests to check if this task has formula drops
+    /// </summary>
+    public List<MethodDrop> FormulaDropsForTest => FormulaDrops;
+
     public override string Description => $"Calculates profit for {MethodName}";
 
     public override Task<TaskResult> Execute(TaskParams parameters)
@@ -143,20 +175,45 @@ public abstract class MethodTask : ProfitTask
             .ToDictionary(g => g.Key, g => (long)g.Sum(v => v.Value))
             .OrderByDescending(i => i.Value);
 
-        var formattedDuration = parameters.Socket.formatProvider.FormatTime(TimeSpan.FromHours(totalHours));
+        var fmt = parameters.Formatter;
+        var formattedDuration = fmt.FormatTime(TimeSpan.FromHours(totalHours));
         var itemCount = items.Where(i => i.Value > 0).Sum(i => i.Value);
         var itemBreakDown = items.Take(20)
             .Select(i => $"{McColorCodes.YELLOW}{i.Key} {McColorCodes.GRAY}x{i.Value}")
             .DefaultIfEmpty("No items tracked")
             .Aggregate((a, b) => a + "\n" + b);
 
+        var prices = parameters.GetPrices();
+        var drops = items.Take(20).Select(i => new DropInfo
+        {
+            ItemTag = i.Key,
+            Name = parameters.Names.GetValueOrDefault(i.Key, i.Key),
+            RatePerHour = totalHours > 0 ? i.Value / totalHours : 0,
+            PriceEach = prices.GetValueOrDefault(i.Key, 0),
+            ContributionPerHour = totalHours > 0 ? i.Value / totalHours * prices.GetValueOrDefault(i.Key, 0) : 0
+        }).ToList();
+
+        var reqItems = BuildRequiredItems(parameters);
+
         return Task.FromResult(new TaskResult
         {
             ProfitPerHour = (int)perHour,
-            Message = $"{MethodName} with {McColorCodes.AQUA}{parameters.Socket.FormatPrice(totalProfit)} {McColorCodes.GRAY}({McColorCodes.GREEN}{itemCount} items{McColorCodes.GRAY}) over {formattedDuration}.",
+            Message = $"{MethodName} with {McColorCodes.AQUA}{fmt.FormatPrice(totalProfit)} {McColorCodes.GRAY}({McColorCodes.GREEN}{itemCount} items{McColorCodes.GRAY}) over {formattedDuration}.",
             Details = $"Time tracked: {formattedDuration}\nItems collected:\n{itemBreakDown}",
             Name = MethodName,
-            OnClick = WarpCommand
+            OnClick = WarpCommand,
+            Breakdown = new MethodBreakdown
+            {
+                HowTo = HowTo,
+                RequiredItems = reqItems,
+                Drops = drops,
+                ActionsPerHour = ActionsPerHour > 0 ? ActionsPerHour : (totalHours > 0 ? itemCount / totalHours : 0),
+                ActionUnit = ActionUnit,
+                Effects = Effects,
+                Source = "player_data",
+                TrackedHours = totalHours,
+                Category = Category
+            }
         });
     }
 
@@ -165,6 +222,8 @@ public abstract class MethodTask : ProfitTask
         var prices = parameters.GetPrices();
         var totalPerHour = 0.0;
         var breakdown = new List<string>();
+        var drops = new List<DropInfo>();
+        var fmt = parameters.Formatter;
 
         foreach (var drop in FormulaDrops)
         {
@@ -173,7 +232,15 @@ public abstract class MethodTask : ProfitTask
             var contribution = drop.RatePerHour * price;
             totalPerHour += contribution;
             var name = parameters.Names.GetValueOrDefault(drop.ItemTag, drop.ItemTag);
-            breakdown.Add($"{McColorCodes.YELLOW}{name} {McColorCodes.GRAY}x{drop.RatePerHour:F0}/h = {McColorCodes.AQUA}{parameters.Socket.FormatPrice((long)contribution)}");
+            breakdown.Add($"{McColorCodes.YELLOW}{name} {McColorCodes.GRAY}x{drop.RatePerHour:F0}/h = {McColorCodes.AQUA}{fmt.FormatPrice((long)contribution)}");
+            drops.Add(new DropInfo
+            {
+                ItemTag = drop.ItemTag,
+                Name = name,
+                RatePerHour = drop.RatePerHour,
+                PriceEach = price,
+                ContributionPerHour = contribution
+            });
         }
 
         if (totalPerHour <= 0)
@@ -184,13 +251,39 @@ public abstract class MethodTask : ProfitTask
                 Name = MethodName
             });
 
+        var reqItems = BuildRequiredItems(parameters);
+
         return Task.FromResult(new TaskResult
         {
             ProfitPerHour = (int)totalPerHour,
-            Message = $"{MethodName} ~{McColorCodes.AQUA}{parameters.Socket.FormatPrice((long)totalPerHour)}/h {McColorCodes.GRAY}(estimated)",
+            Message = $"{MethodName} ~{McColorCodes.AQUA}{fmt.FormatPrice((long)totalPerHour)}/h {McColorCodes.GRAY}(estimated)",
             Details = $"Estimated drops per hour:\n{string.Join("\n", breakdown)}\n{McColorCodes.DARK_GRAY}(Do this method for personalized tracking)",
             Name = MethodName,
-            OnClick = WarpCommand
+            OnClick = WarpCommand,
+            Breakdown = new MethodBreakdown
+            {
+                HowTo = HowTo,
+                RequiredItems = reqItems,
+                Drops = drops,
+                ActionsPerHour = ActionsPerHour,
+                ActionUnit = ActionUnit,
+                Effects = Effects,
+                Source = "formula",
+                TrackedHours = 0,
+                Category = Category
+            }
         });
+    }
+
+    private List<RequiredItem> BuildRequiredItems(TaskParams parameters)
+    {
+        var prices = parameters.GetPrices();
+        return RequiredItems.Select(r => new RequiredItem
+        {
+            ItemTag = r.ItemTag,
+            Name = string.IsNullOrEmpty(r.Name) ? parameters.Names.GetValueOrDefault(r.ItemTag, r.ItemTag) : r.Name,
+            Reason = r.Reason,
+            EstimatedPrice = (long)prices.GetValueOrDefault(r.ItemTag, 0)
+        }).ToList();
     }
 }

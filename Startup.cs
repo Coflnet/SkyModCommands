@@ -104,6 +104,8 @@ public class Startup
         services.AddSingleton<MinecraftLoreRenderer>();
         services.AddSingleton<AutotipService>();
         services.AddSingleton<YoutuberService>();
+        services.AddSingleton<TaskService>();
+        services.AddSingleton<ActivityTrackingService>();
         services.AddCoflService();
     }
 

@@ -32,7 +32,7 @@ public class MethodDetectionTests
         {
             TestTime = new DateTime(2025, 7, 24, 17, 0, 0),
             ExtractedInfo = new ExtractedInfo(),
-            Socket = new MinecraftSocket(),
+            Formatter = new SimpleTaskFormatProvider(),
             Cache = new ConcurrentDictionary<Type, TaskParams.CalculationCache>(),
             MaxAvailableCoins = 1_000_000_000,
             LocationProfit = periods.GroupBy(l => l.Location).ToDictionary(l => l.Key, l => l.ToArray()),
@@ -322,7 +322,7 @@ public class MethodDetectionTests
         {
             TestTime = new DateTime(2025, 7, 24, 17, 0, 0),
             ExtractedInfo = new ExtractedInfo(),
-            Socket = new MinecraftSocket(),
+            Formatter = new SimpleTaskFormatProvider(),
             Cache = new ConcurrentDictionary<Type, TaskParams.CalculationCache>(),
             MaxAvailableCoins = 1_000_000_000,
             LocationProfit = new Dictionary<string, Period[]>(),

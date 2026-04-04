@@ -236,6 +236,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             TestTime = DateTime.UtcNow,
             ExtractedInfo = extractedState,
             Socket = socket,
+            Formatter = new MinecraftSocketFormatProvider(socket),
             Cache = Cache,
             CleanPrices = await cleanPrices,
             BazaarPrices = await bazaarPrices,

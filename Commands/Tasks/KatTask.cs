@@ -34,7 +34,7 @@ public class KatTask : ProfitTask
             }));
             return (await Task.WhenAll(result)).ToList();
         }, 1);
-        var formatProvider = parameters.Socket.formatProvider;
+        var formatProvider = parameters.Formatter;
         var expireTime = parameters.ExtractedInfo.KatStatus?.KatEnd;
         if (expireTime == null)
         {

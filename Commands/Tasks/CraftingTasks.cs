@@ -43,7 +43,7 @@ public class ReaperScytheTask : ProfitTask
             return new TaskResult
             {
                 ProfitPerHour = (int)reaperFlip.ProfitPerHour,
-                Message = $"Craft Reaper Scythe, takes {parameters.Socket.formatProvider.FormatTime(TimeSpan.FromSeconds(reaperFlip.Duration))}",
+                Message = $"Craft Reaper Scythe, takes {parameters.Formatter.FormatTime(TimeSpan.FromSeconds(reaperFlip.Duration))}",
                 Details = $"Ingredients: {string.Join(", ", reaperFlip.CraftData.Ingredients.Select(i => $"{i.ItemId} x{i.Count}"))}\nClick to warp to forge",
                 OnClick = "/warp forge"
             };
@@ -90,7 +90,7 @@ public class GauntletOfContagionTask : ProfitTask
             return new TaskResult
             {
                 ProfitPerHour = (int)gauntletFlip.ProfitPerHour,
-                Message = $"Craft Gauntlet of Contagion, takes {parameters.Socket.formatProvider.FormatTime(TimeSpan.FromSeconds(gauntletFlip.Duration))}",
+                Message = $"Craft Gauntlet of Contagion, takes {parameters.Formatter.FormatTime(TimeSpan.FromSeconds(gauntletFlip.Duration))}",
                 Details = $"Ingredients: {string.Join(", ", gauntletFlip.CraftData.Ingredients.Select(i => $"{i.ItemId} x{i.Count}"))}\nClick to warp to forge",
                 OnClick = "/warp forge"
             };
@@ -137,6 +137,7 @@ public class ExportableCarrotsCraftTask : ProfitTask
         var carrotsPerCraft = 160;
         var profitPerCraft = (double)sellPrice - (buyPrice * carrotsPerCraft);
         var profitPerHour = profitPerCraft * craftsPerHour;
+        var fmt = parameters.Formatter;
 
         if (profitPerHour <= 0)
         {
@@ -144,16 +145,16 @@ public class ExportableCarrotsCraftTask : ProfitTask
             {
                 ProfitPerHour = 0,
                 Message = "Exportable Carrots crafting is not currently profitable.",
-                Details = $"Buy price: {parameters.Socket.FormatPrice((long)buyPrice)}/carrot\nSell price: {parameters.Socket.FormatPrice((long)sellPrice)}/exportable"
+                Details = $"Buy price: {fmt.FormatPrice((long)buyPrice)}/carrot\nSell price: {fmt.FormatPrice((long)sellPrice)}/exportable"
             });
         }
 
         return Task.FromResult(new TaskResult
         {
             ProfitPerHour = (int)profitPerHour,
-            Message = $"Craft Exportable Carrots for {McColorCodes.AQUA}{parameters.Socket.FormatPrice((long)profitPerHour)}/h",
-            Details = $"Buy carrots at {parameters.Socket.FormatPrice((long)buyPrice)} each\n"
-                + $"Craft and sell at {parameters.Socket.FormatPrice((long)sellPrice)} each\n"
+            Message = $"Craft Exportable Carrots for {McColorCodes.AQUA}{fmt.FormatPrice((long)profitPerHour)}/h",
+            Details = $"Buy carrots at {fmt.FormatPrice((long)buyPrice)} each\n"
+                + $"Craft and sell at {fmt.FormatPrice((long)sellPrice)} each\n"
                 + $"~{craftsPerHour} crafts/hour possible\n"
                 + $"NOTE: Estimates may vary.",
             OnClick = "/bz carrot"
@@ -185,7 +186,7 @@ public abstract class ForgeCraftTask : ProfitTask
             return new TaskResult
             {
                 ProfitPerHour = (int)flip.ProfitPerHour,
-                Message = $"Craft {ItemDisplayName}, takes {parameters.Socket.formatProvider.FormatTime(TimeSpan.FromSeconds(flip.Duration))}",
+                Message = $"Craft {ItemDisplayName}, takes {parameters.Formatter.FormatTime(TimeSpan.FromSeconds(flip.Duration))}",
                 Details = $"Ingredients: {string.Join(", ", flip.CraftData.Ingredients.Select(i => $"{i.ItemId} x{i.Count}"))}\nClick to warp to forge",
                 OnClick = "/warp forge",
                 MostlyPassive = true
@@ -276,11 +277,12 @@ public abstract class BazaarCraftTask : ProfitTask
         if (profitPerHour <= 0)
             return Task.FromResult(new TaskResult { ProfitPerHour = 0, Message = $"{CraftName} not currently profitable." });
 
+        var fmt = parameters.Formatter;
         return Task.FromResult(new TaskResult
         {
             ProfitPerHour = (int)profitPerHour,
-            Message = $"{CraftName} for {McColorCodes.AQUA}{parameters.Socket.FormatPrice((long)profitPerHour)}/h",
-            Details = $"Buy {BuyTag} at {parameters.Socket.FormatPrice((long)buyPrice)}\nSell {SellTag} at {parameters.Socket.FormatPrice((long)sellPrice)}\n~{CraftsPerHour} crafts/hour",
+            Message = $"{CraftName} for {McColorCodes.AQUA}{fmt.FormatPrice((long)profitPerHour)}/h",
+            Details = $"Buy {BuyTag} at {fmt.FormatPrice((long)buyPrice)}\nSell {SellTag} at {fmt.FormatPrice((long)sellPrice)}\n~{CraftsPerHour} crafts/hour",
             OnClick = $"/bz {BuyTag}"
         });
     }

@@ -44,7 +44,8 @@ public abstract class IslandTask : ProfitTask
             });
         var bestLocation = locations.First();
         var totalTime = locations.Sum(l => l.data.Sum(d => (d.EndTime - d.StartTime).TotalHours));
-        var formattedDuration = parameters.Socket.formatProvider.FormatTime(TimeSpan.FromHours(totalTime));
+        var fmt = parameters.Formatter;
+        var formattedDuration = fmt.FormatTime(TimeSpan.FromHours(totalTime));
         var items = locations.SelectMany(l=>l.data).SelectMany(i => i.ItemsCollected)
             .GroupBy(i => i.Key, i => i.Value)
             .ToDictionary(g => g.Key, g => g.Sum())
@@ -59,7 +60,7 @@ public abstract class IslandTask : ProfitTask
         return Task.FromResult(new TaskResult
         {
             ProfitPerHour = (int)perHour,
-            Message = $"{Name} with {McColorCodes.AQUA}{parameters.Socket.FormatPrice(totalProfit)} {McColorCodes.GRAY}with {McColorCodes.GREEN}{itemCount} items {McColorCodes.GRAY}over {formattedDuration}.",
+            Message = $"{Name} with {McColorCodes.AQUA}{fmt.FormatPrice(totalProfit)} {McColorCodes.GRAY}with {McColorCodes.GREEN}{itemCount} items {McColorCodes.GRAY}over {formattedDuration}.",
             Details = $"Total locations considered: {locations.Count}\n" +
                       $"Time tracked: {formattedDuration}\n"
                       + $"Items collected:\n{itemBreakDown}",

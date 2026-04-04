@@ -25,7 +25,8 @@ public abstract class IndividualSlayerTask : ProfitTask
             {
                 ProfitPerHour = 0,
                 Message = $"No {SlayerName} activity tracked so far.",
-                Details = $"Do some {SlayerName} slayer runs so we can calculate your profitability."
+                Details = $"Do some {SlayerName} slayer runs so we can calculate your profitability.",
+                Breakdown = new MethodBreakdown { Category = "Slayer", Source = "none" }
             });
 
         var totalProfit = matched.Sum(p => (double)p.Profit);
@@ -37,7 +38,8 @@ public abstract class IndividualSlayerTask : ProfitTask
         var items = matched.SelectMany(p => p.ItemsCollected)
             .GroupBy(i => i.Key).ToDictionary(g => g.Key, g => (long)g.Sum(v => v.Value))
             .OrderByDescending(i => i.Value);
-        var formattedDuration = parameters.Socket.formatProvider.FormatTime(TimeSpan.FromHours(totalHours));
+        var fmt = parameters.Formatter;
+        var formattedDuration = fmt.FormatTime(TimeSpan.FromHours(totalHours));
         var itemBreakDown = items.Take(15)
             .Select(i => $"{McColorCodes.YELLOW}{i.Key} {McColorCodes.GRAY}x{i.Value}")
             .DefaultIfEmpty("No items tracked").Aggregate((a, b) => a + "\n" + b);
@@ -45,9 +47,21 @@ public abstract class IndividualSlayerTask : ProfitTask
         return Task.FromResult(new TaskResult
         {
             ProfitPerHour = (int)perHour,
-            Message = $"{SlayerName} earning {McColorCodes.AQUA}{parameters.Socket.FormatPrice((long)totalProfit)} {McColorCodes.GRAY}over {formattedDuration}.",
+            Message = $"{SlayerName} earning {McColorCodes.AQUA}{fmt.FormatPrice((long)totalProfit)} {McColorCodes.GRAY}over {formattedDuration}.",
             Details = $"Time tracked: {formattedDuration}\nItems collected:\n{itemBreakDown}",
-            Name = SlayerName
+            Name = SlayerName,
+            Breakdown = new MethodBreakdown
+            {
+                Category = "Slayer",
+                Source = "player_data",
+                TrackedHours = totalHours,
+                Drops = items.Take(15).Select(i => new DropInfo
+                {
+                    ItemTag = i.Key,
+                    RatePerHour = i.Value / totalHours,
+                    PriceEach = 0
+                }).ToList()
+            }
         });
     }
 }
@@ -101,6 +115,16 @@ public class T4VoidgloomsTask : MethodTask
     protected override HashSet<string> Locations => ["The End", "Dragon's Nest", "Void Sepulture"];
     protected override HashSet<string> DetectionItems => ["NULL_SPHERE", "SUMMONING_EYE"];
     protected override List<MethodDrop> FormulaDrops => [new("NULL_SPHERE", 15), new("SUMMONING_EYE", 2)];
+    protected override string Category => "Slayer";
+    protected override string HowTo => "Go to The End and spawn T4 Voidgloom Seraphs. Use Terminator or Juju bow for high DPS. Requires Combat 24+ and Enderman Slayer 7.";
+    protected override List<RequiredItem> RequiredItems => [
+        new() { ItemTag = "TERMINATOR", Reason = "High DPS weapon for Voidgloom kills" },
+        new() { ItemTag = "VOID_SWORD", Reason = "Alternative weapon for Voidgloom kills" }
+    ];
+    protected override List<DropEffect> Effects => [
+        new() { Name = "Magic Find", Description = "Increases rare drop chance from slayer bosses", EstimatedMultiplier = 1.2 },
+        new() { Name = "Ender Slayer", Description = "Increased damage against Endermen", EstimatedMultiplier = 1.3 }
+    ];
 }
 public class T4VoidgloomsFdTask : MethodTask
 {
@@ -108,4 +132,13 @@ public class T4VoidgloomsFdTask : MethodTask
     protected override HashSet<string> Locations => ["The End", "Dragon's Nest", "Void Sepulture"];
     protected override HashSet<string> DetectionItems => ["NULL_SPHERE", "SUMMONING_EYE"];
     protected override List<MethodDrop> FormulaDrops => [new("NULL_SPHERE", 20), new("SUMMONING_EYE", 3)];
+    protected override string Category => "Slayer";
+    protected override string HowTo => "Go to The End and spawn T4 Voidgloom Seraphs (formula drop estimate). Uses estimated rates for players without tracked data.";
+    protected override List<RequiredItem> RequiredItems => [
+        new() { ItemTag = "TERMINATOR", Reason = "High DPS weapon for Voidgloom kills" }
+    ];
+    protected override List<DropEffect> Effects => [
+        new() { Name = "Magic Find", Description = "Increases rare drop chance from slayer bosses", EstimatedMultiplier = 1.2 },
+        new() { Name = "Ender Slayer", Description = "Increased damage against Endermen", EstimatedMultiplier = 1.3 }
+    ];
 }
