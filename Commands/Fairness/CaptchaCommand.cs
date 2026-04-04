@@ -179,11 +179,15 @@ namespace Coflnet.Sky.Commands.MC
 
             info.RequireSolves++;
             info.FaildCount++;
-            if (info.FaildCount <= 1 || accountInfo.CaptchaType != "vertical")
+            if (info.FaildCount <= 1)
                 return;
-            socket.SendMessage($"{McColorCodes.DARK_GREEN}NOTE:{McColorCodes.YELLOW} "
-                + $"Please make sure that the vertical green lines ({McColorCodes.GREEN}|{McColorCodes.YELLOW}) at the end of the captcha line up continuously.\n"
-                + $"{McColorCodes.YELLOW}If they don't line up click on {McColorCodes.GREEN}The green text above{McColorCodes.YELLOW} to configure your texturepack");
+            if (accountInfo.CaptchaType == "vertical")
+                socket.SendMessage($"{McColorCodes.DARK_GREEN}NOTE:{McColorCodes.YELLOW} "
+                    + $"Please make sure that the vertical green lines ({McColorCodes.GREEN}|{McColorCodes.YELLOW}) at the end of the captcha line up continuously.\n"
+                    + $"{McColorCodes.YELLOW}If they don't line up click on {McColorCodes.GREEN}The green text above{McColorCodes.YELLOW} to configure your texturepack");
+                await Task.Delay(5000);
+                socket.SendMessage($"{McColorCodes.DARK_GREEN}NOTE:{McColorCodes.YELLOW} "
+                    + $"If the captcha is still hard to read, try increasing your chat width in Minecraft settings (Options > Chat Settings > Width).");
 
             static void PrintOptions(MinecraftSocket socket, List<string> optionsFull, string part)
             {
