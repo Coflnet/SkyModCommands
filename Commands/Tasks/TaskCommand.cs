@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Coflnet.Sky.Bazaar.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.PlayerState.Client.Api;
 using Newtonsoft.Json;
 
@@ -207,12 +208,42 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
         _tasks.Add<RedMushroomTask>();
         _tasks.Add<BrownMushroomTask>();
         _tasks.Add<MyceliumTask>();
+
+        // Passive tasks
+        _tasks.Add<HuntingTrapTask>();
+
+        // Limited/daily tasks
+        _tasks.Add<DailyCrimsonQuestsTask>();
+        _tasks.Add<ExperimentationTableTask>();
+        _tasks.Add<RiftAccessTask>();
+        _tasks.Add<ViperShardNpcFlipTask>();
     }
     public override bool IsPublic => true;
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, TaskResult elem)
     {
-        db.MsgLine($"§6{socket.FormatPrice(elem.ProfitPerHour)} /h {McColorCodes.GRAY}{elem.Message}", elem.OnClick, elem.Details);
+        var typeTag = elem.Type switch
+        {
+            TaskType.Passive => $"{McColorCodes.DARK_AQUA}[Passive] ",
+            TaskType.Limited => $"{McColorCodes.GOLD}[Limited] ",
+            _ => ""
+        };
+        var accessTag = !elem.IsAccessible ? $"{McColorCodes.DARK_GRAY}[Unavailable] " : "";
+        // Build detailed hover text showing breakdown when available
+        var details = elem.Details ?? "";
+        if (elem.Breakdown != null)
+        {
+            var b = elem.Breakdown;
+            if (!string.IsNullOrEmpty(b.HowTo))
+                details += $"\n\n{McColorCodes.GREEN}How to: {McColorCodes.GRAY}{b.HowTo}";
+            if (!string.IsNullOrEmpty(b.Category))
+                details += $"\n{McColorCodes.YELLOW}Category: {McColorCodes.GRAY}{b.Category}";
+            if (b.RequiredItems?.Count > 0)
+                details += $"\n{McColorCodes.YELLOW}Required: {McColorCodes.GRAY}" + string.Join(", ", b.RequiredItems.Select(r => r.Name ?? r.ItemTag));
+            if (!string.IsNullOrEmpty(elem.InaccessibleReason))
+                details += $"\n{McColorCodes.RED}{elem.InaccessibleReason}";
+        }
+        db.MsgLine($"§6{socket.FormatPrice(elem.ProfitPerHour)} /h {accessTag}{typeTag}{McColorCodes.GRAY}{elem.Message}", elem.OnClick, details);
     }
 
     protected override async Task<IEnumerable<TaskResult>> GetElements(MinecraftSocket socket, string val)
@@ -231,6 +262,12 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             socket.SendMessage($"{COFLNET}{McColorCodes.RED}Could not get item names, using tags instead");
         }
 
+        var taskService = socket.GetService<TaskService>();
+        var locationProfitData = locationProfit.Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1)).GroupBy(l=>l.Location)?.ToDictionary(l => l.Key, l => l.ToArray()) ?? [];
+
+        // Contribute this player's data to community averages
+        taskService.UpdateGlobalAverages(locationProfitData);
+
         var parameters = new TaskParams
         {
             TestTime = DateTime.UtcNow,
@@ -241,8 +278,9 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             CleanPrices = await cleanPrices,
             BazaarPrices = await bazaarPrices,
             Names = nameLookup,
-            LocationProfit = locationProfit.Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1)).GroupBy(l=>l.Location)?.ToDictionary(l => l.Key, l => l.ToArray()) ?? [],
-            MaxAvailableCoins = socket.SessionInfo.Purse > 0 ? socket.SessionInfo.Purse : 1000000000 // Default to 1 billion coins if not set
+            LocationProfit = locationProfitData,
+            MaxAvailableCoins = socket.SessionInfo.Purse > 0 ? socket.SessionInfo.Purse : 1000000000, // Default to 1 billion coins if not set
+            GlobalAverageDrops = taskService.GetGlobalAverages()
         };
         var all = await Task.WhenAll(_tasks.Select(async t =>
         {
@@ -260,7 +298,11 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
                 };
             }
         }).ToList());
-        return all.OrderByDescending(r => r.ProfitPerHour).ToList();
+        // Sort: accessible tasks first by profit, inaccessible at the end
+        return all
+            .OrderBy(r => r.IsAccessible ? 0 : 1)
+            .ThenByDescending(r => r.ProfitPerHour)
+            .ToList();
     }
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<TaskResult> elements, IEnumerable<TaskResult> toDisplay)

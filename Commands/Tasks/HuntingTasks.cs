@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Coflnet.Sky.Commands.MC.Tasks;
@@ -26,7 +27,17 @@ public class RainSlimeHuntingTask : BaseHuntingTask
     protected override HashSet<string> Locations => ["Spider's Den", "The Spider's Den"];
     protected override HashSet<string> DetectionItems => ["SHARD_RAIN_SLIME", "RAIN_SLIME"];
     protected override List<MethodDrop> FormulaDrops => [new("SHARD_RAIN_SLIME", 200)];
-    protected override string HowTo => "Go to Spider's Den and hunt Rain Slimes. They spawn during rain events. Use a weapon with high damage.";
+    protected override string HowTo => "Go to Spider's Den and hunt Rain Slimes. They spawn during rain events (first 20 minutes of each hour). Use a weapon with high damage.";
+    /// <summary>
+    /// Rain Slimes only spawn from :00 to :20 each hour
+    /// </summary>
+    protected override string CheckAccessibility(TaskParams parameters)
+    {
+        var minute = parameters.TestTime.Minute;
+        if (minute >= 20)
+            return $"Rain Slimes only spawn from :00 to :20 each hour. Available again in {60 - minute + 0} minutes.";
+        return base.CheckAccessibility(parameters);
+    }
 }
 public class HellwispHuntingTask : BaseHuntingTask
 {

@@ -3,6 +3,19 @@ using System.Collections.Generic;
 
 namespace Coflnet.Sky.Commands.MC.Tasks;
 
+/// <summary>
+/// Classifies how a task is performed
+/// </summary>
+public enum TaskType
+{
+    /// <summary>Active tasks require continuous player attention (grinding mobs, mining, fishing)</summary>
+    Active,
+    /// <summary>Passive tasks only require setup then waiting (forging, kat, composter, traps)</summary>
+    Passive,
+    /// <summary>Limited tasks can only be done once per day or every few hours</summary>
+    Limited
+}
+
 public class TaskResult
 {
     public int ProfitPerHour { get; set; }
@@ -10,9 +23,13 @@ public class TaskResult
     public string Details { get; set; }
     public string OnClick { get; set; }
     /// <summary>
-    /// Indicates if the task is mostly passive, meaning it can be large in parallel to others (requiring mostly waiting)
+    /// Indicates if the task is mostly passive, meaning it can be done in parallel to others (requiring mostly waiting)
     /// </summary>
     public bool MostlyPassive { get; set; }
+    /// <summary>
+    /// Classification: Active (requires grinding), Passive (setup + wait), Limited (daily/cooldown)
+    /// </summary>
+    public TaskType Type { get; set; } = TaskType.Active;
     public string Name { get; set; }
     /// <summary>
     /// When this result was calculated (for freshness checks by API consumers)
@@ -22,6 +39,18 @@ public class TaskResult
     /// Detailed breakdown for API consumers (website, external services)
     /// </summary>
     public MethodBreakdown Breakdown { get; set; }
+    /// <summary>
+    /// Whether this task is currently accessible (false = time-locked, mayor-locked, or already completed today)
+    /// </summary>
+    public bool IsAccessible { get; set; } = true;
+    /// <summary>
+    /// Human-readable reason why the task is not accessible (null if accessible)
+    /// </summary>
+    public string InaccessibleReason { get; set; }
+    /// <summary>
+    /// For limited tasks: when this task can next be done (null if always available)
+    /// </summary>
+    public DateTime? NextAvailableAt { get; set; }
 }
 
 /// <summary>
@@ -69,6 +98,10 @@ public class MethodBreakdown
     /// Bonus multiplier when cooperating with other players (1.0 = no bonus)
     /// </summary>
     public double CoopBonus { get; set; } = 1.0;
+    /// <summary>
+    /// Task type classification (Active, Passive, Limited)
+    /// </summary>
+    public TaskType Type { get; set; } = TaskType.Active;
 }
 
 public class RequiredItem

@@ -22,6 +22,18 @@ public class TaskParams
     public Dictionary<string, long> CleanPrices { get; set; }
     public List<ItemPrice> BazaarPrices { get; set; }
     public Dictionary<string, string> Names { get;  set; }
+    /// <summary>
+    /// Current mayor name (lowercase), used for accessibility checks on mayor-dependent tasks.
+    /// Null if unknown.
+    /// </summary>
+    public string CurrentMayor { get; set; }
+
+    /// <summary>
+    /// Community-aggregated average drop rates per method name.
+    /// Used as a middle tier between player-specific data and static formulas.
+    /// Key = method name, Value = aggregated drops per hour from all users.
+    /// </summary>
+    public Dictionary<string, List<AverageDrop>> GlobalAverageDrops { get; set; }
 
     public T GetService<T>() where T : class
     {
@@ -61,3 +73,8 @@ public class TaskParams
         public DateTime LastUpdated { get; set; }
     }
 }
+
+/// <summary>
+/// Aggregated average drop rate from community data for a specific item in a specific method.
+/// </summary>
+public record AverageDrop(string ItemTag, double RatePerHour, int SampleCount);

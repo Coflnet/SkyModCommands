@@ -204,6 +204,15 @@ public class TaskService
             new RedMushroomTask(),
             new BrownMushroomTask(),
             new MyceliumTask(),
+
+            // Hunting/Passive tasks
+            new HuntingTrapTask(),
+
+            // Limited tasks
+            new DailyCrimsonQuestsTask(),
+            new ExperimentationTableTask(),
+            new RiftAccessTask(),
+            new ViperShardNpcFlipTask(),
         ];
     }
 
@@ -247,6 +256,69 @@ public class TaskService
             Name = t.Name,
             Description = t.Description,
         }).ToList();
+    }
+
+    /// <summary>
+    /// Community-aggregated average drop rates per method.
+    /// Updated externally (e.g. by a background service or API call).
+    /// </summary>
+    private ConcurrentDictionary<string, List<AverageDrop>> _globalAverages = new();
+
+    /// <summary>
+    /// Returns a snapshot of the current global average drop rates for all methods.
+    /// </summary>
+    public Dictionary<string, List<AverageDrop>> GetGlobalAverages() => new(_globalAverages);
+
+    /// <summary>
+    /// Aggregate drop rates from a player's periods and merge into the global averages.
+    /// Uses exponential moving average to weight recent data more heavily.
+    /// </summary>
+    public void UpdateGlobalAverages(Dictionary<string, Period[]> locationProfit)
+    {
+        foreach (var methodTask in _tasks.OfType<MethodTask>())
+        {
+            var fakeParams = new TaskParams { LocationProfit = locationProfit, TestTime = DateTime.UtcNow };
+            var periods = methodTask.FindMatchingPeriodsForAggregation(fakeParams);
+            if (periods.Count == 0) continue;
+
+            var totalHours = periods.Sum(p => (p.EndTime - p.StartTime).TotalHours);
+            if (totalHours < 1.0 / 60) continue; // Need at least 1 minute of data
+
+            var itemRates = periods
+                .Where(p => p.ItemsCollected != null)
+                .SelectMany(p => p.ItemsCollected)
+                .GroupBy(i => i.Key)
+                .Select(g => new AverageDrop(g.Key, g.Sum(v => v.Value) / totalHours, 1))
+                .ToList();
+
+            _globalAverages.AddOrUpdate(
+                methodTask.Name,
+                itemRates,
+                (_, existing) => MergeAverages(existing, itemRates));
+        }
+    }
+
+    private static List<AverageDrop> MergeAverages(List<AverageDrop> existing, List<AverageDrop> newData)
+    {
+        var merged = new Dictionary<string, AverageDrop>();
+        foreach (var drop in existing)
+            merged[drop.ItemTag] = drop;
+
+        foreach (var drop in newData)
+        {
+            if (merged.TryGetValue(drop.ItemTag, out var prev))
+            {
+                var totalSamples = prev.SampleCount + 1;
+                // Weighted average: give less weight to each subsequent sample to be robust against outliers
+                var newRate = (prev.RatePerHour * prev.SampleCount + drop.RatePerHour) / totalSamples;
+                merged[drop.ItemTag] = new AverageDrop(drop.ItemTag, newRate, totalSamples);
+            }
+            else
+            {
+                merged[drop.ItemTag] = drop;
+            }
+        }
+        return merged.Values.ToList();
     }
 }
 

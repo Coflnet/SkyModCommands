@@ -74,6 +74,15 @@ public abstract class MethodTask : ProfitTask
     /// Category for grouping in the API (Fishing, Mining, Slayer, etc.)
     /// </summary>
     protected virtual string Category => "Other";
+    /// <summary>
+    /// Task type: Active (default), Passive (setup+wait), Limited (daily/cooldown)
+    /// </summary>
+    protected virtual TaskType TaskType => TaskType.Active;
+    /// <summary>
+    /// Check whether this task is currently accessible. Return null if accessible,
+    /// or a reason string if not (e.g. "Only available during Diana mayor", "Rain Slimes only spawn :00-:20")
+    /// </summary>
+    protected virtual string CheckAccessibility(TaskParams parameters) => null;
 
     /// <summary>
     /// Public accessor for tests to check if this task has formula drops
@@ -82,23 +91,38 @@ public abstract class MethodTask : ProfitTask
 
     public override string Description => $"Calculates profit for {MethodName}";
 
-    public override Task<TaskResult> Execute(TaskParams parameters)
+    public override async Task<TaskResult> Execute(TaskParams parameters)
     {
+        var accessibilityIssue = CheckAccessibility(parameters);
+
         var matchedPeriods = FindMatchingPeriodsWindowed(parameters);
 
+        TaskResult result;
         if (matchedPeriods.Count > 0)
-            return ComputeFromPlayerData(parameters, matchedPeriods);
+            result = await ComputeFromPlayerData(parameters, matchedPeriods);
+        else if (parameters.GlobalAverageDrops != null
+                 && parameters.GlobalAverageDrops.TryGetValue(MethodName, out var avgDrops)
+                 && avgDrops.Count > 0)
+            result = await ComputeFromGlobalAverage(parameters, avgDrops);
+        else if (FormulaDrops.Count > 0)
+            result = await ComputeFromFormula(parameters);
+        else
+            result = new TaskResult
+            {
+                ProfitPerHour = 0,
+                Message = $"No {MethodName} data tracked yet.",
+                Details = $"Do some {MethodName} so we can calculate profit.",
+                Name = MethodName
+            };
 
-        if (FormulaDrops.Count > 0)
-            return ComputeFromFormula(parameters);
-
-        return Task.FromResult(new TaskResult
+        result.Type = TaskType;
+        result.MostlyPassive = TaskType == TaskType.Passive;
+        if (accessibilityIssue != null)
         {
-            ProfitPerHour = 0,
-            Message = $"No {MethodName} data tracked yet.",
-            Details = $"Do some {MethodName} so we can calculate profit.",
-            Name = MethodName
-        });
+            result.IsAccessible = false;
+            result.InaccessibleReason = accessibilityIssue;
+        }
+        return result;
     }
 
     /// <summary>
@@ -127,6 +151,12 @@ public abstract class MethodTask : ProfitTask
         // Fall back to all available data
         return allMatched;
     }
+
+    /// <summary>
+    /// Public accessor for aggregation — returns all matching periods without windowing.
+    /// </summary>
+    public List<Period> FindMatchingPeriodsForAggregation(TaskParams parameters)
+        => FindMatchingPeriods(parameters);
 
     protected List<Period> FindMatchingPeriods(TaskParams parameters)
     {
@@ -212,7 +242,8 @@ public abstract class MethodTask : ProfitTask
                 Effects = Effects,
                 Source = "player_data",
                 TrackedHours = totalHours,
-                Category = Category
+                Category = Category,
+                Type = TaskType
             }
         });
     }
@@ -270,7 +301,68 @@ public abstract class MethodTask : ProfitTask
                 Effects = Effects,
                 Source = "formula",
                 TrackedHours = 0,
-                Category = Category
+                Category = Category,
+                Type = TaskType
+            }
+        });
+    }
+
+    protected Task<TaskResult> ComputeFromGlobalAverage(TaskParams parameters, List<AverageDrop> avgDrops)
+    {
+        var prices = parameters.GetPrices();
+        var totalPerHour = 0.0;
+        var breakdown = new List<string>();
+        var drops = new List<DropInfo>();
+        var fmt = parameters.Formatter;
+        var totalSamples = avgDrops.Max(d => d.SampleCount);
+
+        foreach (var drop in avgDrops)
+        {
+            var price = prices.GetValueOrDefault(drop.ItemTag, 0);
+            if (price <= 0) continue;
+            var contribution = drop.RatePerHour * price;
+            totalPerHour += contribution;
+            var name = parameters.Names.GetValueOrDefault(drop.ItemTag, drop.ItemTag);
+            breakdown.Add($"{McColorCodes.YELLOW}{name} {McColorCodes.GRAY}x{drop.RatePerHour:F0}/h = {McColorCodes.AQUA}{fmt.FormatPrice((long)contribution)}");
+            drops.Add(new DropInfo
+            {
+                ItemTag = drop.ItemTag,
+                Name = name,
+                RatePerHour = drop.RatePerHour,
+                PriceEach = price,
+                ContributionPerHour = contribution
+            });
+        }
+
+        if (totalPerHour <= 0)
+            return Task.FromResult(new TaskResult
+            {
+                ProfitPerHour = 0,
+                Message = $"{MethodName} - price data unavailable.",
+                Name = MethodName
+            });
+
+        var reqItems = BuildRequiredItems(parameters);
+
+        return Task.FromResult(new TaskResult
+        {
+            ProfitPerHour = (int)totalPerHour,
+            Message = $"{MethodName} ~{McColorCodes.AQUA}{fmt.FormatPrice((long)totalPerHour)}/h {McColorCodes.GRAY}(avg of {totalSamples} players)",
+            Details = $"Average drops per hour (community data):\n{string.Join("\n", breakdown)}\n{McColorCodes.DARK_GRAY}(Do this method for personalized tracking)",
+            Name = MethodName,
+            OnClick = WarpCommand,
+            Breakdown = new MethodBreakdown
+            {
+                HowTo = HowTo,
+                RequiredItems = reqItems,
+                Drops = drops,
+                ActionsPerHour = ActionsPerHour,
+                ActionUnit = ActionUnit,
+                Effects = Effects,
+                Source = "global_average",
+                TrackedHours = 0,
+                Category = Category,
+                Type = TaskType
             }
         });
     }

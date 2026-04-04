@@ -18,6 +18,7 @@ public class ComposterTask : ProfitTask
         return new TaskResult()
         {
             ProfitPerHour = (int)caclucated.profitPerHour,
+            Type = TaskType.Passive, MostlyPassive = true,
             Message = $"Fill your composter with {McColorCodes.YELLOW}{cropName} {McColorCodes.GRAY}and {McColorCodes.YELLOW}{fuelName}",
             OnClick = $"/bz {cropName}",
             Details = $"{McColorCodes.YELLOW}Click to open {cropName} on bazaar\n"

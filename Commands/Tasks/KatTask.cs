@@ -41,6 +41,7 @@ public class KatTask : ProfitTask
             return new TaskResult
             {
                 ProfitPerHour = 0,
+                Type = TaskType.Passive, MostlyPassive = true,
                 Message = "Status of kat is unknown, please open the kat menu and try again",
                 Details = "The status of kat can only be read if you\n"
                          + "click on the kat npc in the skyblock hub"
@@ -51,6 +52,7 @@ public class KatTask : ProfitTask
             return new TaskResult
             {
                 ProfitPerHour = 0,
+                Type = TaskType.Passive, MostlyPassive = true,
                 Message = $"Your kat is currently busy with {parameters.ExtractedInfo.KatStatus.ItemName} for another {formatProvider.FormatTime(parameters.ExtractedInfo.KatStatus.KatEnd - DateTime.UtcNow)}.",
                 Details = "Please wait until kat is done with the current task.\nWould you like to get a push notification when kat is done?",
             };
@@ -84,6 +86,7 @@ public class KatTask : ProfitTask
         return new TaskResult
         {
             ProfitPerHour = (int)(profit * feeAndRiskFactor / (coreData.Hours + 0.1) / attributeMultiplier),
+            Type = TaskType.Passive, MostlyPassive = true,
             Message = $"Upgrade {coreData.Name} with kat starting with {coreData.BaseRarity}, click to get cheapest purchase, if its already sold try again in a minute.",
             Details = explanation,
             OnClick = $"/viewauction {best.katData.OriginAuction}"

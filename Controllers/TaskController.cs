@@ -70,8 +70,12 @@ public class TaskController : ControllerBase
                 .Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1))
                 .GroupBy(l => l.Location)
                 .ToDictionary(l => l.Key, l => l.ToArray()),
-            MaxAvailableCoins = 1_000_000_000
+            MaxAvailableCoins = 1_000_000_000,
+            GlobalAverageDrops = _taskService.GetGlobalAverages()
         };
+
+        // Contribute this player's data to community averages
+        _taskService.UpdateGlobalAverages(parameters.LocationProfit);
 
         return await _taskService.ExecuteAll(parameters);
     }
