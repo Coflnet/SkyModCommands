@@ -112,6 +112,7 @@ public class PreApiService : BackgroundService, IPreApiService
                 await RefreshUsers();
                 PublishSell(Dns.GetHostName(), AccountTier.NONE);
                 PublishReceive(Dns.GetHostName());
+                CleanupStaleEntries();
             }
             catch (Exception e)
             {
@@ -120,6 +121,27 @@ public class PreApiService : BackgroundService, IPreApiService
 
             await Task.Delay(45000, stoppingToken).ConfigureAwait(false);
         }
+    }
+
+    private void CleanupStaleEntries()
+    {
+        var cutoff = DateTime.UtcNow - TimeSpan.FromMinutes(2);
+        foreach (var item in sent)
+        {
+            if (item.Value < cutoff)
+                sent.TryRemove(item.Key, out _);
+        }
+        foreach (var item in sold.Keys.ToArray())
+        {
+            // sold entries are only relevant for ~2 minutes for IsSold checks
+            if (!sent.ContainsKey(item))
+                sold.TryRemove(item, out _);
+        }
+    }
+
+    public void RemoveUser(IFlipConnection connection)
+    {
+        localUsers.TryRemove(connection, out _);
     }
 
     private static void SendEndWarnings()

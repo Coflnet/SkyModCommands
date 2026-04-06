@@ -1274,6 +1274,17 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine($"Failed to unregister socket from proxy service: {ex.Message}");
             }
 
+            // Remove from pre-api local users on disconnect
+            try
+            {
+                var preApiService = socket.GetService<PreApiService>();
+                preApiService?.RemoveUser(socket);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to remove from pre-api: {ex.Message}");
+            }
+
             FlipSettings?.Dispose();
             UserId?.Dispose();
             AccountInfo?.Dispose();
