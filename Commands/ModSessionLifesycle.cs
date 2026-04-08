@@ -317,6 +317,21 @@ namespace Coflnet.Sky.Commands.MC
                         return; // do not show outbid messages
                     if (onchange.Timestamp < DateTime.UtcNow.AddSeconds(-30))
                         return; // ignore old outbid messages
+                    // Suppress outbid notifications for recently filled orders
+                    var recentFills = SessionInfo.RecentlyFilledOrders;
+                    recentFills.RemoveAll(f => f.FilledAt < DateTime.UtcNow.AddSeconds(-30));
+                    if (recentFills.Count > 0 && onchange.Message != null)
+                    {
+                        // Extract "Nx ItemName" from the notification message (strips color codes)
+                        var stripped = Regex.Replace(onchange.Message, "§.", "");
+                        var m = Regex.Match(stripped, @"order for ([\d,]+)x (.+?) has been");
+                        if (m.Success)
+                        {
+                            var notifKey = m.Groups[1].Value.Replace(",", "") + "x" + m.Groups[2].Value;
+                            if (recentFills.Any(f => f.Message == notifKey))
+                                return; // order was recently filled, suppress outbid notification
+                        }
+                    }
                     onchange.Link = "/managebazaarorders";
                     if (socket.Settings.ModSettings.PlaySoundOnOutbid)
                         socket.ModAdapter.SendSound("entity.experience_orb.pickup", 1);

@@ -56,6 +56,16 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task ProcessLine(MinecraftSocket socket, List<string> batch, string item)
         {
+            if (item.Contains("was filled!"))
+            {
+                var fillMatch = Regex.Match(item, @"(Buy Order|Sell Offer) for ([\d,]+)x (.+) was filled!");
+                if (fillMatch.Success)
+                {
+                    var fillKey = fillMatch.Groups[2].Value.Replace(",", "") + "x" + fillMatch.Groups[3].Value;
+                    socket.SessionInfo.RecentlyFilledOrders.Add((fillKey, DateTime.UtcNow));
+                    socket.SessionInfo.RecentlyFilledOrders.RemoveAll(f => f.FilledAt < DateTime.UtcNow.AddSeconds(-30));
+                }
+            }
             if (item.StartsWith("You purchased"))
             {
                 socket.GetService<PreApiService>().PurchaseMessage(socket, item);

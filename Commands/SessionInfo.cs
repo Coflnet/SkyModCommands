@@ -104,6 +104,14 @@ namespace Coflnet.Sky.Commands.MC
         public bool SellAll;
 
         public List<SaveAuction> Inventory { get; set; }
+
+        /// <summary>
+        /// Tracks recently filled bazaar orders (item name + amount) to suppress outbid notifications.
+        /// Entries expire after 30 seconds.
+        /// </summary>
+        [JsonIgnore]
+        public List<(string Message, DateTime FilledAt)> RecentlyFilledOrders { get; set; } = new();
+
         public void Dispose()
         {
             EventBrokerSub?.Unsubscribe();
