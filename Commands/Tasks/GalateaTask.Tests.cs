@@ -20,7 +20,7 @@ public class GalateaTaskTests
         {
             TestTime = new DateTime(2025, 7, 24, 17, 0, 0),
             ExtractedInfo = new PlayerState.Client.Model.ExtractedInfo(),
-            Socket = new MinecraftSocket(),
+            Formatter = new SimpleTaskFormatProvider(),
             Cache = new ConcurrentDictionary<Type, TaskParams.CalculationCache>(),
             MaxAvailableCoins = 1000000000,
             LocationProfit = locationProfit.GroupBy(l => l.Location).ToDictionary(l => l.Key, l => l.ToArray())

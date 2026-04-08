@@ -14,6 +14,7 @@ public class ForgeTask : ProfitTask
             return new TaskResult
             {
                 ProfitPerHour = 0,
+                Type = TaskType.Passive, MostlyPassive = true,
                 Message = "The status of forge is unknown, if you have unlocked it, please open the forge menu and try again"
             };
         }
@@ -23,7 +24,8 @@ public class ForgeTask : ProfitTask
             return new TaskResult
             {
                 ProfitPerHour = 0,
-                Message = $"You have an active forge task, the next will be finished in {parameters.Socket.formatProvider.FormatTime(forgeEnd - DateTime.UtcNow)}."
+                Type = TaskType.Passive, MostlyPassive = true,
+                Message = $"You have an active forge task, the next will be finished in {parameters.Formatter.FormatTime(forgeEnd - DateTime.UtcNow)}."
             };
         }
 
@@ -38,6 +40,7 @@ public class ForgeTask : ProfitTask
             return new TaskResult
             {
                 ProfitPerHour = 0,
+                Type = TaskType.Passive, MostlyPassive = true,
                 Message = "No profitable forge flips found, please try again later."
             };
         }
@@ -45,9 +48,10 @@ public class ForgeTask : ProfitTask
         return new TaskResult
         {
             ProfitPerHour = (int)best.ProfitPerHour,
-            Message = $"Forge {best.CraftData.ItemName}, takes {parameters.Socket.formatProvider.FormatTime(TimeSpan.FromSeconds(best.Duration))}",
+            Type = TaskType.Passive, MostlyPassive = true,
+            Message = $"Forge {best.CraftData.ItemName}, takes {parameters.Formatter.FormatTime(TimeSpan.FromSeconds(best.Duration))}",
             Details = $"Ingredients required:\n" +
-                      string.Join("\n", best.CraftData.Ingredients.Select(i => $"{i.ItemId} x{i.Count} ({parameters.Socket.FormatPrice(i.Cost)})"))
+                      string.Join("\n", best.CraftData.Ingredients.Select(i => $"{i.ItemId} x{i.Count} ({parameters.Formatter.FormatPrice(i.Cost)})"))
                       + $"\nClick to warp to forge",
             OnClick = $"/warp forge"
         };

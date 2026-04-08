@@ -111,7 +111,7 @@ public class SlayerTask : ProfitTask
         return Task.FromResult(new TaskResult
         {
             ProfitPerHour = (int)Math.Round(best.perHour),
-            Message = $"Slayer: {best.name} is currently your best ({parameters.Socket.FormatPrice((long)best.perHour)} /h)",
+            Message = $"Slayer: {best.name} is currently your best ({parameters.Formatter.FormatPrice((long)best.perHour)} /h)",
             Details = string.Join("\n", topItems),
             OnClick = null,
             MostlyPassive = false,
