@@ -31,19 +31,27 @@ public abstract class LimitedTask : MethodTask
 
     protected override string CheckAccessibility(TaskParams parameters)
     {
-        // Check if the player has done this task recently by looking at matching periods
-        var recentPeriods = FindMatchingPeriods(parameters)
-            .Where(p => p.EndTime > parameters.TestTime.Add(-Cooldown))
-            .ToList();
-
-        if (recentPeriods.Count >= MaxUsesPerCooldown)
+        var nextAvailable = GetNextAvailableAt(parameters);
+        if (nextAvailable.HasValue)
         {
-            var lastDone = recentPeriods.Max(p => p.EndTime);
-            var nextAvailable = lastDone.Add(Cooldown);
-            return $"Already done recently. Next available {FormatTimeUntil(nextAvailable, parameters.TestTime)}.";
+            return $"Already done recently. Next available {FormatTimeUntil(nextAvailable.Value, parameters.TestTime)}.";
         }
 
         return base.CheckAccessibility(parameters);
+    }
+
+    protected override DateTime? GetNextAvailableAt(TaskParams parameters)
+    {
+        var recentPeriods = FindMatchingPeriods(parameters)
+            .Where(p => p.EndTime > parameters.TestTime.Add(-Cooldown))
+            .OrderByDescending(p => p.EndTime)
+            .ToList();
+
+        if (recentPeriods.Count < MaxUsesPerCooldown)
+            return null;
+
+        var relevantPeriod = recentPeriods.Take(MaxUsesPerCooldown).MinBy(p => p.EndTime);
+        return relevantPeriod?.EndTime.Add(Cooldown);
     }
 
     private static string FormatTimeUntil(DateTime target, DateTime now)
@@ -189,6 +197,7 @@ public class ViperShardNpcFlipTask : LimitedTask
         {
             result.IsAccessible = false;
             result.InaccessibleReason = accessibilityIssue;
+            result.NextAvailableAt = GetNextAvailableAt(parameters);
         }
         return Task.FromResult(result);
     }

@@ -38,6 +38,15 @@ public class RainSlimeHuntingTask : BaseHuntingTask
             return $"Rain Slimes only spawn from :00 to :20 each hour. Available again in {60 - minute + 0} minutes.";
         return base.CheckAccessibility(parameters);
     }
+
+    protected override DateTime? GetNextAvailableAt(TaskParams parameters)
+    {
+        var minute = parameters.TestTime.Minute;
+        if (minute < 20)
+            return null;
+        return new DateTime(parameters.TestTime.Year, parameters.TestTime.Month, parameters.TestTime.Day,
+            parameters.TestTime.Hour, 0, 0, parameters.TestTime.Kind).AddHours(1);
+    }
 }
 public class HellwispHuntingTask : BaseHuntingTask
 {

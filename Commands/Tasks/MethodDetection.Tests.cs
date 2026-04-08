@@ -42,6 +42,13 @@ public class MethodDetectionTests
         };
     }
 
+    private static TaskParams MakeParamsWithTime(DateTime testTime, params Period[] periods)
+    {
+        var parameters = MakeParams(periods);
+        parameters.TestTime = testTime;
+        return parameters;
+    }
+
     // ── Mob detection via SHARD_ items ──
 
     [Test]
@@ -216,6 +223,54 @@ public class MethodDetectionTests
         var result = await task.Execute(MakeParams(period));
         result.ProfitPerHour.Should().BeGreaterThan(0);
         result.Name.Should().Be("Diana (Hunting)");
+    }
+
+    [Test]
+    public async Task DianaTask_IsUnavailable_WhenDifferentMayorIsActive()
+    {
+        var task = new DianaTask();
+        var parameters = MakeParams();
+        parameters.CurrentMayor = "derpy";
+
+        var result = await task.Execute(parameters);
+
+        result.IsAccessible.Should().BeFalse();
+        result.InaccessibleReason.Should().Contain("Diana");
+    }
+
+    [Test]
+    public async Task LimitedTask_SetsNextAvailableAt_WhenRecentlyCompleted()
+    {
+        var start = new DateTime(2025, 7, 24, 10, 0, 0, DateTimeKind.Utc);
+        var period = new Period
+        {
+            PlayerUuid = "test",
+            Server = "m1",
+            Location = "Hub",
+            Profit = 100_000,
+            StartTime = start,
+            EndTime = start.AddMinutes(5),
+            ItemsCollected = new Dictionary<string, int> { { "GRAND_EXPERIENCE_BOTTLE", 3 } }
+        };
+        var task = new ExperimentationTableTask();
+
+        var result = await task.Execute(MakeParamsWithTime(start.AddHours(1), period));
+
+        result.IsAccessible.Should().BeFalse();
+        result.NextAvailableAt.Should().Be(start.AddMinutes(5).AddHours(24));
+    }
+
+    [Test]
+    public void PrepareTaskResult_RewritesClickToDetails_AndPreservesPrimaryAction()
+    {
+        var result = TaskCommand.PrepareTaskResult(new TaskResult
+        {
+            Name = "Forge",
+            OnClick = "/warp forge"
+        });
+
+        result.OnClick.Should().Be("/cofl taskdetails Forge");
+        result.PrimaryAction.Should().Be("/warp forge");
     }
 
     // ── Mining tasks ──

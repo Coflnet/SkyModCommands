@@ -83,6 +83,7 @@ public abstract class MethodTask : ProfitTask
     /// or a reason string if not (e.g. "Only available during Diana mayor", "Rain Slimes only spawn :00-:20")
     /// </summary>
     protected virtual string CheckAccessibility(TaskParams parameters) => null;
+    protected virtual DateTime? GetNextAvailableAt(TaskParams parameters) => null;
 
     /// <summary>
     /// Public accessor for tests to check if this task has formula drops
@@ -117,6 +118,7 @@ public abstract class MethodTask : ProfitTask
 
         result.Type = TaskType;
         result.MostlyPassive = TaskType == TaskType.Passive;
+        result.NextAvailableAt ??= GetNextAvailableAt(parameters);
         if (accessibilityIssue != null)
         {
             result.IsAccessible = false;
