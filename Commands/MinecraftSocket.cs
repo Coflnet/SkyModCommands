@@ -241,6 +241,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<NoLoginCommand>();
             Commands.Add<AnankeCommand>();
             Commands.Add<Tasks.TaskCommand>();
+            Commands.Add<Tasks.TaskDetailsCommand>();
             Commands.Add<LowballCommand>();
             Commands.Add<BzMoveCommand>();
             Commands.Add<UploadSettingsCommand>();

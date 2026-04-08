@@ -28,6 +28,12 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
     }
     public override bool IsPublic => true;
 
+    public override async Task Execute(MinecraftSocket socket, string args)
+    {
+        socket.SendMessage($"{MinecraftSocket.COFLNET}{McColorCodes.GRAY}Loading tasks... this can take a few seconds.");
+        await base.Execute(socket, args);
+    }
+
     protected override void Format(MinecraftSocket socket, DialogBuilder db, TaskResult elem)
     {
         var typeTag = elem.Type switch
@@ -135,24 +141,17 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
 
     internal static string BuildListHover(TaskResult elem)
     {
-        var details = elem.Details ?? "";
+        var lines = new List<string>();
         if (elem.Breakdown != null)
         {
-            var b = elem.Breakdown;
-            if (!string.IsNullOrEmpty(b.HowTo))
-                details += $"\n\n{McColorCodes.GREEN}How to: {McColorCodes.GRAY}{b.HowTo}";
-            if (!string.IsNullOrEmpty(b.Category))
-                details += $"\n{McColorCodes.YELLOW}Category: {McColorCodes.GRAY}{b.Category}";
-            if (b.RequiredItems?.Count > 0)
-                details += $"\n{McColorCodes.YELLOW}Required: {McColorCodes.GRAY}" + string.Join(", ", b.RequiredItems.Select(r => r.Name ?? r.ItemTag));
-            if (!string.IsNullOrEmpty(elem.InaccessibleReason))
-                details += $"\n{McColorCodes.RED}{elem.InaccessibleReason}";
-            if (elem.NextAvailableAt.HasValue)
-                details += $"\n{McColorCodes.YELLOW}Next available: {McColorCodes.GRAY}{TaskDetailsCommand.FormatAbsoluteTime(elem.NextAvailableAt.Value)} ({TaskDetailsCommand.FormatRelativeTime(elem.NextAvailableAt.Value - DateTime.UtcNow)})";
+            if (!string.IsNullOrWhiteSpace(elem.Breakdown.Category))
+                lines.Add($"{McColorCodes.YELLOW}Category: {McColorCodes.GRAY}{elem.Breakdown.Category}");
+            if (!elem.IsAccessible && !string.IsNullOrWhiteSpace(elem.InaccessibleReason))
+                lines.Add($"{McColorCodes.RED}{elem.InaccessibleReason}");
+            else if (elem.NextAvailableAt.HasValue)
+                lines.Add($"{McColorCodes.YELLOW}Next available: {McColorCodes.GRAY}{TaskDetailsCommand.FormatRelativeTime(elem.NextAvailableAt.Value - DateTime.UtcNow)}");
         }
-        if (!string.IsNullOrWhiteSpace(details))
-            details += "\n\n";
-        details += $"{McColorCodes.AQUA}Click for full task details";
-        return details;
+        lines.Add($"{McColorCodes.AQUA}Click for full task details");
+        return string.Join("\n", lines);
     }
 }
