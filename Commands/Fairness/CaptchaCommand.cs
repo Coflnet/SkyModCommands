@@ -194,7 +194,7 @@ namespace Coflnet.Sky.Commands.MC
                 var length = "01234567890123456789";
                 var prefix = $"/cofl captcha config set {part} ";
                 socket.Dialog(db => db.ForEach(length, (db, ignore) => db.MsgLine("")).MsgLine(McColorCodes.GRAY + "If none line up please report your texture pack on our discord server")
-                    .ForEach(optionsFull, (db, character) => db.ForEach(length, (idb, ignore) => idb.Msg(GetCharacter(character))).MsgLine($"{McColorCodes.YELLOW}|", prefix + character, "Click to select")
+                    .ForEach(optionsFull, (db, character) => db.ForEach(length, (idb, ignore) => idb.Msg(GetCharacter(character))).MsgLine($"{McColorCodes.YELLOW}|", prefix + character, $"Click to select\n{McColorCodes.GRAY}/cofl captcha config set {part} {character}")
                         .ForEach(length + length, (idb, ignore) => idb.Msg(" ")).MsgLine($"{McColorCodes.GREEN}|"))
                         .MsgLine("Click on a yellow line that aligns with the green line")
                         .Msg($"{McColorCodes.GRAY}Its important that the this sentence is in one line as well", null,
