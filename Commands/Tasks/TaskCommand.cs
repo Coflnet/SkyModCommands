@@ -55,7 +55,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             {
                 var result = await t.Value.Execute(parameters);
                 result.Name ??= t.Value.Name;
-                return PrepareTaskResult(result);
+                return PrepareTaskResult(result, t.Value.Name);
             }
             catch (Exception e)
             {
@@ -65,7 +65,7 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
                     Message = $"§cError while trying to calculate task {t.Key} {t.Value.Description}",
                     Details = e.ToString(),
                     Name = t.Value.Name
-                });
+                }, t.Value.Name);
             }
         }).ToList());
         // Sort: accessible tasks first by profit, inaccessible at the end
@@ -130,12 +130,13 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
         };
     }
 
-    internal static TaskResult PrepareTaskResult(TaskResult result)
+    internal static TaskResult PrepareTaskResult(TaskResult result, string commandTaskName = null)
     {
         result.Name ??= "Unknown Task";
         if (string.IsNullOrWhiteSpace(result.PrimaryAction))
             result.PrimaryAction = result.OnClick;
-        result.OnClick = $"/cofl taskdetails {result.Name}";
+        var targetName = string.IsNullOrWhiteSpace(commandTaskName) ? result.Name : commandTaskName;
+        result.OnClick = $"/cofl taskdetails {targetName}";
         return result;
     }
 

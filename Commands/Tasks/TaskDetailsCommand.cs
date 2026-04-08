@@ -10,7 +10,9 @@ public class TaskDetailsCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        var taskName = (arguments ?? string.Empty).Trim();
+        var taskName = Convert<string>(arguments)?.Trim() ?? string.Empty;
+        if (taskName.StartsWith("/cofl taskdetails ", StringComparison.OrdinalIgnoreCase))
+            taskName = taskName.Substring("/cofl taskdetails ".Length).Trim();
         if (string.IsNullOrWhiteSpace(taskName))
         {
             socket.Dialog(db => db.MsgLine("Usage: /cofl taskdetails <task name>")
@@ -19,7 +21,8 @@ public class TaskDetailsCommand : McCommand
         }
 
         var tasks = TaskCatalog.Create();
-        var task = tasks.Values.FirstOrDefault(t => t.Name.Equals(taskName, StringComparison.OrdinalIgnoreCase));
+        var task = tasks.Values.FirstOrDefault(t => t.Name.Equals(taskName, StringComparison.OrdinalIgnoreCase))
+               ?? tasks.Values.FirstOrDefault(t => t.Name.Contains(taskName, StringComparison.OrdinalIgnoreCase));
         if (task == null)
         {
             socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Task {taskName} was not found.")
