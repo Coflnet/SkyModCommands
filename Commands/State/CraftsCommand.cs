@@ -66,7 +66,7 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
         var profileApi = socket.GetService<IProfileClient>();
         var craftsTask = NewMethod(craftApi);
         var filtered = (await profileApi.FilterProfitableCrafts(craftsTask, socket.SessionInfo.McUuid, "current"))
-                .OrderByDescending(f => f.SellPrice - f.CraftCost);
+                .OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost) * f.Volume);
 
         if (OnBazaar.Count == 0)
             _ = socket.TryAsyncTimes(async () =>
