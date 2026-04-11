@@ -164,6 +164,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<UpdateBitsCommand>();
             Commands.Add<UploadTabCommand>();
             Commands.Add<UploadInventory>();
+            Commands.Add<UploadBazaarOrders>();
             Commands.Add<UploadUpperInventory>();
             Commands.Add<UploadScoreboardCommand>();
             Commands.Add<BackupCommand>();
