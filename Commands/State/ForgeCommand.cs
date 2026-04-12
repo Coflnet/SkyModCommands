@@ -50,6 +50,20 @@ public class ForgeCommand : ReadOnlyListCommand<ForgeFlip>
         return await forgeService.GetForgeFlips(socket.SessionInfo.McName, socket.SessionInfo.McUuid);
     }
 
+    /// <summary>
+    /// Overload for REST API path where MinecraftSocket is not available.
+    /// Resolves ForgeFlipService from TaskParams (via IServiceProvider or Socket).
+    /// </summary>
+    public static async Task<IEnumerable<ForgeFlip>> GetPossibleFlips(Tasks.TaskParams parameters)
+    {
+        if (parameters.Socket != null)
+            return await GetPossibleFlips(parameters.Socket);
+        var forgeService = parameters.GetService<ForgeFlipService>();
+        if (forgeService == null)
+            return Enumerable.Empty<ForgeFlip>();
+        return await forgeService.GetForgeFlips(parameters.PlayerName ?? parameters.PlayerUuid, parameters.PlayerUuid);
+    }
+
 
     protected override string GetId(ForgeFlip elem)
     {

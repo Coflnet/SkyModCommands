@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Coflnet.Sky.Bazaar.Client.Model;
 using Coflnet.Sky.PlayerState.Client.Model;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Coflnet.Sky.Commands.MC.Tasks;
 
@@ -35,9 +36,26 @@ public class TaskParams
     /// </summary>
     public Dictionary<string, List<AverageDrop>> GlobalAverageDrops { get; set; }
 
+    /// <summary>
+    /// DI service provider for the REST API path (where Socket is null).
+    /// </summary>
+    public IServiceProvider ServiceProvider { get; set; }
+
+    /// <summary>
+    /// Player UUID, available in both WebSocket and REST paths.
+    /// </summary>
+    public string PlayerUuid { get; set; }
+
+    /// <summary>
+    /// Player name, may be same as PlayerUuid when not known.
+    /// </summary>
+    public string PlayerName { get; set; }
+
     public T GetService<T>() where T : class
     {
-        return Socket.GetService<T>();
+        if (ServiceProvider != null)
+            return ServiceProvider.GetService<T>();
+        return Socket?.GetService<T>();
     }
 
     /// <summary>

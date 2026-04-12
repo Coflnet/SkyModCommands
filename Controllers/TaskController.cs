@@ -25,6 +25,7 @@ public class TaskController : ControllerBase
     private readonly IBazaarApi _bazaarApi;
     private readonly ISniperClient _sniperClient;
     private readonly Items.Client.Api.IItemsApi _itemsApi;
+    private readonly IServiceProvider _serviceProvider;
 
     public TaskController(
         TaskService taskService,
@@ -32,7 +33,8 @@ public class TaskController : ControllerBase
         IPlayerStateApi playerStateApi,
         IBazaarApi bazaarApi,
         ISniperClient sniperClient,
-        Items.Client.Api.IItemsApi itemsApi)
+        Items.Client.Api.IItemsApi itemsApi,
+        IServiceProvider serviceProvider)
     {
         _taskService = taskService;
         _activityService = activityService;
@@ -40,6 +42,7 @@ public class TaskController : ControllerBase
         _bazaarApi = bazaarApi;
         _sniperClient = sniperClient;
         _itemsApi = itemsApi;
+        _serviceProvider = serviceProvider;
     }
 
     /// <summary>
@@ -71,7 +74,10 @@ public class TaskController : ControllerBase
                 .GroupBy(l => l.Location)
                 .ToDictionary(l => l.Key, l => l.ToArray()),
             MaxAvailableCoins = 1_000_000_000,
-            GlobalAverageDrops = _taskService.GetGlobalAverages()
+            GlobalAverageDrops = _taskService.GetGlobalAverages(),
+            ServiceProvider = _serviceProvider,
+            PlayerUuid = playerId,
+            PlayerName = playerId
         };
 
         // Contribute this player's data to community averages

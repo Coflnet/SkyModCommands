@@ -29,7 +29,7 @@ public class ForgeTask : ProfitTask
             };
         }
 
-        var flips = await ForgeCommand.GetPossibleFlips(parameters.Socket);
+        var flips = await ForgeCommand.GetPossibleFlips(parameters);
         var best = flips
             .Where(f => f.CraftData.CraftCost < 20_000_000_000 && f.ProfitPerHour > 0)
             .OrderByDescending(f => f.ProfitPerHour)
