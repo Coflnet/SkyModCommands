@@ -360,10 +360,22 @@ public class LowballOfferService
         {
             await kafkaCreator.CreateTopicIfNotExist(KafkaTopic, 1);
             using var producer = kafkaCreator.BuildProducer<string, string>();
+            var offerMessage = JsonConvert.SerializeObject(new
+            {
+                offerId = offer.OfferId,
+                userId = offer.UserId,
+                itemTag = offer.ItemTag,
+                itemName = offer.ItemName,
+                askingPrice = offer.AskingPrice,
+                minecraftAccount = offer.MinecraftAccount,
+                createdAt = offer.CreatedAt,
+                apiAuctionJson = offer.ApiAuctionJson,
+                itemCount = offer.ItemCount
+            });
             await producer.ProduceAsync(KafkaTopic, new Confluent.Kafka.Message<string, string>
             {
                 Key = offer.OfferId.ToString(),
-                Value = offer.ApiAuctionJson
+                Value = offerMessage
             });
         }
         catch (Exception ex)

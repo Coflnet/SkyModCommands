@@ -26,6 +26,29 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
         var args = arguments.Trim('"').Split(' ');
         var service = socket.GetService<LowballSerivce>();
         var offerService = socket.GetService<Coflnet.Sky.ModCommands.Services.LowballOfferService>();
+        if (args.Length == 2 && args[0] == "remove")
+        {
+            if (offerService == null)
+            {
+                socket.Dialog(db => db.MsgLine("§cLowball removal not available on this server."));
+                return;
+            }
+
+            if (!Guid.TryParse(args[1], out var offerId))
+            {
+                socket.Dialog(db => db.MsgLine("§cInvalid offer id. Usage: /cofl lowball remove <offer-uuid>"));
+                return;
+            }
+
+            var userId = socket.SessionInfo.McUuid;
+            var success = await offerService.DeleteOffer(userId, offerId);
+            if (success)
+                socket.Dialog(db => db.MsgLine($"§aRemoved lowball offer {offerId}"));
+            else
+                socket.Dialog(db => db.MsgLine($"§cFailed to remove lowball offer {offerId}. It may not exist or you are not the owner."));
+
+            return;
+        }
         if (args.Length == 1)
         {
             if (args[0] == "list")
@@ -54,29 +77,6 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
                 }
                 return;
             }
-            else if (args[0] == "remove" && args.Length == 2)
-            {
-                if (offerService == null)
-                {
-                    socket.Dialog(db => db.MsgLine("§cLowball removal not available on this server."));
-                    return;
-                }
-
-                if (!Guid.TryParse(args[1], out var offerId))
-                {
-                    socket.Dialog(db => db.MsgLine("§cInvalid offer id. Usage: /cofl lowball remove <offer-uuid>"));
-                    return;
-                }
-
-                var userId = socket.SessionInfo.McUuid;
-                var success = await offerService.DeleteOffer(userId, offerId);
-                if (success)
-                    socket.Dialog(db => db.MsgLine($"§aRemoved lowball offer {offerId}"));
-                else
-                    socket.Dialog(db => db.MsgLine($"§cFailed to remove lowball offer {offerId}. It may not exist or you are not the owner."));
-
-                return;
-            }
             if (args[0] == "on")
             {
                 service.Enable(socket);
@@ -85,7 +85,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             }
             else if (args[0] == "off")
             {
-                service.Disable(null);
+                service.Disable(socket);
                 socket.Dialog(db => db.MsgLine("§cLowballing is now disabled, you will no longer receive lowball offers."));
                 return;
             }
@@ -101,7 +101,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             {
                 socket.sessionLifesycle.AccountSettings.Value.BlockLowballs = true;
                 await socket.sessionLifesycle.AccountSettings.Update();
-                service.Disable(null);
+                service.Disable(socket);
                 socket.Dialog(db => db.MsgLine("§cLowballing is now disabled permanently."));
                 return;
             }
@@ -236,7 +236,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             serivce.Offer(auction, price, priceEstimate[0], socket);
             try
             {
-                var fullLink  = await HotkeyCommand.GetLinkWithFilters(DiHandler.GetService<MinecraftSocket>(), auction);
+                var fullLink  = await HotkeyCommand.GetLinkWithFilters(socket, auction);
                 await socket.GetService<LowballOfferService>().CreateOffer(socket.UserId, auction, price,  priceEstimate.First(), fullLink);
             }
             catch (Exception e)
@@ -280,8 +280,8 @@ public class LowballSerivce
                 keysToRemove.Add(item.Key);
                 continue;
             }
-            if (item.Value.Socket.ModAdapter is not AfVersionAdapter)
-                continue; // only non macroers will see this offer
+            if (item.Value.Socket.ModAdapter is AfVersionAdapter)
+                continue; // skip auto-flippers, only manual users are lowball buyers
             var matchInfo = item.Value.Socket.Settings.MatchesSettings(FlipperService.LowPriceToFlip(median));
             if (matchInfo.Item1)
             {
