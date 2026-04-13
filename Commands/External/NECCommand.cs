@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
+
 public class NECCommand : ArgumentsCommand
 {
     protected override string Usage => "<email>";
@@ -79,6 +80,8 @@ public class NECCommand : ArgumentsCommand
             var userApi = socket.GetService<UserApi>();
             await userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, "starter_premium", "nec-" + necUser.Uuid, count);
         }
+        catch (CoflnetException)
+        { throw; }
         catch (Exception e)
         {
             socket.GetService<ILogger<NECCommand>>().LogError(e, "Error while unlocking NEC tier");
