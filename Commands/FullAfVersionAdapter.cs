@@ -183,7 +183,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         foreach (var item in amounts)
         {
             var tag = item.Key;
-            var amount = item.Value.Item1;
+            var amount = BazaarOrderAmountHelper.ClampOrderAmount(tag, item.Value.Item1);
             var name = item.Value.Item2;
             var price = bazaarItems[tag].Sell.OrderBy(o => o.PricePerUnit).First().PricePerUnit - 0.1;
             await RecommendBazaarSellOrder(tag, name, amount, price);
@@ -642,7 +642,11 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
     /// <param name="amount">The amount to order</param>
     public void SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount)
     {
-        if(itemName == "Enchanted Book")
+        var cappedAmount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount);
+        if (cappedAmount != amount)
+            Activity.Current?.Log($"Capped bazaar order amount for {itemTag} from {amount} to {cappedAmount}");
+
+        if (itemName == "Enchanted Book")
         {
             // for enchanted books, include enchantments in the name for better clarity
             itemName = BazaarUtils.GetSearchValue(itemTag, itemName);
@@ -653,7 +657,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             itemName = itemName,
             isSell = isSell,
             price = price,
-            amount = amount
+            amount = cappedAmount
         }));
     }
 

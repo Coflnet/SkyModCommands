@@ -130,10 +130,7 @@ public class BazaarFlipService : BackgroundService
         // pick one at random from the tier group
         var recommended = group[Random.Shared.Next(group.Count)];
 
-        var isNotStackable = recommended.ItemTag.Contains("BOOK");
-        var amount = recommended.SellPrice < 100_000 && !isNotStackable ? 64
-            : recommended.SellPrice > 5_000_000 ? 1
-            : 4;
+        var amount = BazaarOrderAmountHelper.GetSuggestedBuyOrderAmount(recommended.ItemTag, recommended.SellPrice);
 
         // build a virtual flip for filter matching only
         var virtualFlip = CreateVirtualFlip(recommended, names, amount);
