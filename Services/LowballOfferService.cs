@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra;
@@ -18,6 +17,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.PlayerName.Client.Api;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
@@ -32,16 +32,22 @@ public class LowballOfferService
     private static readonly HttpClient httpClient = new HttpClient();
 
     public LowballOfferService(ISession session, IConfiguration config, ILogger<LowballOfferService> logger, Kafka.KafkaCreator kafkaCreator, MinecraftLoreRenderer loreRenderer)
+        : this(session, config, logger, kafkaCreator, loreRenderer, initializeTables: true)
+    {
+    }
+
+    protected LowballOfferService(ISession session, IConfiguration config, ILogger<LowballOfferService> logger, Kafka.KafkaCreator kafkaCreator, MinecraftLoreRenderer loreRenderer, bool initializeTables)
     {
         this.session = session;
         this.config = config;
         this.logger = logger;
         this.kafkaCreator = kafkaCreator;
         this.loreRenderer = loreRenderer;
-        InitializeTables();
+        if (initializeTables)
+            InitializeTables();
     }
 
-    private void InitializeTables()
+    protected virtual void InitializeTables()
     {
         try
         {
@@ -50,6 +56,8 @@ public class LowballOfferService
 
             var itemTable = GetItemTable();
             itemTable.CreateIfNotExists();
+
+            EnsureLowballOfferColumns();
 
             // Set 7-day TTL on both tables
             var ks = session.Keyspace;
@@ -93,6 +101,61 @@ public class LowballOfferService
         }
     }
 
+    private void EnsureLowballOfferColumns()
+    {
+        var userColumns = new Dictionary<string, string>
+        {
+            { "item_tag", "text" },
+            { "minecraft_account", "uuid" },
+            { "item_name", "text" },
+            { "api_auction_json", "text" },
+            { "filters", "text" },
+            { "asking_price", "bigint" },
+            { "lore", "text" },
+            { "item_count", "int" },
+        };
+        var itemColumns = new Dictionary<string, string>
+        {
+            { "user_id", "text" },
+            { "minecraft_account", "uuid" },
+            { "item_name", "text" },
+            { "api_auction_json", "text" },
+            { "filters", "text" },
+            { "asking_price", "bigint" },
+            { "lore", "text" },
+            { "item_count", "int" },
+        };
+
+        EnsureColumnsExist("lowball_offers", userColumns);
+        EnsureColumnsExist("lowball_offers_by_item", itemColumns);
+    }
+
+    private void EnsureColumnsExist(string tableName, Dictionary<string, string> expectedColumns)
+    {
+        var keyspace = session.Keyspace;
+        if (string.IsNullOrEmpty(keyspace))
+            return;
+
+        try
+        {
+            var rows = session.Execute($"SELECT column_name FROM system_schema.columns WHERE keyspace_name = '{keyspace}' AND table_name = '{tableName}';");
+            var existingColumns = rows.Select(row => row.GetValue<string>("column_name")).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var column in expectedColumns)
+            {
+                if (existingColumns.Contains(column.Key))
+                    continue;
+
+                session.Execute($"ALTER TABLE {keyspace}.{tableName} ADD {column.Key} {column.Value};");
+                logger.LogInformation("Added missing column {Column} to {Table}", column.Key, tableName);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to verify lowball schema for table {Table}", tableName);
+        }
+    }
+
     public Table<LowballOffer> GetUserTable()
     {
         return new Table<LowballOffer>(session, new MappingConfiguration().Define(
@@ -100,14 +163,18 @@ public class LowballOfferService
                 .PartitionKey(u => u.UserId)
                 .ClusteringKey(u => u.CreatedAt, SortOrder.Descending)
                 .ClusteringKey(u => u.OfferId)
+                .Column(u => u.UserId, cm => cm.WithName("user_id"))
+                .Column(u => u.CreatedAt, cm => cm.WithName("created_at"))
+                .Column(u => u.OfferId, cm => cm.WithName("offer_id").WithSecondaryIndex())
                 .Column(u => u.ItemTag, cm => cm.WithName("item_tag"))
+                .Column(u => u.MinecraftAccount, cm => cm.WithName("minecraft_account"))
                 .Column(u => u.ItemName, cm => cm.WithName("item_name"))
                 .Column(u => u.ApiAuctionJson, cm => cm.WithName("api_auction_json"))
                 .Column(u => u.Filters, cm => cm.WithName("filters"))
                 .Column(u => u.AskingPrice, cm => cm.WithName("asking_price"))
-                .Column(u => u.OfferId, cm => cm.WithSecondaryIndex())
-                .Column(u => u.ItemCount, cm => cm.WithName("item_count")
-        )));
+                .Column(u => u.Lore, cm => cm.WithName("lore"))
+                .Column(u => u.ItemCount, cm => cm.WithName("item_count"))
+            ));
     }
 
     public Table<LowballOfferByItem> GetItemTable()
@@ -116,7 +183,19 @@ public class LowballOfferService
             new Map<LowballOfferByItem>()
                 .PartitionKey(u => u.ItemTag)
                 .ClusteringKey(u => u.CreatedAt, SortOrder.Descending)
-                .ClusteringKey(u => u.OfferId)));
+                .ClusteringKey(u => u.OfferId)
+                .Column(u => u.ItemTag, cm => cm.WithName("item_tag"))
+                .Column(u => u.CreatedAt, cm => cm.WithName("created_at"))
+                .Column(u => u.OfferId, cm => cm.WithName("offer_id"))
+                .Column(u => u.UserId, cm => cm.WithName("user_id"))
+                .Column(u => u.MinecraftAccount, cm => cm.WithName("minecraft_account"))
+                .Column(u => u.ItemName, cm => cm.WithName("item_name"))
+                .Column(u => u.ApiAuctionJson, cm => cm.WithName("api_auction_json"))
+                .Column(u => u.Filters, cm => cm.WithName("filters"))
+                .Column(u => u.AskingPrice, cm => cm.WithName("asking_price"))
+                .Column(u => u.Lore, cm => cm.WithName("lore"))
+                .Column(u => u.ItemCount, cm => cm.WithName("item_count"))
+            ));
     }
 
     public async Task<LowballOffer> CreateOffer(string userId, SaveAuction item, long askingPrice, Sniper.Client.Model.PriceEstimate estimate, string websiteLink, Dictionary<string, string> filters = null)
@@ -157,8 +236,7 @@ public class LowballOfferService
         };
 
         // Store in both tables. We use a secondary index on offer_id for lookups in development.
-        await GetUserTable().Insert(offer).ExecuteAsync();
-        await GetItemTable().Insert(offerByItem).ExecuteAsync();
+        await InsertOffersAsync(offer, offerByItem);
 
         // Publish to Kafka
         await PublishToKafka(offer);
@@ -354,7 +432,13 @@ public class LowballOfferService
         }
     }
 
-    private async Task PublishToKafka(LowballOffer offer)
+    protected virtual async Task InsertOffersAsync(LowballOffer offer, LowballOfferByItem offerByItem)
+    {
+        await GetUserTable().Insert(offer).ExecuteAsync();
+        await GetItemTable().Insert(offerByItem).ExecuteAsync();
+    }
+
+    protected virtual async Task PublishToKafka(LowballOffer offer)
     {
         try
         {
@@ -386,27 +470,34 @@ public class LowballOfferService
 
     public async Task<List<LowballOffer>> GetOffersByUser(string userId, DateTimeOffset? before = null, int limit = 20)
     {
-        var query = GetUserTable().Where(x => x.UserId == userId);
+        return await LoadOffersByUserAsync(userId, before, limit);
+    }
 
-        if (before.HasValue)
+    protected virtual async Task<List<LowballOffer>> LoadOffersByUserAsync(string userId, DateTimeOffset? before = null, int limit = 20)
+    {
+        try
         {
-            query = query.Where(x => x.CreatedAt < before.Value);
-        }
+            var safeLimit = Math.Max(1, limit);
+            var cql = before.HasValue
+                ? $"SELECT * FROM lowball_offers WHERE user_id = ? AND created_at < ? LIMIT {safeLimit}"
+                : $"SELECT * FROM lowball_offers WHERE user_id = ? LIMIT {safeLimit}";
+            var statement = before.HasValue
+                ? new SimpleStatement(cql, userId, before.Value)
+                : new SimpleStatement(cql, userId);
+            var rows = await session.ExecuteAsync(statement);
 
-        return await query.Take(limit).ExecuteAsync()
-            .ContinueWith(t => t.Result.ToList());
+            return rows.Select(MapUserOffer).ToList();
+        }
+        catch (InvalidQueryException ex) when (ex.Message.Contains("unconfigured table", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogWarning(ex, "Lowball user table is not provisioned yet; returning no user offers");
+            return new List<LowballOffer>();
+        }
     }
 
     public async Task<List<LowballOfferByItem>> GetOffersByItem(string itemTag, Dictionary<string, string> filters = null, DateTimeOffset? before = null, int limit = 20)
     {
-        var query = GetItemTable().Where(x => x.ItemTag == itemTag);
-
-        if (before.HasValue)
-        {
-            query = query.Where(x => x.CreatedAt < before.Value);
-        }
-
-        var results = await query.Take(limit * 3).ExecuteAsync(); // Fetch more to filter
+        var results = await LoadOffersByItemAsync(itemTag, before, limit * 3);
 
         if (filters == null || filters.Count == 0)
         {
@@ -438,30 +529,54 @@ public class LowballOfferService
         return filtered;
     }
 
-    public async Task<bool> DeleteOffer(string userId, Guid offerId)
+    protected virtual async Task<List<LowballOfferByItem>> LoadOffersByItemAsync(string itemTag, DateTimeOffset? before = null, int limit = 20)
     {
         try
         {
-            // Use secondary index on offer_id to find the rows and then delete by exact primary keys
-            var userMatches = await GetUserTable().Where(x => x.OfferId == offerId).ExecuteAsync();
-            var userRow = userMatches.FirstOrDefault();
+            var safeLimit = Math.Max(1, limit);
+            var cql = before.HasValue
+                ? $"SELECT * FROM lowball_offers_by_item WHERE item_tag = ? AND created_at < ? LIMIT {safeLimit}"
+                : $"SELECT * FROM lowball_offers_by_item WHERE item_tag = ? LIMIT {safeLimit}";
+            var statement = before.HasValue
+                ? new SimpleStatement(cql, itemTag, before.Value)
+                : new SimpleStatement(cql, itemTag);
+            return (await session.ExecuteAsync(statement)).Select(MapItemOffer).ToList();
+        }
+        catch (InvalidQueryException ex) when (ex.Message.Contains("unconfigured table", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogWarning(ex, "Lowball item table is not provisioned yet; returning no item offers");
+            return new List<LowballOfferByItem>();
+        }
+    }
+
+    public async Task<bool> DeleteOffer(string userId, Guid offerId)
+    {
+        return await DeleteOfferAsync(userId, offerId);
+    }
+
+    protected virtual async Task<bool> DeleteOfferAsync(string userId, Guid offerId)
+    {
+        try
+        {
+            var userRows = await session.ExecuteAsync(new SimpleStatement("SELECT * FROM lowball_offers WHERE user_id = ? LIMIT 200", userId));
+            var userRow = userRows.Select(MapUserOffer).FirstOrDefault(row => row.OfferId == offerId);
             if (userRow == null)
                 return false;
 
-            // ensure the provided userId matches the row's owner
             if (userRow.UserId != userId)
                 return false;
 
-            // Delete from user table using full primary key values
-            await GetUserTable()
-                .Where(x => x.UserId == userId && x.OfferId == offerId && x.CreatedAt == userRow.CreatedAt)
-                .Delete()
-                .ExecuteAsync();
+            await session.ExecuteAsync(new SimpleStatement(
+                "DELETE FROM lowball_offers WHERE user_id = ? AND created_at = ? AND offer_id = ?",
+                userId,
+                userRow.CreatedAt,
+                offerId));
 
-            await GetItemTable()
-                .Where(x => x.ItemTag == userRow.ItemTag && x.OfferId == offerId && x.CreatedAt == userRow.CreatedAt)
-                .Delete()
-                .ExecuteAsync();
+            await session.ExecuteAsync(new SimpleStatement(
+                "DELETE FROM lowball_offers_by_item WHERE item_tag = ? AND created_at = ? AND offer_id = ?",
+                userRow.ItemTag,
+                userRow.CreatedAt,
+                offerId));
 
             logger.LogInformation($"Deleted lowball offer {offerId} for user {userId}");
             return true;
@@ -470,6 +585,54 @@ public class LowballOfferService
         {
             logger.LogError(ex, $"Failed to delete lowball offer {offerId}");
             return false;
+        }
+    }
+
+    private static LowballOffer MapUserOffer(Row row)
+    {
+        return new LowballOffer
+        {
+            UserId = GetValueOrDefault(row, "user_id", string.Empty),
+            CreatedAt = GetValueOrDefault(row, "created_at", default(DateTimeOffset)),
+            OfferId = GetValueOrDefault(row, "offer_id", Guid.Empty),
+            ItemTag = GetValueOrDefault(row, "item_tag", string.Empty),
+            MinecraftAccount = GetValueOrDefault(row, "minecraft_account", Guid.Empty),
+            ItemName = GetValueOrDefault(row, "item_name", string.Empty),
+            ApiAuctionJson = GetValueOrDefault(row, "api_auction_json", string.Empty),
+            Filters = GetValueOrDefault(row, "filters", string.Empty),
+            AskingPrice = GetValueOrDefault(row, "asking_price", 0L),
+            Lore = GetValueOrDefault(row, "lore", string.Empty),
+            ItemCount = GetValueOrDefault(row, "item_count", 0),
+        };
+    }
+
+    private static LowballOfferByItem MapItemOffer(Row row)
+    {
+        return new LowballOfferByItem
+        {
+            ItemTag = GetValueOrDefault(row, "item_tag", string.Empty),
+            CreatedAt = GetValueOrDefault(row, "created_at", default(DateTimeOffset)),
+            OfferId = GetValueOrDefault(row, "offer_id", Guid.Empty),
+            UserId = GetValueOrDefault(row, "user_id", string.Empty),
+            MinecraftAccount = GetValueOrDefault(row, "minecraft_account", Guid.Empty),
+            ItemName = GetValueOrDefault(row, "item_name", string.Empty),
+            ApiAuctionJson = GetValueOrDefault(row, "api_auction_json", string.Empty),
+            Filters = GetValueOrDefault(row, "filters", string.Empty),
+            AskingPrice = GetValueOrDefault(row, "asking_price", 0L),
+            Lore = GetValueOrDefault(row, "lore", string.Empty),
+            ItemCount = GetValueOrDefault(row, "item_count", 0),
+        };
+    }
+
+    private static T GetValueOrDefault<T>(Row row, string columnName, T defaultValue)
+    {
+        try
+        {
+            return row.IsNull(columnName) ? defaultValue : row.GetValue<T>(columnName);
+        }
+        catch
+        {
+            return defaultValue;
         }
     }
 }

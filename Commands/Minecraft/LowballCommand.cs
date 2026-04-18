@@ -237,7 +237,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             try
             {
                 var fullLink  = await HotkeyCommand.GetLinkWithFilters(socket, auction);
-                await socket.GetService<LowballOfferService>().CreateOffer(socket.UserId, auction, price,  priceEstimate.First(), fullLink);
+                await socket.GetService<LowballOfferService>().CreateOffer(socket.SessionInfo.McUuid, auction, price,  priceEstimate.First(), fullLink);
             }
             catch (Exception e)
             {
