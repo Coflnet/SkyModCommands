@@ -3,12 +3,15 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Client.Model;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.PlayerState.Client.Model;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using StackExchange.Redis;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -190,7 +193,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
 
         if (context.Length <= "offer xy".Length)
         {
-            var auction = ConvertToAuction(item);
+            var auction = CreateLowballAuction(item, socket.SessionInfo.McUuid);
             if (auction.FlatenedNBT.ContainsKey("donated_museum"))
             {
                 socket.Dialog(db => db.MsgLine($"§cYou cannot trade museum items, please select another item."));
@@ -204,11 +207,14 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             var mediumPrice = price[0].Median * 0.82;
             var lowPrice = price[0].Median * 0.70;
             var serivce = socket.GetService<LowballSerivce>();
+            var highBuyerCount = await GetBuyerCount(serivce, auction, highPrice, price);
+            var mediumBuyerCount = await GetBuyerCount(serivce, auction, mediumPrice, price);
+            var lowBuyerCount = await GetBuyerCount(serivce, auction, lowPrice, price);
             var index = context.Split(' ').Last();
             socket.Dialog(db => db.MsgLine($"§7[§6§lOffer§7] §r{item.ItemName}", null, $"{item.ItemName}\n{item.Description}")
-                .CoflCommand<LowballCommand>($"At: §a{socket.FormatPrice(highPrice)} coins: {McColorCodes.YELLOW}{GetBuyerCount(serivce, auction, highPrice, price)} buyers\n", $"offer {highPrice} {index}", $"offer item for\n{socket.FormatPrice(highPrice)} ")
-                .CoflCommand<LowballCommand>($"At: §e{socket.FormatPrice(mediumPrice)} coins: {McColorCodes.YELLOW}{GetBuyerCount(serivce, auction, mediumPrice, price)} buyers\n", $"offer {mediumPrice} {index}", $"offer item for\n{socket.FormatPrice(mediumPrice)} ")
-                .CoflCommand<LowballCommand>($"At: §c{socket.FormatPrice(lowPrice)} coins: {McColorCodes.YELLOW}{GetBuyerCount(serivce, auction, lowPrice, price)} buyers\n", $"offer {lowPrice} {index}", $"offer item for\n{socket.FormatPrice(lowPrice)} ")
+                .CoflCommand<LowballCommand>($"At: §a{socket.FormatPrice(highPrice)} coins: {McColorCodes.YELLOW}{highBuyerCount} buyers\n", $"offer {highPrice} {index}", $"offer item for\n{socket.FormatPrice(highPrice)} ")
+                .CoflCommand<LowballCommand>($"At: §e{socket.FormatPrice(mediumPrice)} coins: {McColorCodes.YELLOW}{mediumBuyerCount} buyers\n", $"offer {mediumPrice} {index}", $"offer item for\n{socket.FormatPrice(mediumPrice)} ")
+                .CoflCommand<LowballCommand>($"At: §c{socket.FormatPrice(lowPrice)} coins: {McColorCodes.YELLOW}{lowBuyerCount} buyers\n", $"offer {lowPrice} {index}", $"offer item for\n{socket.FormatPrice(lowPrice)} ")
                 .MsgLine($"From ah in ~{socket.FormatPrice(1 / price[0].Volume * 24)} hours: ~{socket.FormatPrice(price[0].Median * 0.95)} coins"));
             // 5% for fees and likelyness of relist fees
             return;
@@ -216,12 +222,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
         else
         {
             var price = Core.NumberParser.Long(context.Substring(6));
-            var auction = ConvertToAuction(item);
-            auction.AuctioneerId = socket.SessionInfo.McUuid;
-            auction.Context = new Dictionary<string, string>()
-            {
-                { "lore", item.Description}
-            };
+            var auction = CreateLowballAuction(item, socket.SessionInfo.McUuid);
             var priceEstimate = await socket.GetService<ISniperClient>().GetPrices([auction]);
             if (priceEstimate.Count == 0)
             {
@@ -229,11 +230,11 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
                 return;
             }
             var serivce = socket.GetService<LowballSerivce>();
-            var buyerCount = GetBuyerCount(serivce, auction, price, priceEstimate);
+            var buyerCount = await GetBuyerCount(serivce, auction, price, priceEstimate);
             socket.Dialog(db => db.MsgLine($"§7[§6§lLowball Offer§7]§r\n{item.ItemName}")
                 .MsgLine($"You offered {socket.FormatPrice(price)} coins to lowballers, {McColorCodes.YELLOW}{buyerCount} buyers are interested{McColorCodes.GRAY} in this item at this price currently and may visit your island."));
             Console.WriteLine($"received '{context}'");
-            serivce.Offer(auction, price, priceEstimate[0], socket);
+            await serivce.Offer(auction, price, priceEstimate[0], socket);
             try
             {
                 var fullLink  = await HotkeyCommand.GetLinkWithFilters(socket, auction);
@@ -246,23 +247,137 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
         }
     }
 
-    private int GetBuyerCount(LowballSerivce serivce, Core.SaveAuction auction, double highPrice, List<Sniper.Client.Model.PriceEstimate> price)
+    internal static Core.SaveAuction CreateLowballAuction(PlayerState.Client.Model.Item item, string sellerUuid)
     {
-        auction.HighestBidAmount = (long)highPrice;
-        return serivce.MatchCount(auction, price[0]);
+        var auction = ConvertToAuction(item);
+        auction.AuctioneerId = sellerUuid;
+        auction.Context = new Dictionary<string, string>()
+        {
+            { "lore", item.Description ?? string.Empty }
+        };
+        return auction;
+    }
+
+    private async Task<int> GetBuyerCount(LowballSerivce serivce, Core.SaveAuction auction, double offerPrice, List<Sniper.Client.Model.PriceEstimate> price)
+    {
+        var originalHighestBidAmount = auction.HighestBidAmount;
+        auction.HighestBidAmount = (long)offerPrice;
+        try
+        {
+            return await serivce.MatchCount(auction, price[0]);
+        }
+        finally
+        {
+            auction.HighestBidAmount = originalHighestBidAmount;
+        }
     }
 }
 
 public class LowballSerivce
 {
-    private ConcurrentDictionary<string, LowballerInfo> lowballers = new();
+    private const string OfferChannel = "lowball:offer";
+    private const string MatchCountRequestChannel = "lowball:match-count-request";
+    private const string MatchCountResponseChannel = "lowball:match-count-response";
+
+    private readonly ConcurrentDictionary<string, LowballerInfo> lowballers = new();
+    private readonly ConcurrentDictionary<string, PendingMatchCountRequest> pendingMatchCounts = new();
+    private readonly ISubscriber subscriber;
+    private readonly ILogger<LowballSerivce> logger;
+    private readonly string instanceId = Guid.NewGuid().ToString("N");
+
+    public LowballSerivce(IConnectionMultiplexer redis, ILogger<LowballSerivce> logger)
+    {
+        subscriber = redis.GetSubscriber();
+        this.logger = logger;
+        subscriber.Subscribe(RedisChannel.Literal(OfferChannel), (channel, message) =>
+        {
+            _ = HandleDistributedOffer(message);
+        });
+        subscriber.Subscribe(RedisChannel.Literal(MatchCountRequestChannel), (channel, message) =>
+        {
+            _ = HandleMatchCountRequest(message);
+        });
+        subscriber.Subscribe(RedisChannel.Literal(MatchCountResponseChannel), (channel, message) =>
+        {
+            HandleMatchCountResponse(message);
+        });
+    }
 
     public class LowballerInfo
     {
         public MinecraftSocket Socket { get; set; }
         public DateTime Registered { get; set; }
     }
-    public int MatchCount(Core.SaveAuction auction, Sniper.Client.Model.PriceEstimate est)
+
+    internal sealed class PendingMatchCountRequest
+    {
+        private readonly TaskCompletionSource<int> completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int totalCount;
+        private int responseCount;
+        private int expectedResponses = -1;
+
+        public void AddResponse(int count)
+        {
+            Interlocked.Add(ref totalCount, count);
+            Interlocked.Increment(ref responseCount);
+            TryComplete();
+        }
+
+        public void SetExpectedResponses(int expectedResponses)
+        {
+            Volatile.Write(ref this.expectedResponses, expectedResponses);
+            TryComplete();
+        }
+
+        public async Task<int> WaitAsync(TimeSpan timeout)
+        {
+            if (Volatile.Read(ref expectedResponses) == 0)
+                return 0;
+
+            var completed = await Task.WhenAny(completion.Task, Task.Delay(timeout)).ConfigureAwait(false);
+            return completed == completion.Task ? await completion.Task.ConfigureAwait(false) : Volatile.Read(ref totalCount);
+        }
+
+        private void TryComplete()
+        {
+            var expected = Volatile.Read(ref expectedResponses);
+            if (expected < 0)
+                return;
+
+            if (Volatile.Read(ref responseCount) >= expected)
+                completion.TrySetResult(Volatile.Read(ref totalCount));
+        }
+    }
+
+    private sealed class DistributedLowballOffer
+    {
+        public string OriginInstanceId { get; set; }
+        public LowballOffer Offer { get; set; }
+    }
+
+    private sealed class MatchCountRequest
+    {
+        public string RequestId { get; set; }
+        public string OriginInstanceId { get; set; }
+        public Core.SaveAuction Auction { get; set; }
+        public Sniper.Client.Model.PriceEstimate Estimate { get; set; }
+    }
+
+    private sealed class MatchCountResponse
+    {
+        public string RequestId { get; set; }
+        public string OriginInstanceId { get; set; }
+        public int Count { get; set; }
+    }
+
+    public async Task<int> MatchCount(Core.SaveAuction auction, Sniper.Client.Model.PriceEstimate est)
+    {
+        var localCount = MatchCountLocal(auction, est);
+        var remoteCount = await GetRemoteMatchCount(auction, est).ConfigureAwait(false);
+        return localCount + remoteCount;
+    }
+
+    private int MatchCountLocal(Core.SaveAuction auction, Sniper.Client.Model.PriceEstimate est)
     {
         var count = 0;
         var keysToRemove = new List<string>();
@@ -295,6 +410,95 @@ public class LowballSerivce
         return count;
     }
 
+    private async Task<int> GetRemoteMatchCount(Core.SaveAuction auction, Sniper.Client.Model.PriceEstimate est)
+    {
+        var requestId = Guid.NewGuid().ToString("N");
+        var pendingRequest = new PendingMatchCountRequest();
+        pendingMatchCounts[requestId] = pendingRequest;
+        try
+        {
+            var request = new MatchCountRequest()
+            {
+                RequestId = requestId,
+                OriginInstanceId = instanceId,
+                Auction = auction,
+                Estimate = est
+            };
+            var subscriberCount = await subscriber.PublishAsync(
+                RedisChannel.Literal(MatchCountRequestChannel),
+                JsonConvert.SerializeObject(request)).ConfigureAwait(false);
+            pendingRequest.SetExpectedResponses(Math.Max(0, (int)subscriberCount - 1));
+            return await pendingRequest.WaitAsync(TimeSpan.FromMilliseconds(250)).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "failed to get remote lowball match count");
+            return 0;
+        }
+        finally
+        {
+            pendingMatchCounts.TryRemove(requestId, out _);
+        }
+    }
+
+    private async Task HandleDistributedOffer(RedisValue message)
+    {
+        try
+        {
+            var distributedOffer = JsonConvert.DeserializeObject<DistributedLowballOffer>(message!);
+            if (distributedOffer?.Offer == null || distributedOffer.OriginInstanceId == instanceId)
+                return;
+
+            NotifyUsers(distributedOffer.Offer);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "failed to handle distributed lowball offer");
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleMatchCountRequest(RedisValue message)
+    {
+        try
+        {
+            var request = JsonConvert.DeserializeObject<MatchCountRequest>(message!);
+            if (request == null || request.OriginInstanceId == instanceId || request.Auction == null || request.Estimate == null)
+                return;
+
+            var response = new MatchCountResponse()
+            {
+                RequestId = request.RequestId,
+                OriginInstanceId = request.OriginInstanceId,
+                Count = MatchCountLocal(request.Auction, request.Estimate)
+            };
+            await subscriber.PublishAsync(
+                RedisChannel.Literal(MatchCountResponseChannel),
+                JsonConvert.SerializeObject(response)).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "failed to handle lowball match count request");
+        }
+    }
+
+    private void HandleMatchCountResponse(RedisValue message)
+    {
+        try
+        {
+            var response = JsonConvert.DeserializeObject<MatchCountResponse>(message!);
+            if (response == null || response.OriginInstanceId != instanceId)
+                return;
+
+            if (pendingMatchCounts.TryGetValue(response.RequestId, out var pendingRequest))
+                pendingRequest.AddResponse(response.Count);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "failed to handle lowball match count response");
+        }
+    }
+
     internal void Enable(MinecraftSocket socket)
     {
         lowballers[socket.SessionInfo.McUuid] = new LowballerInfo()
@@ -325,8 +529,9 @@ public class LowballSerivce
         }
     }
 
-    internal void Offer(Core.SaveAuction auction, long price, Sniper.Client.Model.PriceEstimate priceEstimate, MinecraftSocket socket)
+    internal async Task Offer(Core.SaveAuction auction, long price, Sniper.Client.Model.PriceEstimate priceEstimate, MinecraftSocket socket)
     {
+        auction.HighestBidAmount = price;
         var lowballOffer = new LowballOffer()
         {
             Auction = auction,
@@ -335,6 +540,25 @@ public class LowballSerivce
             SellerName = socket.SessionInfo.McName
         };
         NotifyUsers(lowballOffer);
+        await PublishOffer(lowballOffer).ConfigureAwait(false);
+    }
+
+    private async Task PublishOffer(LowballOffer lowballOffer)
+    {
+        try
+        {
+            await subscriber.PublishAsync(
+                RedisChannel.Literal(OfferChannel),
+                JsonConvert.SerializeObject(new DistributedLowballOffer()
+                {
+                    OriginInstanceId = instanceId,
+                    Offer = lowballOffer
+                })).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "failed to publish distributed lowball offer");
+        }
     }
 
     private void NotifyUsers(LowballOffer lowballOffer)
