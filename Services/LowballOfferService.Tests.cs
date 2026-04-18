@@ -100,7 +100,7 @@ public class LowballOfferServiceTests
                 configuration,
                 NullLogger<LowballOfferService>.Instance,
                 null!,
-                new MinecraftLoreRenderer(NullLogger<MinecraftLoreRenderer>.Instance),
+                null!,
                 initializeTables: false)
         {
         }

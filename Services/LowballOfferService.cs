@@ -311,7 +311,7 @@ public class LowballOfferService
     /// </summary>
     private async Task<MemoryStream> RenderLoreAsImageAsync(string lore)
     {
-        if (string.IsNullOrWhiteSpace(lore))
+        if (string.IsNullOrWhiteSpace(lore) || loreRenderer == null)
             return null;
 
         try
