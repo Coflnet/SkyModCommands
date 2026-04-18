@@ -74,7 +74,7 @@ public class PreApiService : BackgroundService, IPreApiService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        redis.GetSubscriber().Subscribe("auction_sell", (channel, message) =>
+        redis.GetSubscriber().Subscribe(RedisChannel.Literal("auction_sell"), (channel, message) =>
         {
             try
             {
@@ -87,7 +87,7 @@ public class PreApiService : BackgroundService, IPreApiService
                 logger.LogError(e, "failed to deserialize sell");
             }
         });
-        redis.GetSubscriber().Subscribe("auction_sent", (_, message) =>
+        redis.GetSubscriber().Subscribe(RedisChannel.Literal("auction_sent"), (_, message) =>
         {
             try
             {
@@ -527,14 +527,14 @@ public class PreApiService : BackgroundService, IPreApiService
 
     private void PublishSell(string uuid, AccountTier tier)
     {
-        redis.GetSubscriber().Publish("auction_sell", MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid, Tier = tier }));
+        redis.GetSubscriber().Publish(RedisChannel.Literal("auction_sell"), MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid, Tier = tier }));
     }
 
     public void PublishReceive(string uuid)
     {
         if (sold.ContainsKey(uuid))
             return;
-        redis.GetSubscriber().Publish("auction_sent", MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid }));
+        redis.GetSubscriber().Publish(RedisChannel.Literal("auction_sent"), MessagePack.MessagePackSerializer.Serialize(new Auction { Uuid = uuid }));
     }
 
     [MessagePack.MessagePackObject]

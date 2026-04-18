@@ -183,7 +183,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         socket.Dialog(db => db.MsgLine($"Switched license {id} to {userName}"));
     }
 
-    protected virtual Task Help(MinecraftSocket socket, string subArgs)
+    protected override Task Help(MinecraftSocket socket, string subArgs)
     {
         socket.Dialog(db => db
             .MsgLine($"usage of {McColorCodes.AQUA}/cofl {Slug}{DEFAULT_COLOR}")

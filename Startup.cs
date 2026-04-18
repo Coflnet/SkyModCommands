@@ -160,7 +160,7 @@ public class Startup
                 var password = Configuration["CASSANDRA:X509Certificate_PASSWORD"] ?? throw new InvalidOperationException("CASSANDRA:X509Certificate_PASSWORD must be set if CASSANDRA:X509Certificate_PATHS is set.");
                 CustomRootCaCertificateValidator certificateValidator = null;
                 if (!string.IsNullOrEmpty(validationCertificatePath))
-                    certificateValidator = new CustomRootCaCertificateValidator(new X509Certificate2(validationCertificatePath, password));
+                    certificateValidator = new CustomRootCaCertificateValidator(X509CertificateLoader.LoadPkcs12FromFile(validationCertificatePath, password, X509KeyStorageFlags.DefaultKeySet, Pkcs12LoaderLimits.Defaults));
                 var sslOptions = new SSLOptions(
                     // TLSv1.2 is required as of October 9, 2019.
                     // See: https://www.instaclustr.com/removing-support-for-outdated-encryption-mechanisms/
@@ -168,7 +168,7 @@ public class Startup
                     false,
                     // Custom validator avoids need to trust the CA system-wide.
                     (sender, certificate, chain, errors) => certificateValidator?.Validate(certificate, chain, errors) ?? true
-                ).SetCertificateCollection(new(certificatePaths.Split(',').Select(p => new X509Certificate2(p, password)).ToArray()));
+                ).SetCertificateCollection(new(certificatePaths.Split(',').Select(p => X509CertificateLoader.LoadPkcs12FromFile(p, password, X509KeyStorageFlags.DefaultKeySet, Pkcs12LoaderLimits.Defaults)).ToArray()));
                 builder.WithSSL(sslOptions);
             }
             var cluster = builder.Build();

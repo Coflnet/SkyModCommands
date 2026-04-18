@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Coflnet.Sky.PlayerState.Client.Model;
-using FluentAssertions;
+using AwesomeAssertions;
 using NUnit.Framework;
 
 namespace Coflnet.Sky.Commands.MC.Tasks;

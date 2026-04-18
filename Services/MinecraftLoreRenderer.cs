@@ -210,6 +210,20 @@ public class MinecraftLoreRenderer
         return lines;
     }
 
+    private static SKFont CreateFont(float size, bool isBold = false, bool isItalic = false)
+    {
+        return new SKFont(_typeface, size, 1f, isItalic ? -0.25f : 0f)
+        {
+            Embolden = isBold,
+        };
+    }
+
+    private static float GetLineHeight(SKFont font)
+    {
+        var metrics = font.Metrics;
+        return metrics.Descent - metrics.Ascent;
+    }
+
     /// <summary>
     /// Renders the Minecraft lore to an image and returns a MemoryStream.
     /// </summary>
@@ -232,8 +246,6 @@ public class MinecraftLoreRenderer
             // Create paint for measurement
             using var measurePaint = new SKPaint
             {
-                Typeface = _typeface,
-                TextSize = fontSize,
                 IsAntialias = true
             };
 
@@ -245,11 +257,11 @@ public class MinecraftLoreRenderer
                 foreach (var segment in line)
                 {
                     var text = segment.Text.Length > 0 ? segment.Text : " ";
-                    float textWidth = measurePaint.MeasureText(text);
+                    using var segmentFont = CreateFont(fontSize, segment.IsBold, segment.IsItalic);
+                    float textWidth = segmentFont.MeasureText(text, measurePaint);
                     currentLineWidth += textWidth;
-                    
-                    var fontMetrics = measurePaint.FontMetrics;
-                    float lineHeight = fontMetrics.Descent - fontMetrics.Ascent;
+
+                    float lineHeight = GetLineHeight(segmentFont);
                     if (lineHeight > maxLineHeight) maxLineHeight = lineHeight;
                 }
                 
@@ -278,6 +290,17 @@ public class MinecraftLoreRenderer
             };
             canvas.DrawRect(1, 1, imageWidth - 2, imageHeight - 2, borderPaint);
 
+            using var shadowPaint = new SKPaint
+            {
+                Color = new SKColor(0, 0, 0, 150),
+                IsAntialias = true
+            };
+            using var textPaint = new SKPaint
+            {
+                IsAntialias = true
+            };
+            var random = new Random();
+
             float currentY = padding;
 
             foreach (var line in parsedLines)
@@ -286,20 +309,10 @@ public class MinecraftLoreRenderer
                 float maxLineHeight = fontSize;
 
                 // Find max height for this line
-                using var tempPaint = new SKPaint
+                foreach (var segment in line)
                 {
-                    Typeface = _typeface,
-                    TextSize = fontSize,
-                    IsAntialias = true
-                };
-                
-                foreach(var segment in line)
-                {
-                    tempPaint.FakeBoldText = segment.IsBold;
-                    tempPaint.TextSkewX = segment.IsItalic ? -0.25f : 0;
-                    
-                    var fontMetrics = tempPaint.FontMetrics;
-                    float lineHeight = fontMetrics.Descent - fontMetrics.Ascent;
+                    using var segmentFont = CreateFont(fontSize, segment.IsBold, segment.IsItalic);
+                    float lineHeight = GetLineHeight(segmentFont);
                     if (lineHeight > maxLineHeight) maxLineHeight = lineHeight;
                 }
 
@@ -311,14 +324,13 @@ public class MinecraftLoreRenderer
                     if (segment.IsObfuscated && textToDraw.Length > 0)
                     {
                         // Replace with random characters
-                        var rand = new Random();
                         char[] obfuscatedChars = new char[textToDraw.Length];
-                        for(int i = 0; i < textToDraw.Length; i++)
+                        for (int i = 0; i < textToDraw.Length; i++)
                         {
-                            if(textToDraw[i] == ' ') 
+                            if (textToDraw[i] == ' ')
                                 obfuscatedChars[i] = ' ';
-                            else 
-                                obfuscatedChars[i] = (char)rand.Next(65, 91); // Random A-Z
+                            else
+                                obfuscatedChars[i] = (char)random.Next(65, 91); // Random A-Z
                         }
                         textToDraw = new string(obfuscatedChars);
                     }
@@ -326,25 +338,19 @@ public class MinecraftLoreRenderer
                     if (string.IsNullOrEmpty(textToDraw))
                         textToDraw = " ";
 
-                    using var textPaint = new SKPaint
-                    {
-                        Typeface = _typeface,
-                        TextSize = fontSize,
-                        IsAntialias = true,
-                        FakeBoldText = segment.IsBold,
-                        TextSkewX = segment.IsItalic ? -0.25f : 0
-                    };
+                    using var textFont = CreateFont(fontSize, segment.IsBold, segment.IsItalic);
+                    var fontMetrics = textFont.Metrics;
+                    float baseline = currentY - fontMetrics.Ascent;
 
                     // Draw shadow first
-                    textPaint.Color = new SKColor(0, 0, 0, 150);
-                    canvas.DrawText(textToDraw, currentX + 2, currentY + 2 - textPaint.FontMetrics.Ascent, textPaint);
+                    canvas.DrawText(textToDraw, currentX + 2, baseline + 2, SKTextAlign.Left, textFont, shadowPaint);
 
                     // Draw main text
                     textPaint.Color = segment.Color;
-                    canvas.DrawText(textToDraw, currentX, currentY - textPaint.FontMetrics.Ascent, textPaint);
+                    canvas.DrawText(textToDraw, currentX, baseline, SKTextAlign.Left, textFont, textPaint);
 
                     // Move X position
-                    float textWidth = textPaint.MeasureText(textToDraw);
+                    float textWidth = textFont.MeasureText(textToDraw, measurePaint);
                     currentX += textWidth;
                 }
                 

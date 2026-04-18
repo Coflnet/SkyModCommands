@@ -9,7 +9,7 @@ using NUnit.Framework;
 using static Coflnet.Sky.Core.LowPricedAuction;
 using Coflnet.Sky.Core;
 using System.Diagnostics;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Coflnet.Sky.Filter;
 using Coflnet.Sky.ModCommands.Services;
@@ -38,6 +38,7 @@ public class ModSessionLifesycleTests
         DiHandler.OverrideService<IIsSold, IIsSold>(mockIsSold.Object);
         DiHandler.OverrideService<IDelayExemptList, IDelayExemptList>(exemptList);
         DiHandler.OverrideService<IFlipTrackingService, IFlipTrackingService>(flipTrackingMock.Object);
+        DiHandler.OverrideService<IFlipReceiveTracker, IFlipTrackingService>(flipTrackingMock.Object);
         DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine(mockNbt.Object));
         DiHandler.OverrideService<FlipperService, FlipperService>(new FlipperService(null, NullLogger<FlipperService>.Instance));
         socket = new TestSocket();

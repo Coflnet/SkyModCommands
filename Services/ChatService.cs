@@ -46,7 +46,7 @@ public class ChatService
         {
             try
             {
-                var sub = await GetCon().SubscribeAsync(channel);
+                var sub = await GetCon().SubscribeAsync(RedisChannel.Literal(channel));
 
                 sub.OnMessage((value) =>
                 {
@@ -68,7 +68,7 @@ public class ChatService
 
     public async Task SendToChannel(string channel, ChatMessage message)
     {
-        await GetCon().PublishAsync(channel, JsonConvert.SerializeObject(message));
+        await GetCon().PublishAsync(RedisChannel.Literal(channel), JsonConvert.SerializeObject(message));
     }
 
     public async Task<List<string>> GetMuteUuids()

@@ -67,8 +67,8 @@ public class HotkeyCommand : McCommand
         socket.Dialog(db => db.MsgLine($"The value of this item is {McColorCodes.AQUA}{socket.FormatPrice(price.Median)}", null,
                 $"Took into account these modifiers:\n{price.MedianKey}")
             .If(() => isInInventory, db => db.CoflCommandButton<LowballCommand>($"{McColorCodes.GREEN}Offer this item to a lowballer", $"offer {index}", "Click to offer this item to lowballers").LineBreak())
-            .If(() => price.Lbin.AuctionId != 0, db => db
-            .MsgLine($"Lowest bin sits at {McColorCodes.AQUA}{socket.FormatPrice(price.Lbin.Price)}", "/viewauction " + lbinAuction.Uuid, "click to open lbin on ah"))
+            .If(() => price.Lbin.AuctionId != 0 && lbinAuction != null, db => db
+            .MsgLine($"Lowest bin sits at {McColorCodes.AQUA}{socket.FormatPrice(price.Lbin.Price)}", "/viewauction " + lbinAuction!.Uuid, "click to open lbin on ah"))
             .Msg($"To sell quickly list at {McColorCodes.AQUA}{formattedInstasell}", $"copy:{formattedInstasell}", "click to copy")
             .MsgLine($"{McColorCodes.GRAY}[put into chat]", $"suggest:{formattedInstasell}", "click to put \nsuggestion into chat")
             .Button($"Open filter on website", filterLink, "Click to view on SkyCofl Website"));

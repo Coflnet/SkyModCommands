@@ -511,9 +511,15 @@ public class VpsInstanceManager
         };
     }
 
+    private bool AreAppsUnavailable()
+    {
+        return !configuration.GetValue("VPS_APPS_AVAILABLE", false);
+    }
+
     internal async Task ExtendVps(Instance instance)
     {
-        throw new CoflnetException("apps_unvailable", "Currently all apps are unavailable, thanks for your interest but we currently can't service you");
+        if (AreAppsUnavailable())
+            throw new CoflnetException("apps_unvailable", "Currently all apps are unavailable, thanks for your interest but we currently can't service you");
         // checks that there is a server available
         await GetAvailableServer();
         var kind = GetProductSlug(instance);

@@ -35,13 +35,13 @@ namespace Coflnet.Sky.Commands.MC
         public FlipSettings Settings => sessionLifesycle?.FlipSettings;
         public AccountInfo AccountInfo => sessionLifesycle?.AccountInfo;
 
-        public string Version { get; private set; }
+        public string Version { get; private set; } = string.Empty;
         public ActivitySource tracer => DiHandler.ServiceProvider.GetRequiredService<ActivitySource>();
-        public Activity ConSpan { get; protected set; }
-        public IModVersionAdapter ModAdapter;
+        public Activity ConSpan { get; protected set; } = null!;
+        public IModVersionAdapter ModAdapter = null!;
 
         public FormatProvider formatProvider { get; private set; }
-        public ModSessionLifesycle sessionLifesycle { get; protected set; }
+        public ModSessionLifesycle sessionLifesycle { get; protected set; } = null!;
 
         public static bool IsDevMode { get; } = System.Net.Dns.GetHostName().Contains("ekwav");
         public string ClientIp => DetermineUserIp();
@@ -432,7 +432,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (args["type"] != null)
             {
-                SessionInfo.ConnectionType = args["type"];
+                SessionInfo.ConnectionType = args["type"]!;
             }
             Version = args["version"].Truncate(14);
 
@@ -659,7 +659,10 @@ namespace Coflnet.Sky.Commands.MC
                     await Task.Delay(2200).ConfigureAwait(false);
                 try
                 {
-                    if (commandType == "chatbatch" && !Regex.IsMatch(JsonConvert.DeserializeObject<string[]>(a.data)[0], sessionLifesycle?.PrivacySettings?.Value?.ChatRegex ?? "noMatch"))
+                    var chatBatch = commandType == "chatbatch"
+                        ? JsonConvert.DeserializeObject<string[]>(a.data)
+                        : null;
+                    if (commandType == "chatbatch" && (chatBatch == null || chatBatch.Length == 0 || !Regex.IsMatch(chatBatch[0], sessionLifesycle?.PrivacySettings?.Value?.ChatRegex ?? "noMatch")))
                     {
                         waiting--;
                         Console.WriteLine("dropped chatbatch due to regex " + a.data);
@@ -855,7 +858,7 @@ namespace Coflnet.Sky.Commands.MC
                  "/cofl start", "if it doesn't auto reconnect click this");
         }
 
-        public virtual string? Error(Exception exception, string? message = null, string? additionalLog = null)
+        public virtual string Error(Exception exception, string? message = null, string? additionalLog = null)
         {
             using var error = CreateActivity("error", ConSpan)?.AddTag("message", message).AddTag("error", "true");
             if (IsDevMode || SessionInfo?.McUuid == "384a029294fc445e863f2c42fe9709cb")
@@ -867,7 +870,7 @@ namespace Coflnet.Sky.Commands.MC
             errorContext.Log(JsonConvert.SerializeObject(sessionLifesycle?.AccountInfo?.Value));
             errorContext.Log($"session: {JsonConvert.SerializeObject(SessionInfo)}");
             errorContext.Log(JsonConvert.SerializeObject(Settings).Truncate(10_000));
-            return error?.Context.TraceId.ToString();
+            return error?.Context.TraceId.ToString() ?? string.Empty;
         }
 
         /// <summary>
@@ -875,7 +878,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <param name="message"></param>
         /// <param name="level"></param>
-        public new void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information)
+        public void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information)
         {
             if (level == Microsoft.Extensions.Logging.LogLevel.Error)
             {

@@ -36,7 +36,7 @@ public class AccountTierManager : IAccountTierManager
     public event EventHandler<AccountTier>? OnTierChange;
     private AccountTier? lastTier;
     private DateTime expiresAt;
-    private string userId;
+    private string userId = string.Empty;
     IAuthUpdate loginNotification;
     public DateTime ExpiresAt => expiresAt;
     bool isNewConnection = false;
@@ -153,15 +153,16 @@ public class AccountTierManager : IAccountTierManager
             span.Log("early " + expires);
             return (expires.Item1, expires.Item2);
         }
-        var startValue = activeSessions?.Value;
-        if (string.IsNullOrEmpty(activeSessions.Value.UseAccountTierOn))
+        var currentSessions = activeSessions.Value;
+        var startValue = currentSessions;
+        if (string.IsNullOrEmpty(currentSessions.UseAccountTierOn))
         {
-            activeSessions.Value.UseAccountTierOn = socket.SessionInfo.McUuid;
+            currentSessions.UseAccountTierOn = socket.SessionInfo.McUuid;
             await SyncState(startValue);
         }
-        var sessions = activeSessions.Value.Sessions;
-        sessions.RemoveAll(s => s?.ConnectionId == null || string.IsNullOrEmpty(s.MinecraftUuid) || s?.ConnectedAt < DateTime.UtcNow - TimeSpan.FromDays(2));
-        var thisSession = sessions.FirstOrDefault(s => s?.ConnectionId == socket.SessionInfo.ConnectionId);
+        var sessions = currentSessions.Sessions;
+        sessions.RemoveAll(s => string.IsNullOrEmpty(s.ConnectionId) || string.IsNullOrEmpty(s.MinecraftUuid) || s.ConnectedAt < DateTime.UtcNow - TimeSpan.FromDays(2));
+        var thisSession = sessions.FirstOrDefault(s => s.ConnectionId == socket.SessionInfo.ConnectionId);
         if (thisSession == null)
         {
             thisSession = new ActiveSession()
@@ -176,7 +177,7 @@ public class AccountTierManager : IAccountTierManager
                 MinecraftUuid = socket.SessionInfo.McUuid,
                 ClientConId = socket.SessionInfo.clientConId
             };
-            if (!sessions.Any(s => s?.ClientConId == thisSession.ClientConId) || socket.SessionInfo.clientConId == null)
+            if (!sessions.Any(s => s.ClientConId == thisSession.ClientConId) || socket.SessionInfo.clientConId == null)
                 isNewConnection = true;
             sessions.Add(thisSession);
             Console.WriteLine($"Added session {socket.SessionInfo.ConnectionId} for {socket.SessionInfo.McUuid}");
@@ -188,7 +189,7 @@ public class AccountTierManager : IAccountTierManager
             if (thisSession?.Outdated ?? true)
             {
                 activeSessions?.Dispose();
-                var sameClient = sessions.Where(s => s?.ClientSessionId == socket.SessionInfo.clientSessionId && !s.Outdated).Any();
+                var sameClient = sessions.Any(s => s.ClientSessionId == socket.SessionInfo.clientSessionId && !s.Outdated);
                 if (sameClient)
                     socket.Dialog(db => db.MsgLine($"You client opened another connection, this connection is being downgraded. Your tier is used on the new connection"));
                 else
@@ -205,16 +206,16 @@ public class AccountTierManager : IAccountTierManager
                 await SyncState(startValue);
             }
         }
-        var sameMcAccount = sessions.Where(s => s?.MinecraftUuid == socket.SessionInfo.McUuid).ToList();
-        if (sameMcAccount.Count() > 1)
+        var sameMcAccount = sessions.Where(s => s.MinecraftUuid == socket.SessionInfo.McUuid).ToList();
+        if (sameMcAccount.Count > 1)
         {
-            var amITheLast = sameMcAccount.OrderByDescending(s => s.LastActive).ThenBy(s => s.ConnectionId).First()!.ConnectionId == socket.SessionInfo.ConnectionId;
+            var amITheLast = sameMcAccount.OrderByDescending(s => s.LastActive).ThenBy(s => s.ConnectionId).First().ConnectionId == socket.SessionInfo.ConnectionId;
             var others = sameMcAccount.Where(s => s.ConnectionId != socket.SessionInfo.ConnectionId).ToList();
             if (amITheLast)
             { // only the latest session updates the state
                 foreach (var session in others.Where(o => o.LastActive < DateTime.UtcNow - TimeSpan.FromHours(2)))
                 {
-                    if(session.ConnectionId == socket.SessionInfo.ConnectionId)
+                    if (session.ConnectionId == socket.SessionInfo.ConnectionId)
                         continue; // don't remove self
                     sessions.Remove(session);
                 }
@@ -235,11 +236,8 @@ public class AccountTierManager : IAccountTierManager
             activeSessions?.Dispose();
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
         }
-        var isCurrentConOnlyCon = sessions.All(s => s == null || s.ConnectionId == socket.SessionInfo.ConnectionId || s.Outdated || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
-        if (activeSessions.Value != null)
-            activeSessions.Value.UserAccountTier = expires.Item1;
-        else
-            Console.WriteLine("No active sessions for " + socket.SessionInfo.McUuid);
+        var isCurrentConOnlyCon = sessions.All(s => s.ConnectionId == socket.SessionInfo.ConnectionId || s.Outdated || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
+        currentSessions.UserAccountTier = expires.Item1;
 
         span.Log($"AccountTier {expires.Item1} {expires.Item2}");
         span.Log($"Sessions {JsonConvert.SerializeObject(sessions)}");
@@ -299,7 +297,7 @@ public class AccountTierManager : IAccountTierManager
             await Task.Delay(1000);
             if (activeSessions?.Value == null || Disposed)
                 return; // session closed and disposed
-            if (startValue == activeSessions.Value || activeSessions.Value?.Sessions.Any(s => s?.ConnectionId == socket.SessionInfo.ConnectionId) != true)
+            if (startValue == activeSessions.Value || activeSessions.Value.Sessions.Any(s => s.ConnectionId == socket.SessionInfo.ConnectionId) != true)
                 await activeSessions.Update();
             else
                 Activity.Current?.Log("syncState skipped");
@@ -340,7 +338,7 @@ public class AccountTierManager : IAccountTierManager
     {
         Disposed = true;
         loginNotification.OnLogin -= LoginNotification_OnLogin;
-        activeSessions?.Value.Sessions.RemoveAll(s => s?.ConnectionId == socket.SessionInfo.ConnectionId);
+        activeSessions?.Value.Sessions.RemoveAll(s => s.ConnectionId == socket.SessionInfo.ConnectionId);
         var oldActive = activeSessions;
         activeSessions?.Update().ContinueWith(t => oldActive?.Dispose());
         activeSessions = null;

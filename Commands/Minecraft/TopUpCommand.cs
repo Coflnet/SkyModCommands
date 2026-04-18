@@ -54,7 +54,7 @@ namespace Coflnet.Sky.Commands.MC
             else
                 throw new CoflnetException("invalid_product", $"The product {toBuy} isn't know, please execute the command without arguments to get options");
             var separationLines = "--------------------\n";
-            socket.SendMessage(new DialogBuilder().Msg($"{separationLines}{McColorCodes.GREEN}Click here to finish the payment\n{separationLines}", info.DirctLink, "open link"));
+            socket.SendMessage(new DialogBuilder().Msg($"{separationLines}{McColorCodes.GREEN}Click here to finish the payment\n{separationLines}", info.DirectLink, "open link"));
         }
 
         private static void AddOptionsFor(MinecraftSocket socket, string letter, DialogBuilder db, List<TopUpProduct> topups)
