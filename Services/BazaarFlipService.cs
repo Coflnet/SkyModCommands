@@ -10,6 +10,7 @@ using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Items.Client.Api;
+using Coflnet.Sky.Items.Client.Model;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -25,6 +26,7 @@ public class BazaarFlipService : BackgroundService
     private readonly FlipperService flipperService;
     private readonly IBazaarFlipperApi bazaarFlipperApi;
     private readonly IOrderBookApi orderBookApi;
+    private readonly FilterStateService filterStateService;
     private readonly IItemsApi itemsApi;
     private readonly ILogger<BazaarFlipService> logger;
 
@@ -37,12 +39,14 @@ public class BazaarFlipService : BackgroundService
         FlipperService flipperService,
         IBazaarFlipperApi bazaarFlipperApi,
         IOrderBookApi orderBookApi,
+        FilterStateService filterStateService,
         IItemsApi itemsApi,
         ILogger<BazaarFlipService> logger)
     {
         this.flipperService = flipperService;
         this.bazaarFlipperApi = bazaarFlipperApi;
         this.orderBookApi = orderBookApi;
+        this.filterStateService = filterStateService;
         this.itemsApi = itemsApi;
         this.logger = logger;
     }
@@ -129,8 +133,9 @@ public class BazaarFlipService : BackgroundService
     {
         // pick one at random from the tier group
         var recommended = group[Random.Shared.Next(group.Count)];
+        var itemCategory = await BazaarOrderAmountHelper.GetKnownItemCategory(recommended.ItemTag, filterStateService);
 
-        var amount = BazaarOrderAmountHelper.GetSuggestedBuyOrderAmount(recommended.ItemTag, recommended.SellPrice);
+        var amount = BazaarOrderAmountHelper.GetSuggestedBuyOrderAmount(recommended.ItemTag, recommended.SellPrice, itemCategory);
 
         // build a virtual flip for filter matching only
         var virtualFlip = CreateVirtualFlip(recommended, names, amount);
@@ -150,7 +155,7 @@ public class BazaarFlipService : BackgroundService
 
         if (socket.ModAdapter is FullAfVersionAdapter fullAf)
         {
-            fullAf.SendBazaarOrderRecommendation(recommended.ItemTag, virtualFlip.Auction.ItemName, false, price, amount);
+            fullAf.SendBazaarOrderRecommendation(recommended.ItemTag, virtualFlip.Auction.ItemName, false, price, amount, itemCategory);
         }
 
         socket.Dialog(db => db.MsgLine(

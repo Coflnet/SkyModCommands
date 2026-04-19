@@ -9,6 +9,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.FlipTracker.Client.Api;
 using Coflnet.Sky.FlipTracker.Client.Model;
+using Coflnet.Sky.Items.Client.Model;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -54,6 +55,15 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             _bazaarTagsLastRefresh = DateTime.UtcNow;
         }
         return newTags;
+    }
+
+    private async Task<ItemCategory?> GetBazaarItemCategory(string tag)
+    {
+        if (string.IsNullOrWhiteSpace(tag))
+            return null;
+
+        var filterStateService = socket.GetService<FilterStateService>();
+        return await BazaarOrderAmountHelper.GetKnownItemCategory(tag, filterStateService);
     }
 
     public override async Task<bool> SendFlip(FlipInstance flip)
@@ -183,7 +193,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         foreach (var item in amounts)
         {
             var tag = item.Key;
-            var amount = BazaarOrderAmountHelper.ClampOrderAmount(tag, item.Value.Item1);
+            var amount = item.Value.Item1;
             var name = item.Value.Item2;
             var price = bazaarItems[tag].Sell.OrderBy(o => o.PricePerUnit).First().PricePerUnit - 0.1;
             await RecommendBazaarSellOrder(tag, name, amount, price);
@@ -640,9 +650,10 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
     /// <param name="isSell">True for sell orders, false for buy orders</param>
     /// <param name="price">The price per unit</param>
     /// <param name="amount">The amount to order</param>
-    public void SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount)
+    /// <param name="itemCategory">Optional item category used for non-stackable detection.</param>
+    public void SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount, ItemCategory? itemCategory = null)
     {
-        var cappedAmount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount);
+        var cappedAmount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount, itemCategory);
         if (cappedAmount != amount)
             Activity.Current?.Log($"Capped bazaar order amount for {itemTag} from {amount} to {cappedAmount}");
 
@@ -689,8 +700,10 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             // Use sell price (what buyers pay) for sell orders
             if (sellPrice < 0)
                 sellPrice = latestPrice.Sell;
+            var itemCategory = await GetBazaarItemCategory(itemTag);
+            amount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount, itemCategory);
             span.Log($"For {itemName} x {amount} recommending sell at {sellPrice}");
-            SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount);
+            SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount, itemCategory);
 
             socket.Dialog(db => db.MsgLine(
                 $"{McColorCodes.GRAY}Recommending sell order: {McColorCodes.YELLOW}{amount}x {itemName} {McColorCodes.GRAY}at {McColorCodes.GREEN}{socket.FormatPrice((long)sellPrice)}{McColorCodes.GRAY} per unit",
