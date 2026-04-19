@@ -640,9 +640,20 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        internal static bool UsesDirectConnectionType(string connectionType)
+        {
+            return string.IsNullOrWhiteSpace(connectionType);
+        }
+
+        internal static bool ShouldReconnectToEu(AccountInfo info, string connectionType)
+        {
+            return info.Region == "eu" && !UsesDirectConnectionType(connectionType);
+        }
+
         private async Task PrintRegionInfo(AccountInfo info)
         {
-            if (TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS) && SessionInfo.ConnectionType == null)
+            var usesDirectConnection = UsesDirectConnectionType(SessionInfo.ConnectionType);
+            if (TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS) && usesDirectConnection)
             {
                 if ((socket.CurrentRegion == info.Region || info.Region == null) && info.Locale == "en")
                     socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>(McColorCodes.GRAY + "Switching region is now done with /cofl switchregion <region>", "", "Click to see region options"));
@@ -657,7 +668,7 @@ namespace Coflnet.Sky.Commands.MC
 
                 }
             }
-            else if (info.Region == "eu" && SessionInfo.ConnectionType != null)
+            else if (ShouldReconnectToEu(info, SessionInfo.ConnectionType))
             {
                 socket.Dialog(db => db.MsgLine("Switching to eu server"));
                 socket.ExecuteCommand("/cofl connect wss://sky.coflnet.com/modsocket");

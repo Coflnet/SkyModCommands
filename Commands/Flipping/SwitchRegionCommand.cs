@@ -29,9 +29,16 @@ public class SwitchRegionCommand : McCommand
         }
         if (selected == "eu")
         {
-            socket.Dialog(db => db.MsgLine($"Switching to {McColorCodes.AQUA}EU"));
             socket.AccountInfo.Region = "eu";
             await socket.sessionLifesycle.AccountInfo.Update();
+
+            if (ModSessionLifesycle.UsesDirectConnectionType(socket.SessionInfo.ConnectionType))
+            {
+                socket.Dialog(db => db.MsgLine("Already connected to eu server"));
+                return;
+            }
+
+            socket.Dialog(db => db.MsgLine($"Switching to {McColorCodes.AQUA}EU"));
             socket.ExecuteCommand("/cofl connect ws://sky-mod.coflnet.com/modsocket");
         }
         else if (selected == "us")

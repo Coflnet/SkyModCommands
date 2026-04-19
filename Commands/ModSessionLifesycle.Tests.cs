@@ -24,6 +24,23 @@ public class ModSessionLifesycleTests
 
     private TestSocket socket;
 
+    [TestCase(null, true)]
+    [TestCase("", true)]
+    [TestCase("proxy", false)]
+    public void UsesDirectConnectionTypeTreatsBlankAsDirect(string connectionType, bool expected)
+    {
+        Assert.That(ModSessionLifesycle.UsesDirectConnectionType(connectionType), Is.EqualTo(expected));
+    }
+
+    [TestCase(null, false)]
+    [TestCase("", false)]
+    [TestCase("proxy", true)]
+    public void ShouldReconnectToEuRequiresNonDirectConnection(string connectionType, bool expected)
+    {
+        var info = new AccountInfo() { Region = "eu" };
+        Assert.That(ModSessionLifesycle.ShouldReconnectToEu(info, connectionType), Is.EqualTo(expected));
+    }
+
     [SetUp]
     public void Setup()
     {
