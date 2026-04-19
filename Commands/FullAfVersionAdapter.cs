@@ -576,6 +576,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             socket.Error(new(), "Price is 0, skipping listing, og: " + price, JsonConvert.SerializeObject(auction));
             return;
         }
+        socket.SessionInfo.ToLowListingAttempt = string.Empty;
         socket.Send(Response.Create("createAuction", new
         {
             Slot = index,
@@ -585,15 +586,21 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             Id = id
         }));
         await Task.Delay(5500);
-        if (socket.SessionInfo.ToLowListingAttempt == null)
+        var minimumListingAttempt = socket.SessionInfo.ToLowListingAttempt;
+        socket.SessionInfo.ToLowListingAttempt = string.Empty;
+        if (string.IsNullOrWhiteSpace(minimumListingAttempt))
             return;
-        await RetryListingWithMinimum(span, auction, index, sellPrice, id, listTime);
+        await RetryListingWithMinimum(span, auction, index, sellPrice, id, listTime, minimumListingAttempt);
     }
 
-    private async Task RetryListingWithMinimum(Activity span, SaveAuction auction, int index, long sellPrice, string id, int? listTime)
+    private async Task RetryListingWithMinimum(Activity span, SaveAuction auction, int index, long sellPrice, string id, int? listTime, string minimumListingAttempt)
     {
-        // sample string:You must set it to at least 1,500,000!
-        var parsed = int.Parse(socket.SessionInfo.ToLowListingAttempt.Split(" ").Last().Replace(",", "").Replace("!", ""));
+        if (!TryExtractMinimumListingPrice(minimumListingAttempt, out var parsed))
+        {
+            span.Log($"Could not parse minimum listing price from '{minimumListingAttempt}'");
+            return;
+        }
+
         if (parsed > sellPrice && parsed < sellPrice * 1.1)
         {
             span.Log($"Price too low, retrying with {parsed}");
@@ -605,11 +612,23 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
                 ItemName = auction.ItemName,
                 Id = id
             }));
-            socket.SessionInfo.ToLowListingAttempt = null;
             await Task.Delay(2000);
         }
         else
             span.Log($"Retry price outside of range {parsed} vs {sellPrice}");
+    }
+
+    internal static bool TryExtractMinimumListingPrice(string minimumListingAttempt, out int minimumListingPrice)
+    {
+        minimumListingPrice = 0;
+        if (string.IsNullOrWhiteSpace(minimumListingAttempt))
+            return false;
+
+        var match = Regex.Match(minimumListingAttempt, @"at least\s+([\d,]+)", RegexOptions.IgnoreCase);
+        if (!match.Success)
+            return false;
+
+        return int.TryParse(match.Groups[1].Value.Replace(",", string.Empty), out minimumListingPrice);
     }
 
     private static string MapToGameTag(SaveAuction auction)
