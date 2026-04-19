@@ -1,14 +1,20 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.Commands.Shared;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
 public class UploadBazaarOrders : McCommand
 {
-    public override async Task Execute(MinecraftSocket socket, string arguments)
+    private readonly InventoryParser parser = new();
+
+    public override Task Execute(MinecraftSocket socket, string arguments)
     {
-        Activity.Current.Log("Bazaar orders updated " + arguments);
-        socket.Dialog(db => db.MsgLine("Bazaar orders updated", null, "This can be used to trigger bazaar order related tasks"));
+        socket.SessionInfo.BazaarOrders = BazaarOrderStateHelper.ParseOpenOrders(arguments, parser);
+        Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.BazaarOrders));
+        Activity.Current?.Log("Bazaar orders tracked: " + socket.SessionInfo.ActiveBazaarOrderCount);
+        return Task.CompletedTask;
     }
 }

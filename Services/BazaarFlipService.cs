@@ -131,6 +131,15 @@ public class BazaarFlipService : BackgroundService
         Dictionary<string, string> names,
         List<DemandFlip> group)
     {
+        if (BazaarOrderStateHelper.HasReachedBuyOrderLimit(socket.SessionInfo.BazaarOrders))
+        {
+            logger.LogDebug(
+                "Skipping bazaar recommendation for {PlayerName} because {OrderCount} orders are already open",
+                socket.SessionInfo.McName,
+                socket.SessionInfo.ActiveBazaarOrderCount);
+            return;
+        }
+
         // pick one at random from the tier group
         var recommended = group[Random.Shared.Next(group.Count)];
         var itemCategory = await BazaarOrderAmountHelper.GetKnownItemCategory(recommended.ItemTag, filterStateService);

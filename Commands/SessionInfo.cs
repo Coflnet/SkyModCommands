@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Models;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
@@ -104,6 +106,11 @@ namespace Coflnet.Sky.Commands.MC
         public bool SellAll;
 
         public List<SaveAuction> Inventory { get; set; } = new();
+
+        public List<BazaarOrderInfo> BazaarOrders { get; set; } = new();
+
+        [JsonIgnore]
+        public int ActiveBazaarOrderCount => BazaarOrders?.Count(order => order != null) ?? 0;
 
         /// <summary>
         /// Tracks recently filled bazaar orders (item name + amount) to suppress outbid notifications.
