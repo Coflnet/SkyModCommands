@@ -15,6 +15,8 @@ public static class BazaarOrderStateHelper
     public const int BottomMenuRows = 4;
     public const int SlotsPerRow = 9;
     public const int MaxOpenBuyOrders = 20;
+    public const string CancelOrderDisplayNameColored = "§cCancel Order";
+    public const string CancelOrderDisplayName = "Cancel Order";
 
     private static readonly Regex FormattingRegex = new("§.", RegexOptions.Compiled);
     private static readonly Regex AmountRegex = new(@"(?:Offer amount|Order amount|Selling|Order): §a([\d,]+)§7x", RegexOptions.Compiled);
@@ -23,6 +25,22 @@ public static class BazaarOrderStateHelper
     private static readonly Regex PlayerRegex = new(@"^§8- §a([\d,]+)§7x (.+?)(?:§f §8(.+))?$", RegexOptions.Compiled);
     private static readonly Regex ByRegex = new(@"^§7By: (.+)$", RegexOptions.Compiled);
     private static readonly Regex ExpiresRegex = new(@"^(?:Expires in|Expiration): (.+)$", RegexOptions.Compiled);
+
+    public static bool IsOrderOptionsSnapshot(string arguments)
+    {
+        if (string.IsNullOrWhiteSpace(arguments))
+            return false;
+
+        var root = JToken.Parse(arguments);
+        if (root["slots"] is not JArray slots)
+            return false;
+
+        return slots
+            .OfType<JObject>()
+            .Any(slot => slot["slot"]?.Value<int>() == 13
+                && (slot["displayNameColored"]?.ToString() == CancelOrderDisplayNameColored
+                    || slot["displayName"]?.ToString() == CancelOrderDisplayName));
+    }
 
     public static List<BazaarOrderInfo> ParseOpenOrders(string arguments, InventoryParser parser)
     {

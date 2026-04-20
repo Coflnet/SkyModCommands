@@ -155,6 +155,45 @@ public class BazaarOrderStateHelperTests
     }
 
     [Test]
+    public void IsOrderOptionsSnapshotDetectsCancelOrderDetailWindow()
+    {
+        var slots = Enumerable.Range(0, 32)
+            .Select(index => (object)new
+            {
+                count = 1,
+                displayName = string.Empty,
+                displayNameColored = string.Empty,
+                empty = false,
+                name = "minecraft:black_stained_glass_pane",
+                slot = index
+            })
+            .ToArray();
+        slots[13] = new
+        {
+            count = 1,
+            displayName = "Cancel Order",
+            displayNameColored = "§cCancel Order",
+            empty = false,
+            lore = new[]
+            {
+                "§7You will be refunded §a81§7x §7items."
+            },
+            name = "minecraft:green_terracotta",
+            slot = 13
+        };
+
+        var json = JsonConvert.SerializeObject(new
+        {
+            botState = "ManagingOrders",
+            open = true,
+            slotCount = 72,
+            slots
+        });
+
+        Assert.That(BazaarOrderStateHelper.IsOrderOptionsSnapshot(json), Is.True);
+    }
+
+    [Test]
     public void HasReachedBuyOrderLimitCountsOrdersWithoutTagsWhenLoreIsValid()
     {
         var orders = Enumerable.Range(0, 20)

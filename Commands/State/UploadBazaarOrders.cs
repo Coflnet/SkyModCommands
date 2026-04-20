@@ -12,6 +12,14 @@ public class UploadBazaarOrders : McCommand
 
     public override Task Execute(MinecraftSocket socket, string arguments)
     {
+        if (BazaarOrderStateHelper.IsOrderOptionsSnapshot(arguments))
+        {
+            const string message = "Wrong bazaar order state uploaded: received a single-order options window instead of the full bazaar order overview. Keeping previous bazaar orders.";
+            Activity.Current?.Log(message);
+            socket.Dialog(db => db.MsgLine(message));
+            return Task.CompletedTask;
+        }
+
         socket.SessionInfo.BazaarOrders = BazaarOrderStateHelper.ParseOpenOrders(arguments, parser);
         Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.BazaarOrders));
         Activity.Current?.Log("Bazaar orders tracked: " + socket.SessionInfo.ActiveBazaarOrderCount);
