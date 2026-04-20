@@ -41,7 +41,7 @@ public class SessionFilterState : IDisposable
                     var backup = backupConfig.FirstOrDefault(b => b.Name == targetSettings.ConfigUsed.Substring(7));
                     if (backup != null)
                     {
-                        lifesycle.FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => backup.settings);
+                        await lifesycle.ReplaceFlipSettings(SelfUpdatingValue<FlipSettings>.CreateNoUpdate(backup.settings));
                         socket.Dialog(db => db.MsgLine($"Backupconfig with name §6{backup.Name} §6loaded"));
                         return;
                     }

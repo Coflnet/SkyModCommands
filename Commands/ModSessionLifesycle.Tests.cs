@@ -149,6 +149,18 @@ public class ModSessionLifesycleTests
         }
     }
 
+    [Test]
+    public void SocketSettingsGetterBackfillsPlayerInfoForTierFilters()
+    {
+        var settings = CreateTierAwareSettings();
+        lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(settings);
+
+        Action act = () => socket.Settings.MatchesSettings(FlipperService.LowPriceToFlip(CreateSampleFlip()));
+
+        act.Should().NotThrow();
+        settings.PlayerInfo.Should().BeSameAs(socket.SessionInfo);
+    }
+
     private static LowPricedAuction CreateSampleFlip()
     {
         return new LowPricedAuction
@@ -167,6 +179,30 @@ public class ModSessionLifesycleTests
                 {"key","matchingKey"}
             },
             TargetPrice = 6_500_000
+        };
+    }
+
+    private static FlipSettings CreateTierAwareSettings()
+    {
+        return new FlipSettings()
+        {
+            BlackList = new()
+            {
+                new()
+                {
+                    filter = new Dictionary<string, string>
+                    {
+                        { "UserPremiumTier", "PREMIUM_PLUS" },
+                        { "ForceBlacklist", "true" }
+                    }
+                }
+            },
+            WhiteList = [],
+            Visibility = new(),
+            ModSettings = new(),
+            AllowedFinders = FinderType.SNIPER_MEDIAN,
+            MinVolume = 0,
+            BlockHighCompetitionFlips = false
         };
     }
 

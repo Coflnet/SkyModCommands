@@ -88,6 +88,36 @@ namespace Coflnet.Sky.Commands.MC
             FlipProcessor = new FlipProcesser(socket, spamController, DelayHandler);
         }
 
+        internal void EnsureSessionContextOnFlipSettings(FlipSettings settings, FlipSettings previousSettings = null)
+        {
+            if (settings == null)
+                return;
+            if (!ReferenceEquals(settings.PlayerInfo, socket.SessionInfo))
+                settings.PlayerInfo = socket.SessionInfo;
+            if (previousSettings != null && !ReferenceEquals(settings, previousSettings))
+                settings.CopyListMatchers(previousSettings);
+        }
+
+        private void InitializeCurrentFlipSettings(SelfUpdatingValue<FlipSettings> previousSettings = null)
+        {
+            if (FlipSettings?.Value == null)
+                throw new Exception("flipSettings.Value is null");
+
+            EnsureSessionContextOnFlipSettings(FlipSettings.Value, previousSettings?.Value);
+            FlipSettings.OnChange += UpdateSettings;
+            FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
+        }
+
+        public async Task ReplaceFlipSettings(SelfUpdatingValue<FlipSettings> flipSettings)
+        {
+            var previousSettings = FlipSettings;
+            FlipSettings = flipSettings ?? throw new Exception("flipSettings is null");
+            InitializeCurrentFlipSettings(previousSettings);
+            previousSettings?.Dispose();
+            await ApplyFlipSettings(FlipSettings.Value, ConSpan);
+            Registerkeybinds(FlipSettings.Value, true);
+        }
+
         public async Task SetupConnectionSettings(string stringId)
         {
             /*    socket.Dialog(db => db.Lines("The welcome pig greets you",
@@ -126,6 +156,7 @@ namespace Coflnet.Sky.Commands.MC
                 waitLogin.Log(GetAuthLink(stringId));
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DefaultSettings);
+                InitializeCurrentFlipSettings();
             }
             else
             {
@@ -250,14 +281,11 @@ namespace Coflnet.Sky.Commands.MC
             FlipSettings = await flipSettingsTask ??
                 throw new Exception("flipSettings is null");
             Activity.Current.Log("got flipSettings");
+            InitializeCurrentFlipSettings(oldSettings);
             oldSettings?.Dispose();
-            if (FlipSettings?.Value == null)
-                throw new Exception("flipSettings.Value is null");
 
             SetActiveConIdToCurrent();
             Activity.Current.Log("single connection check");
-            FlipSettings.OnChange += UpdateSettings;
-            FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
             AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
             if (AccountInfo.Value != default)
                 await UpdateAccountInfo(AccountInfo);
@@ -381,8 +409,7 @@ namespace Coflnet.Sky.Commands.MC
                         "showlbin false",
                         $"You can also enable only lbin based flips \nby executing {McColorCodes.AQUA}/cofl set finders sniper.\nClicking this will hide lbin in flip messages. \nYou can still see lbin in item descriptions."));
                 }
-                settings.PlayerInfo = socket.SessionInfo;
-                settings.CopyListMatchers(FlipSettings);
+                EnsureSessionContextOnFlipSettings(settings, FlipSettings);
                 // preload flip settings
                 settings.MatchesSettings(testFlip);
                 span.Log(JSON.Stringify(settings));

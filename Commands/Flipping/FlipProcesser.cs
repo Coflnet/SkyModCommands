@@ -207,12 +207,18 @@ namespace Coflnet.Sky.Commands.MC
 
         private bool FindCompileError(FlipInstance flipInstance, List<ListEntry> targetList)
         {
-            foreach (var item in Settings.WhiteList.ToList())
+            if (targetList == null)
+                return false;
+
+            var probeWhiteList = ReferenceEquals(targetList, Settings.WhiteList);
+            foreach (var item in targetList.ToList())
             {
-                var virtualS = new FlipSettings()
-                {
-                    WhiteList = [item]
-                };
+                var virtualS = new FlipSettings();
+                virtualS.PlayerInfo = socket.SessionInfo;
+                if (probeWhiteList)
+                    virtualS.WhiteList = [item];
+                else
+                    virtualS.BlackList = [item];
                 try
                 {
                     virtualS.MatchesSettings(flipInstance);
