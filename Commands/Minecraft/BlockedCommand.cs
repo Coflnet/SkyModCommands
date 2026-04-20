@@ -22,6 +22,49 @@ namespace Coflnet.Sky.Commands.MC
     public class BlockedCommand : McCommand
     {
         public override bool IsPublic => true;
+        internal static bool IsBazaarSearch(string searchVal)
+        {
+            return searchVal == "bazaar" || searchVal == "bz";
+        }
+
+        internal static bool MatchesSearch(MinecraftSocket.BlockedElement blocked, string searchVal)
+        {
+            if (string.IsNullOrWhiteSpace(searchVal))
+                return true;
+            if (IsBazaarSearch(searchVal))
+                return blocked.Flip.Finder == LowPricedAuction.FinderType.Bazaar;
+            return $"{blocked.Reason}{blocked.Flip.Auction.ItemName}{blocked.Flip.Auction.Tag}".ToLower().Contains(searchVal.ToLower().Trim());
+        }
+
+        internal static string GetDetailsLink(LowPricedAuction flip)
+        {
+            return flip.Finder == LowPricedAuction.FinderType.Bazaar
+                ? "https://sky.coflnet.com/item/" + flip.Auction.Tag
+                : "https://sky.coflnet.com/auction/" + flip.Auction.Uuid;
+        }
+
+        internal static string GetOpenCommand(LowPricedAuction flip)
+        {
+            return flip.Finder == LowPricedAuction.FinderType.Bazaar
+                ? "/bz " + BazaarUtils.GetSearchValue(flip.Auction.Tag, flip.Auction.ItemName)
+                : "/viewauction " + flip.Auction.Uuid;
+        }
+
+        internal static string GetOpenLabel(LowPricedAuction flip)
+        {
+            return flip.Finder == LowPricedAuction.FinderType.Bazaar ? " §l[bz]§r" : " §l[ah]§r";
+        }
+
+        internal static string GetOpenHover(LowPricedAuction flip)
+        {
+            return flip.Finder == LowPricedAuction.FinderType.Bazaar ? "Open in bazaar" : "Open in game";
+        }
+
+        internal static bool SupportsFlipOptions(LowPricedAuction flip)
+        {
+            return flip.Finder != LowPricedAuction.FinderType.Bazaar;
+        }
+
         private static Dictionary<string, string[]> ReasonLookup = new Dictionary<string, string[]>()
         {
             { "sold", new string[]{
@@ -79,6 +122,18 @@ namespace Coflnet.Sky.Commands.MC
                 "Either your purse was too low to afford",
                 "or the flip was likely already sold",
                 "after waiting for fairness delay"
+            ]},
+            { "purse check", [
+                "The recommended item cost more than",
+                "your configured purse budget allows.",
+                "You can increase max purse usage or",
+                "top up your purse to allow this item."
+            ]},
+            { "bazaar order limit", [
+                "You already have too many active bazaar",
+                "orders open, so new bazaar recommendations",
+                "were paused to avoid filling your inventory.",
+                "Claim, cancel, or fill existing orders first."
             ]}
             };
         public override async Task Execute(MinecraftSocket socket, string arguments)
@@ -133,6 +188,19 @@ namespace Coflnet.Sky.Commands.MC
                 flipsToSend = socket.TopBlocked.OrderByDescending(b => b.Flip.TargetPrice - b.Flip.Auction.StartingBid).Take(10).ToList();
                 socket.Dialog(db => db.MsgLine("Blocked flips sorted by profit"));
             }
+            else if (IsBazaarSearch(searchVal))
+            {
+                flipsToSend = socket.TopBlocked.Where(b => b.Flip.Finder == LowPricedAuction.FinderType.Bazaar)
+                    .OrderByDescending(b => b.Now)
+                    .Take(10)
+                    .ToList();
+                if (flipsToSend.Count == 0)
+                {
+                    socket.SendMessage(COFLNET + "No blocked bazaar recommendations found yet");
+                    return;
+                }
+                socket.Dialog(db => db.MsgLine("Blocked bazaar recommendations"));
+            }
             else if (arguments.Length > 2)
             {
                 var baseCollection = socket.TopBlocked.AsQueryable();
@@ -143,7 +211,9 @@ namespace Coflnet.Sky.Commands.MC
                     var filter = new FlipFilter(filters, socket.SessionInfo);
                     baseCollection = baseCollection.Where(b => filter.IsMatch(FlipperService.LowPriceToFlip(b.Flip)));
                 }
-                flipsToSend = baseCollection.Where(b => $"{b.Reason}{b.Flip.Auction.ItemName}{b.Flip.Auction.Tag}".ToLower().Contains(searchVal.ToLower().Trim())).ToList();
+                else
+                    baseCollection = baseCollection.Where(b => MatchesSearch(b, searchVal)).AsQueryable();
+                flipsToSend = baseCollection.ToList();
             }
             else
                 flipsToSend = GetRandomFlips(socket);
@@ -178,19 +248,29 @@ namespace Coflnet.Sky.Commands.MC
 
                 if (!string.IsNullOrEmpty(socket.Settings.ModSettings.BlockedFormat))
                     text = socket.formatProvider.FormatFlip(FlipperService.LowPriceToFlip(b.Flip), b.Reason);
+                var detailsLink = GetDetailsLink(b.Flip);
+                var openCommand = GetOpenCommand(b.Flip);
+                var openLabel = GetOpenLabel(b.Flip);
+                var openHover = GetOpenHover(b.Flip);
+                var itemHover = b.Flip.Finder == LowPricedAuction.FinderType.Bazaar
+                    ? $"{b.Flip.Auction.ItemName}\nClick to open on website"
+                    : b.Flip.Auction?.Context?.GetValueOrDefault("lore")
+                        + "\nCick to open on website";
                 var mainParts = new List<ChatPart>
                 {
                     new ChatPart(
                     text,
-                    "https://sky.coflnet.com/auction/" + b.Flip.Auction.Uuid,
-                    b.Flip.Auction?.Context?.GetValueOrDefault("lore")
-                    + "\nCick to open on website"),
+                    detailsLink,
+                    itemHover),
                     new ChatPart(
-                    $" §l[ah]§r",
-                    "/viewauction " + b.Flip.Auction.Uuid,
-                    "Open in game"),
-                    new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + b.Flip.Auction.Uuid, "Expand flip options")
+                    openLabel,
+                    openCommand,
+                    openHover)
                 };
+                if (SupportsFlipOptions(b.Flip))
+                    mainParts.Add(new ChatPart(" ✥ \n", "/cofl dialog flipoptions " + b.Flip.Auction.Uuid, "Expand flip options"));
+                else
+                    mainParts.Add(new ChatPart("\n"));
                 if (!string.IsNullOrEmpty(longReason))
                 {
                     if (countByReson.ContainsKey(b.Reason))
@@ -207,12 +287,13 @@ namespace Coflnet.Sky.Commands.MC
             }).Append(new ChatPart()
             {
                 text = COFLNET + "These are examples of blocked flips. Hover for options",
-                onClick = "/cofl blocked profit",
+                onClick = IsBazaarSearch(searchVal) ? "/cofl blocked bazaar" : "/cofl blocked profit",
                 hover = $"Execute again to get another sample,\n"
                         + "they are random each time and the most \n"
                         + "common block cause is sorted on top\n"
                         + $"Or run {McColorCodes.AQUA}/cofl blocked profit {McColorCodes.RESET} to order by most profit\n"
-                        + "Or run " + $"{McColorCodes.AQUA}/cofl blocked <search> {McColorCodes.RESET}to search for specific flips",
+                    + "Or run " + $"{McColorCodes.AQUA}/cofl blocked <search> {McColorCodes.RESET}to search for specific flips\n"
+                    + $"Use {McColorCodes.AQUA}/cofl blocked bazaar {McColorCodes.RESET}for blocked bazaar recommendations",
             }).ToArray());
             var sentCount = socket.LastSent.Where(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-10)).Count();
             if (sentCount > 2 && socket.LastSent.OrderByDescending(s => s.Auction.Start).Take(10).All(s => !s.AdditionalProps.ContainsKey("clickT")))

@@ -131,8 +131,17 @@ public class BazaarFlipService : BackgroundService
         Dictionary<string, string> names,
         List<DemandFlip> group)
     {
+        var recommended = group[Random.Shared.Next(group.Count)];
+        var itemCategory = await BazaarOrderAmountHelper.GetKnownItemCategory(recommended.ItemTag, filterStateService);
+        var amount = BazaarOrderAmountHelper.GetSuggestedBuyOrderAmount(recommended.ItemTag, recommended.SellPrice, itemCategory);
+
+        // build a virtual flip for filter matching and blocked-reason tracking
+        var virtualFlip = CreateVirtualFlip(recommended, names, amount);
+        var flipInstance = FlipperService.LowPriceToFlip(virtualFlip);
+
         if (BazaarOrderStateHelper.HasReachedBuyOrderLimit(socket.SessionInfo.BazaarOrders))
         {
+            socket.sessionLifesycle.FlipProcessor.BlockedFlip(virtualFlip, "bazaar order limit");
             logger.LogDebug(
                 "Skipping bazaar recommendation for {PlayerName} because {OrderCount} orders are already open",
                 socket.SessionInfo.McName,
@@ -140,19 +149,12 @@ public class BazaarFlipService : BackgroundService
             return;
         }
 
-        // pick one at random from the tier group
-        var recommended = group[Random.Shared.Next(group.Count)];
-        var itemCategory = await BazaarOrderAmountHelper.GetKnownItemCategory(recommended.ItemTag, filterStateService);
-
-        var amount = BazaarOrderAmountHelper.GetSuggestedBuyOrderAmount(recommended.ItemTag, recommended.SellPrice, itemCategory);
-
-        // build a virtual flip for filter matching only
-        var virtualFlip = CreateVirtualFlip(recommended, names, amount);
-        var flipInstance = FlipperService.LowPriceToFlip(virtualFlip);
-
         if (recommended.BuyPrice * amount > socket.sessionLifesycle.FlipProcessor.GetMaxCostFromPurse()
             && socket.SessionInfo.Purse > 0)
+        {
+            socket.sessionLifesycle.FlipProcessor.BlockedFlip(virtualFlip, "purse check");
             return;
+        }
 
         if (!socket.sessionLifesycle.FlipProcessor.FlipMatchesSetting(virtualFlip, flipInstance))
             return;
