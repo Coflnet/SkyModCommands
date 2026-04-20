@@ -10,7 +10,7 @@ namespace Coflnet.Sky.ModCommands.Services;
 public class BazaarOrderStateHelperTests
 {
     [Test]
-    public void ParseOpenOrdersOnlyKeepsTrackedOrdersFromTopBazaarRows()
+    public void ParseOpenOrdersKeepsTrackedOrdersFromParserBackedSlots()
     {
         var parser = new InventoryParser();
         var slots = Enumerable.Repeat<object>(null, 72).ToArray();
@@ -66,13 +66,125 @@ public class BazaarOrderStateHelperTests
         Assert.That(result[2].PlacedBy, Is.EqualTo("§b[MVP§4+§b] Ekwav"));
     }
 
+    [Test]
+    public void ParseOpenOrdersSupportsRawSlotSnapshotFormat()
+    {
+        var parser = new InventoryParser();
+        var slots = Enumerable.Range(0, 72)
+            .Select(index => (object)new
+            {
+                empty = true,
+                slot = index
+            })
+            .ToArray();
+
+        slots[10] = new
+        {
+            count = 1,
+            displayName = "SELL Flawed Citrine Gemstone",
+            displayNameColored = "§6§lSELL §a☘ Flawed Citrine Gemstone",
+            empty = false,
+            lore = new[]
+            {
+                "§8Worth 39.9k coins",
+                string.Empty,
+                "§7Offer amount: §a58§7x",
+                string.Empty,
+                "§7Price per unit: §6697.2 coins",
+                string.Empty,
+                "§7By: §a[VIP] Blexidon",
+                string.Empty,
+                "§eClick to view options!"
+            },
+            name = "minecraft:player_head",
+            slot = 10,
+            tag = "FLAWED_CITRINE_GEM"
+        };
+        slots[11] = new
+        {
+            count = 1,
+            displayName = "SELL Volcanic Rock",
+            displayNameColored = "§6§lSELL §5§cVolcanic Rock",
+            empty = false,
+            lore = new[]
+            {
+                "§8Worth 8.9M coins",
+                string.Empty,
+                "§7Offer amount: §a3§7x",
+                string.Empty,
+                "§7Price per unit: §62,999,999.7 coins",
+                string.Empty,
+                "§7By: §a[VIP] Blexidon",
+                string.Empty,
+                "§eClick to view options!"
+            },
+            name = "minecraft:player_head",
+            slot = 11,
+            tag = "VOLCANIC_ROCK"
+        };
+        slots[31] = new
+        {
+            count = 1,
+            displayName = "Go Back",
+            displayNameColored = "§aGo Back",
+            empty = false,
+            lore = new[] { "§7To Bazaar" },
+            name = "minecraft:arrow",
+            slot = 31
+        };
+
+        var json = JsonConvert.SerializeObject(new
+        {
+            botState = "ManagingOrders",
+            open = true,
+            slotCount = 72,
+            slots
+        });
+
+        var result = BazaarOrderStateHelper.ParseOpenOrders(json, parser);
+
+        Assert.That(result.Count, Is.EqualTo(2));
+        Assert.That(result[0].ItemTag, Is.EqualTo("FLAWED_CITRINE_GEM"));
+        Assert.That(result[0].ItemName, Is.EqualTo("☘ Flawed Citrine Gemstone"));
+        Assert.That(result[0].PricePerUnit, Is.EqualTo(697.2));
+        Assert.That(result[0].PlacedBy, Is.EqualTo("§a[VIP] Blexidon"));
+
+        Assert.That(result[1].ItemTag, Is.EqualTo("VOLCANIC_ROCK"));
+        Assert.That(result[1].Amount, Is.EqualTo(3));
+        Assert.That(result[1].PricePerUnit, Is.EqualTo(2999999.7));
+    }
+
+    [Test]
+    public void HasReachedBuyOrderLimitCountsOrdersWithoutTagsWhenLoreIsValid()
+    {
+        var orders = Enumerable.Range(0, 20)
+            .Select(index => new BazaarOrderInfo
+            {
+                ItemTag = string.Empty,
+                ItemName = $"Item {index}",
+                Side = BazaarOrderSide.Buy,
+                Amount = 1,
+                PricePerUnit = 1
+            })
+            .ToList();
+
+        Assert.That(BazaarOrderStateHelper.HasReachedBuyOrderLimit(orders), Is.True);
+    }
+
     [TestCase(19, false)]
     [TestCase(20, true)]
     [TestCase(21, true)]
     public void HasReachedBuyOrderLimitUsesTwentyOrders(int orderCount, bool expected)
     {
         var orders = Enumerable.Range(0, orderCount)
-            .Select(index => new BazaarOrderInfo { ItemTag = $"TAG_{index}", PricePerUnit = 1 })
+            .Select(index => new BazaarOrderInfo
+            {
+                ItemTag = $"TAG_{index}",
+                ItemName = $"Item {index}",
+                Side = BazaarOrderSide.Buy,
+                Amount = 1,
+                PricePerUnit = 1
+            })
             .ToList();
 
         Assert.That(BazaarOrderStateHelper.HasReachedBuyOrderLimit(orders), Is.EqualTo(expected));

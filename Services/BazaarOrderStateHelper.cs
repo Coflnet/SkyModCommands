@@ -29,8 +29,18 @@ public static class BazaarOrderStateHelper
         if (string.IsNullOrWhiteSpace(arguments))
             return [];
 
+        var root = JToken.Parse(arguments);
+        var rawSlots = root["slots"] as JArray;
         var parsed = parser.Parse(arguments).ToList();
         var trackedSlotCount = GetTrackedSlotCount(arguments, parsed.Count);
+
+        if (rawSlots != null)
+        {
+            return Enumerable.Range(0, Math.Min(trackedSlotCount, rawSlots.Count))
+                .Select(index => ParseOrder(rawSlots[index], index < parsed.Count ? parsed[index] : null))
+                .Where(IsTrackedOrder)
+                .ToList();
+        }
 
         return parsed
             .Take(trackedSlotCount)
@@ -68,9 +78,44 @@ public static class BazaarOrderStateHelper
         if (item == null)
             return null;
 
-        var lore = item.Context?.GetValueOrDefault("lore") ?? string.Empty;
+        return ParseOrder(
+            NormalizeItemTag(item.Tag),
+            item.ItemName ?? string.Empty,
+            item.Context?.GetValueOrDefault("lore") ?? string.Empty);
+    }
+
+    private static BazaarOrderInfo ParseOrder(JToken rawItem, SaveAuction parsedItem)
+    {
+        if (rawItem == null || rawItem.Type == JTokenType.Null)
+            return ParseOrder(parsedItem);
+
+        if (rawItem["empty"]?.Value<bool>() == true)
+            return null;
+
+        var displayName = rawItem["displayNameColored"]?.ToString();
+        if (string.IsNullOrWhiteSpace(displayName))
+            displayName = rawItem["displayName"]?.ToString();
+        if (string.IsNullOrWhiteSpace(displayName))
+            displayName = parsedItem?.ItemName ?? string.Empty;
+
+        var lore = rawItem["lore"] is JArray loreArray
+            ? string.Join("\n", loreArray.Select(line => line?.ToString() ?? string.Empty))
+            : parsedItem?.Context?.GetValueOrDefault("lore") ?? string.Empty;
+
+        var itemTag = rawItem["tag"]?.ToString();
+        if (string.IsNullOrWhiteSpace(itemTag))
+            itemTag = NormalizeItemTag(parsedItem?.Tag);
+
+        return ParseOrder(itemTag, displayName, lore);
+    }
+
+    private static BazaarOrderInfo ParseOrder(string itemTag, string displayName, string lore)
+    {
+        displayName ??= string.Empty;
+        lore ??= string.Empty;
+
         var lines = lore.Split('\n', StringSplitOptions.None);
-        var plainDisplayName = StripFormatting(item.ItemName);
+        var plainDisplayName = StripFormatting(displayName);
         var amountMatch = lines.Select(line => AmountRegex.Match(line)).FirstOrDefault(match => match.Success);
         var filledMatch = lines.Select(line => FilledRegex.Match(line)).FirstOrDefault(match => match.Success);
         var players = lines
@@ -91,8 +136,8 @@ public static class BazaarOrderStateHelper
 
         return new BazaarOrderInfo
         {
-            ItemTag = item.Tag ?? string.Empty,
-            DisplayName = item.ItemName ?? string.Empty,
+            ItemTag = itemTag ?? string.Empty,
+            DisplayName = displayName,
             ItemName = ExtractItemName(plainDisplayName),
             Side = ParseSide(plainDisplayName, lines),
             Amount = amount,
@@ -109,8 +154,9 @@ public static class BazaarOrderStateHelper
     private static bool IsTrackedOrder(BazaarOrderInfo order)
     {
         return order != null
-            && !string.IsNullOrWhiteSpace(order.ItemTag)
-            && !string.Equals(order.ItemTag, "UNKOWN", StringComparison.OrdinalIgnoreCase)
+            && order.Side != BazaarOrderSide.Unknown
+            && !string.IsNullOrWhiteSpace(order.ItemName)
+            && order.Amount > 0
             && order.PricePerUnit > 0;
     }
 
@@ -188,5 +234,12 @@ public static class BazaarOrderStateHelper
         return double.TryParse(value?.Replace(",", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
             ? parsed
             : 0;
+    }
+
+    private static string NormalizeItemTag(string itemTag)
+    {
+        return string.Equals(itemTag, "UNKOWN", StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : itemTag ?? string.Empty;
     }
 }
