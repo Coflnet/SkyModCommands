@@ -166,7 +166,11 @@ public class BazaarFlipService : BackgroundService
 
         if (socket.ModAdapter is FullAfVersionAdapter fullAf)
         {
-            fullAf.SendBazaarOrderRecommendation(recommended.ItemTag, virtualFlip.Auction.ItemName, false, price, amount, itemCategory);
+            if (!fullAf.SendBazaarOrderRecommendation(recommended.ItemTag, virtualFlip.Auction.ItemName, false, price, amount, itemCategory))
+            {
+                socket.sessionLifesycle.FlipProcessor.BlockedFlip(virtualFlip, "bazaar order already sent");
+                return;
+            }
         }
 
         socket.Dialog(db => db.MsgLine(

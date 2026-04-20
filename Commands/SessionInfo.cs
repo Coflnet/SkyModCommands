@@ -110,6 +110,9 @@ namespace Coflnet.Sky.Commands.MC
         public List<BazaarOrderInfo> BazaarOrders { get; set; } = new();
 
         [JsonIgnore]
+        public List<SentBazaarOrderInfo> SentBazaarOrders { get; set; } = new();
+
+        [JsonIgnore]
         public int ActiveBazaarOrderCount => BazaarOrders?.Count(order => order != null) ?? 0;
 
         /// <summary>

@@ -21,6 +21,7 @@ public class UploadBazaarOrders : McCommand
         }
 
         socket.SessionInfo.BazaarOrders = BazaarOrderStateHelper.ParseOpenOrders(arguments, parser);
+        BazaarOrderStateHelper.SyncSentOrdersWithUpload(socket.SessionInfo.SentBazaarOrders, socket.SessionInfo.BazaarOrders);
         Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.BazaarOrders));
         Activity.Current?.Log("Bazaar orders tracked: " + socket.SessionInfo.ActiveBazaarOrderCount);
         return Task.CompletedTask;

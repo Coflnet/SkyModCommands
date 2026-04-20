@@ -210,6 +210,36 @@ public class BazaarOrderStateHelperTests
         Assert.That(BazaarOrderStateHelper.HasReachedBuyOrderLimit(orders), Is.True);
     }
 
+    [Test]
+    public void TryTrackSentOrderSkipsDuplicateItemAndPrice()
+    {
+        var sentOrders = new List<SentBazaarOrderInfo>();
+
+        Assert.That(BazaarOrderStateHelper.TryTrackSentOrder(sentOrders, "WHEAT", "Wheat", BazaarOrderSide.Buy, 25130.6, 400), Is.True);
+        Assert.That(BazaarOrderStateHelper.TryTrackSentOrder(sentOrders, "WHEAT", "Wheat", BazaarOrderSide.Buy, 25130.6, 64), Is.False);
+        Assert.That(sentOrders.Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void SyncSentOrdersWithUploadKeepsOnlyOrdersStillPresent()
+    {
+        var sentOrders = new List<SentBazaarOrderInfo>
+        {
+            new() { ItemTag = "WHEAT", ItemName = "Wheat", Side = BazaarOrderSide.Buy, PricePerUnit = 25130.6, Amount = 400 },
+            new() { ItemTag = "VOLCANIC_ROCK", ItemName = "Volcanic Rock", Side = BazaarOrderSide.Sell, PricePerUnit = 2999999.7, Amount = 3 }
+        };
+        var uploadedOrders = new List<BazaarOrderInfo>
+        {
+            new() { ItemTag = "VOLCANIC_ROCK", ItemName = "Volcanic Rock", Side = BazaarOrderSide.Sell, Amount = 3, PricePerUnit = 2999999.7 }
+        };
+
+        BazaarOrderStateHelper.SyncSentOrdersWithUpload(sentOrders, uploadedOrders);
+
+        Assert.That(sentOrders.Count, Is.EqualTo(1));
+        Assert.That(sentOrders[0].ItemTag, Is.EqualTo("VOLCANIC_ROCK"));
+        Assert.That(sentOrders[0].ConfirmedAt, Is.Not.Null);
+    }
+
     [TestCase(19, false)]
     [TestCase(20, true)]
     [TestCase(21, true)]

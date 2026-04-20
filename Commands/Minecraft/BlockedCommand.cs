@@ -134,6 +134,12 @@ namespace Coflnet.Sky.Commands.MC
                 "orders open, so new bazaar recommendations",
                 "were paused to avoid filling your inventory.",
                 "Claim, cancel, or fill existing orders first."
+            ]},
+            { "bazaar order already sent", [
+                "The same bazaar order with the same",
+                "item and price was already suggested.",
+                "It won't be suggested again until it",
+                "disappears from your bazaar orders upload."
             ]}
             };
         public override async Task Execute(MinecraftSocket socket, string arguments)

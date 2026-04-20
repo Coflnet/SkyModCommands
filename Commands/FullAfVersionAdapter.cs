@@ -10,6 +10,7 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.FlipTracker.Client.Api;
 using Coflnet.Sky.FlipTracker.Client.Model;
 using Coflnet.Sky.Items.Client.Model;
+using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -660,17 +661,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         socket.sessionLifesycle.FlipSettings.Value.ModSettings.AutoStartFlipper = true;
         socket.sessionLifesycle.FlipSettings.Value.Visibility.Seller = false;
     }
-
-    /// <summary>
-    /// Sends a bazaar order placement recommendation to the client
-    /// </summary>
-    /// <param name="itemTag">The item tag (e.g., "ENCHANTED_DIAMOND")</param>
-    /// <param name="itemName">The display name for the item</param>
-    /// <param name="isSell">True for sell orders, false for buy orders</param>
-    /// <param name="price">The price per unit</param>
-    /// <param name="amount">The amount to order</param>
-    /// <param name="itemCategory">Optional item category used for non-stackable detection.</param>
-    public void SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount, ItemCategory? itemCategory = null)
+    public bool SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount, ItemCategory? itemCategory = null)
     {
         var cappedAmount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount, itemCategory);
         if (cappedAmount != amount)
@@ -682,6 +673,14 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             itemName = BazaarUtils.GetSearchValue(itemTag, itemName);
             Activity.Current?.Log($"Updated item name for enchanted book recommendation: {itemName}");
         }
+
+        var side = isSell ? BazaarOrderSide.Sell : BazaarOrderSide.Buy;
+        if (BazaarOrderStateHelper.HasTrackedSentOrder(socket.SessionInfo.SentBazaarOrders, itemTag, itemName, side, price))
+        {
+            Activity.Current?.Log($"Skipping duplicate bazaar order recommendation for {itemTag} at {price}");
+            return false;
+        }
+
         socket.Send(Response.Create("placeOrder", new
         {
             itemName = itemName,
@@ -689,6 +688,9 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             price = price,
             amount = cappedAmount
         }));
+
+        BazaarOrderStateHelper.TryTrackSentOrder(socket.SessionInfo.SentBazaarOrders, itemTag, itemName, side, price, cappedAmount);
+        return true;
     }
 
     /// <summary>
@@ -722,7 +724,8 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             var itemCategory = await GetBazaarItemCategory(itemTag);
             amount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount, itemCategory);
             span.Log($"For {itemName} x {amount} recommending sell at {sellPrice}");
-            SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount, itemCategory);
+            if (!SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount, itemCategory))
+                return;
 
             socket.Dialog(db => db.MsgLine(
                 $"{McColorCodes.GRAY}Recommending sell order: {McColorCodes.YELLOW}{amount}x {itemName} {McColorCodes.GRAY}at {McColorCodes.GREEN}{socket.FormatPrice((long)sellPrice)}{McColorCodes.GRAY} per unit",

@@ -26,6 +26,17 @@ public class BazaarOrderInfo
     public long RemainingAmount => Math.Max(Amount - FilledAmount, 0);
 }
 
+public class SentBazaarOrderInfo
+{
+    public string ItemTag { get; set; } = string.Empty;
+    public string ItemName { get; set; } = string.Empty;
+    public BazaarOrderSide Side { get; set; }
+    public double PricePerUnit { get; set; }
+    public long Amount { get; set; }
+    public DateTime SentAt { get; set; } = DateTime.UtcNow;
+    public DateTime? ConfirmedAt { get; set; }
+}
+
 public class BazaarOrderPlayerInfo
 {
     public string PlayerName { get; set; } = string.Empty;

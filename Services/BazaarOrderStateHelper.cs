@@ -91,6 +91,53 @@ public static class BazaarOrderStateHelper
         return orders?.Count(IsTrackedOrder) >= MaxOpenBuyOrders;
     }
 
+    public static bool HasTrackedSentOrder(IEnumerable<SentBazaarOrderInfo> sentOrders, string itemTag, string itemName, BazaarOrderSide side, double pricePerUnit)
+    {
+        if (sentOrders == null)
+            return false;
+
+        var key = GetTrackingKey(itemTag, itemName, side, pricePerUnit);
+        return sentOrders.Any(order => GetTrackingKey(order) == key);
+    }
+
+    public static bool TryTrackSentOrder(List<SentBazaarOrderInfo> sentOrders, string itemTag, string itemName, BazaarOrderSide side, double pricePerUnit, long amount)
+    {
+        if (sentOrders == null)
+            return false;
+
+        if (HasTrackedSentOrder(sentOrders, itemTag, itemName, side, pricePerUnit))
+            return false;
+
+        sentOrders.Add(new SentBazaarOrderInfo
+        {
+            ItemTag = NormalizeItemTag(itemTag),
+            ItemName = StripFormatting(itemName).Trim(),
+            Side = side,
+            PricePerUnit = pricePerUnit,
+            Amount = amount,
+            SentAt = DateTime.UtcNow
+        });
+        return true;
+    }
+
+    public static void SyncSentOrdersWithUpload(List<SentBazaarOrderInfo> sentOrders, IEnumerable<BazaarOrderInfo> uploadedOrders)
+    {
+        if (sentOrders == null || sentOrders.Count == 0)
+            return;
+
+        var uploadedKeys = (uploadedOrders ?? Enumerable.Empty<BazaarOrderInfo>())
+            .Where(IsTrackedOrder)
+            .Select(GetTrackingKey)
+            .ToHashSet();
+
+        foreach (var tracked in sentOrders.Where(order => uploadedKeys.Contains(GetTrackingKey(order))))
+        {
+            tracked.ConfirmedAt ??= DateTime.UtcNow;
+        }
+
+        sentOrders.RemoveAll(order => !uploadedKeys.Contains(GetTrackingKey(order)));
+    }
+
     private static BazaarOrderInfo ParseOrder(SaveAuction item)
     {
         if (item == null)
@@ -259,5 +306,25 @@ public static class BazaarOrderStateHelper
         return string.Equals(itemTag, "UNKOWN", StringComparison.OrdinalIgnoreCase)
             ? string.Empty
             : itemTag ?? string.Empty;
+    }
+
+    private static string GetTrackingKey(BazaarOrderInfo order)
+    {
+        return GetTrackingKey(order.ItemTag, order.ItemName, order.Side, order.PricePerUnit);
+    }
+
+    private static string GetTrackingKey(SentBazaarOrderInfo order)
+    {
+        return GetTrackingKey(order.ItemTag, order.ItemName, order.Side, order.PricePerUnit);
+    }
+
+    private static string GetTrackingKey(string itemTag, string itemName, BazaarOrderSide side, double pricePerUnit)
+    {
+        var normalizedTag = NormalizeItemTag(itemTag);
+        var identifier = string.IsNullOrWhiteSpace(normalizedTag)
+            ? StripFormatting(itemName).Trim().ToUpperInvariant()
+            : normalizedTag.ToUpperInvariant();
+        var normalizedPrice = (long)Math.Round(pricePerUnit * 10, MidpointRounding.AwayFromZero);
+        return $"{(int)side}:{identifier}:{normalizedPrice}";
     }
 }
