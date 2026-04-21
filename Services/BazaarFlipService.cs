@@ -33,7 +33,8 @@ public class BazaarFlipService : BackgroundService
     private static readonly Prometheus.Counter bazaarFlipsSent =
         Prometheus.Metrics.CreateCounter("sky_bazaar_flips_sent", "Count of bazaar flips distributed to users");
 
-    private const int FlipsPerGroup = 3;
+    private const int FlipsPerTierSlice = 3;
+    private static readonly TimeSpan PremiumPlusFullListFallbackThreshold = TimeSpan.FromMinutes(5);
 
     public BazaarFlipService(
         FlipperService flipperService,
@@ -73,146 +74,279 @@ public class BazaarFlipService : BackgroundService
 
     private async Task FetchAndDistribute(CancellationToken ct)
     {
+        var ranked = await FetchRankedFlips();
+        if (ranked.Count == 0)
+            return;
+
+        var names = await GetItemNames();
+        var pools = TierCandidatePools.Build(ranked);
+
+        foreach (var con in flipperService.Connections)
+        {
+            if (ct.IsCancellationRequested)
+                break;
+            await TryDistributeToConnection(con, pools, names);
+        }
+    }
+
+    private async Task TryDistributeToConnection(
+        FlipConWrapper con,
+        TierCandidatePools pools,
+        Dictionary<string, string> names)
+    {
+        try
+        {
+            if (con.Connection is not MinecraftSocket socket || socket.HasFlippingDisabled())
+                return;
+            if (!(socket.Settings?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Bazaar) ?? false))
+                return;
+
+            var useFallback = ShouldUseFullListFallback(socket.SessionInfo, DateTime.UtcNow);
+            var candidates = pools.GetCandidatesFor(socket.SessionInfo, useFallback);
+            if (candidates.Count == 0)
+                return;
+
+            await RecommendBestMatch(socket, names, candidates, useFallback);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error sending bazaar flip to user");
+        }
+    }
+
+    /// <summary>
+    /// Picks a bazaar order to recommend for this socket. In fallback mode the full ranked
+    /// list is scanned in order until a sendable order is found; otherwise a single random
+    /// pick from the tier slice is attempted.
+    /// </summary>
+    private async Task RecommendBestMatch(
+        MinecraftSocket socket,
+        Dictionary<string, string> names,
+        IReadOnlyList<DemandFlip> candidates,
+        bool useFallback)
+    {
+        if (await RejectIfAtOrderLimit(socket, names, candidates[0]))
+            return;
+
+        var attempts = useFallback
+            ? candidates
+            : new[] { candidates[Random.Shared.Next(candidates.Count)] };
+
+        foreach (var candidate in attempts)
+        {
+            if (await TrySendRecommendation(socket, names, candidate, recordBlockedReason: !useFallback))
+                return;
+        }
+    }
+
+    private async Task<bool> RejectIfAtOrderLimit(
+        MinecraftSocket socket,
+        Dictionary<string, string> names,
+        DemandFlip sampleCandidate)
+    {
+        if (!BazaarOrderStateHelper.HasReachedBuyOrderLimit(socket.SessionInfo.BazaarOrders))
+            return false;
+
+        var sample = await BuildVirtualFlipWithAmount(sampleCandidate, names);
+        socket.sessionLifesycle.FlipProcessor.BlockedFlip(sample.Flip, "bazaar order limit");
+        logger.LogDebug(
+            "Skipping bazaar recommendation for {PlayerName} because {OrderCount} orders are already open",
+            socket.SessionInfo.McName,
+            socket.SessionInfo.ActiveBazaarOrderCount);
+        return true;
+    }
+
+    private async Task<bool> TrySendRecommendation(
+        MinecraftSocket socket,
+        Dictionary<string, string> names,
+        DemandFlip candidate,
+        bool recordBlockedReason)
+    {
+        var prepared = await BuildVirtualFlipWithAmount(candidate, names);
+        var flipProcessor = socket.sessionLifesycle.FlipProcessor;
+
+        if (ExceedsPurseBudget(socket, candidate, prepared.Amount))
+        {
+            if (recordBlockedReason)
+                flipProcessor.BlockedFlip(prepared.Flip, "purse check");
+            return false;
+        }
+
+        if (!flipProcessor.FlipMatchesSetting(prepared.Flip, FlipperService.LowPriceToFlip(prepared.Flip)))
+            return false;
+
+        var price = await CalculateRecommendedBuyPrice(candidate);
+
+        if (socket.ModAdapter is FullAfVersionAdapter fullAf
+            && !fullAf.SendBazaarOrderRecommendation(candidate.ItemTag, prepared.Flip.Auction.ItemName, false, price, prepared.Amount, prepared.Category))
+        {
+            if (recordBlockedReason)
+                flipProcessor.BlockedFlip(prepared.Flip, "bazaar order already sent");
+            return false;
+        }
+
+        SendRecommendationDialog(socket, prepared.Flip, prepared.Amount, price);
+        bazaarFlipsSent.Inc();
+        return true;
+    }
+
+    private static bool ExceedsPurseBudget(MinecraftSocket socket, DemandFlip candidate, int amount)
+    {
+        return candidate.BuyPrice * amount > socket.sessionLifesycle.FlipProcessor.GetMaxCostFromPurse()
+            && socket.SessionInfo.Purse > 0;
+    }
+
+    private async Task<double> CalculateRecommendedBuyPrice(DemandFlip candidate)
+    {
+        var orderBook = await orderBookApi.GetOrderBookAsync(candidate.ItemTag);
+        var topBuy = orderBook.Buy.OrderByDescending(h => h.PricePerUnit).FirstOrDefault();
+        return Math.Min(topBuy?.PricePerUnit ?? 0, candidate.BuyPrice) + 0.1;
+    }
+
+    private static void SendRecommendationDialog(MinecraftSocket socket, LowPricedAuction flip, int amount, double price)
+    {
+        socket.Dialog(db => db.MsgLine(
+            $"Recommending an order of {McColorCodes.GREEN}{amount}x {McColorCodes.YELLOW}{flip.Auction.ItemName} " +
+            $"{McColorCodes.GRAY}for {McColorCodes.GREEN}{socket.FormatPrice((long)price)}{McColorCodes.GRAY}",
+            $"/bz {flip.Auction.ItemName}", "click to open on bazaar"));
+    }
+
+    private async Task<PreparedRecommendation> BuildVirtualFlipWithAmount(DemandFlip candidate, Dictionary<string, string> names)
+    {
+        var category = await BazaarOrderAmountHelper.GetKnownItemCategory(candidate.ItemTag, filterStateService);
+        var amount = BazaarOrderAmountHelper.GetSuggestedBuyOrderAmount(candidate.ItemTag, candidate.SellPrice, category);
+        var flip = CreateVirtualFlip(candidate, names, amount);
+        return new PreparedRecommendation(flip, amount, category);
+    }
+
+    private async Task<List<DemandFlip>> FetchRankedFlips()
+    {
         var copperTask = bazaarFlipperApi.CopperGetAsync();
         var demandFlips = await bazaarFlipperApi.DemandGetAsync();
         var copperItems = await copperTask;
         var mutations = copperItems.Select(m => m.ItemTag).ToHashSet();
 
-        var ranked = demandFlips
+        return demandFlips
             .Where(f => !mutations.Contains(f.ItemTag))
             .OrderByDescending(f => f.CurrentProfitPerHour)
             .ToList();
-
-        if (ranked.Count == 0)
-            return;
-
-        var names = await GetItemNames();
-
-        // Build tier groups: prem+ gets top 3, premium next 3, starter next 3, free the rest
-        var premPlusFlips = TakeGroup(ranked, 0);
-        var premiumFlips = TakeGroup(ranked, 1);
-        var starterFlips = TakeGroup(ranked, 2);
-        var freeFlips = TakeGroup(ranked, 3);
-
-        foreach (var con in flipperService.Connections)
-        {
-            if (ct.IsCancellationRequested) break;
-            try
-            {
-                if (con.Connection is not MinecraftSocket socket || socket.HasFlippingDisabled())
-                    continue;
-
-                if (!socket.Settings?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Bazaar) ?? true)
-                    continue;
-
-                var tier = socket.SessionInfo.SessionTier;
-                var group = tier switch
-                {
-                    >= AccountTier.PREMIUM_PLUS => premPlusFlips,
-                    AccountTier.PREMIUM => premiumFlips,
-                    AccountTier.STARTER_PREMIUM => starterFlips,
-                    _ => freeFlips
-                };
-
-                if (group.Count == 0)
-                    continue;
-
-                await SendToSocket(socket, names, group);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error sending bazaar flip to user");
-            }
-        }
     }
 
-    private async Task SendToSocket(
-        MinecraftSocket socket,
-        Dictionary<string, string> names,
-        List<DemandFlip> group)
+    private async Task<Dictionary<string, string>> GetItemNames()
     {
-        var recommended = group[Random.Shared.Next(group.Count)];
-        var itemCategory = await BazaarOrderAmountHelper.GetKnownItemCategory(recommended.ItemTag, filterStateService);
-        var amount = BazaarOrderAmountHelper.GetSuggestedBuyOrderAmount(recommended.ItemTag, recommended.SellPrice, itemCategory);
-
-        // build a virtual flip for filter matching and blocked-reason tracking
-        var virtualFlip = CreateVirtualFlip(recommended, names, amount);
-        var flipInstance = FlipperService.LowPriceToFlip(virtualFlip);
-
-        if (BazaarOrderStateHelper.HasReachedBuyOrderLimit(socket.SessionInfo.BazaarOrders))
-        {
-            socket.sessionLifesycle.FlipProcessor.BlockedFlip(virtualFlip, "bazaar order limit");
-            logger.LogDebug(
-                "Skipping bazaar recommendation for {PlayerName} because {OrderCount} orders are already open",
-                socket.SessionInfo.McName,
-                socket.SessionInfo.ActiveBazaarOrderCount);
-            return;
-        }
-
-        if (recommended.BuyPrice * amount > socket.sessionLifesycle.FlipProcessor.GetMaxCostFromPurse()
-            && socket.SessionInfo.Purse > 0)
-        {
-            socket.sessionLifesycle.FlipProcessor.BlockedFlip(virtualFlip, "purse check");
-            return;
-        }
-
-        if (!socket.sessionLifesycle.FlipProcessor.FlipMatchesSetting(virtualFlip, flipInstance))
-            return;
-
-        // get order book for optimal pricing
-        var orderBook = await orderBookApi.GetOrderBookAsync(recommended.ItemTag);
-        var topBuy = orderBook.Buy.OrderByDescending(h => h.PricePerUnit).FirstOrDefault();
-        var price = Math.Min(topBuy?.PricePerUnit ?? 0, recommended.BuyPrice) + 0.1;
-
-        if (socket.ModAdapter is FullAfVersionAdapter fullAf)
-        {
-            if (!fullAf.SendBazaarOrderRecommendation(recommended.ItemTag, virtualFlip.Auction.ItemName, false, price, amount, itemCategory))
-            {
-                socket.sessionLifesycle.FlipProcessor.BlockedFlip(virtualFlip, "bazaar order already sent");
-                return;
-            }
-        }
-
-        socket.Dialog(db => db.MsgLine(
-            $"Recommending an order of {McColorCodes.GREEN}{amount}x {McColorCodes.YELLOW}{virtualFlip.Auction.ItemName} " +
-            $"{McColorCodes.GRAY}for {McColorCodes.GREEN}{socket.FormatPrice((long)price)}{McColorCodes.GRAY}",
-            $"/bz {virtualFlip.Auction.ItemName}", "click to open on bazaar"));
-
-        bazaarFlipsSent.Inc();
+        var itemNames = await itemsApi.ItemNamesGetAsync();
+        return itemNames?.ToDictionary(i => i.Tag, i => i.Name) ?? [];
     }
 
-    private static List<DemandFlip> TakeGroup(List<DemandFlip> ranked, int groupIndex)
-    {
-        return ranked
-            .Skip(groupIndex * FlipsPerGroup)
-            .Take(FlipsPerGroup)
-            .ToList();
-    }
-
-    private static LowPricedAuction CreateVirtualFlip(DemandFlip recommended, Dictionary<string, string> names, int amount)
+    private static LowPricedAuction CreateVirtualFlip(DemandFlip candidate, Dictionary<string, string> names, int amount)
     {
         return new LowPricedAuction
         {
-            DailyVolume = recommended.Volume,
+            DailyVolume = candidate.Volume,
             Finder = LowPricedAuction.FinderType.Bazaar,
-            TargetPrice = (long)(recommended.SellPrice * amount),
+            TargetPrice = (long)(candidate.SellPrice * amount),
             Auction = new SaveAuction
             {
-                ItemName = BazaarUtils.GetSearchValue(recommended.ItemTag,
-                    names.TryGetValue(recommended.ItemTag, out var dn) ? dn : recommended.ItemTag),
-                Tag = recommended.ItemTag,
-                Uuid = recommended.ItemTag,
-                StartingBid = (long)(recommended.BuyPrice * amount),
+                ItemName = BazaarUtils.GetSearchValue(candidate.ItemTag,
+                    names.TryGetValue(candidate.ItemTag, out var dn) ? dn : candidate.ItemTag),
+                Tag = candidate.ItemTag,
+                Uuid = candidate.ItemTag,
+                StartingBid = (long)(candidate.BuyPrice * amount),
                 Enchantments = [],
                 FlatenedNBT = []
             }
         };
     }
 
-    private async Task<Dictionary<string, string>> GetItemNames()
+    /// <summary>
+    /// Premium+ users who had no successful bazaar recommendation for a while fall back to
+    /// scanning the full ranked list instead of staying confined to the top tier slice, so
+    /// that users who filter many items still get a recommendation.
+    /// </summary>
+    internal static bool ShouldUseFullListFallback(SessionInfo sessionInfo, DateTime nowUtc)
     {
-        var itemNames = await itemsApi.ItemNamesGetAsync();
-        return itemNames?.ToDictionary(i => i.Tag, i => i.Name)
-            ?? [];
+        if (sessionInfo == null || sessionInfo.SessionTier < AccountTier.PREMIUM_PLUS)
+            return false;
+
+        var lastRelevantRecommendation = sessionInfo.LastBazaarRecommendationAt ?? sessionInfo.ConnectedAt;
+        return nowUtc - lastRelevantRecommendation >= PremiumPlusFullListFallbackThreshold;
+    }
+
+    /// <summary>
+    /// Test-facing helper; returns the candidate pool a given session would use at a specific
+    /// point in time by delegating to <see cref="TierCandidatePools"/>.
+    /// </summary>
+    internal static IReadOnlyList<DemandFlip> GetCandidatePool(
+        List<DemandFlip> ranked,
+        List<DemandFlip> premPlusFlips,
+        List<DemandFlip> premiumFlips,
+        List<DemandFlip> starterFlips,
+        List<DemandFlip> freeFlips,
+        SessionInfo sessionInfo,
+        DateTime nowUtc)
+    {
+        var pools = new TierCandidatePools(ranked, premPlusFlips, premiumFlips, starterFlips, freeFlips);
+        return pools.GetCandidatesFor(sessionInfo, ShouldUseFullListFallback(sessionInfo, nowUtc));
+    }
+
+    private readonly record struct PreparedRecommendation(LowPricedAuction Flip, int Amount, ItemCategory? Category);
+
+    /// <summary>
+    /// Pre-computed candidate pools for each tier plus the full ranked list used for the
+    /// premium+ fallback scan.
+    /// </summary>
+    internal sealed class TierCandidatePools
+    {
+        private readonly IReadOnlyList<DemandFlip> ranked;
+        private readonly IReadOnlyList<DemandFlip> premPlusSlice;
+        private readonly IReadOnlyList<DemandFlip> premiumSlice;
+        private readonly IReadOnlyList<DemandFlip> starterSlice;
+        private readonly IReadOnlyList<DemandFlip> freeSlice;
+
+        public TierCandidatePools(
+            IReadOnlyList<DemandFlip> ranked,
+            IReadOnlyList<DemandFlip> premPlusSlice,
+            IReadOnlyList<DemandFlip> premiumSlice,
+            IReadOnlyList<DemandFlip> starterSlice,
+            IReadOnlyList<DemandFlip> freeSlice)
+        {
+            this.ranked = ranked;
+            this.premPlusSlice = premPlusSlice;
+            this.premiumSlice = premiumSlice;
+            this.starterSlice = starterSlice;
+            this.freeSlice = freeSlice;
+        }
+
+        public static TierCandidatePools Build(List<DemandFlip> ranked)
+        {
+            return new TierCandidatePools(
+                ranked,
+                TakeSlice(ranked, 0),
+                TakeSlice(ranked, 1),
+                TakeSlice(ranked, 2),
+                TakeSlice(ranked, 3));
+        }
+
+        public IReadOnlyList<DemandFlip> GetCandidatesFor(SessionInfo sessionInfo, bool useFullListFallback)
+        {
+            if (useFullListFallback)
+                return ranked;
+
+            return (sessionInfo?.SessionTier ?? AccountTier.NONE) switch
+            {
+                >= AccountTier.PREMIUM_PLUS => premPlusSlice,
+                AccountTier.PREMIUM => premiumSlice,
+                AccountTier.STARTER_PREMIUM => starterSlice,
+                _ => freeSlice
+            };
+        }
+
+        private static List<DemandFlip> TakeSlice(List<DemandFlip> ranked, int sliceIndex)
+        {
+            return ranked
+                .Skip(sliceIndex * FlipsPerTierSlice)
+                .Take(FlipsPerTierSlice)
+                .ToList();
+        }
     }
 }

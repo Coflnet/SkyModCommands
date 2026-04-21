@@ -689,6 +689,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             amount = cappedAmount
         }));
 
+        socket.SessionInfo.LastBazaarRecommendationAt = DateTime.UtcNow;
         BazaarOrderStateHelper.TryTrackSentOrder(socket.SessionInfo.SentBazaarOrders, itemTag, itemName, side, price, cappedAmount);
         return true;
     }

@@ -1,0 +1,103 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Coflnet.Sky.Bazaar.Flipper.Client.Model;
+using Coflnet.Sky.Commands.MC;
+using Coflnet.Sky.Commands.Shared;
+using NUnit.Framework;
+
+namespace Coflnet.Sky.ModCommands.Services;
+
+public class BazaarFlipServiceTests
+{
+    [Test]
+    public void ShouldUseFullListFallbackForPremiumPlusAfterThreshold()
+    {
+        var now = DateTime.UtcNow;
+        var session = new SessionInfo
+        {
+            SessionTier = AccountTier.PREMIUM_PLUS,
+            ConnectedAt = now.AddMinutes(-6)
+        };
+
+        Assert.That(BazaarFlipService.ShouldUseFullListFallback(session, now), Is.True);
+    }
+
+    [Test]
+    public void ShouldNotUseFullListFallbackWhenRecentRecommendationWasSent()
+    {
+        var now = DateTime.UtcNow;
+        var session = new SessionInfo
+        {
+            SessionTier = AccountTier.PREMIUM_PLUS,
+            ConnectedAt = now.AddHours(-1),
+            LastBazaarRecommendationAt = now.AddMinutes(-4)
+        };
+
+        Assert.That(BazaarFlipService.ShouldUseFullListFallback(session, now), Is.False);
+    }
+
+    [TestCase(AccountTier.PREMIUM_PLUS, 0)]
+    [TestCase(AccountTier.PREMIUM, 3)]
+    [TestCase(AccountTier.STARTER_PREMIUM, 6)]
+    [TestCase(AccountTier.NONE, 9)]
+    public void GetCandidatePoolUsesTierSliceWhenFallbackIsInactive(AccountTier tier, int expectedStart)
+    {
+        var now = DateTime.UtcNow;
+        var ranked = CreateRanked(12);
+        var session = new SessionInfo
+        {
+            SessionTier = tier,
+            ConnectedAt = now.AddMinutes(-2),
+            LastBazaarRecommendationAt = now.AddMinutes(-1)
+        };
+
+        var result = BazaarFlipService.GetCandidatePool(
+            ranked,
+            ranked.Take(3).ToList(),
+            ranked.Skip(3).Take(3).ToList(),
+            ranked.Skip(6).Take(3).ToList(),
+            ranked.Skip(9).Take(3).ToList(),
+            session,
+            now);
+
+        Assert.That(result.Select(f => f.ItemTag).ToArray(), Is.EqualTo(ranked.Skip(expectedStart).Take(3).Select(f => f.ItemTag).ToArray()));
+    }
+
+    [Test]
+    public void GetCandidatePoolReturnsFullRankingForPremiumPlusFallback()
+    {
+        var now = DateTime.UtcNow;
+        var ranked = CreateRanked(12);
+        var session = new SessionInfo
+        {
+            SessionTier = AccountTier.PREMIUM_PLUS,
+            ConnectedAt = now.AddMinutes(-7)
+        };
+
+        var result = BazaarFlipService.GetCandidatePool(
+            ranked,
+            ranked.Take(3).ToList(),
+            ranked.Skip(3).Take(3).ToList(),
+            ranked.Skip(6).Take(3).ToList(),
+            ranked.Skip(9).Take(3).ToList(),
+            session,
+            now);
+
+        Assert.That(result.Select(f => f.ItemTag).ToArray(), Is.EqualTo(ranked.Select(f => f.ItemTag).ToArray()));
+    }
+
+    private static List<DemandFlip> CreateRanked(int count)
+    {
+        return Enumerable.Range(0, count)
+            .Select(index => new DemandFlip
+            {
+                ItemTag = $"ITEM_{index}",
+                CurrentProfitPerHour = count - index,
+                BuyPrice = 1000 + index,
+                SellPrice = 1100 + index,
+                Volume = 100 - index
+            })
+            .ToList();
+    }
+}
