@@ -36,7 +36,9 @@ public static class BazaarOrderAmountHelper
             return false;
 
         // Stack size metadata is not exposed, so fall back to known non-stackable heuristics.
-        return itemTag.Contains("BOOK", StringComparison.OrdinalIgnoreCase) || itemTag.Contains("ENCHANTMENT_", StringComparison.OrdinalIgnoreCase);
+        return itemTag.Contains("BOOK", StringComparison.OrdinalIgnoreCase) ||
+            itemTag.StartsWith("ENCHANTMENT_", StringComparison.OrdinalIgnoreCase)
+            || itemTag.StartsWith("PET_ITEM", StringComparison.OrdinalIgnoreCase);
     }
 
     public static async Task<ItemCategory?> GetKnownItemCategory(string itemTag, FilterStateService filterStateService)
