@@ -80,6 +80,9 @@ namespace Coflnet.Sky.Commands.MC
         public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon || IsRift || IsDarkAuction || Purse == -1;
         public string ConnectionType { get; set; } = string.Empty;
 
+        [JsonIgnore]
+        public string GameServer { get; set; } = "skyblock";
+
         public int SkipLikeliness { get; set; }
         public int LicensePoints { get; set; }
         public string ActiveStream { get; set; } = string.Empty;

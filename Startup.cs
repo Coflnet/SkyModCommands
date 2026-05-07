@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using Coflnet.Sky.Bazaar.Flipper.Client.Api;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Core.Services;
+using Coflnet.Sky.ModCommands.Services.Donut;
 using Coflnet.Sky.ModCommands.Services.Vps;
 
 namespace Coflnet.Sky.ModCommands;
@@ -61,7 +62,9 @@ public class Startup
         );
         services.AddHostedService<ModBackgroundService>();
         services.AddHostedService<MuseumDonationCleanupService>();
-        services.AddHostedService<BazaarFlipService>();
+        services.AddSingleton<BazaarFlipService>();
+        services.AddHostedService(s => s.GetRequiredService<BazaarFlipService>());
+        services.AddHostedService<BazaarSignalSubscriptionService>();
         services.AddHostedService(s => s.GetRequiredService<FlipperService>());
         services.AddJaeger(Configuration, 1, 1);
         services.AddTransient<CounterService>();
@@ -69,6 +72,7 @@ public class Startup
         services.AddSingleton<ChatService>();
         services.AddSingleton<ITutorialService, TutorialService>();
         services.AddSingleton<IFlipApi, FlipApi>(s => new FlipApi(Configuration["API_BASE_URL"]));
+        services.AddSingleton<IDonutFlipSubscriptionService, DonutFlipSubscriptionService>();
         services.AddSingleton<PreApiService>();
         services.AddSingleton<CommandSyncService>();
         services.AddSingleton<IIsSold>(s => s.GetRequiredService<PreApiService>());

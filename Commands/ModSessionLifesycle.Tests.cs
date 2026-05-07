@@ -13,6 +13,7 @@ using AwesomeAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Coflnet.Sky.Filter;
 using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.ModCommands.Services.Donut;
 using Newtonsoft.Json;
 using System.Linq;
 
@@ -23,6 +24,7 @@ public class ModSessionLifesycleTests
     private ModSessionLifesycle lifesycle;
 
     private TestSocket socket;
+    private FakeDonutFlipSubscriptionService donutFlipSubscriptionService;
 
     [TestCase(null, true)]
     [TestCase("", true)]
@@ -58,10 +60,46 @@ public class ModSessionLifesycleTests
         DiHandler.OverrideService<IFlipReceiveTracker, IFlipTrackingService>(flipTrackingMock.Object);
         DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine(mockNbt.Object));
         DiHandler.OverrideService<FlipperService, FlipperService>(new FlipperService(null, NullLogger<FlipperService>.Instance));
+        donutFlipSubscriptionService = new FakeDonutFlipSubscriptionService();
+        DiHandler.OverrideService<IDonutFlipSubscriptionService, FakeDonutFlipSubscriptionService>(donutFlipSubscriptionService);
         socket = new TestSocket();
         lifesycle = new ModSessionLifesycle(socket);
         socket.SetLifecycle(lifesycle);
         socket.SessionInfo.FlipsEnabled = true;
+    }
+
+    [Test]
+    public async Task UpdateConnectionTier_UsesDonutSubscriptionOutsideSkyblock()
+    {
+        lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings
+        {
+            Visibility = new(),
+            ModSettings = new(),
+            AllowedFinders = FinderType.FLIPPER_AND_SNIPERS
+        });
+        socket.SessionInfo.GameServer = DonutServerContext.Name;
+
+        lifesycle.UpdateConnectionTier(AccountTier.PREMIUM_PLUS);
+        await donutFlipSubscriptionService.RefreshCompletion.Task.ConfigureAwait(false);
+
+        donutFlipSubscriptionService.RefreshCalls.Should().Be(1);
+        DiHandler.GetService<FlipperService>().Connections.Should().BeEmpty();
+    }
+
+    [Test]
+    public void UpdateConnectionTier_UsesSkyblockFlipperOnSkyblock()
+    {
+        lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings
+        {
+            Visibility = new(),
+            ModSettings = new(),
+            AllowedFinders = FinderType.FLIPPER_AND_SNIPERS
+        });
+
+        lifesycle.UpdateConnectionTier(AccountTier.PREMIUM);
+
+        donutFlipSubscriptionService.RefreshCalls.Should().Be(0);
+        DiHandler.GetService<FlipperService>().Connections.Should().HaveCount(1);
     }
 
     [TestCase(true)]
@@ -227,6 +265,29 @@ public class ModSessionLifesycleTests
         }
         public TestSocket()
         {
+            ConSpan = new Activity("test-connection");
+        }
+    }
+
+    private sealed class FakeDonutFlipSubscriptionService : IDonutFlipSubscriptionService
+    {
+        public int RefreshCalls { get; private set; }
+        public TaskCompletionSource<bool> RefreshCompletion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task RefreshSubscriptionAsync(IFlipConnection connection)
+        {
+            RefreshCalls++;
+            RefreshCompletion.TrySetResult(true);
+            return Task.CompletedTask;
+        }
+
+        public void RemoveConnection(IFlipConnection connection)
+        {
+        }
+
+        public Task DeliverAsync(LowPricedAuction flip)
+        {
+            return Task.CompletedTask;
         }
     }
 
