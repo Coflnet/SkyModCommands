@@ -33,7 +33,7 @@ public class ModBackgroundService : BackgroundService
     private ILogger<ModBackgroundService> logger;
     private FlipperService flipperService;
     private IDonutFlipSubscriptionService donutFlipSubscriptionService;
-    private CounterService counterService;
+    private CounterService? counterService;
     IDelayExemptList delayExemptList;
     FilterStateService filterStateService;
     HypixelItemService hypixelItemService;
@@ -50,7 +50,7 @@ public class ModBackgroundService : BackgroundService
         ILogger<ModBackgroundService> logger,
         FlipperService flipperService,
         IDonutFlipSubscriptionService donutFlipSubscriptionService,
-        CounterService counterService,
+        CounterService? counterService,
         IDelayExemptList iDelayExemptList,
         FilterStateService filterStateService,
         HypixelItemService hypixelItemService,
@@ -79,7 +79,10 @@ public class ModBackgroundService : BackgroundService
         logger.LogInformation("Loaded flip filter data");
         await SubscribeToRedisSnipes(stoppingToken);
         logger.LogInformation("set up fast track flipper");
-        await counterService.GetTable().CreateIfNotExistsAsync();
+        if (counterService != null)
+            await counterService.GetTable().CreateIfNotExistsAsync();
+        else
+            logger.LogInformation("CounterService not configured, skipping counter table initialization");
         await LoadDelayExcemptKeys();
         await hypixelItemService.GetItemsAsync();
         await Task.Delay(1000);
