@@ -462,6 +462,7 @@ namespace Coflnet.Sky.Commands.MC
                 "af-2.0.0" => new FullAfVersionAdapter(this),
                 "af-2.0.1" => new FullAfVersionAdapter(this),
                 "1.5.0-afclient" => new AfVersionAdapter(this),
+                string v when v.StartsWith("1.9.") => new BinGuiVersionAdapter(this),
                 string v when v.StartsWith("1.8.") => new BinGuiVersionAdapter(this),
                 string v when v.StartsWith("1.7.") => new BinGuiVersionAdapter(this),
                 string v when v.StartsWith("1.6.") => new BinGuiVersionAdapter(this),
