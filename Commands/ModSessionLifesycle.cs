@@ -618,13 +618,14 @@ namespace Coflnet.Sky.Commands.MC
                 await SendAuthorizedHello(info);
 
                 await WaitForSettingsLoaded(span);
+                await ApplyStoredRegionRouting(info, span);
                 if (FlipSettings.Value.ModSettings.AutoStartFlipper)
                 {
                     SendMessage(socket.formatProvider.WelcomeMessage());
                     SessionInfo.FlipsEnabled = true;
                     UpdateConnectionTier(tier, span);
                     span?.AddTag("autoStart", "true");
-                    await PrintRegionInfo(info);
+                    ShowRegionHintIfApplicable(info);
                 }
                 else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
                 {
@@ -678,28 +679,75 @@ namespace Coflnet.Sky.Commands.MC
             return info.Region == "eu" && !UsesDirectConnectionType(connectionType);
         }
 
-        private async Task PrintRegionInfo(AccountInfo info)
+        internal enum RegionRoutingAction
+        {
+            None,
+            ShowUnsupportedUsReconnect,
+            RedirectToUs,
+            RedirectToEu,
+        }
+
+        internal static bool SupportsRegionReconnect(bool isMacroBot, string version)
+        {
+            return !isMacroBot || !(version?.StartsWith("1.5.0") ?? false);
+        }
+
+        internal static RegionRoutingAction DetermineRegionRoutingAction(AccountInfo info, string connectionType, bool hasPremiumPlus, bool supportsRegionReconnect, bool isDevMode)
+        {
+            if (hasPremiumPlus && UsesDirectConnectionType(connectionType))
+            {
+                if (info.Region == "us")
+                {
+                    if (!supportsRegionReconnect)
+                        return RegionRoutingAction.ShowUnsupportedUsReconnect;
+                    if (!isDevMode)
+                        return RegionRoutingAction.RedirectToUs;
+                }
+                return RegionRoutingAction.None;
+            }
+
+            if (ShouldReconnectToEu(info, connectionType))
+                return RegionRoutingAction.RedirectToEu;
+
+            return RegionRoutingAction.None;
+        }
+
+        private async Task ApplyStoredRegionRouting(AccountInfo info, Activity span = null)
+        {
+            var action = DetermineRegionRoutingAction(
+                info,
+                SessionInfo.ConnectionType,
+                TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS),
+                SupportsRegionReconnect(SessionInfo.IsMacroBot, socket.Version),
+                MinecraftSocket.IsDevMode);
+            span?.AddTag("regionRouting", action.ToString());
+
+            switch (action)
+            {
+                case RegionRoutingAction.ShowUnsupportedUsReconnect:
+                    socket.Dialog(db => db.MsgLine("Your client doesn't seem to support switching regions"));
+                    return;
+                case RegionRoutingAction.RedirectToUs:
+                    await SwitchRegionCommand.TryToConnect(socket);
+                    return;
+                case RegionRoutingAction.RedirectToEu:
+                    socket.Dialog(db => db.MsgLine("Switching to eu server"));
+                    socket.ExecuteCommand("/cofl connect wss://sky.coflnet.com/modsocket");
+                    return;
+                default:
+                    return;
+            }
+        }
+
+        private void ShowRegionHintIfApplicable(AccountInfo info)
         {
             var usesDirectConnection = UsesDirectConnectionType(SessionInfo.ConnectionType);
-            if (TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS) && usesDirectConnection)
+            if (TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS)
+                && usesDirectConnection
+                && (socket.CurrentRegion == info.Region || info.Region == null)
+                && info.Locale == "en")
             {
-                if ((socket.CurrentRegion == info.Region || info.Region == null) && info.Locale == "en")
-                    socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>(McColorCodes.GRAY + "Switching region is now done with /cofl switchregion <region>", "", "Click to see region options"));
-                else if (SessionInfo.IsMacroBot && socket.Version.StartsWith("1.5.0"))
-                {
-                    socket.Dialog(db => db.MsgLine("Your client doesn't seem to support switching regions"));
-                }
-                else if (info.Region == "us" && !MinecraftSocket.IsDevMode)
-                {
-                    // check if reachable
-                    await SwitchRegionCommand.TryToConnect(socket);
-
-                }
-            }
-            else if (ShouldReconnectToEu(info, SessionInfo.ConnectionType))
-            {
-                socket.Dialog(db => db.MsgLine("Switching to eu server"));
-                socket.ExecuteCommand("/cofl connect wss://sky.coflnet.com/modsocket");
+                socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>(McColorCodes.GRAY + "Switching region is now done with /cofl switchregion <region>", "", "Click to see region options"));
             }
         }
 

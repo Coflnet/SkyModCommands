@@ -43,6 +43,36 @@ public class ModSessionLifesycleTests
         Assert.That(ModSessionLifesycle.ShouldReconnectToEu(info, connectionType), Is.EqualTo(expected));
     }
 
+    [Test]
+    public void DetermineRegionRoutingAction_RedirectsUsForPremiumPlusDirectConnection()
+    {
+        var info = new AccountInfo() { Region = "us" };
+
+        var action = ModSessionLifesycle.DetermineRegionRoutingAction(
+            info,
+            string.Empty,
+            hasPremiumPlus: true,
+            supportsRegionReconnect: true,
+            isDevMode: false);
+
+        Assert.That(action, Is.EqualTo(ModSessionLifesycle.RegionRoutingAction.RedirectToUs));
+    }
+
+    [Test]
+    public void DetermineRegionRoutingAction_ShowsUnsupportedMessageForLegacyMacroClient()
+    {
+        var info = new AccountInfo() { Region = "us" };
+
+        var action = ModSessionLifesycle.DetermineRegionRoutingAction(
+            info,
+            string.Empty,
+            hasPremiumPlus: true,
+            supportsRegionReconnect: false,
+            isDevMode: false);
+
+        Assert.That(action, Is.EqualTo(ModSessionLifesycle.RegionRoutingAction.ShowUnsupportedUsReconnect));
+    }
+
     [SetUp]
     public void Setup()
     {
