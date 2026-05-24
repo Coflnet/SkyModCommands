@@ -1,3 +1,4 @@
+using Coflnet.Security.OpenBao;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using WebSocketSharp.Server;
@@ -73,6 +74,7 @@ namespace Coflnet.Sky.ModCommands.MC
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((_, config) => config.AddOpenBaoFromEnvironment())
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
