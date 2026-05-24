@@ -65,6 +65,55 @@ namespace Coflnet.Sky.Commands.MC
             return flip.Finder != LowPricedAuction.FinderType.Bazaar;
         }
 
+        private static string GetAuctionReasonKey(MinecraftSocket.BlockedElement blocked)
+        {
+            var auction = blocked.Flip?.Auction;
+            var auctionKey = !string.IsNullOrWhiteSpace(auction?.Uuid)
+                ? auction.Uuid
+                : $"{auction?.Tag}|{auction?.ItemName}";
+            return $"{auctionKey}|{blocked.Reason}";
+        }
+
+        private class DisplayBlockedElement
+        {
+            public MinecraftSocket.BlockedElement Blocked = null!;
+            public bool HasEstimateRange;
+        }
+
+        private static List<DisplayBlockedElement> LimitBlockedOutput(IEnumerable<MinecraftSocket.BlockedElement> blockedElements)
+        {
+            var result = new List<DisplayBlockedElement>();
+            foreach (var group in blockedElements.GroupBy(GetAuctionReasonKey))
+            {
+                var ordered = group
+                    .OrderBy(b => b.Flip.TargetPrice)
+                    .ThenByDescending(b => b.Now)
+                    .ToList();
+                if (ordered.Count == 0)
+                    continue;
+
+                var min = ordered.First();
+                var max = ordered.Last();
+                var hasEstimateRange = min.Flip.TargetPrice != max.Flip.TargetPrice;
+                result.Add(new DisplayBlockedElement
+                {
+                    Blocked = min,
+                    HasEstimateRange = hasEstimateRange
+                });
+
+                if (!ReferenceEquals(min, max) && hasEstimateRange)
+                {
+                    result.Add(new DisplayBlockedElement
+                    {
+                        Blocked = max,
+                        HasEstimateRange = true
+                    });
+                }
+            }
+
+            return result.OrderByDescending(r => r.Blocked.Now).ToList();
+        }
+
         private static Dictionary<string, string[]> ReasonLookup = new Dictionary<string, string[]>()
         {
             { "sold", new string[]{
@@ -144,6 +193,8 @@ namespace Coflnet.Sky.Commands.MC
             };
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            const int candidateCount = 20;
+            const int finalDisplayCount = 10;
             var searchVal = JsonConvert.DeserializeObject<string>(arguments)?.ToLower();
 
             if (Guid.TryParse(searchVal, out var auctionUUid))
@@ -191,14 +242,14 @@ namespace Coflnet.Sky.Commands.MC
 
             if (searchVal == "profit")
             {
-                flipsToSend = socket.TopBlocked.OrderByDescending(b => b.Flip.TargetPrice - b.Flip.Auction.StartingBid).Take(10).ToList();
+                flipsToSend = socket.TopBlocked.OrderByDescending(b => b.Flip.TargetPrice - b.Flip.Auction.StartingBid).Take(candidateCount).ToList();
                 socket.Dialog(db => db.MsgLine("Blocked flips sorted by profit"));
             }
             else if (IsBazaarSearch(searchVal))
             {
                 flipsToSend = socket.TopBlocked.Where(b => b.Flip.Finder == LowPricedAuction.FinderType.Bazaar)
                     .OrderByDescending(b => b.Now)
-                    .Take(10)
+                    .Take(candidateCount)
                     .ToList();
                 if (flipsToSend.Count == 0)
                 {
@@ -219,16 +270,21 @@ namespace Coflnet.Sky.Commands.MC
                 }
                 else
                     baseCollection = baseCollection.Where(b => MatchesSearch(b, searchVal)).AsQueryable();
-                flipsToSend = baseCollection.ToList();
+                flipsToSend = baseCollection.Take(candidateCount).ToList();
             }
             else
-                flipsToSend = GetRandomFlips(socket);
+                flipsToSend = GetRandomFlips(socket, candidateCount);
+
+            var displayFlips = LimitBlockedOutput(flipsToSend)
+                .Take(finalDisplayCount)
+                .ToList();
 
             var countByReson = socket.TopBlocked.GroupBy(b => b.Reason).Select(g => new { Reason = g.Key, Count = g.Count() }).ToDictionary(g => g.Reason, g => g.Count);
-            Activity.Current.Log(JsonConvert.SerializeObject(flipsToSend));
+            Activity.Current.Log(JsonConvert.SerializeObject(displayFlips.Select(f => f.Blocked).ToList()));
 
-            socket.SendMessage(flipsToSend.SelectMany(b =>
+            socket.SendMessage(displayFlips.SelectMany(display =>
             {
+                var b = display.Blocked;
                 // add sent flips back to queue so when they are selected for flip options they are still there if they are at the end of the queue
                 if (!socket.TopBlocked.OrderByDescending(t => t.Now).Take(300).Contains(b))
                     socket.TopBlocked.Enqueue(b);
@@ -251,6 +307,11 @@ namespace Coflnet.Sky.Commands.MC
                 var text = $"{McColorCodes.DARK_GRAY}> {formatedName}{McColorCodes.GRAY} (+{socket.FormatPrice(profit)})";
                 if (string.IsNullOrEmpty(longReason))
                     longReason = $" {McColorCodes.GRAY} because {McColorCodes.WHITE}{b.Reason}";
+
+                if (display.HasEstimateRange)
+                {
+                    longReason += $"\n{McColorCodes.DARK_GRAY}Showing min and max estimate only.\nWe run multiple finder instances and valuations can differ slightly.";
+                }
 
                 if (!string.IsNullOrEmpty(socket.Settings.ModSettings.BlockedFormat))
                     text = socket.formatProvider.FormatFlip(FlipperService.LowPriceToFlip(b.Flip), b.Reason);
@@ -297,6 +358,7 @@ namespace Coflnet.Sky.Commands.MC
                 hover = $"Execute again to get another sample,\n"
                         + "they are random each time and the most \n"
                         + "common block cause is sorted on top\n"
+                    + "same auction + reason is collapsed to min/max estimates\n"
                         + $"Or run {McColorCodes.AQUA}/cofl blocked profit {McColorCodes.RESET} to order by most profit\n"
                     + "Or run " + $"{McColorCodes.AQUA}/cofl blocked <search> {McColorCodes.RESET}to search for specific flips\n"
                     + $"Use {McColorCodes.AQUA}/cofl blocked bazaar {McColorCodes.RESET}for blocked bazaar recommendations",
@@ -384,11 +446,13 @@ namespace Coflnet.Sky.Commands.MC
             });
         }
 
-        private static List<MinecraftSocket.BlockedElement> GetRandomFlips(MinecraftSocket socket)
+        private static List<MinecraftSocket.BlockedElement> GetRandomFlips(MinecraftSocket socket, int count)
         {
-            var grouped = socket.TopBlocked.OrderBy(e => Random.Shared.Next()).GroupBy(f => f.Reason).OrderByDescending(f => f.Count());
+            var grouped = socket.TopBlocked.OrderBy(e => Random.Shared.Next()).Take(count).GroupBy(f => f.Reason).OrderByDescending(f => f.Count());
             var flipsToSend = new List<MinecraftSocket.BlockedElement>();
-            flipsToSend.AddRange(grouped.First().Take(7 - grouped.Count()));
+            if (!grouped.Any())
+                return flipsToSend;
+            flipsToSend.AddRange(grouped.First().Take(Math.Max(1, 7 - grouped.Count())));
             flipsToSend.AddRange(grouped.Skip(1).Select(g => g.First()));
             return flipsToSend;
         }
