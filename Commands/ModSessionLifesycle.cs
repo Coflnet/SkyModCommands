@@ -190,7 +190,8 @@ namespace Coflnet.Sky.Commands.MC
             if (match.Success)
             {
                 var url = match.Value;
-                SendMessage(COFLNET + "Latest change:\n" + content, url, $"Open {url}");
+                content = Regex.Replace(content, @"\[([^\]]*)\]\(([^\)]+)\)", m => $"{McColorCodes.AQUA}{m.Groups[2].Value}{McColorCodes.WHITE}");
+                SendMessage(COFLNET + "Latest change:\n" + content, url, url);
             }
             else if (commandLink.Success)
             {
