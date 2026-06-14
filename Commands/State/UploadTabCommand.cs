@@ -12,6 +12,8 @@ namespace Coflnet.Sky.Commands.MC
             if (arguments.Contains("The Rift"))
                 await MinecraftSocket.Commands["uploadscoreboard"].Execute(socket, arguments);
 
+            if (socket.sessionLifesycle?.UserId?.Value == null)
+                return;
             var youtuberService = socket.GetService<YoutuberService>();
             var fields = this.Convert<string[]>(arguments);
 
@@ -33,7 +35,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             foreach (var item in fields)
             {
-                if(item.StartsWith("Profile: "))
+                if (item.StartsWith("Profile: "))
                 {
                     socket.SessionInfo.ProfileId = item["Profile: ".Length..];
                 }
