@@ -100,7 +100,6 @@ public class LowballOfferServiceTests
                 configuration,
                 NullLogger<LowballOfferService>.Instance,
                 null!,
-                null!,
                 initializeTables: false)
         {
         }

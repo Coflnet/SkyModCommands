@@ -106,7 +106,6 @@ public class Startup
         services.AddSingleton<ApiKeyService>();
         services.AddSingleton<ProxyService>();
         services.AddSingleton<LowballOfferService>();
-        services.AddSingleton<MinecraftLoreRenderer>();
         services.AddSingleton<AutotipService>();
         services.AddSingleton<YoutuberService>();
         services.AddSingleton<TaskService>();

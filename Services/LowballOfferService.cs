@@ -27,22 +27,20 @@ public class LowballOfferService
     private readonly IConfiguration config;
     private readonly ILogger<LowballOfferService> logger;
     private readonly Kafka.KafkaCreator kafkaCreator;
-    private readonly MinecraftLoreRenderer loreRenderer;
     private const string KafkaTopic = "sky-lowball-offers";
     private static readonly HttpClient httpClient = new HttpClient();
 
-    public LowballOfferService(ISession session, IConfiguration config, ILogger<LowballOfferService> logger, Kafka.KafkaCreator kafkaCreator, MinecraftLoreRenderer loreRenderer)
-        : this(session, config, logger, kafkaCreator, loreRenderer, initializeTables: true)
+    public LowballOfferService(ISession session, IConfiguration config, ILogger<LowballOfferService> logger, Kafka.KafkaCreator kafkaCreator)
+        : this(session, config, logger, kafkaCreator, initializeTables: true)
     {
     }
 
-    protected LowballOfferService(ISession session, IConfiguration config, ILogger<LowballOfferService> logger, Kafka.KafkaCreator kafkaCreator, MinecraftLoreRenderer loreRenderer, bool initializeTables)
+    protected LowballOfferService(ISession session, IConfiguration config, ILogger<LowballOfferService> logger, Kafka.KafkaCreator kafkaCreator, bool initializeTables)
     {
         this.session = session;
         this.config = config;
         this.logger = logger;
         this.kafkaCreator = kafkaCreator;
-        this.loreRenderer = loreRenderer;
         if (initializeTables)
             InitializeTables();
     }
@@ -305,25 +303,7 @@ public class LowballOfferService
     }
 
 
-    /// <summary>
-    /// Renders Minecraft lore as an image with proper color codes.
-    /// Returns a MemoryStream of the rendered PNG image, or null if lore is empty.
-    /// </summary>
-    private async Task<MemoryStream> RenderLoreAsImageAsync(string lore)
-    {
-        if (string.IsNullOrWhiteSpace(lore) || loreRenderer == null)
-            return null;
 
-        try
-        {
-            return await loreRenderer.RenderLoreAsync(lore);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to render lore as image");
-            return null;
-        }
-    }
 
     private async Task SendWebhookAsync(LowballOffer offer, Sniper.Client.Model.PriceEstimate estimate, string websiteLink)
     {
@@ -346,17 +326,8 @@ public class LowballOfferService
         // Extract color code from item name and convert to Discord embed color
         var (cleanItemName, embedColor) = ExtractColorAndCleanItemName(offer.ItemName);
 
-        // Render lore as image
+        // Lore image rendering removed (MinecraftLoreRenderer was removed)
         MemoryStream loreImageStream = null;
-        try
-        {
-            var fullText = offer.ItemName + "\n" + offer.Lore;
-            loreImageStream = await RenderLoreAsImageAsync(fullText);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to render lore image");
-        }
 
         // Build embed with lore image if available
         var embed = new
