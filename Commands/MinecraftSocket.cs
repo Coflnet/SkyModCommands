@@ -887,7 +887,7 @@ namespace Coflnet.Sky.Commands.MC
         public virtual string Error(Exception exception, string? message = null, string? additionalLog = null)
         {
             using var error = CreateActivity("error", ConSpan)?.AddTag("message", message).AddTag("error", "true");
-            if (IsDevMode || SessionInfo?.McUuid == "384a029294fc445e863f2c42fe9709cb")
+            if (IsDevMode || QueryString["player"] =="Ekwav")
                 dev.Logger.Instance.Error(exception, message);
 
             error?.Log(exception.ToString());
