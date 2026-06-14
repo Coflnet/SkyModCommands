@@ -9,23 +9,16 @@ WORKDIR /build/sky
 COPY SkyModCommands.csproj SkyModCommands.csproj
 RUN dotnet restore
 COPY . .
-RUN rm SkyModCommands.sln && dotnet test
+RUN rm -f SkyModCommands.sln && dotnet test
 RUN dotnet publish -c release -o /app
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled
 WORKDIR /app
-
-# Install required system libraries for image rendering
-RUN apt-get update && apt-get install -y \
-    libfontconfig1 \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app .
 
 ENV ASPNETCORE_URLS=http://+:8000
 
-RUN useradd --uid $(shuf -i 2000-65000 -n 1) app-user
-USER app-user
-RUN export PATH="$PATH:$HOME/.dotnet/tools"
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "SkyModCommands.dll", "--hostBuilder:reloadConfigOnChange=false"]
