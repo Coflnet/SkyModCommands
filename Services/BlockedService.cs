@@ -47,6 +47,9 @@ public class BlockedService : IBlockedService
         return await table.Where(x => x.UserId == userId && x.AuctionUuid == auctionUuid).ExecuteAsync();
     }
 
+    private const string InsertBlockedReasonCql =
+        "INSERT INTO blocked_reasons (userid, auctionuuid, finder_type, blocked_at, reason) VALUES (?, ?, ?, ?, ?) USING TTL ?";
+
     public async Task ArchiveBlockedFlipsUntil(ConcurrentQueue<MinecraftSocket.BlockedElement> topBlocked, string userId, int v)
     {
         var batch = new BatchStatement();
@@ -56,14 +59,16 @@ public class BlockedService : IBlockedService
             {
                 if(blocked.Flip.Auction.Start < DateTime.UtcNow.AddHours(2))
                     continue; // skip old auctions, eg from replay flips
-                var statement = table.Insert(new()
-                {
-                    AuctionUuid = Guid.Parse(blocked.Flip.Auction.Uuid),
-                    BlockedAt = blocked.Now,
-                    FinderType = blocked.Flip.Finder,
-                    Reason = blocked.Reason,
-                    UserId = userId
-                }).SetTTL(60 * 60 * 24 * 7);
+                // Use SimpleStatement instead of table.Insert() to avoid prepared statement
+                // cache eviction issues on the Cassandra server
+                var statement = new SimpleStatement(InsertBlockedReasonCql,
+                    userId,
+                    Guid.Parse(blocked.Flip.Auction.Uuid),
+                    (int)blocked.Flip.Finder,
+                    blocked.Now,
+                    blocked.Reason,
+                    60 * 60 * 24 * 7 // TTL in seconds
+                );
                 batch.Add(statement);
                 batch.SetRoutingKey(statement.RoutingKey);
                 if (count++ > 20)
@@ -74,7 +79,8 @@ public class BlockedService : IBlockedService
                     Activity.Current.Log("Archived 20 blocked flips");
                 }
             }
-        await session.ExecuteAsync(batch);
+        if (count > 0)
+            await session.ExecuteAsync(batch);
     }
 
     public class BlockedReason
