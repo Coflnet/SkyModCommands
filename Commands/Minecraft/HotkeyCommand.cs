@@ -56,7 +56,19 @@ public class HotkeyCommand : McCommand
         var sniperService = socket.GetService<ISniperClient>();
         var valuesTask = sniperService.GetPrices([auction]);
         Task<string> filterLinkTask = GetLinkWithFilters(socket, auction);
-        var price = (await valuesTask).First();
+
+        // Timeout after 8 seconds — price lookups should be near-instant.
+        // Longer waits block the WebSocket connection and freeze the user's mod UI.
+        Sniper.Client.Model.PriceEstimate price;
+        try
+        {
+            price = (await valuesTask.WaitAsync(TimeSpan.FromSeconds(8))).First();
+        }
+        catch (TimeoutException)
+        {
+            socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Price lookup timed out, please try again, or create a report"));
+            return;
+        }
         var instaSell = SniperClient.InstaSellPrice(price);
         var lbinAuction = await GetAuction(socket, price.Lbin.AuctionId);
         int index = await GetItemIndex(auction, inventoryTask);
