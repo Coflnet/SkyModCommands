@@ -716,6 +716,13 @@ namespace Coflnet.Sky.Commands.MC
                     return;
                 await command.Execute(this, a.data).ConfigureAwait(false);
             }
+            catch (Coflnet.Sky.PlayerState.Client.Client.ApiException e)
+            {
+                var json = System.Text.RegularExpressions.Regex.Replace(e.Message, "^Error calling [^:]+: ", "");
+                var coflnetException = Newtonsoft.Json.JsonConvert.DeserializeObject<CoflnetException>(json);
+                Error(e, "mod command playerstate");
+                SendMessage(COFLNET + $"{McColorCodes.RED}{coflnetException?.Message ?? "An unkown error occured, please create a report about this"}");
+            }
             catch (CoflnetException e)
             {
                 Error(e, "mod command coflnet");
