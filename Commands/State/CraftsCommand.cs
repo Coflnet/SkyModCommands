@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -65,8 +66,20 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
         var craftApi = socket.GetService<ICraftsApi>();
         var profileApi = socket.GetService<IProfileClient>();
         var craftsTask = NewMethod(craftApi);
-        var filtered = (await profileApi.FilterProfitableCrafts(craftsTask, socket.SessionInfo.McUuid, "current"))
-                .OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost) * f.Volume);
+        IOrderedEnumerable<ProfitableCraft> filtered;
+        try
+        {
+
+            filtered = (await profileApi.FilterProfitableCrafts(craftsTask, socket.SessionInfo.McUuid, "current"))
+                    .OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost) * f.Volume);
+        }
+        catch (Exception e)
+        {
+            socket.Error(e, "filtering crafts for profile");
+            socket.Dialog(db => db.MsgLine($"Error while filtering crafts: {e.Message}").MsgLine("Showing unfiltered crafts, consider creating a report about this"));
+            var crafts = await craftsTask;
+            filtered = crafts.OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost) * f.Volume);
+        }
 
         if (OnBazaar.Count == 0)
             _ = socket.TryAsyncTimes(async () =>
@@ -81,7 +94,7 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
 
     protected override IEnumerable<ProfitableCraft> FilterElementsForProfile(MinecraftSocket socket, IEnumerable<ProfitableCraft> elements)
     {
-        var filtered = elements.Where(f => f.CraftCost < socket.SessionInfo.Purse && socket.SessionInfo.Purse > 0).ToList();
+        var filtered = elements.Where(f => f.CraftCost < socket.SessionInfo.Purse || socket.SessionInfo.Purse <= 0).ToList();
         if (filtered.Count != elements.Count())
             socket.Dialog(db => db.MsgLine($"Filtered {elements.Count() - filtered.Count} crafts that cost more than your purse ({socket.FormatPrice(socket.SessionInfo.Purse)})"));
         return filtered;
