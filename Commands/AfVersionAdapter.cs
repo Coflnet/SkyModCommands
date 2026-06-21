@@ -127,6 +127,7 @@ public class AfVersionAdapter : ModVersionAdapter
         {
             socket.AccountInfo.LastMacroConnect = DateTime.UtcNow;
             await socket.sessionLifesycle.AccountInfo.Update();
+            await socket.TriggerTutorial<Coflnet.Sky.ModCommands.Tutorials.FinderSettingsTutorial>();
         }, "updating last macro connect");
     }
 

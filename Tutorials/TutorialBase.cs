@@ -12,5 +12,8 @@ public abstract class TutorialBase
     }
 
     public abstract void Trigger(DialogBuilder builder, IMinecraftSocket socket);
+}
 
+public abstract class MacroBotTutorial : TutorialBase
+{
 }
