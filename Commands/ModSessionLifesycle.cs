@@ -245,6 +245,10 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine("tier changed to " + Newtier);
             socket.SessionInfo.SessionTier = Newtier;
             UpdateConnectionTier(Newtier);
+            // the tier may only resolve after the welcome flow already ran with an unknown tier,
+            // re-evaluate region routing so a now-known Premium+ user still gets redirected to their region
+            if (Newtier >= AccountTier.PREMIUM_PLUS)
+                socket.TryAsyncTimes(() => ApplyStoredRegionRouting(AccountInfo?.Value, knownTier: Newtier), "region routing on tier change", 1);
         }
 
         private async Task SendLoginPromptMessage(string stringId)
@@ -713,15 +717,29 @@ namespace Coflnet.Sky.Commands.MC
             return RegionRoutingAction.None;
         }
 
-        private async Task ApplyStoredRegionRouting(AccountInfo info, Activity span = null)
+        private int regionRoutingApplied;
+
+        // knownTier overrides the cached tier, used when re-evaluating on a tier change before the cache is updated
+        private async Task ApplyStoredRegionRouting(AccountInfo info, Activity span = null, AccountTier? knownTier = null)
         {
+            if (info == null)
+                return;
+            var hasPremiumPlus = knownTier.HasValue
+                ? knownTier.Value >= AccountTier.PREMIUM_PLUS
+                : TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS);
             var action = DetermineRegionRoutingAction(
                 info,
                 SessionInfo.ConnectionType,
-                TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS),
+                hasPremiumPlus,
                 SupportsRegionReconnect(SessionInfo.IsMacroBot, socket.Version),
                 MinecraftSocket.IsDevMode);
             span?.AddTag("regionRouting", action.ToString());
+
+            if (action == RegionRoutingAction.None)
+                return;
+            // only route once per connection, the welcome flow and a later tier change can both reach this
+            if (Interlocked.Exchange(ref regionRoutingApplied, 1) != 0)
+                return;
 
             switch (action)
             {
