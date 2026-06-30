@@ -7,7 +7,7 @@ public class GetMcNameForCommand : McCommand
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         string name = await GetName(socket, arguments);
-        socket.Dialog(db => db.Msg("The minecraft name is " + McColorCodes.AQUA + name));
+        socket.Dialog(db => db.Msg("The minecraft name is " + McColorCodes.AQUA + name, "copy:" + name, "Click to copy the name to your clipboard").MsgLine(" _", "suggest: " + name, "Click to suggest the name in chat"));
     }
 
     public static async Task<string> GetName(MinecraftSocket socket, string arguments)
