@@ -39,6 +39,11 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Dialog(db => db.MsgLine("Imported settings (check above)"));
                 return;
             }
+            if(arguments == "json")
+            {
+                socket.Send(Response.Create("loreSettings", Newtonsoft.Json.JsonConvert.SerializeObject(settings, Newtonsoft.Json.Formatting.Indented)));
+                return;
+            }
             var args = Convert<string>(arguments).Split(' ');
 
             if (args.Length == 1)
