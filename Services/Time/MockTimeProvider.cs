@@ -25,7 +25,22 @@ public class MockTimeProvider : ITimeProvider
         {
             var existingTasks = Tasks.OrderBy(t=>t.Value).ToList();
             var task = existingTasks.FirstOrDefault(t => t.Value <= targetTime);
-            if (task.Key == null) break;
+            if (task.Key == null)
+            {
+                // A released delay's continuation may still be scheduling the next
+                // delay in its chain on a thread pool thread. On slower CPUs (e.g. CI)
+                // that can take noticeably longer than a single yield, so retry a few
+                // times before concluding the chain is done to avoid a flaky race.
+                var appeared = false;
+                for (var i = 0; i < 50 && !appeared; i++)
+                {
+                    await Task.Delay(5);
+                    appeared = Tasks.Any(t => t.Value <= targetTime);
+                }
+                if (!appeared)
+                    break;
+                continue;
+            }
 
             Tasks.TryRemove(task.Key, out _);
             task.Key.SetResult();
