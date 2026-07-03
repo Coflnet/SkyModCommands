@@ -111,6 +111,13 @@ public class Startup
         services.AddSingleton<TaskService>();
         services.AddSingleton<ActivityTrackingService>();
         services.AddCoflService();
+
+        // warm critical downstream dependencies (redis + sky-settings http pool) before the
+        // readiness probe passes, so fresh pods don't hand cold-start latency to the first
+        // connections after a deploy.
+        services.AddSingleton<WarmupState>();
+        services.AddHostedService<StartupWarmupService>();
+        services.AddHealthChecks().AddCheck<WarmupHealthCheck>("warmup");
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -134,6 +141,7 @@ public class Startup
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapMetrics();
+            endpoints.MapHealthChecks("/health/ready");
             endpoints.MapControllers();
         });
     }
