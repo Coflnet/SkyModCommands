@@ -558,26 +558,6 @@ namespace Coflnet.Sky.Commands.MC
                     SessionInfo.IsMacroBot = true;
                 }
 
-                // Check rust addon ownership from payment service (lazy - only when needed)
-                // Store as null initially, will be checked when Rust finder is actually used
-                SessionInfo.RustAddonOwned = null;
-                _ = socket.TryAsyncTimes(async () =>
-                {
-                    // Only check if Rust finder is enabled in settings
-                    if (FlipSettings?.Value?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Rust) ?? false)
-                    {
-                        await CheckRustOwnership(info.UserId);
-                        if (SessionInfo.RustAddonOwned == false)
-                        {
-                            // disable rust finder if ownership not valid
-                            var fs = FlipSettings.Value;
-                            fs.AllowedFinders &= ~LowPricedAuction.FinderType.Rust;
-                            await FlipSettings.Update(fs);
-                            socket.SendMessage(COFLNET + "Your Rust Finder add-on ownership could not be verified, disabling Rust Finder in your finders list.");
-                        }
-                    }
-                }, "check rust addon", 1);
-
                 var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info, socket.SessionInfo);
                 span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (info.UserId != socket.UserId && socket.UserId?.Length > 2)
@@ -608,50 +588,26 @@ namespace Coflnet.Sky.Commands.MC
                         proxyService.UnregisterSocket(socket);
                 }, "proxy optin check", 1);
                 var tier = await TierManager.GetCurrentCached();
-                if (!TierManager.IsNewConnection())
+                socket.SessionInfo.SessionTier = tier;
+                // A silent reconnect is one where the same client reconnected (e.g. after a network blip).
+                // Note: IsNewConnection() is derived asynchronously from the tier calculation and may not be
+                // ready when this runs, so a genuinely new connection can be misdetected as a reconnect here.
+                // Either way the setup below (settings wait, region routing, flip activation, flipper
+                // registration) has to run so the connection actually works; only the user facing welcome
+                // messages are suppressed on silent reconnects to avoid spamming them on every reconnect.
+                var isSilentReconnect = !TierManager.IsNewConnection();
+
+                // the welcome flow is only run once per connection, reconnects re-run the setup every time
+                // (it is idempotent) so a connection misdetected as a reconnect still gets set up
+                if (isSilentReconnect || !SessionInfo.SentWelcome)
                 {
-                    socket.SessionInfo.SessionTier = tier;
-                    // even on a silent reconnect the user expects flips if they opted into auto starting the flipper.
-                    // IsNewConnection() is derived asynchronously from the tier calculation and may not be ready yet
-                    // (or the connection may genuinely be a reconnect), so enable flips here to avoid them staying off.
-                    if (FlipSettings?.Value?.ModSettings?.AutoStartFlipper ?? false)
-                    {
-                        SessionInfo.FlipsEnabled = true;
-                        span?.AddTag("autoStart", "reconnect");
-                    }
-                    await userIsVerifiedTask;
-                    socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc }));
-                    Console.WriteLine("silent reconnect for " + socket.SessionInfo.McName + " conid " + socket.SessionInfo.clientConId);
-                    return;
+                    await SetupConnection(info, tier, span, isSilentReconnect);
                 }
 
-                if (SessionInfo.SentWelcome)
-                    return; // don't send hello again
-                SessionInfo.SentWelcome = true;
-                await SendAuthorizedHello(info);
-
-                await WaitForSettingsLoaded(span);
-                await ApplyStoredRegionRouting(info, span);
-                if (FlipSettings.Value.ModSettings.AutoStartFlipper)
-                {
-                    SendMessage(socket.formatProvider.WelcomeMessage());
-                    SessionInfo.FlipsEnabled = true;
-                    UpdateConnectionTier(tier, span);
-                    span?.AddTag("autoStart", "true");
-                    ShowRegionHintIfApplicable(info);
-                }
-                else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
-                {
-                    socket.Dialog(db => db.Msg("What do you want to do?").Break
-                        .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)\nexecutes {McColorCodes.AQUA}/cofl flip")
-                        .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
-                        .DialogLink<FlipDisableDialog>(McColorCodes.BLUE + " use the pricing data ", "never", "I don't want to flip")
-                        .Break);
-                    await socket.TriggerTutorial<Welcome>();
-                    span?.AddTag("autoStart", "false");
-                }
                 await userIsVerifiedTask;
                 socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc }));
+                if (isSilentReconnect)
+                    Console.WriteLine("silent reconnect for " + socket.SessionInfo.McName + " conid " + socket.SessionInfo.clientConId);
 
                 if (DateTime.Now < new DateTime(2024, 4, 2))
                 {
@@ -665,6 +621,48 @@ namespace Coflnet.Sky.Commands.MC
                 socket.Error(e, "loading modsocket");
                 span.AddTag("error", true);
                 SendMessage(COFLNET + $"Your settings could not be loaded, please relink again :)");
+            }
+        }
+
+        /// <summary>
+        /// Runs the shared connection setup for both freshly opened connections and silent reconnects.
+        /// The actual state changes (waiting for settings, region routing, activating flips and registering
+        /// with the flipper) happen on both, only the user facing welcome messages are shown for new
+        /// connections so silent reconnects stay quiet.
+        /// </summary>
+        private async Task SetupConnection(AccountInfo info, AccountTier tier, Activity span, bool isSilentReconnect)
+        {
+            if (!isSilentReconnect)
+            {
+                SessionInfo.SentWelcome = true;
+                await SendAuthorizedHello(info);
+            }
+
+            await WaitForSettingsLoaded(span);
+            await ApplyStoredRegionRouting(info, span);
+            if (FlipSettings.Value.ModSettings.AutoStartFlipper)
+            {
+                SessionInfo.FlipsEnabled = true;
+                UpdateConnectionTier(tier, span);
+                span?.AddTag("autoStart", isSilentReconnect ? "reconnect" : "true");
+                if (!isSilentReconnect)
+                {
+                    SendMessage(socket.formatProvider.WelcomeMessage());
+                    ShowRegionHintIfApplicable(info);
+                }
+            }
+            else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
+            {
+                span?.AddTag("autoStart", "false");
+                if (!isSilentReconnect)
+                {
+                    socket.Dialog(db => db.Msg("What do you want to do?").Break
+                        .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)\nexecutes {McColorCodes.AQUA}/cofl flip")
+                        .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
+                        .DialogLink<FlipDisableDialog>(McColorCodes.BLUE + " use the pricing data ", "never", "I don't want to flip")
+                        .Break);
+                    await socket.TriggerTutorial<Welcome>();
+                }
             }
         }
 
