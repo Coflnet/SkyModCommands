@@ -626,43 +626,48 @@ namespace Coflnet.Sky.Commands.MC
 
         /// <summary>
         /// Runs the shared connection setup for both freshly opened connections and silent reconnects.
-        /// The actual state changes (waiting for settings, region routing, activating flips and registering
-        /// with the flipper) happen on both, only the user facing welcome messages are shown for new
-        /// connections so silent reconnects stay quiet.
+        /// Flip activation and flipper registration happen on both so flips keep flowing, while the user
+        /// facing onboarding (hello, welcome message, region routing/redirects, tutorial) only runs for
+        /// genuinely new connections so silent reconnects stay completely quiet.
         /// </summary>
         private async Task SetupConnection(AccountInfo info, AccountTier tier, Activity span, bool isSilentReconnect)
         {
-            if (!isSilentReconnect)
-            {
-                SessionInfo.SentWelcome = true;
-                await SendAuthorizedHello(info);
-            }
-
             await WaitForSettingsLoaded(span);
-            await ApplyStoredRegionRouting(info, span);
+
+            // (Re)activate flips and register with the flipper on every (re)connect so flips keep flowing.
+            // This part must stay silent, it doesn't send any onboarding messages.
             if (FlipSettings.Value.ModSettings.AutoStartFlipper)
             {
                 SessionInfo.FlipsEnabled = true;
                 UpdateConnectionTier(tier, span);
                 span?.AddTag("autoStart", isSilentReconnect ? "reconnect" : "true");
-                if (!isSilentReconnect)
-                {
-                    SendMessage(socket.formatProvider.WelcomeMessage());
-                    ShowRegionHintIfApplicable(info);
-                }
+            }
+            else
+                span?.AddTag("autoStart", "false");
+
+            // A silent reconnect is the same client reconnecting: it has already been welcomed and routed to
+            // its region. Sending the welcome again is spammy, and re-running region routing would redirect
+            // it, spawning a fresh connection that shows the whole welcome once more. So stop here and keep
+            // silent reconnects quiet, the onboarding below is only for genuinely new connections.
+            if (isSilentReconnect)
+                return;
+
+            SessionInfo.SentWelcome = true;
+            await SendAuthorizedHello(info);
+            await ApplyStoredRegionRouting(info, span);
+            if (FlipSettings.Value.ModSettings.AutoStartFlipper)
+            {
+                SendMessage(socket.formatProvider.WelcomeMessage());
+                ShowRegionHintIfApplicable(info);
             }
             else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
             {
-                span?.AddTag("autoStart", "false");
-                if (!isSilentReconnect)
-                {
-                    socket.Dialog(db => db.Msg("What do you want to do?").Break
-                        .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)\nexecutes {McColorCodes.AQUA}/cofl flip")
-                        .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
-                        .DialogLink<FlipDisableDialog>(McColorCodes.BLUE + " use the pricing data ", "never", "I don't want to flip")
-                        .Break);
-                    await socket.TriggerTutorial<Welcome>();
-                }
+                socket.Dialog(db => db.Msg("What do you want to do?").Break
+                    .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)\nexecutes {McColorCodes.AQUA}/cofl flip")
+                    .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
+                    .DialogLink<FlipDisableDialog>(McColorCodes.BLUE + " use the pricing data ", "never", "I don't want to flip")
+                    .Break);
+                await socket.TriggerTutorial<Welcome>();
             }
         }
 
