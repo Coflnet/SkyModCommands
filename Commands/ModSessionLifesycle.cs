@@ -611,6 +611,14 @@ namespace Coflnet.Sky.Commands.MC
                 if (!TierManager.IsNewConnection())
                 {
                     socket.SessionInfo.SessionTier = tier;
+                    // even on a silent reconnect the user expects flips if they opted into auto starting the flipper.
+                    // IsNewConnection() is derived asynchronously from the tier calculation and may not be ready yet
+                    // (or the connection may genuinely be a reconnect), so enable flips here to avoid them staying off.
+                    if (FlipSettings?.Value?.ModSettings?.AutoStartFlipper ?? false)
+                    {
+                        SessionInfo.FlipsEnabled = true;
+                        span?.AddTag("autoStart", "reconnect");
+                    }
                     await userIsVerifiedTask;
                     socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc }));
                     Console.WriteLine("silent reconnect for " + socket.SessionInfo.McName + " conid " + socket.SessionInfo.clientConId);
