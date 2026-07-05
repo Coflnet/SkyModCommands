@@ -1045,9 +1045,23 @@ namespace Coflnet.Sky.Commands.MC
                     if (updated.expiresAt > DateTime.UtcNow.AddMinutes(2))
                         return;
                     tierSpan?.Log($"reloaded tier {JsonConvert.SerializeObject(updated)} userId:{sessionLifesycle?.UserId?.Value}");
-                    Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
-                    .CoflCommand<PurchaseCommand>($"Your premium tier is about to expire in {(int)(expiresAt - DateTime.UtcNow).TotalMinutes} minutes. {McColorCodes.YELLOW}[CLICK to see options]", "", "show purchase menu")
-                    .Break.Msg($"{McColorCodes.RED}-----------------------------"));
+                    var minutesLeft = (int)(expiresAt - DateTime.UtcNow).TotalMinutes;
+                    (string? name, string? slug) = updated.tier switch
+                    {
+                        AccountTier.SUPER_PREMIUM => ($"{McColorCodes.RED}pre api", "pre_api"),
+                        AccountTier.PREMIUM_PLUS => ($"{McColorCodes.GOLD}premium+", "premium_plus"),
+                        AccountTier.PREMIUM => ($"{McColorCodes.GREEN}premium", "premium"),
+                        AccountTier.STARTER_PREMIUM => ($"{McColorCodes.WHITE}starter premium", "starter_premium"),
+                        _ => (null, null)
+                    };
+                    if (slug != null)
+                        Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
+                        .CoflCommand<PurchaseCommand>($"Your {name}{McColorCodes.WHITE} is about to expire in {minutesLeft} minutes. {McColorCodes.YELLOW}[CLICK to extend]", slug, $"{McColorCodes.WHITE}Starts the purchase to extend your {name}")
+                        .Break.Msg($"{McColorCodes.RED}-----------------------------"));
+                    else
+                        Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
+                        .CoflCommand<PurchaseCommand>($"Your premium tier is about to expire in {minutesLeft} minutes. {McColorCodes.YELLOW}[CLICK to see options]", "", "show purchase menu")
+                        .Break.Msg($"{McColorCodes.RED}-----------------------------"));
                 }, "reloading tier");
 
             }
