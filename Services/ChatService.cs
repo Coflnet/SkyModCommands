@@ -111,6 +111,10 @@ public class ChatService
                     prefix = McColorCodes.DARK_GREEN;
                 prefix = McColorCodes.GOLD + "ⓂⓄⒹ" + prefix;
             }
+            // the emblem (already color coded) is shown in front of the rank color
+            var emblem = socket.AccountInfo?.Emblem;
+            if (!string.IsNullOrEmpty(emblem))
+                prefix = emblem + " " + prefix;
             var chatMsg = new ChatMessage(
                 message.SenderUuid ?? throw new CoflnetException("invalid_sender", "Sender uuid is null"),
                 message.SenderName,

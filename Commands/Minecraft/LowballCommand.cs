@@ -239,6 +239,7 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             {
                 var fullLink  = await HotkeyCommand.GetLinkWithFilters(socket, auction);
                 await socket.GetService<LowballOfferService>().CreateOffer(socket.SessionInfo.McUuid, auction, price,  priceEstimate.First(), fullLink);
+                await socket.GetService<Coflnet.Sky.ModCommands.Services.EmblemService>().TriggerUnlock(socket, Coflnet.Sky.ModCommands.Models.Emblems.FirstLowball);
             }
             catch (Exception e)
             {
