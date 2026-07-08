@@ -122,35 +122,39 @@ namespace Coflnet.Sky.Commands.MC
         private async Task SniperReference(MinecraftSocket socket, string uuid, LowPricedAuction flip, string algo)
         {
             flip.AdditionalProps.TryGetValue("reference", out var referenceId);
-            Console.WriteLine(referenceId);
-            Console.WriteLine(JSON.Stringify(flip.AdditionalProps));
-            var references = new List<SaveAuction>();
-            if (flip.AdditionalProps.ContainsKey("med"))
-                foreach (var item in flip.AdditionalProps["med"].Split(','))
+
+            async Task<List<SaveAuction>> FetchReferences(string propKey)
+            {
+                var list = new List<SaveAuction>();
+                if (!flip.AdditionalProps.TryGetValue(propKey, out var csv))
+                    return list;
+                foreach (var item in csv.Split(','))
                 {
+                    if (string.IsNullOrEmpty(item))
+                        continue;
                     try
                     {
-                        if (string.IsNullOrEmpty(item))
-                            continue;
                         var auction = await AuctionService.Instance.GetAuctionAsync(item);
                         if (auction == null)
                         {
                             socket.Log($"Auction {item} not found", Microsoft.Extensions.Logging.LogLevel.Error);
                             continue;
                         }
-                        references.Add(auction);
+                        list.Add(auction);
                     }
                     catch (Exception e)
                     {
                         socket.Log(e.ToString());
                     }
                 }
+                return list;
+            }
+
+            var references = await FetchReferences("med");
             SaveAuction reference = null;
-            Console.WriteLine(JSON.Stringify(reference));
             var explanation = "This flip finder keeps reference auctions in RAM which makes it faster\nclick this to open the flip on website";
             var parts = new List<ChatPart>();
             parts.Add(new ChatPart($"{COFLNET}Finder algorithm: {algo}\n", "https://sky.coflnet.com/auction/" + uuid, explanation));
-            //   parts.Add(new ChatPart($"It was compared to {McColorCodes.AQUA} these auctions {DEFAULT_COLOR}, open ah", $"/viewauction {reference.Uuid}", McColorCodes.GREEN + "open it on ah"));
             if (flip.AdditionalProps.TryGetValue("closest", out var closestKey))
                 parts.Add(new ChatPart($"Used key {closestKey}"));
             parts.AddRange(references.SelectMany(r =>
@@ -158,6 +162,17 @@ namespace Coflnet.Sky.Commands.MC
                 return RefreshReference(socket, r);
             }
             ));
+
+            // No exact-match sales existed (empty/thin own bucket): the price came from higher-value variants via the
+            // sniper's dominator scan. Surface those so the number is explainable instead of showing nothing (hvRef).
+            var higherValueRefs = await FetchReferences("hvRef");
+            if (higherValueRefs.Count > 0)
+            {
+                parts.Add(new ChatPart($"\n{McColorCodes.YELLOW}No exact-match sales for this item - priced from these higher-value variants (the value of their extra enchants/stars is subtracted):{McColorCodes.GRAY}"));
+                parts.AddRange(higherValueRefs.SelectMany(r => RefreshReference(socket, r)));
+            }
+            if (flip.AdditionalProps.TryGetValue("craftCost", out var craftCostStr) && long.TryParse(craftCostStr, out var craftCostVal))
+                parts.Add(new ChatPart($"\n{McColorCodes.GRAY}Value was capped at craft cost: {McColorCodes.AQUA}{socket.FormatPrice(craftCostVal)}{McColorCodes.GRAY}"));
             if (flip.Finder == LowPricedAuction.FinderType.SNIPER && !string.IsNullOrEmpty(referenceId))
             {
                 reference = await AuctionService.Instance.GetAuctionAsync(referenceId);
