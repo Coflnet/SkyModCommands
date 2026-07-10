@@ -689,7 +689,10 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             amount = cappedAmount
         }));
 
-        socket.SessionInfo.LastBazaarRecommendationAt = DateTime.UtcNow;
+        if (!isSell)
+            // only buy recommendations should reset the buy-side full-list fallback timer;
+            // otherwise an actively-selling user never expands past their top tier bracket
+            socket.SessionInfo.LastBazaarRecommendationAt = DateTime.UtcNow;
         BazaarOrderStateHelper.TryTrackSentOrder(socket.SessionInfo.SentBazaarOrders, itemTag, itemName, side, price, cappedAmount);
         return true;
     }

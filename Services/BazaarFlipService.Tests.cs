@@ -41,7 +41,7 @@ public class BazaarFlipServiceTests
     [TestCase(AccountTier.PREMIUM, 3)]
     [TestCase(AccountTier.STARTER_PREMIUM, 6)]
     [TestCase(AccountTier.NONE, 9)]
-    public void GetCandidatePoolUsesTierSliceWhenFallbackIsInactive(AccountTier tier, int expectedStart)
+    public void GetCandidatePoolUsesTierBracketPlusLowerTiersWhenFallbackIsInactive(AccountTier tier, int expectedStart)
     {
         var now = DateTime.UtcNow;
         var ranked = CreateRanked(12);
@@ -61,7 +61,8 @@ public class BazaarFlipServiceTests
             session,
             now);
 
-        Assert.That(result.Select(f => f.ItemTag).ToArray(), Is.EqualTo(ranked.Skip(expectedStart).Take(3).Select(f => f.ItemTag).ToArray()));
+        // own tier bracket (3) plus the next 6 lower-tier candidates, capped by what is available
+        Assert.That(result.Select(f => f.ItemTag).ToArray(), Is.EqualTo(ranked.Skip(expectedStart).Take(9).Select(f => f.ItemTag).ToArray()));
     }
 
     [Test]

@@ -128,15 +128,24 @@ public class BazaarFlipService : BackgroundService
         if (await RejectIfAtOrderLimit(socket, names, candidates[0]))
             return;
 
+        // In fallback mode the full ranked list is already ordered; otherwise try the user's own
+        // tier bracket first (shuffled so users spread across the top items instead of all
+        // competing for the single best one), then fall through to the next lower-tier candidates.
         var attempts = useFallback
             ? candidates
-            : new[] { candidates[Random.Shared.Next(candidates.Count)] };
+            : ShuffleBracketThenLowerTiers(candidates);
 
         foreach (var candidate in attempts)
         {
             if (await TrySendRecommendation(socket, names, candidate, recordBlockedReason: !useFallback))
                 return;
         }
+    }
+
+    private static IEnumerable<DemandFlip> ShuffleBracketThenLowerTiers(IReadOnlyList<DemandFlip> candidates)
+    {
+        var bracket = candidates.Take(FlipsPerTierSlice).OrderBy(_ => Random.Shared.Next());
+        return bracket.Concat(candidates.Skip(FlipsPerTierSlice));
     }
 
     private async Task<bool> RejectIfAtOrderLimit(
@@ -332,13 +341,20 @@ public class BazaarFlipService : BackgroundService
             if (useFullListFallback)
                 return ranked;
 
+            // Start with the user's own tier bracket, then include the next lower-tier slices so a
+            // recommendation can still be found when every item in the bracket is already ordered.
             return (sessionInfo?.SessionTier ?? AccountTier.NONE) switch
             {
-                >= AccountTier.PREMIUM_PLUS => premPlusSlice,
-                AccountTier.PREMIUM => premiumSlice,
-                AccountTier.STARTER_PREMIUM => starterSlice,
+                >= AccountTier.PREMIUM_PLUS => Combine(premPlusSlice, premiumSlice, starterSlice),
+                AccountTier.PREMIUM => Combine(premiumSlice, starterSlice, freeSlice),
+                AccountTier.STARTER_PREMIUM => Combine(starterSlice, freeSlice),
                 _ => freeSlice
             };
+        }
+
+        private static IReadOnlyList<DemandFlip> Combine(params IReadOnlyList<DemandFlip>[] slices)
+        {
+            return slices.SelectMany(slice => slice).ToList();
         }
 
         private static List<DemandFlip> TakeSlice(List<DemandFlip> ranked, int sliceIndex)
