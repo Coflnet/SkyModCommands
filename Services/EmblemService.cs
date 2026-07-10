@@ -106,4 +106,36 @@ public class EmblemService
             socket.Error(e, "unlocking achievement " + achievementId);
         }
     }
+
+    /// <summary>
+    /// The account-age emblems and the minimum account age each one needs. Unlike the achievement backed
+    /// emblems these are not "unlocked" by anyone at a point in time - they are derived on the fly from the
+    /// account creation date, so a player simply has them once their account is old enough. One year is
+    /// approximated as 365 days; a day or two of drift doesn't matter for a loyalty badge.
+    /// </summary>
+    private static readonly (TimeSpan minAge, string emblemId)[] ageEmblems =
+    {
+        (TimeSpan.FromDays(365 * 1), Emblems.OneYearVeteran),
+        (TimeSpan.FromDays(365 * 3), Emblems.ThreeYearVeteran),
+        (TimeSpan.FromDays(365 * 5), Emblems.FiveYearVeteran),
+    };
+
+    /// <summary>
+    /// The unlocked emblem ids for the player behind the socket: the achievement backed ones from the state
+    /// service, plus the account-age emblems the account currently qualifies for (derived from the account
+    /// creation date). This is the set the emblem command lists and validates equips against.
+    /// </summary>
+    public async Task<HashSet<string>> GetUnlockedForSocket(MinecraftSocket socket, bool forceRefresh = false)
+    {
+        var set = new HashSet<string>(await GetUnlocked(socket.SessionInfo.McUuid, forceRefresh));
+        var info = socket.AccountInfo;
+        if (info != null)
+        {
+            var age = DateTime.UtcNow - info.CreatedAt;
+            foreach (var (minAge, emblemId) in ageEmblems)
+                if (age >= minAge)
+                    set.Add(emblemId);
+        }
+        return set;
+    }
 }

@@ -47,8 +47,11 @@ public class Emblem
 }
 
 /// <summary>
-/// The catalog of all emblems. The id constants mirror the authoritative <c>Achievement</c> enum names
-/// from SkyUserState - keep them in sync (see <see cref="Emblem.Id"/>).
+/// The catalog of all emblems. The id constants of the achievement backed emblems mirror the authoritative
+/// <c>Achievement</c> enum names from SkyUserState - keep them in sync (see <see cref="Emblem.Id"/>).
+/// The account-age emblems are the exception: they are not achievements at all. Nobody unlocks them at a
+/// point in time; whether a player has one is derived on read from the account creation date in
+/// <see cref="Services.EmblemService.GetUnlockedForSocket"/>, so their ids don't appear in that enum.
 /// </summary>
 public static class Emblems
 {
@@ -58,6 +61,10 @@ public static class Emblems
     public const string Whale = "Whale";
     public const string NightOwl = "NightOwl";
     public const string DiamondHands = "DiamondHands";
+    // account-age emblems - derived from the account creation date, not backed by an Achievement
+    public const string OneYearVeteran = "OneYearVeteran";
+    public const string ThreeYearVeteran = "ThreeYearVeteran";
+    public const string FiveYearVeteran = "FiveYearVeteran";
 
     /// <summary>
     /// All emblems in display order. Colors are baked into the symbol so it keeps its color when
@@ -75,6 +82,13 @@ public static class Emblems
         // --- suggested extras ---
         new Emblem(Whale, McColorCodes.AQUA + "❖",
             "Whale", "Land a single bazaar flip worth 100M+ coins of profit."),
+        // --- account age (granted automatically once the account is old enough) ---
+        new Emblem(OneYearVeteran, McColorCodes.GREEN + "✦",
+            "One Year Veteran", "Your Coflnet account is at least 1 year old. Thanks for flipping with us!"),
+        new Emblem(ThreeYearVeteran, McColorCodes.AQUA + "✶",
+            "Three Year Veteran", "Your Coflnet account is at least 3 years old."),
+        new Emblem(FiveYearVeteran, McColorCodes.GOLD + "❂",
+            "Five Year Veteran", "Your Coflnet account is at least 5 years old."),
         // --- mysterious (no reveal of the unlock condition, not auto granted yet) ---
         new Emblem(NightOwl, McColorCodes.DARK_PURPLE + "☾",
             "Night Owl", "A mystery waiting in the small hours.", mysterious: true),

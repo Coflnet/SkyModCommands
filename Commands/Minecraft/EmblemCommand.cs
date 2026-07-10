@@ -18,7 +18,6 @@ namespace Coflnet.Sky.Commands.MC
         {
             var args = (string.IsNullOrWhiteSpace(arguments) ? string.Empty : Convert<string>(arguments) ?? string.Empty).Trim();
             var service = socket.GetService<EmblemService>();
-            var playerId = socket.SessionInfo.McUuid;
 
             if (args == "clear")
             {
@@ -37,7 +36,7 @@ namespace Coflnet.Sky.Commands.MC
                         .CoflCommand<EmblemCommand>($"{McColorCodes.GRAY}[See your emblems]", "", "Open the emblem menu"));
                     return;
                 }
-                var unlocked = await service.GetUnlocked(playerId, forceRefresh: true);
+                var unlocked = await service.GetUnlockedForSocket(socket, forceRefresh: true);
                 if (!unlocked.Contains(id))
                 {
                     socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}You haven't unlocked {emblem.Name} yet."));
@@ -49,7 +48,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
 
-            var unlockedSet = await service.GetUnlocked(playerId);
+            var unlockedSet = await service.GetUnlockedForSocket(socket);
             var equipped = socket.AccountInfo?.Emblem;
             var unlockedCount = Emblems.All.Count(e => unlockedSet.Contains(e.Id));
             socket.Dialog(db => db
