@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Coflnet.Sky.Bazaar.Client.Api;
+using Coflnet.Sky.Bazaar.Client.Model;
 using Coflnet.Sky.Bazaar.Flipper.Client.Api;
 using Coflnet.Sky.Bazaar.Flipper.Client.Model;
 using Coflnet.Sky.Commands.MC;
@@ -35,6 +36,29 @@ public class BazaarFlipService : BackgroundService
 
     private const int FlipsPerTierSlice = 3;
     private static readonly TimeSpan PremiumPlusFullListFallbackThreshold = TimeSpan.FromMinutes(5);
+    /// <summary>
+    /// Minimum time between two refills for the same user. Guards against rapid duplicate order
+    /// uploads and against an upload-triggered refill overlapping a background cycle.
+    /// </summary>
+    private static readonly TimeSpan RefillThrottle = TimeSpan.FromSeconds(15);
+    /// <summary>
+    /// Time given to SkyBazaar to ingest freshly placed orders before the buy phase reads the order
+    /// book back to see which items one of our users already holds the top buy on.
+    /// </summary>
+    private static readonly TimeSpan BuyStateSettleDelay = TimeSpan.FromMilliseconds(800);
+    /// <summary>
+    /// How many users' inventories are drained (sell orders placed) in parallel. Sell placement waits
+    /// ~4s between orders, so serial draining would blow past the 20s cycle once there are many users.
+    /// </summary>
+    private const int SellPhaseConcurrency = 8;
+
+    /// <summary>
+    /// Snapshot of the most recently fetched candidate pools and item names, reused by
+    /// <see cref="RefillOrders"/> so an order overview upload can refill orders
+    /// without waiting for the next background cycle or refetching the flip list.
+    /// </summary>
+    private volatile TierCandidatePools latestPools;
+    private volatile Dictionary<string, string> latestNames;
 
     public BazaarFlipService(
         FlipperService flipperService,
@@ -80,38 +104,200 @@ public class BazaarFlipService : BackgroundService
 
         var names = await GetItemNames();
         var pools = TierCandidatePools.Build(ranked);
+        latestPools = pools;
+        latestNames = names;
 
+        var sockets = ConnectedMacroBotSockets();
+        if (sockets.Count == 0)
+            return;
+
+        // Phase 1 - always sell first, for every user, concurrently. Purchases must never outpace
+        // sales (unsold items pile up and crash the client); sell placement also waits ~4s between
+        // orders, so draining users serially would blow far past the 20s cycle once there are many.
+        // A user who placed a sell this cycle keeps the rest of its slots and is not offered a buy.
+        var buyers = await RunSellPhase(sockets, ct);
+        if (buyers.Count == 0)
+            return;
+
+        // Let SkyBazaar ingest the orders just placed (and any from recent uploads) before we read the
+        // book back to see who already holds the top buy.
+        await Task.Delay(BuyStateSettleDelay, ct);
+
+        await RunBuyDistribution(buyers, names, ct);
+    }
+
+    private List<MinecraftSocket> ConnectedMacroBotSockets()
+    {
+        var result = new List<MinecraftSocket>();
         foreach (var con in flipperService.Connections)
+        {
+            if (con.Connection is MinecraftSocket socket && socket.ModAdapter is FullAfVersionAdapter)
+                result.Add(socket);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Runs the sell-first pass for every connected user in parallel and returns the users that are
+    /// still eligible for a buy this cycle (passed the flipping/finder gating, have a free slot and
+    /// had nothing to sell).
+    /// </summary>
+    private async Task<List<MinecraftSocket>> RunSellPhase(List<MinecraftSocket> sockets, CancellationToken ct)
+    {
+        var buyers = new System.Collections.Concurrent.ConcurrentBag<MinecraftSocket>();
+        await Parallel.ForEachAsync(
+            sockets,
+            new ParallelOptions { MaxDegreeOfParallelism = SellPhaseConcurrency, CancellationToken = ct },
+            async (socket, token) =>
+            {
+                try
+                {
+                    if (await SellThenQualifyForBuy(socket))
+                        buyers.Add(socket);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Error in bazaar sell phase for user");
+                }
+            });
+        return buyers.ToList();
+    }
+
+    /// <summary>
+    /// Applies the shared gating, records the refill attempt, drains the inventory into free slots and
+    /// reports whether the user should still be offered a buy order this cycle. Selling is always
+    /// attempted first so purchases can never outpace sales.
+    /// </summary>
+    private async Task<bool> SellThenQualifyForBuy(MinecraftSocket socket)
+    {
+        var now = DateTime.UtcNow;
+        if (!PassesRefillGating(socket, now))
+            return false;
+        socket.SessionInfo.LastBazaarRefillAttempt = now;
+
+        var freeSlots = BazaarOrderStateHelper.MaxTotalOrders - socket.SessionInfo.ActiveBazaarOrderCount;
+        if (freeSlots <= 0)
+            return false;
+
+        if (socket.ModAdapter is FullAfVersionAdapter fullAf)
+        {
+            var sellsPlaced = await fullAf.PlaceInventorySellOrders(freeSlots);
+            if (sellsPlaced > 0)
+                return false; // sold something -> keep remaining slots, no buy this cycle
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Distributes at most one buy order to each eligible user, best effort. Users with the most
+    /// premium+ time left are served first; each order goes to a distinct item and never to an item
+    /// whose top buy order is already held by one of our users (which would outbid ourselves). The
+    /// order books for all candidates are fetched from SkyBazaar in a single bulk request.
+    /// </summary>
+    private async Task RunBuyDistribution(List<MinecraftSocket> buyers, Dictionary<string, string> names, CancellationToken ct)
+    {
+        var pools = latestPools;
+        if (pools == null)
+            return;
+
+        var prepared = new List<(MinecraftSocket Socket, bool UseFallback, IReadOnlyList<DemandFlip> Candidates)>();
+        foreach (var socket in buyers)
+        {
+            var useFallback = ShouldUseFullListFallback(socket.SessionInfo, DateTime.UtcNow);
+            var candidates = pools.GetCandidatesFor(socket.SessionInfo, useFallback);
+            if (candidates.Count > 0)
+                prepared.Add((socket, useFallback, candidates));
+        }
+        if (prepared.Count == 0)
+            return;
+
+        var books = await FetchOrderBooks(prepared.SelectMany(p => p.Candidates.Select(c => c.ItemTag)));
+
+        // longest premium+ time left first, so the most valuable subscriptions get first pick of a slot
+        var assignedTags = new HashSet<string>();
+        foreach (var buyer in prepared.OrderByDescending(p => p.Socket.sessionLifesycle.TierManager.ExpiresAt))
         {
             if (ct.IsCancellationRequested)
                 break;
-            await TryDistributeToConnection(con, pools, names);
+            await RecommendBestMatch(buyer.Socket, names, buyer.Candidates, buyer.UseFallback,
+                BazaarOrderStateHelper.MaxOpenBuyOrders, books, assignedTags);
         }
     }
 
-    private async Task TryDistributeToConnection(
-        FlipConWrapper con,
-        TierCandidatePools pools,
-        Dictionary<string, string> names)
+    private async Task<IReadOnlyDictionary<string, OrderBook>> FetchOrderBooks(IEnumerable<string> tags)
     {
+        var distinct = tags.Distinct().ToList();
+        if (distinct.Count == 0)
+            return new Dictionary<string, OrderBook>();
         try
         {
-            if (con.Connection is not MinecraftSocket socket || socket.HasFlippingDisabled())
-                return;
-            if (!(socket.Settings?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Bazaar) ?? false))
-                return;
-
-            var useFallback = ShouldUseFullListFallback(socket.SessionInfo, DateTime.UtcNow);
-            var candidates = pools.GetCandidatesFor(socket.SessionInfo, useFallback);
-            if (candidates.Count == 0)
-                return;
-
-            await RecommendBestMatch(socket, names, candidates, useFallback);
+            return await orderBookApi.GetOrderBooksAsync(distinct) ?? new Dictionary<string, OrderBook>();
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Error sending bazaar flip to user");
+            logger.LogError(e, "Error bulk fetching bazaar order books for {Count} candidates", distinct.Count);
+            return new Dictionary<string, OrderBook>();
         }
+    }
+
+    private static bool PassesRefillGating(MinecraftSocket socket, DateTime now)
+    {
+        if (socket.HasFlippingDisabled())
+            return false;
+        if (!(socket.Settings?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Bazaar) ?? false))
+            return false;
+        if (now - socket.SessionInfo.LastBazaarRefillAttempt < RefillThrottle)
+            return false; // refilled very recently (duplicate upload or overlapping background cycle)
+        return true;
+    }
+
+    /// <summary>
+    /// Tops up a single user's open bazaar orders. Selling is always attempted first so purchases
+    /// can never outpace sales (unsold items pile up in the inventory and crash the client); only
+    /// when there is nothing to sell is a single buy order placed, and only while the total open
+    /// order count stays below <paramref name="buyOrderSlotCap"/>. Honors the user's flipping and
+    /// finder settings; a declined buy is recorded as a bazaar blocked flip so
+    /// <c>/cofl blocked bazaar</c> explains why nothing was placed.
+    /// </summary>
+    /// <param name="socket">The user connection whose open orders should be topped up.</param>
+    /// <param name="buyOrderSlotCap">
+    /// Highest total open order count at which a new buy order may still be placed. The background
+    /// cycle fills up to <see cref="BazaarOrderStateHelper.MaxOpenBuyOrders"/>; order-overview
+    /// uploads stop earlier to keep slots free for higher-priority "fast track" buys.
+    /// </param>
+    public async Task RefillOrders(MinecraftSocket socket, int buyOrderSlotCap)
+    {
+        try
+        {
+            // Prefer selling: drain the inventory into free slots before buying anything. Only when
+            // there is nothing to sell is a single buy order attempted, which enforces the slot cap
+            // and records a blocked reason when it declines, keeping room for fast-track buys.
+            if (await SellThenQualifyForBuy(socket))
+                await TryRecommendBuy(socket, buyOrderSlotCap, prefetchedBooks: null, assignedTags: null);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error refilling bazaar orders for user");
+        }
+    }
+
+    private async Task TryRecommendBuy(
+        MinecraftSocket socket,
+        int buyOrderSlotCap,
+        IReadOnlyDictionary<string, OrderBook> prefetchedBooks,
+        HashSet<string> assignedTags)
+    {
+        var pools = latestPools;
+        var names = latestNames;
+        if (pools == null || names == null)
+            return;
+
+        var useFallback = ShouldUseFullListFallback(socket.SessionInfo, DateTime.UtcNow);
+        var candidates = pools.GetCandidatesFor(socket.SessionInfo, useFallback);
+        if (candidates.Count == 0)
+            return;
+
+        await RecommendBestMatch(socket, names, candidates, useFallback, buyOrderSlotCap, prefetchedBooks, assignedTags);
     }
 
     /// <summary>
@@ -123,9 +309,12 @@ public class BazaarFlipService : BackgroundService
         MinecraftSocket socket,
         Dictionary<string, string> names,
         IReadOnlyList<DemandFlip> candidates,
-        bool useFallback)
+        bool useFallback,
+        int buyOrderSlotCap,
+        IReadOnlyDictionary<string, OrderBook> prefetchedBooks,
+        HashSet<string> assignedTags)
     {
-        if (await RejectIfAtOrderLimit(socket, names, candidates[0]))
+        if (await RejectIfAtOrderLimit(socket, names, candidates[0], buyOrderSlotCap))
             return;
 
         // In fallback mode the full ranked list is already ordered; otherwise try the user's own
@@ -137,8 +326,15 @@ public class BazaarFlipService : BackgroundService
 
         foreach (var candidate in attempts)
         {
-            if (await TrySendRecommendation(socket, names, candidate, recordBlockedReason: !useFallback))
+            // In a background cycle each item is handed out to at most one user, so several users
+            // don't pile onto (and outbid each other for) the same top item.
+            if (assignedTags != null && assignedTags.Contains(candidate.ItemTag))
+                continue;
+            if (await TrySendRecommendation(socket, names, candidate, recordBlockedReason: !useFallback, prefetchedBooks))
+            {
+                assignedTags?.Add(candidate.ItemTag);
                 return;
+            }
         }
     }
 
@@ -151,17 +347,19 @@ public class BazaarFlipService : BackgroundService
     private async Task<bool> RejectIfAtOrderLimit(
         MinecraftSocket socket,
         Dictionary<string, string> names,
-        DemandFlip sampleCandidate)
+        DemandFlip sampleCandidate,
+        int buyOrderSlotCap)
     {
-        if (!BazaarOrderStateHelper.HasReachedBuyOrderLimit(socket.SessionInfo.BazaarOrders))
+        if (socket.SessionInfo.ActiveBazaarOrderCount < buyOrderSlotCap)
             return false;
 
         var sample = await BuildVirtualFlipWithAmount(sampleCandidate, names);
         socket.sessionLifesycle.FlipProcessor.BlockedFlip(sample.Flip, "bazaar order limit");
         logger.LogDebug(
-            "Skipping bazaar recommendation for {PlayerName} because {OrderCount} orders are already open",
+            "Skipping bazaar recommendation for {PlayerName} because {OrderCount} orders are already open (cap {Cap})",
             socket.SessionInfo.McName,
-            socket.SessionInfo.ActiveBazaarOrderCount);
+            socket.SessionInfo.ActiveBazaarOrderCount,
+            buyOrderSlotCap);
         return true;
     }
 
@@ -169,7 +367,8 @@ public class BazaarFlipService : BackgroundService
         MinecraftSocket socket,
         Dictionary<string, string> names,
         DemandFlip candidate,
-        bool recordBlockedReason)
+        bool recordBlockedReason,
+        IReadOnlyDictionary<string, OrderBook> prefetchedBooks)
     {
         var prepared = await BuildVirtualFlipWithAmount(candidate, names);
         var flipProcessor = socket.sessionLifesycle.FlipProcessor;
@@ -184,7 +383,19 @@ public class BazaarFlipService : BackgroundService
         if (!flipProcessor.FlipMatchesSetting(prepared.Flip, FlipperService.LowPriceToFlip(prepared.Flip)))
             return false;
 
-        var price = await CalculateRecommendedBuyPrice(candidate);
+        var orderBook = await GetOrderBook(candidate.ItemTag, prefetchedBooks);
+        var topBuy = TopBuyOrder(orderBook);
+
+        // Never outbid an order already held by one of our users; placing above it would only push
+        // our own user down.
+        if (TopBuyHeldByOurUser(orderBook))
+        {
+            if (recordBlockedReason)
+                flipProcessor.BlockedFlip(prepared.Flip, "bazaar top order held by our user");
+            return false;
+        }
+
+        var price = Math.Min(topBuy?.PricePerUnit ?? 0, candidate.BuyPrice) + 0.1;
 
         if (socket.ModAdapter is FullAfVersionAdapter fullAf
             && !fullAf.SendBazaarOrderRecommendation(candidate.ItemTag, prepared.Flip.Auction.ItemName, false, price, prepared.Amount, prepared.Category))
@@ -205,11 +416,27 @@ public class BazaarFlipService : BackgroundService
             && socket.SessionInfo.Purse > 0;
     }
 
-    private async Task<double> CalculateRecommendedBuyPrice(DemandFlip candidate)
+    private async Task<OrderBook> GetOrderBook(string itemTag, IReadOnlyDictionary<string, OrderBook> prefetchedBooks)
     {
-        var orderBook = await orderBookApi.GetOrderBookAsync(candidate.ItemTag);
-        var topBuy = orderBook.Buy.OrderByDescending(h => h.PricePerUnit).FirstOrDefault();
-        return Math.Min(topBuy?.PricePerUnit ?? 0, candidate.BuyPrice) + 0.1;
+        if (prefetchedBooks != null && prefetchedBooks.TryGetValue(itemTag, out var book))
+            return book;
+        return await orderBookApi.GetOrderBookAsync(itemTag);
+    }
+
+    private static OrderEntry TopBuyOrder(OrderBook book)
+    {
+        return book?.Buy?.OrderByDescending(h => h.PricePerUnit).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// True when the highest buy order is held by one of our users. SkyBazaar imports raw Hypixel
+    /// market depth with an empty UserId, so a non-empty top-buy UserId means one of our customers
+    /// already holds that slot and we must not outbid it.
+    /// </summary>
+    internal static bool TopBuyHeldByOurUser(OrderBook book)
+    {
+        var topBuy = TopBuyOrder(book);
+        return topBuy != null && !string.IsNullOrEmpty(topBuy.UserId);
     }
 
     private static void SendRecommendationDialog(MinecraftSocket socket, LowPricedAuction flip, int amount, double price)

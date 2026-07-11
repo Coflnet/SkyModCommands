@@ -118,6 +118,13 @@ namespace Coflnet.Sky.Commands.MC
         [JsonIgnore]
         public DateTime? LastBazaarRecommendationAt { get; set; }
 
+        /// <summary>
+        /// Last time an order-overview upload triggered a refill (sell/buy order placement).
+        /// Used to throttle rapid duplicate uploads so they don't double-place orders.
+        /// </summary>
+        [JsonIgnore]
+        public DateTime LastBazaarRefillAttempt { get; set; }
+
         [JsonIgnore]
         public int ActiveBazaarOrderCount => BazaarOrders?.Count(order => order != null) ?? 0;
 

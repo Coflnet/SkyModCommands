@@ -15,6 +15,8 @@ public static class BazaarOrderStateHelper
     public const int BottomMenuRows = 4;
     public const int SlotsPerRow = 9;
     public const int MaxOpenBuyOrders = 20;
+    /// <summary>Maximum number of open bazaar orders the game allows (buy + sell slots combined).</summary>
+    public const int MaxTotalOrders = 21;
     public const string CancelOrderDisplayNameColored = "§cCancel Order";
     public const string CancelOrderDisplayName = "Cancel Order";
 

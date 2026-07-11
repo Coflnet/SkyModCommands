@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Coflnet.Sky.Bazaar.Client.Model;
 using Coflnet.Sky.Bazaar.Flipper.Client.Model;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
@@ -10,6 +11,43 @@ namespace Coflnet.Sky.ModCommands.Services;
 
 public class BazaarFlipServiceTests
 {
+    [Test]
+    public void TopBuyHeldByOurUserWhenHighestBuyHasUserId()
+    {
+        var book = new OrderBook
+        {
+            Buy = new List<OrderEntry>
+            {
+                new() { PricePerUnit = 10, UserId = null },      // anonymous market depth
+                new() { PricePerUnit = 12, UserId = "42" },      // our user holds the top slot
+            }
+        };
+
+        Assert.That(BazaarFlipService.TopBuyHeldByOurUser(book), Is.True);
+    }
+
+    [Test]
+    public void TopBuyNotHeldWhenHighestBuyIsAnonymous()
+    {
+        var book = new OrderBook
+        {
+            Buy = new List<OrderEntry>
+            {
+                new() { PricePerUnit = 12, UserId = null },      // market depth holds the top slot
+                new() { PricePerUnit = 10, UserId = "42" },      // our user is only below the top
+            }
+        };
+
+        Assert.That(BazaarFlipService.TopBuyHeldByOurUser(book), Is.False);
+    }
+
+    [Test]
+    public void TopBuyNotHeldWhenBuySideEmpty()
+    {
+        Assert.That(BazaarFlipService.TopBuyHeldByOurUser(new OrderBook()), Is.False);
+        Assert.That(BazaarFlipService.TopBuyHeldByOurUser(null), Is.False);
+    }
+
     [Test]
     public void ShouldUseFullListFallbackForPremiumPlusAfterThreshold()
     {

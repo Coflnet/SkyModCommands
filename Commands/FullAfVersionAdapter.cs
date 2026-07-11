@@ -181,25 +181,43 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         }
     }
 
-    private async Task ListBazaar(List<SaveAuction> inventory = null)
+    /// <summary>
+    /// Places bazaar sell orders for stackable items currently in the inventory to drain it into
+    /// free bazaar order slots. Selling is prioritized over buying on order uploads so that
+    /// purchases can never outpace sales (unsold items pile up in the inventory and crash the client).
+    /// Stops once <paramref name="maxOrders"/> orders have actually been placed.
+    /// </summary>
+    /// <param name="maxOrders">Maximum number of new sell orders to place.</param>
+    /// <returns>The number of sell orders actually placed.</returns>
+    public Task<int> PlaceInventorySellOrders(int maxOrders)
     {
-        if (socket.Version.StartsWith("af-2"))
-            return;
+        return ListBazaar(socket.SessionInfo.Inventory, maxOrders);
+    }
+
+    private async Task<int> ListBazaar(List<SaveAuction> inventory = null, int maxOrders = int.MaxValue)
+    {
+        if (socket.Version.StartsWith("af-2") || maxOrders <= 0)
+            return 0;
         inventory ??= await WaitForInventory();
         var cachedBazaarTags = await GetBazaarTags();
         var tags = inventory.Where(i => i != null && i.Tag != null && cachedBazaarTags.Contains(i.Tag)).Select(i => i.Tag).ToHashSet();
         var bazaarItems = await socket.GetService<Bazaar.Client.Api.IOrderBookApi>().GetOrderBooksAsync(tags.ToList());
         var bazaaritemTags = bazaarItems.Where(b => b.Value.Sell?.Count > 0).Select(b => b.Key).ToHashSet();
         var amounts = inventory.Where(i => i?.Tag != null && bazaaritemTags.Contains(i.Tag)).GroupBy(i => i.Tag).ToDictionary(g => g.Key, g => (g.Sum(i => i.Count), g.First().ItemName));
+        var placed = 0;
         foreach (var item in amounts)
         {
             var tag = item.Key;
             var amount = item.Value.Item1;
             var name = item.Value.Item2;
             var price = bazaarItems[tag].Sell.OrderBy(o => o.PricePerUnit).First().PricePerUnit - 0.1;
-            await RecommendBazaarSellOrder(tag, name, amount, price);
+            if (await RecommendBazaarSellOrder(tag, name, amount, price))
+                placed++;
+            if (placed >= maxOrders)
+                break;
             await Task.Delay(4_000);
         }
+        return placed;
     }
 
     private async Task UpdateAhSlots(Activity span)
@@ -704,10 +722,11 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
     /// <param name="itemName">The display name</param>
     /// <param name="amount">Amount to sell (default 64)</param>
     /// <param name="sellPrice"></param>
-    public async Task RecommendBazaarSellOrder(string itemTag, string itemName, int amount = 64, double sellPrice = -1)
+    /// <returns>True if a new sell order was placed, false if it was skipped (already sent, no price, etc.).</returns>
+    public async Task<bool> RecommendBazaarSellOrder(string itemTag, string itemName, int amount = 64, double sellPrice = -1)
     {
         if (itemTag == "SKYBLOCK_MENU")
-            return; // not an item
+            return false; // not an item
         try
         {
             using var span = socket.CreateActivity("bazaarSellRecom");
@@ -718,9 +737,9 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             if (latestPrice == null)
             {
                 socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Could not fetch bazaar price for {itemName}-{itemTag}"));
-                return;
+                return false;
             }
-            //clear formatting from name 
+            //clear formatting from name
             itemName = FormatRegex().Replace(itemName, "");
             // Use sell price (what buyers pay) for sell orders
             if (sellPrice < 0)
@@ -729,16 +748,18 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             amount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount, itemCategory);
             span.Log($"For {itemName} x {amount} recommending sell at {sellPrice}");
             if (!SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount, itemCategory))
-                return;
+                return false;
 
             socket.Dialog(db => db.MsgLine(
                 $"{McColorCodes.GRAY}Recommending sell order: {McColorCodes.YELLOW}{amount}x {itemName} {McColorCodes.GRAY}at {McColorCodes.GREEN}{socket.FormatPrice((long)sellPrice)}{McColorCodes.GRAY} per unit",
                 $"/bz {BazaarUtils.GetSearchValue(itemTag, itemName)}",
                 "Click to open in bazaar"));
+            return true;
         }
         catch (Exception e)
         {
             socket.Error(e, $"Failed to recommend bazaar sell order for {itemTag}");
+            return false;
         }
     }
 
