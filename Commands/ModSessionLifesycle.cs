@@ -605,16 +605,9 @@ namespace Coflnet.Sky.Commands.MC
                 }
 
                 await userIsVerifiedTask;
-                socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc }));
+                socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc, tier = tier.ToString() }));
                 if (isSilentReconnect)
                     Console.WriteLine("silent reconnect for " + socket.SessionInfo.McName + " conid " + socket.SessionInfo.clientConId);
-
-                if (DateTime.Now < new DateTime(2024, 4, 2))
-                {
-                    socket.Dialog(db =>
-                        db.MsgLine($"{McColorCodes.BOLD}Happy Easter! {McColorCodes.OBFUSCATED}!!")
-                        .CoflCommand<PurchaseCommand>($"We got a special {McColorCodes.AQUA}100 days prem+ offer{McColorCodes.RESET} for {McColorCodes.RED}26% cheaper{McColorCodes.RESET} than buying it weekly {McColorCodes.YELLOW}(click)", "premium_plus-100", "Click to buy 100 days prem+ for 26% off"));
-                }
             }
             catch (Exception e)
             {
