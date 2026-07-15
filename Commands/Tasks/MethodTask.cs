@@ -101,6 +101,10 @@ public abstract class MethodTask : ProfitTask
         TaskResult result;
         if (matchedPeriods.Count > 0)
             result = await ComputeFromPlayerData(parameters, matchedPeriods);
+        else if (parameters.ServerEstimates != null
+                 && parameters.ServerEstimates.TryGetValue(MethodName, out var serverEstimate)
+                 && serverEstimate.CoinsPerHour > 0)
+            result = ComputeFromServerEstimate(parameters, serverEstimate);
         else if (parameters.GlobalAverageDrops != null
                  && parameters.GlobalAverageDrops.TryGetValue(MethodName, out var avgDrops)
                  && avgDrops.Count > 0)
@@ -307,6 +311,60 @@ public abstract class MethodTask : ProfitTask
                 Type = TaskType
             }
         });
+    }
+
+    /// <summary>
+    /// Build a result from the SkyUserState stat aware estimate. The heavy lifting
+    /// (personal blending, stat buckets, saturation, price drift) already happened
+    /// server side; here we only render it.
+    /// </summary>
+    protected TaskResult ComputeFromServerEstimate(TaskParams parameters, PlayerState.Client.Model.TaskEstimate estimate)
+    {
+        var fmt = parameters.Formatter;
+        var drops = (estimate.Drops ?? []).Select(d => new DropInfo
+        {
+            ItemTag = d.ItemTag,
+            Name = parameters.Names.GetValueOrDefault(d.ItemTag, d.ItemTag),
+            RatePerHour = d.RatePerHour,
+            PriceEach = d.PriceEach,
+            ContributionPerHour = d.ContributionPerHour
+        }).ToList();
+
+        var sourceLabel = estimate.Source switch
+        {
+            "personal" => "your tracked data",
+            "stat_bucket" => "players with similar stats",
+            "global" => "community data",
+            _ => "estimated"
+        };
+        var saturationNote = estimate.CurrentDoers > 1
+            ? $" {McColorCodes.GRAY}({estimate.CurrentDoers} doing this now)"
+            : "";
+
+        return new TaskResult
+        {
+            ProfitPerHour = (int)estimate.CoinsPerHour,
+            Message = $"{MethodName} ~{McColorCodes.AQUA}{fmt.FormatPrice(estimate.CoinsPerHour)}/h {McColorCodes.GRAY}({sourceLabel}){saturationNote}",
+            Details = $"Based on {sourceLabel}.\n"
+                + (estimate.PersonalTrackedMinutes > 0 ? $"Your tracked time: {fmt.FormatTime(TimeSpan.FromMinutes(estimate.PersonalTrackedMinutes))}\n" : "")
+                + (estimate.Contributors > 0 ? $"{McColorCodes.DARK_GRAY}{estimate.Contributors} players contributed data\n" : "")
+                + (estimate.TraceId != null ? $"{McColorCodes.DARK_GRAY}ref {estimate.TraceId}" : ""),
+            Name = MethodName,
+            OnClick = WarpCommand,
+            Breakdown = new MethodBreakdown
+            {
+                HowTo = HowTo,
+                RequiredItems = BuildRequiredItems(parameters),
+                Drops = drops,
+                ActionsPerHour = ActionsPerHour,
+                ActionUnit = ActionUnit,
+                Effects = Effects,
+                Source = estimate.Source == "personal" ? "player_data" : "community_estimate",
+                TrackedHours = estimate.CommunityTrackedHours,
+                Category = Category,
+                Type = TaskType
+            }
+        };
     }
 
     protected Task<TaskResult> ComputeFromGlobalAverage(TaskParams parameters, List<AverageDrop> avgDrops)

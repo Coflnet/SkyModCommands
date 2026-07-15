@@ -20,7 +20,6 @@ namespace Coflnet.Sky.Commands.MC.Tasks;
     "Passive tasks include flips from other commands")]
 public class TaskCommand : ReadOnlyListCommand<TaskResult>
 {
-    private ClassNameDictonary<ProfitTask> _tasks = TaskCatalog.Create();
     private ConcurrentDictionary<Type, TaskParams.CalculationCache> Cache = CreateCalculationCache();
 
     public TaskCommand()
@@ -49,23 +48,24 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
     protected override async Task<IEnumerable<TaskResult>> GetElements(MinecraftSocket socket, string val)
     {
         var parameters = await BuildParameters(socket, Cache);
-        var all = await Task.WhenAll(_tasks.Select(async t =>
+        var tasks = socket.GetService<TaskService>().Tasks;
+        var all = await Task.WhenAll(tasks.Select(async t =>
         {
             try
             {
-                var result = await t.Value.Execute(parameters);
-                result.Name ??= t.Value.Name;
-                return PrepareTaskResult(result, t.Value.Name);
+                var result = await t.Execute(parameters);
+                result.Name ??= t.Name;
+                return PrepareTaskResult(result, t.Name);
             }
             catch (Exception e)
             {
                 return PrepareTaskResult(new TaskResult
                 {
                     ProfitPerHour = 0,
-                    Message = $"§cError while trying to calculate task {t.Key} {t.Value.Description}",
+                    Message = $"§cError while trying to calculate task {t.Name} {t.Description}",
                     Details = e.ToString(),
-                    Name = t.Value.Name
-                }, t.Value.Name);
+                    Name = t.Name
+                }, t.Name);
             }
         }).ToList());
         // Sort: accessible tasks first by profit, inaccessible at the end
@@ -113,6 +113,10 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
 
         taskService.UpdateGlobalAverages(locationProfitData);
 
+        // stat aware estimates from SkyUserState, this is the community tier going forward.
+        // Falls back to null (and thus formula) if the service is unavailable.
+        var serverEstimates = await FetchServerEstimates(socket);
+
         return new TaskParams
         {
             TestTime = DateTime.UtcNow,
@@ -126,8 +130,26 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             LocationProfit = locationProfitData,
             MaxAvailableCoins = socket.SessionInfo.Purse > 0 ? socket.SessionInfo.Purse : 1000000000,
             CurrentMayor = socket.GetService<FilterStateService>()?.State?.CurrentMayor?.ToLowerInvariant(),
-            GlobalAverageDrops = taskService.GetGlobalAverages()
+            GlobalAverageDrops = taskService.GetGlobalAverages(),
+            ServerEstimates = serverEstimates
         };
+    }
+
+    private static async Task<Dictionary<string, PlayerState.Client.Model.TaskEstimate>> FetchServerEstimates(MinecraftSocket socket)
+    {
+        try
+        {
+            var api = socket.GetService<PlayerState.Client.Api.ITaskApi>();
+            if (api == null)
+                return null;
+            var estimates = await api.TaskPlayerIdGetAsync(socket.SessionInfo.McUuid);
+            return estimates?.GroupBy(e => e.TaskName).ToDictionary(g => g.Key, g => g.First());
+        }
+        catch (Exception e)
+        {
+            dev.Logger.Instance.Error(e, "fetching server task estimates");
+            return null;
+        }
     }
 
     internal static TaskResult PrepareTaskResult(TaskResult result, string commandTaskName = null)

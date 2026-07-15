@@ -211,16 +211,7 @@ public class TaskPlausibilityTests
 
     private static List<MethodTask> GetMethodTasks()
     {
-        var command = new TaskCommand();
-        var field = typeof(TaskCommand).GetField("_tasks", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        var value = field!.GetValue(command);
-        var tasks = new List<MethodTask>();
-        foreach (var entry in (System.Collections.IEnumerable)value)
-        {
-            var taskValue = entry.GetType().GetProperty("Value")?.GetValue(entry);
-            if (taskValue is MethodTask mt) tasks.Add(mt);
-        }
-        return tasks;
+        return TaskCatalog.Create().Values.Distinct().OfType<MethodTask>().ToList();
     }
 
     private static string GetBreakdownCategory(MethodTask task)

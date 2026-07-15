@@ -20,9 +20,9 @@ public class TaskDetailsCommand : McCommand
             return;
         }
 
-        var tasks = TaskCatalog.Create();
-        var task = tasks.Values.FirstOrDefault(t => t.Name.Equals(taskName, StringComparison.OrdinalIgnoreCase))
-               ?? tasks.Values.FirstOrDefault(t => t.Name.Contains(taskName, StringComparison.OrdinalIgnoreCase));
+        var tasks = socket.GetService<ModCommands.Services.TaskService>().Tasks;
+        var task = tasks.FirstOrDefault(t => t.Name.Equals(taskName, StringComparison.OrdinalIgnoreCase))
+               ?? tasks.FirstOrDefault(t => t.Name.Contains(taskName, StringComparison.OrdinalIgnoreCase));
         if (task == null)
         {
             socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Task {taskName} was not found.")

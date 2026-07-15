@@ -37,6 +37,13 @@ public class TaskParams
     public Dictionary<string, List<AverageDrop>> GlobalAverageDrops { get; set; }
 
     /// <summary>
+    /// Stat aware, saturation adjusted coins per hour estimates computed by SkyUserState,
+    /// keyed by task name. This supersedes <see cref="GlobalAverageDrops"/> as the community tier.
+    /// Null when the estimate service was unavailable, in which case tasks fall back to formula.
+    /// </summary>
+    public Dictionary<string, TaskEstimate> ServerEstimates { get; set; }
+
+    /// <summary>
     /// DI service provider for the REST API path (where Socket is null).
     /// </summary>
     public IServiceProvider ServiceProvider { get; set; }

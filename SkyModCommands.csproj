@@ -25,6 +25,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Coflnet.Sky.Proxy.Client" Version="1.0.0" />
+    <PackageReference Include="Coflnet.Sky.PlayerState.Client" Version="0.16.0" />
   </ItemGroup>
 
   <PropertyGroup>

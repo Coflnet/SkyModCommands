@@ -111,6 +111,8 @@ public class Startup
         services.AddSingleton<YoutuberService>();
         services.AddSingleton<TaskService>();
         services.AddSingleton<ActivityTrackingService>();
+        services.AddSingleton<PlayerState.Client.Api.ITaskApi>(s =>
+            new PlayerState.Client.Api.TaskApi(Configuration["PLAYERSTATE_BASE_URL"]));
         services.AddCoflService();
 
         // warm critical downstream dependencies (redis + sky-settings http pool) before the

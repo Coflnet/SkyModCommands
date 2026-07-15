@@ -57,28 +57,7 @@ public class TaskCommandMockDataTests
 
     private static List<ProfitTask> GetRegisteredTasks()
     {
-        var command = new TaskCommand();
-        var field = typeof(TaskCommand).GetField("_tasks", BindingFlags.Instance | BindingFlags.NonPublic);
-        field.Should().NotBeNull("TaskCommand should contain a _tasks field");
-
-        var value = field!.GetValue(command);
-        value.Should().NotBeNull("_tasks should be initialized by TaskCommand constructor");
-
-        if (value is not IEnumerable enumerable)
-        {
-            throw new InvalidOperationException("Task registry is not enumerable.");
-        }
-
-        var tasks = new List<ProfitTask>();
-        foreach (var entry in enumerable)
-        {
-            if (entry == null) continue;
-            var entryType = entry.GetType();
-            var taskValue = entryType.GetProperty("Value")?.GetValue(entry);
-            if (taskValue is ProfitTask task)
-                tasks.Add(task);
-        }
-        return tasks;
+        return TaskCatalog.Create().Values.Distinct().ToList();
     }
 
     // ── Core pipeline tests ──

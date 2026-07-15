@@ -26,7 +26,7 @@ public class UploadInventory : McCommand
         {
             Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.Inventory));
         }
-        Activity.Current.Log("Items in inventory: " + socket.SessionInfo.Inventory.Count);
+        Activity.Current.Log("Items in inventory: " + socket.SessionInfo.Inventory.Count(i => i != null));
         if (socket.ModAdapter is AfVersionAdapter)
         {
             return;
