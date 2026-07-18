@@ -231,10 +231,16 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
             }
             var serivce = socket.GetService<LowballSerivce>();
             var buyerCount = await GetBuyerCount(serivce, auction, price, priceEstimate);
+            Console.WriteLine($"received '{context}'");
+            var cooldown = await serivce.TryOffer(auction, price, priceEstimate[0], socket);
+            if (cooldown.HasValue)
+            {
+                socket.Dialog(db => db.MsgLine($"§cYou already offered this item recently. Try again in {FormatCooldown(cooldown.Value)}."));
+                return;
+            }
+
             socket.Dialog(db => db.MsgLine($"§7[§6§lLowball Offer§7]§r\n{item.ItemName}")
                 .MsgLine($"You offered {socket.FormatPrice(price)} coins to lowballers, {McColorCodes.YELLOW}{buyerCount} buyers are interested{McColorCodes.GRAY} in this item at this price currently and may visit your island."));
-            Console.WriteLine($"received '{context}'");
-            await serivce.Offer(auction, price, priceEstimate[0], socket);
             try
             {
                 var fullLink  = await HotkeyCommand.GetLinkWithFilters(socket, auction);
@@ -246,6 +252,17 @@ public class LowballCommand : ItemSelectCommand<LowballCommand>
                 socket.Error(e, "Failed to create lowball offer in database");
             }
         }
+    }
+
+    private static string FormatCooldown(TimeSpan cooldown)
+    {
+        var remaining = TimeSpan.FromSeconds(Math.Ceiling(cooldown.TotalSeconds));
+        var minutes = (int)remaining.TotalMinutes;
+        if (minutes >= 1)
+            return $"{minutes} minute{(minutes == 1 ? string.Empty : "s")}";
+
+        var seconds = Math.Max(1, remaining.Seconds);
+        return $"{seconds} second{(seconds == 1 ? string.Empty : "s")}";
     }
 
     internal static Core.SaveAuction CreateLowballAuction(PlayerState.Client.Model.Item item, string sellerUuid)
@@ -279,16 +296,20 @@ public class LowballSerivce
     private const string OfferChannel = "lowball:offer";
     private const string MatchCountRequestChannel = "lowball:match-count-request";
     private const string MatchCountResponseChannel = "lowball:match-count-response";
+    private const string OfferRateLimitKeyPrefix = "lowball:offer-rate-limit";
+    private static readonly TimeSpan OfferRateLimit = TimeSpan.FromHours(1);
 
     private readonly ConcurrentDictionary<string, LowballerInfo> lowballers = new();
     private readonly ConcurrentDictionary<string, PendingMatchCountRequest> pendingMatchCounts = new();
     private readonly ISubscriber subscriber;
+    private readonly IDatabase database;
     private readonly ILogger<LowballSerivce> logger;
     private readonly string instanceId = Guid.NewGuid().ToString("N");
 
     public LowballSerivce(IConnectionMultiplexer redis, ILogger<LowballSerivce> logger)
     {
         subscriber = redis.GetSubscriber();
+        database = redis.GetDatabase();
         this.logger = logger;
         subscriber.Subscribe(RedisChannel.Literal(OfferChannel), (channel, message) =>
         {
@@ -530,7 +551,41 @@ public class LowballSerivce
         }
     }
 
-    internal async Task Offer(Core.SaveAuction auction, long price, Sniper.Client.Model.PriceEstimate priceEstimate, MinecraftSocket socket)
+    /// <summary>
+    /// Broadcasts an offer unless this seller has already offered the same physical item within the last hour.
+    /// A null result means the offer was sent; otherwise the value is the remaining cooldown.
+    /// </summary>
+    internal async Task<TimeSpan?> TryOffer(Core.SaveAuction auction, long price, Sniper.Client.Model.PriceEstimate priceEstimate, MinecraftSocket socket)
+    {
+        var rateLimitKey = $"{OfferRateLimitKeyPrefix}:{socket.SessionInfo.McUuid}:{GetItemIdentifier(auction)}";
+        try
+        {
+            var acquired = await database.StringSetAsync(rateLimitKey, "1", OfferRateLimit, When.NotExists).ConfigureAwait(false);
+            if (!acquired)
+                return await database.KeyTimeToLiveAsync(rateLimitKey).ConfigureAwait(false) ?? OfferRateLimit;
+        }
+        catch (Exception e)
+        {
+            // Redis is also used for distributing offers. Preserve the existing behavior if it is unavailable.
+            logger.LogError(e, "Failed to rate limit lowball offer for {Seller} and item {Item}", socket.SessionInfo.McUuid, auction.Tag);
+        }
+
+        await Offer(auction, price, priceEstimate, socket).ConfigureAwait(false);
+        return null;
+    }
+
+    private static string GetItemIdentifier(Core.SaveAuction auction)
+    {
+        if (auction.FlatenedNBT?.TryGetValue("uuid", out var uuid) == true && !string.IsNullOrWhiteSpace(uuid))
+            return uuid;
+
+        if (auction.FlatenedNBT?.TryGetValue("uid", out var uid) == true && !string.IsNullOrWhiteSpace(uid))
+            return uid;
+
+        return auction.Tag;
+    }
+
+    private async Task Offer(Core.SaveAuction auction, long price, Sniper.Client.Model.PriceEstimate priceEstimate, MinecraftSocket socket)
     {
         auction.HighestBidAmount = price;
         var lowballOffer = new LowballOffer()
