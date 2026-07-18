@@ -154,7 +154,7 @@ public class StartupWarmupService : IHostedService
                 return true; // not configured, nothing to warm
             // cheap request purely to establish the tcp+tls connection pool to sky-settings;
             // the response value is irrelevant.
-            await settingsApi.SettingsGetSettingAsync("0", "warmup");
+            await settingsApi.GetSettingAsync("0", "warmup");
             return true;
         }
         catch (Coflnet.Sky.Settings.Client.Client.ApiException)

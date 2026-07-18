@@ -52,7 +52,7 @@ public class BuyspeedboardCommand : LeaderboardCommand
     {
         try
         {
-            await socket.GetService<ISettingsApi>().SettingsUpdateSettingAsync(socket.SessionInfo.McUuid, "disable-buy-speed-board", JsonConvert.SerializeObject(setting));
+            await socket.GetService<ISettingsApi>().UpdateSettingAsync(socket.SessionInfo.McUuid, "disable-buy-speed-board", JsonConvert.SerializeObject(setting));
         }
         catch (Exception e)
         {
@@ -65,7 +65,7 @@ public class BuyspeedboardCommand : LeaderboardCommand
         try
         {
             var settingsApi = socket.GetService<ISettingsApi>();
-            var setting = await settingsApi.SettingsGetSettingAsync(socket.SessionInfo.McUuid, "disable-buy-speed-board");
+            var setting = await settingsApi.GetSettingAsync(socket.SessionInfo.McUuid, "disable-buy-speed-board");
             var isDisabled = !string.IsNullOrEmpty(setting);
             var statusText = isDisabled ? $"{McColorCodes.RED}Disabled" : $"{McColorCodes.GREEN}Enabled";
             var actionText = isDisabled ? "enable" : "disable";
