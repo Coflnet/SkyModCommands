@@ -20,12 +20,12 @@
     <PackageReference Include="Coflnet.DiscordBot.Client" Version="0.0.1" />
     <PackageReference Include="Figgle.Fonts" Version="0.6.6" />
     <PackageReference Include="Coflnet.Sky.Chat.Client" Version="1.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Coflnet.Sky.Proxy.Client" Version="1.0.0" />
-    <PackageReference Include="Coflnet.Sky.PlayerState.Client" Version="0.16.0" />
+    <PackageReference Include="Coflnet.Sky.PlayerState.Client" Version="0.17.0" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -37,7 +37,7 @@
   <ItemGroup Condition="'$(Configuration)' != 'Release'">
     <PackageReference Include="AwesomeAssertions" Version="9.4.0" />
     <PackageReference Include="Moq" Version="4.20.72" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageReference Include="NUnit" Version="4.6.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="6.2.0">
       <PrivateAssets>all</PrivateAssets>
