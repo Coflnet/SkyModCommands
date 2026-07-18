@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Coflnet.Sky.Api.Client.Model;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.PlayerState.Client.Model;
 using Microsoft.Extensions.Logging;
@@ -298,9 +299,11 @@ public class LowballSerivce
     private const string MatchCountResponseChannel = "lowball:match-count-response";
     private const string OfferRateLimitKeyPrefix = "lowball:offer-rate-limit";
     private static readonly TimeSpan OfferRateLimit = TimeSpan.FromHours(1);
+    private static readonly TimeSpan OfferMenuLifetime = TimeSpan.FromMinutes(30);
 
     private readonly ConcurrentDictionary<string, LowballerInfo> lowballers = new();
     private readonly ConcurrentDictionary<string, PendingMatchCountRequest> pendingMatchCounts = new();
+    private readonly ConcurrentDictionary<string, StoredLowballOffer> offersForMenu = new();
     private readonly ISubscriber subscriber;
     private readonly IDatabase database;
     private readonly ILogger<LowballSerivce> logger;
@@ -329,6 +332,12 @@ public class LowballSerivce
     {
         public MinecraftSocket Socket { get; set; }
         public DateTime Registered { get; set; }
+    }
+
+    private sealed class StoredLowballOffer
+    {
+        public LowballOffer Offer { get; init; }
+        public DateTime ExpiresAt { get; init; }
     }
 
     internal sealed class PendingMatchCountRequest
@@ -551,6 +560,33 @@ public class LowballSerivce
         }
     }
 
+    internal string StoreOfferForMenu(LowballOffer offer)
+    {
+        var now = DateTime.UtcNow;
+        foreach (var expiredOffer in offersForMenu.Where(entry => entry.Value.ExpiresAt <= now))
+            offersForMenu.TryRemove(expiredOffer.Key, out _);
+
+        var id = Guid.NewGuid().ToString("N");
+        offersForMenu[id] = new StoredLowballOffer
+        {
+            Offer = offer,
+            ExpiresAt = now.Add(OfferMenuLifetime)
+        };
+        return id;
+    }
+
+    internal LowballOffer GetOfferForMenu(string id)
+    {
+        if (!offersForMenu.TryGetValue(id, out var storedOffer))
+            return null;
+
+        if (storedOffer.ExpiresAt > DateTime.UtcNow)
+            return storedOffer.Offer;
+
+        offersForMenu.TryRemove(id, out _);
+        return null;
+    }
+
     /// <summary>
     /// Broadcasts an offer unless this seller has already offered the same physical item within the last hour.
     /// A null result means the offer was sent; otherwise the value is the remaining cooldown.
@@ -617,9 +653,21 @@ public class LowballSerivce
         }
     }
 
+    internal static Core.LowPricedAuction ToFlip(LowballOffer lowballOffer)
+    {
+        return new Core.LowPricedAuction
+        {
+            Auction = lowballOffer.Auction,
+            TargetPrice = lowballOffer.PriceEstimate.Median,
+            DailyVolume = lowballOffer.PriceEstimate.Volume,
+            Finder = Core.LowPricedAuction.FinderType.SNIPER_MEDIAN
+        };
+    }
+
     private void NotifyUsers(LowballOffer lowballOffer)
     {
         var keysToRemove = new List<string>();
+        string menuOfferId = null;
         foreach (var item in lowballers)
         {
             if (item.Value.Socket.IsClosed || item.Value.Socket.HasFlippingDisabled())
@@ -627,21 +675,17 @@ public class LowballSerivce
                 keysToRemove.Add(item.Key);
                 continue;
             }
-            var median = new Core.LowPricedAuction()
-            {
-                Auction = lowballOffer.Auction,
-                TargetPrice = lowballOffer.PriceEstimate.Median,
-                DailyVolume = lowballOffer.PriceEstimate.Volume,
-                Finder = Core.LowPricedAuction.FinderType.SNIPER_MEDIAN
-            };
+            var median = ToFlip(lowballOffer);
             var instance = FlipperService.LowPriceToFlip(median);
             var matchInfo = item.Value.Socket.Settings.MatchesSettings(instance);
             if (matchInfo.Item1)
             {
+                menuOfferId ??= StoreOfferForMenu(lowballOffer);
                 var sellerName = lowballOffer.SellerName;
                 var flipMessage = item.Value.Socket.formatProvider.FormatFlip(instance);
                 item.Value.Socket.Dialog(db => db.Msg($"§7[§6§lLowball Offer§7]§r from {McColorCodes.AQUA}{sellerName}")
-                    .MsgLine(flipMessage, "/visit " + sellerName, $"Click to visit {sellerName} to complete the trade"));
+                    .MsgLine(flipMessage, "/visit " + sellerName, $"Click to visit {sellerName} to complete the trade")
+                    .DialogLink<LowballOptionsDialog>($" {McColorCodes.GRAY}✥", menuOfferId, "Open lowball offer actions"));
             }
             else
                 Console.WriteLine($"Lowball offer {lowballOffer.Auction.ItemName} for {lowballOffer.Price} coins did not match for {item.Value.Socket.SessionInfo.McName}, reason: {matchInfo.Item2}");
