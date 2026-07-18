@@ -142,7 +142,11 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
             var api = socket.GetService<PlayerState.Client.Api.ITaskApi>();
             if (api == null)
                 return null;
-            var estimates = await api.TaskPlayerIdGetAsync(socket.SessionInfo.McUuid);
+            // Cap the wait: the server estimate is an optional enrichment tier, so if it is slow
+            // or unavailable we fall through to the formula tier rather than making the whole
+            // /cofl tasks command hang on the client's (~100s) default timeout.
+            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var estimates = await api.TaskPlayerIdGetAsync(socket.SessionInfo.McUuid, cancellationToken: cts.Token);
             return estimates?.GroupBy(e => e.TaskName).ToDictionary(g => g.Key, g => g.First());
         }
         catch (Exception e)
