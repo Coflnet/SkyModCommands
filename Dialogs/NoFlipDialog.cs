@@ -9,9 +9,14 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             var shouldBeHidden = context.socket.Settings?.ModSettings?.HideNoBestFlip ?? false;
             if(shouldBeHidden)
                 return null;
+            var areFilsDisabled = context.socket.HasFlippingDisabled();
+            if(areFilsDisabled)
             return New()
-                .Msg("No best flip available. Keep holding to open next")
-            ;
+                .CoflCommand<BlockedCommand>(
+                    "You currently don't have flips enabled, click this message to get more info.", "", 
+                    $"{McColorCodes.YELLOW}shows why no flips are showing");
+            return New()
+                .Msg("No best flip available. Keep holding to open next");
         }
     } 
 }
