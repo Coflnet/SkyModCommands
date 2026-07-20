@@ -34,6 +34,7 @@ public class SellConfigCommand : ArgumentsCommand
             "a5cd11497f3b434186df65f95249e03e", // 888543198958477344
             "b729c9f58e894097acd08e41906c6c5d", // 367418768743464975
             "cebad0b9c1ad444e9bf1d9144b687305", // 415938536232189953
+            "dd2458f388ae401481c30d0d1fadd283", // 1136088879997407293
         };
 
     protected override string Usage => "<name> [price=0] [changeLog (multi word)]";
