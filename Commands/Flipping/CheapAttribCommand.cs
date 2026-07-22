@@ -444,6 +444,11 @@ public static class CommonDialogExtension
 {
     public static async Task<bool> ReguirePremPlus(this IMinecraftSocket socket)
     {
+        if (socket.sessionLifesycle.UserId?.Value == null)
+        {
+            await socket.SendLoginPrompt();
+            return false;
+        }
         if (await socket.UserAccountTier() >= Shared.AccountTier.PREMIUM_PLUS)
         {
             return true;
@@ -458,6 +463,11 @@ public static class CommonDialogExtension
 
     public static async Task<bool> RequirePremium(this IMinecraftSocket socket)
     {
+        if (socket.sessionLifesycle.UserId?.Value == null)
+        {
+            await socket.SendLoginPrompt();
+            return false;
+        }
         var tier = await socket.UserAccountTier();
         if (tier >= Shared.AccountTier.PREMIUM)
         {
