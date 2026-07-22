@@ -602,15 +602,29 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override void OnMessage(MessageEventArgs e)
         {
+            Response a;
+            try
+            {
+                a = JsonConvert.DeserializeObject<Response>(e.Data)
+                    ?? throw new JsonSerializationException("The message payload was null");
+            }
+            catch (JsonException ex)
+            {
+                SendMessage(COFLNET + "Your command could not be executed.\n" +
+                    "Make sure you send a valid json string eg '{\"type\":\"chat\",\"data\":\"\\\\\"Testing\\\\\"\"}' where the data is another json string");
+                Error(ex, "parsing command", e.Data);
+                return;
+            }
+
             try
             {
                 var parallelAllowed = 4;
-                if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
+                var tierManager = sessionLifesycle?.TierManager;
+                if (tierManager?.HasAtLeast(AccountTier.PREMIUM_PLUS) == true)
                     parallelAllowed = 8;
-                else if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
+                else if (tierManager?.HasAtLeast(AccountTier.STARTER_PREMIUM) == true)
                     parallelAllowed = 6;
 
-                var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
                 if (waiting > parallelAllowed && (a.type != "chatbatch" && a.type != "uploadScoreboard" && a.type != "updatePurse" || waiting > parallelAllowed + 2))
                 {
                     SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
@@ -626,9 +640,8 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Exception ex)
             {
-                SendMessage(COFLNET + "Your command could not be executed.\n" +
-                    "Make sure you send a valid json string eg '{\"type\":\"chat\",\"data\":\"\\\\\"Testing\\\\\"\"}' where the data is another json string");
-                Error(ex, "handling command", e.Data);
+                var id = Error(ex, "handling command", e.Data);
+                SendMessage(COFLNET + $"An internal error occurred while handling a client message. The error was recorded and can be referenced by {id}");
             }
         }
 
