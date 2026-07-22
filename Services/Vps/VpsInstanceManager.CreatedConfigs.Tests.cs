@@ -199,6 +199,34 @@ public class VpsInstanceManagerCreatedConfigsTests
         Assert.That(config.session, Is.EqualTo(testSessionId));
     }
 
+    [Test]
+    public void FbafDefault_DeserializesAndUsesManagedSafeDefaults()
+    {
+        var config = Newtonsoft.Json.JsonConvert.DeserializeObject<FBAF.Config>(FBAF.NormalDefault);
+
+        Assert.That(config, Is.Not.Null);
+        Assert.That(config.web_gui_port, Is.Zero);
+        Assert.That(config.enable_console_input, Is.False);
+        Assert.That(config.auto_cookie_prompted, Is.True);
+    }
+
+    [TestCase("FBAF", "fbaf")]
+    [TestCase(" tpm+ ", "tpm+")]
+    [TestCase("TPM", "tpm")]
+    public void NormalizeAppKind_AcceptsSupportedApps(string input, string expected)
+    {
+        Assert.That(VpsInstanceManager.NormalizeAppKind(input), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void HostConnection_AdvertisesSupportedApps()
+    {
+        var host = new VpsInstanceManager.HostConnection { Ip = "host-1", Apps = ["fbaf"] };
+
+        Assert.That(host.Supports("fbaf"), Is.True);
+        Assert.That(host.Supports("tpm"), Is.False);
+    }
+
     /// <summary>
     /// Regression test: Verifies that the error reported in the issue
     /// "After parsing a value an unexpected character was encountered: s. Path 'webhookFormat'"

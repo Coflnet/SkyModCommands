@@ -29,7 +29,7 @@ public class VpsInstanceManager
     public event Action<VPsStateUpdate> OnInstanceCreated;
     private SettingsService settingsService;
     private ConnectionMultiplexer redis;
-    private Dictionary<string, DateTime> activeInstances = new();
+    private Dictionary<string, HostConnection> activeInstances = new();
     private ILogger<VpsInstanceManager> logger;
     private IConfiguration configuration;
     private IUserApi userApi;
@@ -71,7 +71,19 @@ public class VpsInstanceManager
 
         redis.GetSubscriber().Subscribe(RedisChannel.Literal("vps:connected"), (channel, message) =>
         {
-            activeInstances[message] = DateTime.UtcNow;
+            var raw = message.ToString();
+            HostConnection connection;
+            try
+            {
+                connection = JsonConvert.DeserializeObject<HostConnection>(raw);
+            }
+            catch (JsonException)
+            {
+                connection = null;
+            }
+            connection ??= new HostConnection { Ip = raw, Apps = ["tpm", "tpm+"] };
+            connection.LastSeen = DateTime.UtcNow;
+            activeInstances[connection.Ip] = connection;
         });
         this.logger = logger;
         this.configuration = configuration;
@@ -80,17 +92,26 @@ public class VpsInstanceManager
         this.idConverter = idConverter;
     }
 
-    public void Connected(string ip)
+    public void Connected(string ip, IEnumerable<string> apps = null)
     {
         if (ip == "1.1.1.1")
             return; // test server
-        var conSate = redis.GetSubscriber().Publish(RedisChannel.Literal("vps:connected"), ip);
-        var received = redis.GetSubscriber().Publish(RedisChannel.Literal("vps:state"), JsonConvert.SerializeObject(new VPsStateUpdate()));
-        logger.LogInformation($"{received} connections received state - {conSate}");
+        var connection = new HostConnection
+        {
+            Ip = ip,
+            Apps = (apps ?? ["tpm", "tpm+"])
+                .Select(app => app?.Trim().ToLowerInvariant())
+                .Where(app => !string.IsNullOrEmpty(app))
+                .Distinct()
+                .ToArray()
+        };
+        var conSate = redis.GetSubscriber().Publish(RedisChannel.Literal("vps:connected"), JsonConvert.SerializeObject(connection));
+        logger.LogInformation($"{conSate} connections received host state");
     }
 
     public async Task<Instance> CreateVps(string userId, string mcName, string appKind)
     {
+        appKind = NormalizeAppKind(appKind);
         var instance = new Instance
         {
             OwnerId = userId,
@@ -118,11 +139,7 @@ public class VpsInstanceManager
         {
             throw new CoflnetException("duplicate_instance", "You already have an instance, currently you can only have one");
         }
-        if (activeInstances.Count == 0)
-        {
-            throw new CoflnetException("no_active_instances", "There are no active hosts available, please try again later!");
-        }
-        var putOn = await GetAvailableServer();
+        var putOn = await GetAvailableServer(appKind: instance.AppKind);
         if (instance.Id == Guid.Empty)
             instance.Id = Guid.NewGuid();
         instance.HostMachineIp = putOn;
@@ -135,11 +152,20 @@ public class VpsInstanceManager
 
     public async Task UpdateSetting(string userId, string key, string value, Instance instance)
     {
-        var configValue = await GetVpsConfig(instance);
-        configValue.skip ??= new();
+        if (instance.AppKind == "fbaf" && key == "reset_login")
+        {
+            instance.Context["resetLogin"] = Guid.NewGuid().ToString();
+            await PublishUpdate(instance, null);
+            instance.Context.Remove("resetLogin");
+            return;
+        }
         GenericSettingsUpdater updater = GetUpdater(instance);
-        configValue.doNotRelist ??= new();
-        configValue.skip ??= new();
+        var configValue = await GetVpsConfig(instance);
+        if (configValue is TPM.TpmPlusConfig tpmConfig)
+        {
+            tpmConfig.doNotRelist ??= new();
+            tpmConfig.skip ??= new();
+        }
         updater.Update(configValue, key, value);
         await UpdateVpsConfig(instance, configValue);
     }
@@ -150,6 +176,7 @@ public class VpsInstanceManager
         {
             "tpm+" => GetUpdater<TPM.TpmPlusConfig>(),
             "tpm" => GetUpdater<TPM.TpmConfig>(),
+            "fbaf" => GetSimpleUpdater<FBAF.Config>(),
             _ => throw new CoflnetException("invalid_app_kind", "The app kind your instance has is unknown, please let support know about this issue or try resetting your instance")
         };
     }
@@ -159,8 +186,11 @@ public class VpsInstanceManager
         try
         {
 
-            var parsed = JsonConvert.DeserializeObject<TPM.TpmPlusConfig>(settings)
-                ?? throw new CoflnetException("invalid_settings", "The settings are invalid");
+            object parsed = instance.AppKind == "fbaf"
+                ? JsonConvert.DeserializeObject<FBAF.Config>(settings)
+                : JsonConvert.DeserializeObject<TPM.TpmPlusConfig>(settings);
+            if (parsed == null)
+                throw new CoflnetException("invalid_settings", "The settings are invalid");
             await UpdateVpsConfig(instance, parsed);
         }
         catch (JsonSerializationException e)
@@ -175,8 +205,9 @@ public class VpsInstanceManager
 
     public Dictionary<string, SettingsUpdater.SettingDoc> SettingOptions()
     {
-        var updater = GetUpdater<TPM.TpmPlusConfig>();
-        var options = updater.ModOptions;
+        var options = GetUpdater<TPM.TpmPlusConfig>().ModOptions.ToDictionary(kv => kv.Key, kv => kv.Value);
+        foreach (var option in GetSimpleUpdater<FBAF.Config>().ModOptions)
+            options.TryAdd(option.Key, option.Value);
         var documentation = TpmConfigDocParser.GetTpmPlusDocumentation();
         
         return options.ToDictionary(kv => kv.Key, kv =>
@@ -200,7 +231,14 @@ public class VpsInstanceManager
         return updater;
     }
 
-    private async Task PublishUpdate(Instance instance, CreateOptions options, TPM.TpmPlusConfig configValue = null)
+    private static GenericSettingsUpdater GetSimpleUpdater<T>() where T : new()
+    {
+        var updater = new GenericSettingsUpdater();
+        updater.AddSettings(typeof(T), "");
+        return updater;
+    }
+
+    private async Task PublishUpdate(Instance instance, CreateOptions options, object configValue = null)
     {
         var update = await BuildFullUpdate(instance, options, configValue);
         redis.GetSubscriber().Publish(RedisChannel.Literal("vps:state"), JsonConvert.SerializeObject(update));
@@ -245,19 +283,16 @@ public class VpsInstanceManager
         await settingsService.UpdateSetting(userId, "tpm_extra_config", extraConfig);
     }
 
-    private async Task<VPsStateUpdate> BuildFullUpdate(Instance i, CreateOptions options = null, TPM.TpmPlusConfig tpmConfig = null)
+    private async Task<VPsStateUpdate> BuildFullUpdate(Instance i, CreateOptions options = null, object configValue = null)
     {
-        tpmConfig ??= await settingsService.GetCurrentValue<TPM.TpmPlusConfig>(i.OwnerId, "tpm_config", () => CreatedConfigs(i, options));
-        tpmConfig ??= CreatedConfigs(i, options); // fallback to default config if not found
+        configValue ??= i.AppKind == "fbaf"
+            ? await settingsService.GetCurrentValue<FBAF.Config>(i.OwnerId, "fbaf_config", () => CreatedFbafConfig(options))
+            : await settingsService.GetCurrentValue<TPM.TpmPlusConfig>(i.OwnerId, "tpm_config", () => CreatedConfigs(i, options));
+        configValue ??= i.AppKind == "fbaf" ? CreatedFbafConfig(options) : CreatedConfigs(i, options);
         var extraConfig = await settingsService.GetCurrentValue<string>(i.OwnerId, "tpm_extra_config", () => "");
-        if (i.AppKind != "tpm" && i.AppKind != "tpm+")
-        {
-            i.AppKind = i.AppKind.Contains('+') ? "tpm+" : "tpm"; // ensure app kind is correct for discord issue
-            await vpsTable.Insert(i).ExecuteAsync(); // update app kind in db
-        }
         var update = new VPsStateUpdate
         {
-            Config = tpmConfig,
+            Config = configValue,
             Instance = i,
             ExtraConfig = extraConfig
         };
@@ -282,14 +317,27 @@ public class VpsInstanceManager
         return deserialized;
     }
 
-    internal async Task<TPM.TpmPlusConfig> GetVpsConfig(Instance instance)
+    public FBAF.Config CreatedFbafConfig(CreateOptions options = null)
     {
-        return await settingsService.GetCurrentValue<TPM.TpmPlusConfig>(instance.OwnerId, "tpm_config", () => CreatedConfigs(instance));
+        var config = JsonConvert.DeserializeObject<FBAF.Config>(FBAF.NormalDefault);
+        if (options != null)
+            config.ingame_name = options.UserName;
+        return config;
     }
 
-    internal async Task UpdateVpsConfig(Instance instance, TPM.TpmPlusConfig configValue)
+    internal async Task<object> GetVpsConfig(Instance instance)
     {
-        await settingsService.UpdateSetting(instance.OwnerId, "tpm_config", configValue);
+        return instance.AppKind == "fbaf"
+            ? await settingsService.GetCurrentValue<FBAF.Config>(instance.OwnerId, "fbaf_config", () => CreatedFbafConfig())
+            : await settingsService.GetCurrentValue<TPM.TpmPlusConfig>(instance.OwnerId, "tpm_config", () => CreatedConfigs(instance));
+    }
+
+    internal async Task UpdateVpsConfig(Instance instance, object configValue)
+    {
+        if (configValue is FBAF.Config fbafConfig)
+            await settingsService.UpdateSetting(instance.OwnerId, "fbaf_config", fbafConfig);
+        else
+            await settingsService.UpdateSetting(instance.OwnerId, "tpm_config", configValue);
         await PublishUpdate(instance, null, configValue);
     }
 
@@ -322,7 +370,7 @@ public class VpsInstanceManager
         }
         instance.Context.Remove("turnedOff");
         await UpdateAndPublish(instance);
-        if (!activeInstances.TryGetValue(instance.HostMachineIp, out var hostContact) || hostContact < DateTime.UtcNow.AddMinutes(-10))
+        if (!activeInstances.TryGetValue(instance.HostMachineIp, out var host) || host.LastSeen < DateTime.UtcNow.AddMinutes(-10) || !host.Supports(instance.AppKind))
         {
             await ReassignVps(instance);
         }
@@ -358,7 +406,7 @@ public class VpsInstanceManager
 
     internal async Task<IEnumerable<string>> GetVpsLog(Instance instance, DateTimeOffset from, DateTimeOffset to)
     {
-        var query = $"{{container=\"tpm-manager\", instance_id=\"{instance.Id}\"}}";
+        var query = $"{{instance_id=\"{instance.Id}\"}}";
         var start = from.ToUnixTimeSeconds();
         var end = to.ToUnixTimeSeconds();
         return await QueryLoki(query, start, end);
@@ -390,7 +438,7 @@ public class VpsInstanceManager
 
     internal async Task ReassignVps(Instance instance)
     {
-        string putOn = await GetAvailableServer(instance.HostMachineIp);
+        string putOn = await GetAvailableServer(instance.HostMachineIp, instance.AppKind);
         var previousIp = instance.HostMachineIp;
         if (previousIp == putOn)
         {
@@ -404,11 +452,11 @@ public class VpsInstanceManager
         await vpsTable.Where(v => v.HostMachineIp == previousIp && v.Id == instance.Id).Delete().ExecuteAsync();
     }
 
-    public async Task<string> GetAvailableServer(string avoidIp = null)
+    public async Task<string> GetAvailableServer(string avoidIp = null, string appKind = null)
     {
         var allActive = (await vpsTable.ExecuteAsync()).Where(v => v.PaidUntil > DateTime.UtcNow).ToList();
         var grouped = allActive.GroupBy(v => v.HostMachineIp).ToDictionary(g => g.Key, g => (total: g.Count(), running: g.Count(s => !s.Context.ContainsKey("turnedOff") && s.PublicIp == null)));
-        var putOn = activeInstances.Where(a => a.Value > DateTime.UtcNow.AddMinutes(-10))
+        var putOn = activeInstances.Where(a => a.Value.LastSeen > DateTime.UtcNow.AddMinutes(-10) && (appKind == null || a.Value.Supports(appKind)))
                 .OrderBy(v => grouped.GetValueOrDefault(v.Key).running + (v.Key == avoidIp ? 3 : 0)) // least other instances
                 .Select(a => a.Key).FirstOrDefault();
         if (putOn == null)
@@ -521,7 +569,7 @@ public class VpsInstanceManager
         if (AreAppsUnavailable())
             throw new CoflnetException("apps_unvailable", "Currently all apps are unavailable, thanks for your interest but we currently can't service you");
         // checks that there is a server available
-        await GetAvailableServer();
+        await GetAvailableServer(appKind: instance.AppKind);
         var kind = GetProductSlug(instance);
         var currentTime = await userApi.UserUserIdOwnsProductSlugUntilGetAsync(instance.OwnerId, kind);
         if (currentTime > DateTime.UtcNow.AddDays(25))
@@ -581,7 +629,8 @@ public class VpsInstanceManager
     internal async Task<string> ExportSettings(Instance instance)
     {
         var configValue = await GetVpsConfig(instance);
-        configValue.session = null;
+        if (configValue is TPM.TpmPlusConfig tpmConfig)
+            tpmConfig.session = null;
         var serialized = JsonConvert.SerializeObject(configValue);
         return serialized;
     }
@@ -654,8 +703,33 @@ public class VpsInstanceManager
         {
             throw new CoflnetException("too_far_in_future", "You can only switch the instance if it has less than 2 days left");
         }
-        instance.AppKind = appKind;
+        instance.AppKind = NormalizeAppKind(appKind);
+        if (instance.AppKind == "fbaf" && !string.IsNullOrWhiteSpace(mcName))
+        {
+            var config = CreatedFbafConfig(new CreateOptions { UserName = mcName });
+            await settingsService.UpdateSetting(instance.OwnerId, "fbaf_config", config);
+        }
         await UpdateAndPublish(instance);
+    }
+
+    public static string NormalizeAppKind(string appKind)
+    {
+        appKind = appKind?.Trim().ToLowerInvariant();
+        return appKind switch
+        {
+            "tpm" or "tpm+" or "fbaf" => appKind,
+            _ => throw new CoflnetException("invalid_app_kind", $"Unsupported VPS app kind '{appKind}'")
+        };
+    }
+
+    public class HostConnection
+    {
+        public string Ip { get; set; }
+        public string[] Apps { get; set; } = [];
+        [Newtonsoft.Json.JsonIgnore]
+        public DateTime LastSeen { get; set; }
+
+        public bool Supports(string appKind) => Apps?.Contains(appKind, StringComparer.OrdinalIgnoreCase) == true;
     }
 
     public class Root
