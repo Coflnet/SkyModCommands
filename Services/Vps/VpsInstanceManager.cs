@@ -146,7 +146,13 @@ public class VpsInstanceManager
         instance.Context = new Dictionary<string, string>();
         instance.Context["sessionId"] = options.SessionId;
         await vpsTable.Insert(instance).ExecuteAsync();
-        await PublishUpdate(instance, options);
+        object config = null;
+        if (instance.AppKind == "fbaf")
+        {
+            config = CreatedFbafConfig(options);
+            await settingsService.UpdateSetting(instance.OwnerId, "fbaf_config", config);
+        }
+        await PublishUpdate(instance, options, config);
         logger.LogInformation($"Created new instance {instance.Id} on {instance.HostMachineIp}");
     }
 
