@@ -63,7 +63,7 @@ public class HuntingTrapTask : MethodTask
 
         var fmt = parameters.Formatter;
         var profitPerHour = bestShard.Price / 24.0;
-        var shardName = parameters.GetItemName(bestShard.ShardTag);
+        var shardName = parameters.Names.GetValueOrDefault(bestShard.ShardTag, bestShard.ShardTag);
         var location = bestShard.Locations[0];
 
         return Task.FromResult(new TaskResult

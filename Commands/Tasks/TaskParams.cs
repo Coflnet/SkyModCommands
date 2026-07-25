@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Bazaar.Client.Model;
-using Coflnet.Sky.Core;
 using Coflnet.Sky.PlayerState.Client.Model;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,10 +10,6 @@ namespace Coflnet.Sky.Commands.MC.Tasks;
 
 public class TaskParams
 {
-    private static readonly Dictionary<string, string> MappedShardNames = Constants.ShardNames
-        .GroupBy(s => s.Value)
-        .ToDictionary(s => $"SHARD_{s.Key}", s => $"{s.First().Key} Shard");
-
     public DateTime TestTime { get; set; }
     public PlayerState.Client.Model.ExtractedInfo ExtractedInfo { get; set; }
     public MinecraftSocket Socket { get; set; }
@@ -96,13 +90,6 @@ public class TaskParams
             }
         }
         return combined;
-    }
-
-    public string GetItemName(string itemTag)
-    {
-        return MappedShardNames.GetValueOrDefault(itemTag)
-            ?? Names?.GetValueOrDefault(itemTag, itemTag)
-            ?? itemTag;
     }
 
     public class CalculationCache

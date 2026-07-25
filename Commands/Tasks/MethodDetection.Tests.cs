@@ -77,7 +77,7 @@ public class MethodDetectionTests
 
         // The renamed Inferno Demonlord should still detect the BURNINGSOUL tag.
         var parameters = MakeParams(period);
-        parameters.Names["SHARD_BURNINGSOUL"] = "Burningsoul Shard";
+        parameters.Names["SHARD_BURNINGSOUL"] = "Inferno Demonlord Shard";
         var burningsoul = new BurningsoulTask();
         var bResult = await burningsoul.Execute(parameters);
         bResult.ProfitPerHour.Should().BeGreaterThan(0);

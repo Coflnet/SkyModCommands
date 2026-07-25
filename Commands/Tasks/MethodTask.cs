@@ -225,7 +225,7 @@ public abstract class MethodTask : ProfitTask
         var drops = items.Take(20).Select(i => new DropInfo
         {
             ItemTag = i.Key,
-            Name = parameters.GetItemName(i.Key),
+            Name = parameters.Names.GetValueOrDefault(i.Key, i.Key),
             RatePerHour = totalHours > 0 ? i.Value / totalHours : 0,
             PriceEach = prices.GetValueOrDefault(i.Key, 0),
             ContributionPerHour = totalHours > 0 ? i.Value / totalHours * prices.GetValueOrDefault(i.Key, 0) : 0
@@ -270,7 +270,7 @@ public abstract class MethodTask : ProfitTask
             if (price <= 0) continue;
             var contribution = drop.RatePerHour * price;
             totalPerHour += contribution;
-            var name = parameters.GetItemName(drop.ItemTag);
+            var name = parameters.Names.GetValueOrDefault(drop.ItemTag, drop.ItemTag);
             breakdown.Add($"{McColorCodes.YELLOW}{name} {McColorCodes.GRAY}x{drop.RatePerHour:F0}/h = {McColorCodes.AQUA}{fmt.FormatPrice((long)contribution)}");
             drops.Add(new DropInfo
             {
@@ -326,7 +326,7 @@ public abstract class MethodTask : ProfitTask
         var drops = (estimate.Drops ?? []).Select(d => new DropInfo
         {
             ItemTag = d.ItemTag,
-            Name = parameters.GetItemName(d.ItemTag),
+            Name = parameters.Names.GetValueOrDefault(d.ItemTag, d.ItemTag),
             RatePerHour = d.RatePerHour,
             PriceEach = d.PriceEach,
             ContributionPerHour = d.ContributionPerHour
@@ -384,7 +384,7 @@ public abstract class MethodTask : ProfitTask
             if (price <= 0) continue;
             var contribution = drop.RatePerHour * price;
             totalPerHour += contribution;
-            var name = parameters.GetItemName(drop.ItemTag);
+            var name = parameters.Names.GetValueOrDefault(drop.ItemTag, drop.ItemTag);
             breakdown.Add($"{McColorCodes.YELLOW}{name} {McColorCodes.GRAY}x{drop.RatePerHour:F0}/h = {McColorCodes.AQUA}{fmt.FormatPrice((long)contribution)}");
             drops.Add(new DropInfo
             {
@@ -435,7 +435,7 @@ public abstract class MethodTask : ProfitTask
         return RequiredItems.Select(r => new RequiredItem
         {
             ItemTag = r.ItemTag,
-            Name = string.IsNullOrEmpty(r.Name) ? parameters.GetItemName(r.ItemTag) : r.Name,
+            Name = string.IsNullOrEmpty(r.Name) ? parameters.Names.GetValueOrDefault(r.ItemTag, r.ItemTag) : r.Name,
             Reason = r.Reason,
             EstimatedPrice = (long)prices.GetValueOrDefault(r.ItemTag, 0)
         }).ToList();
