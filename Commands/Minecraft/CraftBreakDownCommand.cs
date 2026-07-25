@@ -67,11 +67,15 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
     /// <summary>
     /// A single node in the sub-craft breakdown tree.
     /// </summary>
-    private class CraftNode
+    internal class CraftNode
     {
         public string Tag;
         public long Count;
         public double Cost;
+        public double DirectBuyCost;
+        public bool DirectBuyAvailable;
+        public double FullSubcraftCost;
+        public long CraftedCount;
         public AcquisitionPlan? Acquisition;
         /// <summary>How this ingredient is obtained: "craft", "npc" or "buy".</summary>
         public string Method;
@@ -89,15 +93,15 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
 
     private record ItemInfo(string Name, string Color, bool IsBazaar);
 
-    private enum AcquisitionMode
+    internal enum AcquisitionMode
     {
         Order,
         Insta
     }
 
-    private record AcquisitionBucket(long Qty, double UnitPrice, double Cost);
+    internal record AcquisitionBucket(long Qty, double UnitPrice, double Cost);
 
-    private record AcquisitionPlan(
+    internal record AcquisitionPlan(
         AcquisitionMode Mode,
         AcquisitionBucket Npc,
         AcquisitionBucket Order,
@@ -151,42 +155,107 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
     /// <paramref name="multiplier"/> is how many batches of the current craft are needed so the
     /// counts and costs of nested ingredients scale to the amount actually required.
     /// </summary>
-    private static void AddIngredients(List<CraftNode> nodes, ProfitableCraft craft, long multiplier, int depth,
+    internal static double AddIngredients(List<CraftNode> nodes, ProfitableCraft craft, long multiplier, int depth,
         Dictionary<string, ProfitableCraft> lookup, HashSet<string> visited)
     {
         if (craft.Ingredients == null)
-            return;
+            return 0;
+        double totalCost = 0;
         foreach (var ingredient in craft.Ingredients)
         {
             var neededCount = ingredient.Count * multiplier;
             var wasCrafted = ingredient.Type == "craft";
-            var canExpand = wasCrafted && depth + 1 < MaxTreeDepth
-                && lookup.TryGetValue(ingredient.ItemId, out var sub) && sub.Ingredients != null
+            lookup.TryGetValue(ingredient.ItemId, out var sub);
+            var canEvaluateCraft = wasCrafted && depth + 1 < MaxTreeDepth
+                && sub?.Ingredients?.Count > 0
                 && !visited.Contains(ingredient.ItemId);
-            var plan = wasCrafted ? null : GetAcquisitionPlan(ingredient, neededCount, AcquisitionMode.Order);
-            var fallbackCost = ingredient.BuyOrderCost > 0 ? ingredient.BuyOrderCost : ingredient.Cost;
-            var neededScale = neededCount / (double)Math.Max(1L, ingredient.Count);
+            var fullBuyPlan = GetAcquisitionPlan(ingredient, neededCount, AcquisitionMode.Order);
+            var directBuyCost = GetDirectBuyCost(ingredient, neededCount);
+            var directBuyAvailable = fullBuyPlan == null ? directBuyCost > 0 : fullBuyPlan.Unmet == 0;
+            var selectedCost = directBuyCost;
+            var selectedPlan = fullBuyPlan;
+            var selectedChildNodes = new List<CraftNode>();
+            var fullSubcraftCost = 0d;
+            var craftedCount = 0L;
+            if (canEvaluateCraft)
+            {
+                var nextVisited = new HashSet<string>(visited) { ingredient.ItemId };
+                var fullChildNodes = new List<CraftNode>();
+                fullSubcraftCost = AddIngredients(fullChildNodes, sub, neededCount, depth + 1, lookup, nextVisited);
+                selectedCost = fullSubcraftCost;
+                selectedPlan = null;
+                selectedChildNodes = fullChildNodes;
+                craftedCount = neededCount;
+
+                var craftUnitCost = fullSubcraftCost / Math.Max(1L, neededCount);
+                var splitPlan = GetAcquisitionPlan(ingredient, neededCount, AcquisitionMode.Order, craftUnitCost);
+                if (splitPlan != null)
+                {
+                    var splitChildNodes = fullChildNodes;
+                    var splitSubcraftCost = fullSubcraftCost;
+                    if (splitPlan.Unmet == 0)
+                    {
+                        splitChildNodes = new List<CraftNode>();
+                        splitSubcraftCost = 0;
+                    }
+                    else if (splitPlan.Unmet != neededCount)
+                    {
+                        splitChildNodes = new List<CraftNode>();
+                        splitSubcraftCost = AddIngredients(splitChildNodes, sub, splitPlan.Unmet, depth + 1, lookup, nextVisited);
+                    }
+
+                    var splitCost = splitPlan.TotalCost + splitSubcraftCost;
+                    if (splitCost < selectedCost)
+                    {
+                        selectedCost = splitCost;
+                        selectedPlan = splitPlan;
+                        selectedChildNodes = splitChildNodes;
+                        craftedCount = splitPlan.Unmet;
+                    }
+                }
+
+                if (directBuyAvailable && directBuyCost <= selectedCost)
+                {
+                    selectedCost = directBuyCost;
+                    selectedPlan = fullBuyPlan;
+                    selectedChildNodes.Clear();
+                    craftedCount = 0;
+                }
+            }
             nodes.Add(new CraftNode
             {
                 Tag = ingredient.ItemId,
                 Count = neededCount,
-                Cost = plan == null || plan.Unmet > 0 ? fallbackCost * neededScale : plan.TotalCost,
-                Acquisition = plan,
-                Method = ingredient.Type ?? "buy",
+                Cost = selectedCost,
+                DirectBuyCost = directBuyCost,
+                DirectBuyAvailable = directBuyAvailable,
+                FullSubcraftCost = fullSubcraftCost,
+                CraftedCount = craftedCount,
+                Acquisition = selectedPlan,
+                Method = craftedCount > 0 ? "craft" : selectedPlan?.Unmet == 0 && selectedPlan.Npc.Qty == neededCount ? "npc" : "buy",
                 Depth = depth,
-                Expanded = canExpand
+                Expanded = craftedCount > 0 && selectedChildNodes.Count > 0
             });
-            if (canExpand)
-            {
-                var nextVisited = new HashSet<string>(visited) { ingredient.ItemId };
-                AddIngredients(nodes, lookup[ingredient.ItemId], neededCount, depth + 1, lookup, nextVisited);
-            }
+            nodes.AddRange(selectedChildNodes);
+            totalCost += selectedCost;
         }
+        return totalCost;
     }
 
-    private static AcquisitionPlan? GetAcquisitionPlan(Ingredient ingredient, long totalCount, AcquisitionMode mode = AcquisitionMode.Order)
+    internal static double GetDirectBuyCost(Ingredient ingredient, long totalCount)
+    {
+        var plan = GetAcquisitionPlan(ingredient, totalCount, AcquisitionMode.Order);
+        if (plan != null && plan.Unmet == 0)
+            return plan.TotalCost;
+        var fallbackCost = ingredient.BuyOrderCost > 0 ? ingredient.BuyOrderCost : ingredient.Cost;
+        return fallbackCost * totalCount / Math.Max(1d, ingredient.Count);
+    }
+
+    private static AcquisitionPlan? GetAcquisitionPlan(Ingredient ingredient, long totalCount,
+        AcquisitionMode mode = AcquisitionMode.Order, double maxUnitPrice = double.PositiveInfinity)
     {
         var npcCap = Math.Max(0L, ingredient.NpcCapacity);
+        var npcUnit = ingredient.NpcUnitPrice;
         var orderCap = Math.Max(0L, ingredient.BuyOrderCapacity);
         var marketPrices = new List<double>();
 
@@ -197,23 +266,23 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
 
         var orderUnit = orderCap > 0 && marketPrices.Count > 0 ? marketPrices.Min() : 0d;
         var instaUnit = marketPrices.Count > 0 ? marketPrices.Max() : 0d;
-        if (npcCap <= 0 && orderCap <= 0 && instaUnit <= 0)
+        if ((npcCap <= 0 || npcUnit <= 0) && (orderCap <= 0 || orderUnit <= 0) && instaUnit <= 0)
             return null;
 
         var total = Math.Max(0L, totalCount);
         var remaining = total;
 
-        var npcQty = Math.Min(remaining, npcCap);
+        var npcQty = npcUnit > 0 && npcUnit < maxUnitPrice ? Math.Min(remaining, npcCap) : 0;
         remaining -= npcQty;
 
         var useBuyOrders = mode == AcquisitionMode.Order;
-        var orderQty = useBuyOrders ? Math.Min(remaining, orderCap) : 0;
+        var orderQty = useBuyOrders && orderUnit > 0 && orderUnit < maxUnitPrice ? Math.Min(remaining, orderCap) : 0;
         remaining -= orderQty;
 
-        var instaQty = instaUnit > 0 ? remaining : 0;
+        var instaQty = instaUnit > 0 && instaUnit < maxUnitPrice ? remaining : 0;
         remaining -= instaQty;
 
-        var npc = new AcquisitionBucket(npcQty, ingredient.NpcUnitPrice, npcQty * ingredient.NpcUnitPrice);
+        var npc = new AcquisitionBucket(npcQty, npcUnit, npcQty * npcUnit);
         var order = new AcquisitionBucket(orderQty, orderUnit, orderQty * orderUnit);
         var insta = new AcquisitionBucket(instaQty, instaUnit, instaQty * instaUnit);
 
@@ -254,20 +323,17 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
 
     private static string GetNodeMethodText(CraftNode node)
     {
-        if (node.Method == "craft")
-            return node.Expanded ? "crafted" : "crafted*";
-        if (node.Acquisition == null)
-            return node.Method == "npc" ? "npc" : "bought";
-
         var channels = new List<string>();
-        if (node.Acquisition.Npc.Qty > 0)
+        if (node.Acquisition?.Npc.Qty > 0)
             channels.Add("npc");
-        if (node.Acquisition.Order.Qty > 0)
+        if (node.Acquisition?.Order.Qty > 0)
             channels.Add("order");
-        if (node.Acquisition.Insta.Qty > 0)
+        if (node.Acquisition?.Insta.Qty > 0)
             channels.Add("insta");
+        if (node.CraftedCount > 0)
+            channels.Add(node.Expanded ? "crafted" : "crafted*");
 
-        return channels.Count == 0 ? "bought" : string.Join("/", channels);
+        return channels.Count == 0 ? node.Method == "npc" ? "npc" : "bought" : string.Join("/", channels);
     }
 
     private static string NodeClick(CraftTree tree, CraftNode node)
@@ -282,14 +348,14 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
 
     private static string NodeHover(MinecraftSocket socket, CraftNode node)
     {
-        if (node.Method == "craft")
-        {
-            return $"{McColorCodes.GRAY}Sub-crafted because that was cheaper than buying it.\n"
-                + (node.Expanded ? $"{McColorCodes.YELLOW}Its ingredients are listed below." : $"{McColorCodes.YELLOW}Click to view its recipe.");
-        }
-
         if (node.Acquisition == null)
+        {
+            if (node.FullSubcraftCost > 0)
+                return $"{McColorCodes.GRAY}Craft all from the ingredients below: {McColorCodes.GOLD}{socket.FormatPrice(node.FullSubcraftCost)}\n"
+                    + $"{McColorCodes.GRAY}Buy all directly: {McColorCodes.GOLD}{socket.FormatPrice(node.DirectBuyCost)}\n"
+                    + $"{McColorCodes.GRAY}Chosen total: {McColorCodes.GOLD}{socket.FormatPrice(node.Cost)}";
             return $"{McColorCodes.GRAY}Bought directly for {McColorCodes.GOLD}{socket.FormatPrice(node.Cost)}{McColorCodes.GRAY}, click to open the market";
+        }
 
         var plan = node.Acquisition;
         var lines = new List<string>();
@@ -300,12 +366,23 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
         if (plan.Insta.Qty > 0)
             lines.Add($"{McColorCodes.GRAY}Insta buy{McColorCodes.GRAY} x{plan.Insta.Qty} @ {McColorCodes.GOLD}{socket.FormatPrice(plan.Insta.UnitPrice)} each");
 
+        if (node.CraftedCount > 0)
+            lines.Add($"{McColorCodes.GREEN}Craft{McColorCodes.GRAY} x{node.CraftedCount} from listed ingredients for "
+                + $"{McColorCodes.GOLD}{socket.FormatPrice(node.Cost - plan.TotalCost)}");
         if (lines.Count == 0)
             lines.Add("No market tranches were available to split this ingredient.");
-        if (plan.Unmet > 0)
+        if (plan.Unmet > 0 && node.CraftedCount == 0)
             lines.Add($"\n{McColorCodes.YELLOW}{plan.Unmet} units cannot be sourced from known channels");
 
-        return $"{McColorCodes.GRAY}Buy split for {node.Count}x:\n{string.Join("\n", lines)}\n"
-            + $"{McColorCodes.GRAY}Estimated total: {McColorCodes.GOLD}{socket.FormatPrice(plan.TotalCost)}{McColorCodes.GRAY}";
+        if (node.FullSubcraftCost > 0)
+        {
+            lines.Add($"{McColorCodes.GRAY}Craft all: {McColorCodes.GOLD}{socket.FormatPrice(node.FullSubcraftCost)}");
+            lines.Add(node.DirectBuyAvailable
+                ? $"{McColorCodes.GRAY}Buy all directly: {McColorCodes.GOLD}{socket.FormatPrice(node.DirectBuyCost)}"
+                : $"{McColorCodes.GRAY}Buy all directly: {McColorCodes.YELLOW}not enough known supply");
+        }
+
+        return $"{McColorCodes.GRAY}Acquisition split for {node.Count}x:\n{string.Join("\n", lines)}\n"
+            + $"{McColorCodes.GRAY}Chosen total: {McColorCodes.GOLD}{socket.FormatPrice(node.Cost)}{McColorCodes.GRAY}";
     }
 }
