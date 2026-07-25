@@ -1,6 +1,8 @@
+using Coflnet.Sky.Bazaar.Client.Model;
 using Coflnet.Sky.Crafts.Client.Model;
 using NUnit.Framework;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -38,6 +40,7 @@ public class CraftBreakDownCommandTests
         Assert.That(enchantedNode.DirectBuyCost, Is.EqualTo(19_660_800));
         Assert.That(enchantedNode.FullSubcraftCost, Is.EqualTo(25_221_280).Within(0.01));
         Assert.That(enchantedNode.CraftedCount, Is.Zero);
+        Assert.That(enchantedNode.Enough, Is.True);
     }
 
     [Test]
@@ -76,6 +79,42 @@ public class CraftBreakDownCommandTests
         Assert.That(nodes[1].Count, Is.EqualTo(823_040));
     }
 
+    [Test]
+    public void InstaBuyWalksActualSellOffersInsteadOfRepeatingTheTopPrice()
+    {
+        var enderPearls = new Ingredient
+        {
+            ItemId = "ENDER_PEARL",
+            Count = 1_024_000,
+            BuyOrderCapacity = 71_000,
+            BuyOrderUnitPrice = 2.5,
+            InstaBuyUnitPrice = 8.9
+        };
+        var root = new ProfitableCraft
+        {
+            ItemId = "ROOT",
+            Ingredients = new List<Ingredient> { enderPearls }
+        };
+        var nodes = new List<CraftBreakDownCommand.CraftNode>();
+        var orderBooks = new Dictionary<string, OrderBook>
+        {
+            ["ENDER_PEARL"] = Book(
+                (95_928, 9.8), (46_996, 9.9), (24, 10.9), (240, 11.0),
+                (3_618, 11.1), (16_645, 11.2), (65_796, 11.3), (723_753, 20))
+        };
+
+        CraftBreakDownCommand.AddIngredients(
+            nodes, root, 1, 0, new Dictionary<string, ProfitableCraft>(),
+            new HashSet<string> { "ROOT" }, orderBooks);
+
+        var node = nodes[0];
+        Assert.That(node.Acquisition.Order.Qty, Is.EqualTo(71_000));
+        Assert.That(node.Acquisition.Insta.Qty, Is.EqualTo(953_000));
+        Assert.That(node.Acquisition.Insta.UnitPrice, Is.EqualTo(16_853_395d / 953_000).Within(0.0001));
+        Assert.That(node.Cost, Is.EqualTo(17_030_895).Within(0.01));
+        Assert.That(node.Enough, Is.True);
+    }
+
     private static List<CraftBreakDownCommand.CraftNode> BuildTree(Ingredient enchantedObsidian, Ingredient obsidian)
     {
         var root = new ProfitableCraft
@@ -89,6 +128,11 @@ public class CraftBreakDownCommandTests
             Ingredients = new List<Ingredient> { obsidian }
         };
         var nodes = new List<CraftBreakDownCommand.CraftNode>();
+        var orderBooks = new Dictionary<string, OrderBook>
+        {
+            ["ENCHANTED_OBSIDIAN"] = Book((1_000_000, enchantedObsidian.InstaBuyUnitPrice)),
+            ["OBSIDIAN"] = Book((1_000_000, obsidian.InstaBuyUnitPrice))
+        };
 
         CraftBreakDownCommand.AddIngredients(
             nodes,
@@ -96,7 +140,14 @@ public class CraftBreakDownCommandTests
             1,
             0,
             new Dictionary<string, ProfitableCraft> { ["ENCHANTED_OBSIDIAN"] = enchantedRecipe },
-            new HashSet<string> { "ROOT" });
+            new HashSet<string> { "ROOT" },
+            orderBooks);
         return nodes;
     }
+
+    private static OrderBook Book(params (int Amount, double Price)[] offers)
+        => new()
+        {
+            Sell = offers.Select(o => new OrderEntry { Amount = o.Amount, PricePerUnit = o.Price }).ToList()
+        };
 }
