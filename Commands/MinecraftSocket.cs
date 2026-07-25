@@ -58,10 +58,15 @@ namespace Coflnet.Sky.Commands.MC
 
         private string DetermineUserIp()
         {
-            var directIp = Headers["CF-Connecting-IP"] ?? Headers["X-Forwarded-For"] ?? UserEndPoint.Address.ToString();
+            var directIp = Headers["CF-Connecting-IP"];
+            if (string.IsNullOrWhiteSpace(directIp))
+                directIp = Headers["X-Forwarded-For"]?.Split(',')[0].Trim();
+            if (string.IsNullOrWhiteSpace(directIp))
+                directIp = UserEndPoint.Address.ToString();
             if (directIp == "107.152.37.100")
             {
-                return QueryString["ip"] ?? directIp;
+                var forwardedIp = QueryString["ip"];
+                return string.IsNullOrWhiteSpace(forwardedIp) ? directIp : forwardedIp;
             }
             return directIp;
         }
@@ -733,10 +738,13 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Coflnet.Sky.PlayerState.Client.Client.ApiException e)
             {
-                var json = System.Text.RegularExpressions.Regex.Replace(e.Message, "^Error calling [^:]+: ", "");
-                var coflnetException = Newtonsoft.Json.JsonConvert.DeserializeObject<CoflnetException>(json);
                 Error(e, "mod command playerstate");
-                SendMessage(COFLNET + $"{McColorCodes.RED}{coflnetException?.Message ?? "An unkown error occured, please create a report about this"}");
+                SendMessage(COFLNET + $"{McColorCodes.RED}{GetApiErrorMessage(e.Message)}");
+            }
+            catch (Coflnet.Payments.Client.Client.ApiException e)
+            {
+                Error(e, "mod command payments");
+                SendMessage(COFLNET + $"{McColorCodes.RED}{GetApiErrorMessage(e.Message)}");
             }
             catch (CoflnetException e)
             {
@@ -752,6 +760,19 @@ namespace Coflnet.Sky.Commands.MC
             finally
             {
                 waiting--;
+            }
+        }
+
+        private static string GetApiErrorMessage(string message)
+        {
+            var json = Regex.Replace(message, "^Error calling [^:]+: ", "");
+            try
+            {
+                return JsonConvert.DeserializeObject<CoflnetException>(json)?.Message ?? json;
+            }
+            catch (JsonException)
+            {
+                return json;
             }
         }
 

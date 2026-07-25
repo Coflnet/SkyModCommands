@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ namespace Coflnet.Sky.Commands.MC
     public class TopUpCommand : McCommand
     {
         private const string Indantation = "      ";
+        private const int MinimumUsCoinGateAmount = 5400;
         private static readonly string[] CoinGateCountries =
         [
             "AT", "BE", "BG", "BM", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GG",
@@ -52,12 +54,17 @@ namespace Coflnet.Sky.Commands.MC
 
             socket.SendMessage(new DialogBuilder().Msg($"Contacting payment provider", null, "Can take a few seconds"));
 
+            var clientIp = socket.ClientIp;
+            Activity.Current?.SetTag("clientIp", clientIp);
+            if (string.IsNullOrWhiteSpace(clientIp))
+                throw new CoflnetException("ip_not_found", "Your IP address could not be determined. Please reconnect and try again.");
+
             var accountInfo = socket.sessionLifesycle.AccountInfo.Value;
             var options = new TopUpOptions()
             {
                 Locale = accountInfo.Locale,
                 UserEmail = UserService.Instance.GetUserById(int.Parse(accountInfo.UserId)).Email,
-                UserIp = socket.ClientIp,
+                UserIp = clientIp,
                 Country = toBuy.StartsWith('c') ? parts.ElementAtOrDefault(1)?.ToUpperInvariant() : null
             };
             TopUpIdResponse info;
@@ -80,14 +87,16 @@ namespace Coflnet.Sky.Commands.MC
             var coinAmount = int.TryParse(productId.Split('_').LastOrDefault(), out var amount) ? amount : 0;
             var db = DialogBuilder.New
                 .MsgLine("Select your country for this crypto payment.")
-                .MsgLine("Your selection must match the country of your current IP address.");
+                .MsgLine("Your selection must match the country of your current IP address.")
+                .If(() => coinAmount < MinimumUsCoinGateAmount, db => db.MsgLine(
+                    $"{McColorCodes.YELLOW}United States crypto payments require at least {socket.FormatPrice(MinimumUsCoinGateAmount)} CoflCoins."));
 
-            foreach (var code in CoinGateCountries.Where(code => code != "US" || coinAmount >= 3000)
+            foreach (var code in CoinGateCountries.Where(code => code != "US" || coinAmount >= MinimumUsCoinGateAmount)
                          .OrderBy(code => new RegionInfo(code).EnglishName))
             {
                 var name = new RegionInfo(code).EnglishName;
                 db.CoflCommandButton<TopUpCommand>(name, $"{productId} {code}", $"Select {name} ({code})")
-                    .LineBreak();
+                    .Msg(" ");
             }
             socket.SendMessage(db);
         }
