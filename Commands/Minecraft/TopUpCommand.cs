@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
@@ -11,14 +12,21 @@ namespace Coflnet.Sky.Commands.MC
     public class TopUpCommand : McCommand
     {
         private const string Indantation = "      ";
+        private static readonly string[] CoinGateCountries =
+        [
+            "AT", "BE", "BG", "BM", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GG",
+            "GI", "GL", "GR", "GS", "HK", "HR", "HU", "IE", "IT", "JE", "KI", "LT", "LU",
+            "LV", "MO", "MT", "MV", "NL", "PL", "PT", "RO", "SE", "SI", "SJ", "SK", "US"
+        ];
+
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var productApi = socket.GetService<ProductsApi>();
             var topUpApi = socket.GetService<TopUpApi>();
             var userApi = socket.GetService<UserApi>();
 
-            var toBuy = arguments.Trim('"');
-            if (string.IsNullOrEmpty(toBuy))
+            var input = arguments.Trim('"');
+            if (string.IsNullOrEmpty(input))
             {
                 var db = DialogBuilder.New;
                 var topups = await productApi.ProductsTopupGetAsync(0, 100);
@@ -33,6 +41,15 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage(db);
                 return;
             }
+
+            var parts = input.Split(' ', System.StringSplitOptions.RemoveEmptyEntries);
+            var toBuy = parts[0];
+            if (toBuy.StartsWith('c') && parts.Length == 1)
+            {
+                ShowCoinGateCountrySelection(socket, toBuy);
+                return;
+            }
+
             socket.SendMessage(new DialogBuilder().Msg($"Contacting payment provider", null, "Can take a few seconds"));
 
             var accountInfo = socket.sessionLifesycle.AccountInfo.Value;
@@ -40,7 +57,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 Locale = accountInfo.Locale,
                 UserEmail = UserService.Instance.GetUserById(int.Parse(accountInfo.UserId)).Email,
-                UserIp = socket.ClientIp
+                UserIp = socket.ClientIp,
+                Country = toBuy.StartsWith('c') ? parts.ElementAtOrDefault(1)?.ToUpperInvariant() : null
             };
             TopUpIdResponse info;
             if (toBuy.StartsWith('s'))
@@ -55,6 +73,23 @@ namespace Coflnet.Sky.Commands.MC
                 throw new CoflnetException("invalid_product", $"The product {toBuy} isn't know, please execute the command without arguments to get options");
             var separationLines = "--------------------\n";
             socket.SendMessage(new DialogBuilder().Msg($"{separationLines}{McColorCodes.GREEN}Click here to finish the payment\n{separationLines}", info.DirectLink, "open link"));
+        }
+
+        private static void ShowCoinGateCountrySelection(MinecraftSocket socket, string productId)
+        {
+            var coinAmount = int.TryParse(productId.Split('_').LastOrDefault(), out var amount) ? amount : 0;
+            var db = DialogBuilder.New
+                .MsgLine("Select your country for this crypto payment.")
+                .MsgLine("Your selection must match the country of your current IP address.");
+
+            foreach (var code in CoinGateCountries.Where(code => code != "US" || coinAmount >= 3000)
+                         .OrderBy(code => new RegionInfo(code).EnglishName))
+            {
+                var name = new RegionInfo(code).EnglishName;
+                db.CoflCommandButton<TopUpCommand>(name, $"{productId} {code}", $"Select {name} ({code})")
+                    .LineBreak();
+            }
+            socket.SendMessage(db);
         }
 
         private static void AddOptionsFor(MinecraftSocket socket, string letter, DialogBuilder db, List<TopUpProduct> topups)
