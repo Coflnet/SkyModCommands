@@ -75,16 +75,36 @@ public class MethodDetectionTests
             { "AGATHA_COUPON", 8 }
         });
 
-        // Burningsoul should detect it
+        // The renamed Inferno Demonlord should still detect the BURNINGSOUL tag.
+        var parameters = MakeParams(period);
+        parameters.Names["SHARD_BURNINGSOUL"] = "Burningsoul Shard";
         var burningsoul = new BurningsoulTask();
-        var bResult = await burningsoul.Execute(MakeParams(period));
+        var bResult = await burningsoul.Execute(parameters);
         bResult.ProfitPerHour.Should().BeGreaterThan(0);
-        bResult.Name.Should().Be("Burningsoul");
+        bResult.Name.Should().Be("Inferno Demonlord");
+        bResult.Breakdown.Drops.Should().ContainSingle(d => d.ItemTag == "SHARD_BURNINGSOUL")
+            .Which.Name.Should().Be("Inferno Demonlord Shard");
 
         // Cinderbat should NOT detect it (wrong shard)
         var cinderbat = new CinderbatTask();
         var cResult = await cinderbat.Execute(MakeParams(period));
         cResult.ProfitPerHour.Should().Be(0, "Cinderbat should not match periods with SHARD_BURNINGSOUL");
+    }
+
+    [Test]
+    public async Task InfernoDemonlordUsesLegacyBurningsoulServerEstimate()
+    {
+        var parameters = MakeParams();
+        parameters.ServerEstimates = new()
+        {
+            ["Burningsoul"] = new TaskEstimate { CoinsPerHour = 1_000_000, Source = "global", Drops = [] }
+        };
+
+        var result = await new BurningsoulTask().Execute(parameters);
+
+        result.Name.Should().Be("Inferno Demonlord");
+        result.ProfitPerHour.Should().Be(1_000_000);
+        result.Breakdown.Source.Should().Be("community_estimate");
     }
 
     [Test]
