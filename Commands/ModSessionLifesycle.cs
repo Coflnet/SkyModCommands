@@ -1333,7 +1333,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (loss < 10_000_000)
                     continue;
                 var tracker = DiHandler.GetService<CircumventTracker>();
-                await tracker.SendChallangeFlip(socket, FlipperService.LowPriceToFlip(new LowPricedAuction()
+                var sent = await tracker.SendChallangeFlip(socket, FlipperService.LowPriceToFlip(new LowPricedAuction()
                 {
                     Auction = auction,
                     Finder = LowPricedAuction.FinderType.SNIPER,
@@ -1341,6 +1341,8 @@ namespace Coflnet.Sky.Commands.MC
                     AdditionalProps = new() { { "match", "whitelist shitflip" } },
                     TargetPrice = (long)(auction.StartingBid * (1.1 + Random.Shared.NextDouble()))
                 }));
+                if (!sent)
+                    continue;
                 await Task.Delay(Random.Shared.Next(500, 10000));
             }
 

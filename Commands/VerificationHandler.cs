@@ -168,7 +168,11 @@ namespace Coflnet.Sky.Commands.MC
                         DailyVolume = 1,
                         Finder = LowPricedAuction.FinderType.EXTERNAL
                     });
-                    await circumventTracker.SendChallangeFlip(socket, flip);
+                    if (!await circumventTracker.SendChallangeFlip(socket, flip))
+                    {
+                        socket.SendMessage(McColorCodes.RED + "The automatic verification auction was already in use. Please verify manually.");
+                        return;
+                    }
                     await Task.Delay(5000);
                     socket.Dialog(db => db.MsgLine("It can take up to 1 minute to verify your account. If you are not verified after that, please try again."));
                 }
