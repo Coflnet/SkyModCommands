@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Coflnet.Leaderboard.Client.Api;
 using Coflnet.Leaderboard.Client.Model;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
@@ -57,6 +59,38 @@ public class BuyspeedboardCommand : LeaderboardCommand
         catch (Exception e)
         {
             socket.GetService<ILogger<LeaderboardCommand>>().LogError(e, "Failed to opt out of buyspeedboard");
+        }
+        if (setting != null)
+        {
+            // user is opting out, best-effort remove scores they already posted this/last week
+            await PurgeAlreadyPostedScores(socket);
+        }
+    }
+
+    /// <summary>
+    /// Computes the buyspeedboard slugs that could still contain a score for the given point in time,
+    /// i.e. the current week's slug and the previous week's slug (whose ~20 day retention can still be alive).
+    /// </summary>
+    internal static IEnumerable<string> GetBuySpeedBoardSlugsToPurge(DateTime utcNow)
+    {
+        var currentWeek = utcNow.RoundDown(TimeSpan.FromDays(7));
+        yield return $"sky-buyspeed-{currentWeek.ToString("yyyy-MM-dd")}";
+        yield return $"sky-buyspeed-{currentWeek.AddDays(-7).ToString("yyyy-MM-dd")}";
+    }
+
+    private static async Task PurgeAlreadyPostedScores(MinecraftSocket socket)
+    {
+        var scoresApi = socket.GetService<IScoresApi>();
+        foreach (var slug in GetBuySpeedBoardSlugsToPurge(DateTime.UtcNow))
+        {
+            try
+            {
+                await scoresApi.DeleteUserScoresAsync(slug, socket.SessionInfo.McUuid, default);
+            }
+            catch (Exception e)
+            {
+                socket.GetService<ILogger<LeaderboardCommand>>().LogError(e, $"Failed to purge already posted buyspeedboard score for slug {slug}");
+            }
         }
     }
 
