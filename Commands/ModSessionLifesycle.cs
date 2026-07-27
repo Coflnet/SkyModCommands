@@ -701,6 +701,13 @@ namespace Coflnet.Sky.Commands.MC
             return !isMacroBot || !(version?.StartsWith("1.5.0") ?? false);
         }
 
+        internal static string DeterminePreferredRegion(string storedRegion, string countryCode, bool hasPremiumPlus)
+        {
+            return hasPremiumPlus && string.Equals(countryCode, "US", StringComparison.OrdinalIgnoreCase)
+                ? "us"
+                : storedRegion;
+        }
+
         internal static RegionRoutingAction DetermineRegionRoutingAction(AccountInfo info, string connectionType, bool hasPremiumPlus, bool supportsRegionReconnect, bool isDevMode)
         {
             if (hasPremiumPlus && UsesDirectConnectionType(connectionType))
@@ -731,12 +738,20 @@ namespace Coflnet.Sky.Commands.MC
             var hasPremiumPlus = knownTier.HasValue
                 ? knownTier.Value >= AccountTier.PREMIUM_PLUS
                 : TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS);
+            var countryCode = socket.Headers["CF-IPCountry"];
+            var preferredRegion = DeterminePreferredRegion(info.Region, countryCode, hasPremiumPlus);
+            if (preferredRegion != info.Region)
+            {
+                info.Region = preferredRegion;
+                await AccountInfo.Update(info);
+            }
             var action = DetermineRegionRoutingAction(
                 info,
                 SessionInfo.ConnectionType,
                 hasPremiumPlus,
                 SupportsRegionReconnect(SessionInfo.IsMacroBot, socket.Version),
                 MinecraftSocket.IsDevMode);
+            span?.AddTag("countryCode", countryCode);
             span?.AddTag("regionRouting", action.ToString());
 
             if (action == RegionRoutingAction.None)

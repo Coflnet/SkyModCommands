@@ -43,6 +43,22 @@ public class ModSessionLifesycleTests
         Assert.That(ModSessionLifesycle.ShouldReconnectToEu(info, connectionType), Is.EqualTo(expected));
     }
 
+    [TestCase("eu", "US", true, "us")]
+    [TestCase("eu", "us", true, "us")]
+    [TestCase("eu", "US", false, "eu")]
+    [TestCase("eu", "DE", true, "eu")]
+    [TestCase("us", null, true, "us")]
+    public void DeterminePreferredRegion_UsesCloudflareCountryForPremiumPlus(
+        string storedRegion,
+        string countryCode,
+        bool hasPremiumPlus,
+        string expected)
+    {
+        Assert.That(
+            ModSessionLifesycle.DeterminePreferredRegion(storedRegion, countryCode, hasPremiumPlus),
+            Is.EqualTo(expected));
+    }
+
     [Test]
     public void DetermineRegionRoutingAction_RedirectsUsForPremiumPlusDirectConnection()
     {
