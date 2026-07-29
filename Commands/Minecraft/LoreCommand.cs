@@ -64,7 +64,7 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }
             var privacySettings = socket.sessionLifesycle.PrivacySettings;
-            if (!privacySettings.Value.ExtendDescriptions)
+            if (privacySettings?.Value?.ExtendDescriptions == false)
             {
                 socket.Dialog(db => db.MsgLine("You have disabled the display of additional information on items")
                     .CoflCommand<SetCommand>("[Click here to enable]", "privacyextendDescriptions true", "Enable the display of additional information on items"));
