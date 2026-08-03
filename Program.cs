@@ -11,6 +11,7 @@ using Coflnet.Sky.ModCommands.Services.Vps;
 using Coflnet.Sky.Commands.Shared;
 using System.Text;
 using Coflnet.Sky.Core;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Coflnet.Sky.ModCommands.MC
 {
@@ -51,7 +52,14 @@ namespace Coflnet.Sky.ModCommands.MC
             };
             server.Start();
             System.Threading.ThreadPool.SetMinThreads(10, 10);
-            CreateHostBuilder(args).Build().Run();
+            var host = CreateHostBuilder(args).Build();
+            host.Services.GetRequiredService<IHostApplicationLifetime>()
+                .ApplicationStopping.Register(() =>
+                {
+                    MinecraftSocket.BroadcastApplicationStopping();
+                    server.Stop();
+                });
+            host.Run();
         }
 
         private static async Task HandleLogRequest(HttpRequestEventArgs e)

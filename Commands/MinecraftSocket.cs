@@ -28,6 +28,7 @@ namespace Coflnet.Sky.Commands.MC
         public static string COFLNET = "[§1C§6oflnet§f]§7: ";
         public virtual string CurrentRegion => "eu";
         private static readonly Prometheus.Gauge PremUserCount = Prometheus.Metrics.CreateGauge("sky_mod_users", "How many premium users are connected");
+        private static readonly ConcurrentDictionary<MinecraftSocket, byte> ActiveSockets = new();
 
         public long Id { get; private set; }
 
@@ -124,6 +125,12 @@ namespace Coflnet.Sky.Commands.MC
             formatProvider = new FormatProvider(this);
         }
 
+        public static void BroadcastApplicationStopping()
+        {
+            foreach (var socket in ActiveSockets.Keys)
+                socket.SendMessage(COFLNET + "Server is restarting, you may experience connection issues for a few seconds.",
+                    "/cofl start", "if it doesn't auto reconnect click this");
+        }
 
         static MinecraftSocket()
         {
@@ -366,10 +373,9 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }, new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token).ConfigureAwait(false);
 
-            Console.CancelKeyPress += OnApplicationStop;
-
             NextUpdateStart -= TenSecBeforeUpdate;
             NextUpdateStart += TenSecBeforeUpdate;
+            ActiveSockets.TryAdd(this, 0);
         }
 
         public void StartNewConnectionSpan()
@@ -793,6 +799,8 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override void OnClose(CloseEventArgs? e)
         {
+            ActiveSockets.TryRemove(this, out _);
+            NextUpdateStart -= TenSecBeforeUpdate;
             using var closingSpan = CreateActivity("closing", ConSpan);
             base.OnClose(e);
             try
@@ -810,6 +818,9 @@ namespace Coflnet.Sky.Commands.MC
             OnConClose?.Invoke();
             sessionLifesycle?.Dispose();
             TopBlocked.Clear();
+            LastSent.Clear();
+            LastPurchased.Clear();
+            ReceivedConfirm.Clear();
             sessionLifesycle = null!;
         }
 
@@ -918,13 +929,6 @@ namespace Coflnet.Sky.Commands.MC
             span?.Dispose();
             Close();
             sessionLifesycle.Dispose();
-            Console.CancelKeyPress -= OnApplicationStop;
-        }
-
-        private void OnApplicationStop(object? sender, ConsoleCancelEventArgs e)
-        {
-            SendMessage(COFLNET + "Server is restarting, you may experience connection issues for a few seconds.",
-                 "/cofl start", "if it doesn't auto reconnect click this");
         }
 
         public virtual string Error(Exception exception, string? message = null, string? additionalLog = null)
