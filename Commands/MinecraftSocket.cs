@@ -241,6 +241,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<TakeConfigCommand>();
             Commands.Add<RewardHandler.ClaimHypixelRewardCommand>();
             Commands.Add<LicensesCommand>("license");
+            Commands.Add<AgreementTermsCommand>("terms");
             Commands.Add<VerifyCommand>("login");
             Commands.Add<UnVerifyCommand>();
             Commands.Add<AttributeFlipCommand>();

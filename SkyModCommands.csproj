@@ -21,6 +21,7 @@
     <PackageReference Include="Coflnet.Leaderboard.Client" Version="0.3.2" />
     <PackageReference Include="Figgle.Fonts" Version="0.6.6" />
     <PackageReference Include="Coflnet.Sky.Chat.Client" Version="1.0.1" />
+    <PackageReference Include="Coflnet.Sky.Indexer.Client" Version="0.1.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

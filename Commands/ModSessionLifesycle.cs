@@ -297,6 +297,10 @@ namespace Coflnet.Sky.Commands.MC
                 await UpdateAccountInfo(AccountInfo);
             else
                 Console.WriteLine("accountinfo is default");
+            _ = socket.TryAsyncTimes(
+                () => CurrentAgreement.RequestOnLogin(socket),
+                "agreement acceptance prompt",
+                1);
             Activity.Current.Log("updated accountInfo");
             SetupFlipProcessor(AccountInfo);
             AccountSettings = await accountSettingsTask;

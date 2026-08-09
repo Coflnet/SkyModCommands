@@ -61,6 +61,10 @@ public class Startup
                 .EnableSensitiveDataLogging() // <-- These two calls are optional but help
                 .EnableDetailedErrors()       // <-- with debugging (remove for production).
         );
+        services.AddHttpClient();
+        services.AddSingleton<AgreementManifestService>();
+        services.AddHostedService(service =>
+            service.GetRequiredService<AgreementManifestService>());
         services.AddHostedService<ModBackgroundService>();
         services.AddHostedService<MuseumDonationCleanupService>();
         services.AddSingleton<BazaarFlipService>();
@@ -96,6 +100,9 @@ public class Startup
         services.AddSingleton<HypixelItemService>();
         services.AddSingleton<IHypixelItemStore, HypixelItemService>(di => di.GetRequiredService<HypixelItemService>());
         services.AddSingleton<System.Net.Http.HttpClient>();
+        services.AddSingleton<Coflnet.Sky.Indexer.Client.Api.IUserApi>(
+            new Coflnet.Sky.Indexer.Client.Api.UserApi(
+                Configuration["INDEXER_BASE_URL"]));
         services.AddSingleton<IPriceStorageService, PriceStorageService>();
         services.AddSingleton<DelayService>();
         services.AddSingleton<AltChecker>();
