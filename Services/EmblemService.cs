@@ -123,8 +123,8 @@ public class EmblemService
 
     /// <summary>
     /// The unlocked emblem ids for the player behind the socket: the achievement backed ones from the state
-    /// service, plus the account-age emblems the account currently qualifies for (derived from the account
-    /// creation date). This is the set the emblem command lists and validates equips against.
+    /// service, plus the derived emblems the account currently qualifies for through account age or moderator
+    /// status. This is the set the emblem command lists and validates equips against.
     /// </summary>
     public async Task<HashSet<string>> GetUnlockedForSocket(MinecraftSocket socket, bool forceRefresh = false)
     {
@@ -134,6 +134,8 @@ public class EmblemService
                 && UserService.Instance.TryGetUserById(userId, out var user) ? user : null;
         });
         var set = new HashSet<string>(await GetUnlocked(socket.SessionInfo.McUuid, forceRefresh));
+        if (socket.GetService<ModeratorService>().IsModerator(socket))
+            set.Add(Emblems.Moderator);
         var user = await userTask;
         if (user != null)
         {

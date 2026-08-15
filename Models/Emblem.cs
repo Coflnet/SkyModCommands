@@ -6,13 +6,13 @@ namespace Coflnet.Sky.ModCommands.Models;
 
 /// <summary>
 /// A displayable emblem (achievement badge). "Emblem" (the symbol/name shown in chat) is purely a mod
-/// presentation concern; the underlying unlock state is an achievement tracked in SkyUserState.
+/// presentation concern; eligibility is backed by an achievement or derived from other eligibility rules.
 /// </summary>
 public class Emblem
 {
     /// <summary>
-    /// The achievement this emblem represents. Its value MUST match the name of a member of the
-    /// authoritative <c>Achievement</c> enum in SkyUserState (generated into this project as
+    /// For achievement-backed emblems, the achievement this emblem represents. Its value MUST match the
+    /// name of a member of the authoritative <c>Achievement</c> enum in SkyUserState (generated into this project as
     /// <c>Coflnet.Sky.PlayerState.Client.Model.Achievement</c>). Once that client is regenerated with the
     /// achievement enum, prefer <c>Achievement.X.ToString()</c> here so a removed/renamed achievement
     /// breaks the build instead of silently drifting.
@@ -49,8 +49,8 @@ public class Emblem
 /// <summary>
 /// The catalog of all emblems. The id constants of the achievement backed emblems mirror the authoritative
 /// <c>Achievement</c> enum names from SkyUserState - keep them in sync (see <see cref="Emblem.Id"/>).
-/// The account-age emblems are the exception: they are not achievements at all. Nobody unlocks them at a
-/// point in time; whether a player has one is derived on read from the account creation date in
+/// The account-age and moderator emblems are exceptions: they are not achievements at all. Whether a player
+/// has one is derived on read from the account creation date or moderator role in
 /// <see cref="Services.EmblemService.GetUnlockedForSocket"/>, so their ids don't appear in that enum.
 /// </summary>
 public static class Emblems
@@ -61,6 +61,9 @@ public static class Emblems
     public const string Whale = "Whale";
     public const string NightOwl = "NightOwl";
     public const string DiamondHands = "DiamondHands";
+    // role emblem - derived from moderator status, not backed by an Achievement
+    public const string Moderator = "Moderator";
+    public static readonly string ModeratorSymbol = McColorCodes.GOLD + "ⓂⓄⒹ";
     // account-age emblems - derived from the account creation date, not backed by an Achievement
     public const string OneYearVeteran = "OneYearVeteran";
     public const string ThreeYearVeteran = "ThreeYearVeteran";
@@ -82,6 +85,9 @@ public static class Emblems
         // --- suggested extras ---
         new Emblem(Whale, McColorCodes.AQUA + "❖",
             "Whale", "Land a single bazaar flip worth 100M+ coins of profit."),
+        // --- role based ---
+        new Emblem(Moderator, ModeratorSymbol,
+            "Moderator", "Available to verified Coflnet moderators."),
         // --- account age (granted automatically once the account is old enough) ---
         new Emblem(OneYearVeteran, McColorCodes.GREEN + "✦",
             "One Year Veteran", "Your Coflnet account is at least 1 year old. Thanks for flipping with us!"),
