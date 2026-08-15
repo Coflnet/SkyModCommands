@@ -128,8 +128,8 @@ namespace Coflnet.Sky.Commands.MC
         public static void BroadcastApplicationStopping()
         {
             foreach (var socket in ActiveSockets.Keys)
-                socket.SendMessage(COFLNET + "Server is restarting, you may experience connection issues for a few seconds.",
-                    "/cofl start", "if it doesn't auto reconnect click this");
+                socket.SendMessage(COFLNET + "Server is restarting for an update.",
+                    "/cofl start", $"you may experience connection issues for a few seconds.\n{McColorCodes.YELLOW}if it doesn't auto reconnect click this");
         }
 
         static MinecraftSocket()
