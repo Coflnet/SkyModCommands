@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Models;
 using Microsoft.Extensions.Configuration;
@@ -127,11 +128,16 @@ public class EmblemService
     /// </summary>
     public async Task<HashSet<string>> GetUnlockedForSocket(MinecraftSocket socket, bool forceRefresh = false)
     {
-        var set = new HashSet<string>(await GetUnlocked(socket.SessionInfo.McUuid, forceRefresh));
-        var info = socket.AccountInfo;
-        if (info != null)
+        var userTask = Task.Run(() =>
         {
-            var age = DateTime.UtcNow - info.CreatedAt;
+            return int.TryParse(socket.AccountInfo?.UserId, out var userId)
+                && UserService.Instance.TryGetUserById(userId, out var user) ? user : null;
+        });
+        var set = new HashSet<string>(await GetUnlocked(socket.SessionInfo.McUuid, forceRefresh));
+        var user = await userTask;
+        if (user != null)
+        {
+            var age = DateTime.UtcNow - user.CreatedAt;
             foreach (var (minAge, emblemId) in ageEmblems)
                 if (age >= minAge)
                     set.Add(emblemId);
