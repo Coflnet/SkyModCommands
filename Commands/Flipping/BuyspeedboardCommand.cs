@@ -85,7 +85,7 @@ public class BuyspeedboardCommand : LeaderboardCommand
         {
             try
             {
-                await scoresApi.DeleteUserScoresAsync(slug, socket.SessionInfo.McUuid, default);
+                await scoresApi.DeleteUserScoresAsync(slug, socket.SessionInfo.McUuid, cancellationToken: default);
             }
             catch (Exception e)
             {

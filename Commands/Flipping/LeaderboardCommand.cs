@@ -46,9 +46,9 @@ public class LeaderboardCommand : McCommand
         int.TryParse(args, out var page);
         if (page > 0)
             page--;
-        var ownTask = api.GetOwnRankAsync($"{boardSlug}-{DateTime.UtcNow.RoundDown(TimeSpan.FromDays(7)).ToString("yyyy-MM-dd")}", socket.SessionInfo.McUuid, default);
+        var ownTask = api.GetOwnRankAsync($"{boardSlug}-{DateTime.UtcNow.RoundDown(TimeSpan.FromDays(7)).ToString("yyyy-MM-dd")}", socket.SessionInfo.McUuid, cancellationToken: default);
         var leaderboardData = await leaderbaordApi.GetTopFlippers(boardSlug, DateTime.UtcNow, page, 10);
-        var rank = (await ownTask).Ok() ?? 0;
+        var rank = await ownTask;
         socket.Dialog(db => db.If(() => isPremPlus, (db) => db.MsgLine(Heading).ForEach(leaderboardData, (db, data) =>
         {
             PrintLine(socket, db, data);

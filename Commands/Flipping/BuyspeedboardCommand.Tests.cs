@@ -50,9 +50,9 @@ public class BuyspeedboardCommandTests
 
         foreach (var slug in expectedSlugs)
         {
-            scoresApi.Verify(a => a.DeleteUserScoresAsync(slug, "player-uuid", It.IsAny<CancellationToken>()), Times.Once);
+            scoresApi.Verify(a => a.DeleteUserScoresAsync(slug, "player-uuid", It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         }
-        scoresApi.Verify(a => a.DeleteUserScoresAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(expectedSlugs.Count));
+        scoresApi.Verify(a => a.DeleteUserScoresAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Exactly(expectedSlugs.Count));
     }
 
     [Test]
@@ -62,14 +62,14 @@ public class BuyspeedboardCommandTests
 
         await BuyspeedboardCommand.DisableBuySpeedBoard(mockSocket.Object, null);
 
-        scoresApi.Verify(a => a.DeleteUserScoresAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        scoresApi.Verify(a => a.DeleteUserScoresAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
     public void DisableBuySpeedBoardDoesNotThrowWhenTypedClientFails()
     {
         var (mockSocket, scoresApi) = BuildMockSocket();
-        scoresApi.Setup(a => a.DeleteUserScoresAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        scoresApi.Setup(a => a.DeleteUserScoresAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("leaderboard service unavailable"));
 
         Assert.DoesNotThrowAsync(async () => await BuyspeedboardCommand.DisableBuySpeedBoard(mockSocket.Object));
