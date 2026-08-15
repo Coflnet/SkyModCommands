@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Coflnet.Payments.Client.Api;
+using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
@@ -28,14 +31,21 @@ public class EmblemService
 {
     private readonly HttpClient http;
     private readonly string baseUrl;
+    private readonly string premiumSlug;
+    private readonly string premiumPlusSlug;
+    private readonly string preApiSlug;
     private readonly ILogger<EmblemService> logger;
     private readonly ConcurrentDictionary<string, (HashSet<string> set, DateTime at)> cache = new();
+    private readonly ConcurrentDictionary<string, (TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, DateTime at)> purchaseStatsCache = new();
     private static readonly TimeSpan cacheTtl = TimeSpan.FromMinutes(1);
 
     public EmblemService(HttpClient http, IConfiguration config, ILogger<EmblemService> logger)
     {
         this.http = http;
         this.baseUrl = config["PLAYERSTATE_BASE_URL"];
+        this.premiumSlug = config["PRODUCTS:PREMIUM"] ?? "premium";
+        this.premiumPlusSlug = config["PRODUCTS:PREMIUM_PLUS"] ?? "premium_plus";
+        this.preApiSlug = config["PRODUCTS:PRE_API"] ?? "pre_api";
         this.logger = logger;
     }
 
@@ -121,29 +131,119 @@ public class EmblemService
         (TimeSpan.FromDays(365 * 5), Emblems.FiveYearVeteran),
     };
 
+    private static readonly (TimeSpan minTime, string emblemId)[] premiumTimeEmblems =
+    {
+        (TimeSpan.FromDays(180), Emblems.PremiumSixMonths),
+        (TimeSpan.FromDays(365), Emblems.PremiumOneYear),
+        (TimeSpan.FromDays(365 * 2), Emblems.PremiumTwoYears),
+        (TimeSpan.FromDays(365 * 3), Emblems.PremiumThreeYears),
+    };
+
+    private static readonly (TimeSpan minTime, string emblemId)[] premiumPlusTimeEmblems =
+    {
+        (TimeSpan.FromDays(180), Emblems.PremiumPlusSixMonths),
+        (TimeSpan.FromDays(365), Emblems.PremiumPlusOneYear),
+        (TimeSpan.FromDays(365 * 2), Emblems.PremiumPlusTwoYears),
+        (TimeSpan.FromDays(365 * 3), Emblems.PremiumPlusThreeYears),
+    };
+
+    private static readonly (int minPurchases, string emblemId)[] preApiPurchaseEmblems =
+    {
+        (1, Emblems.PreApiOnePurchase),
+        (5, Emblems.PreApiFivePurchases),
+        (10, Emblems.PreApiTenPurchases),
+        (20, Emblems.PreApiTwentyPurchases),
+    };
+
     /// <summary>
     /// The unlocked emblem ids for the player behind the socket: the achievement backed ones from the state
-    /// service, plus the derived emblems the account currently qualifies for through account age or moderator
-    /// status. This is the set the emblem command lists and validates equips against.
+    /// service, plus the derived emblems the account currently qualifies for through account age, purchase
+    /// history, or moderator status. This is the set the emblem command lists and validates equips against.
     /// </summary>
     public async Task<HashSet<string>> GetUnlockedForSocket(MinecraftSocket socket, bool forceRefresh = false)
     {
+        var unlockedTask = GetUnlocked(socket.SessionInfo.McUuid, forceRefresh);
         var userTask = Task.Run(() =>
         {
             return int.TryParse(socket.AccountInfo?.UserId, out var userId)
                 && UserService.Instance.TryGetUserById(userId, out var user) ? user : null;
         });
-        var set = new HashSet<string>(await GetUnlocked(socket.SessionInfo.McUuid, forceRefresh));
+        var user = await userTask;
+        var purchaseStatsTask = user == null ? null : GetPurchaseStats(socket, user);
+        var set = new HashSet<string>(await unlockedTask);
         if (socket.GetService<ModeratorService>().IsModerator(socket))
             set.Add(Emblems.Moderator);
-        var user = await userTask;
         if (user != null)
         {
             var age = DateTime.UtcNow - user.CreatedAt;
             foreach (var (minAge, emblemId) in ageEmblems)
                 if (age >= minAge)
                     set.Add(emblemId);
+
+            var purchaseStats = await purchaseStatsTask;
+            AddPremiumTimeEmblems(set, purchaseStats.premium, purchaseStats.premiumPlus);
+            AddPreApiPurchaseEmblems(set, purchaseStats.preApiPurchases);
         }
         return set;
+    }
+
+    private async Task<(TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases)> GetPurchaseStats(MinecraftSocket socket, GoogleUser user)
+    {
+        var userId = user.Id.ToString();
+        if (purchaseStatsCache.TryGetValue(userId, out var cached) && cached.at + cacheTtl > DateTime.UtcNow)
+            return (cached.premium, cached.premiumPlus, cached.preApiPurchases);
+
+        try
+        {
+            var productsApi = socket.GetService<IProductsApi>();
+            var now = DateTime.UtcNow;
+            var premiumTask = productsApi.ProductsServiceServiceSlugOwnedGetAsync(premiumSlug, user.CreatedAt, now);
+            var premiumPlusTask = productsApi.ProductsServiceServiceSlugOwnedGetAsync(premiumPlusSlug, user.CreatedAt, now);
+            var preApiTask = productsApi.ProductsServiceServiceSlugOwnedGetAsync(preApiSlug, user.CreatedAt, now);
+            await Task.WhenAll(premiumTask, premiumPlusTask, preApiTask);
+            var result = (
+                premium: SumOwnedTime(await premiumTask, userId),
+                premiumPlus: SumOwnedTime(await premiumPlusTask, userId),
+                preApiPurchases: CountPurchases(await preApiTask, userId),
+                at: DateTime.UtcNow);
+            purchaseStatsCache[userId] = result;
+            return (result.premium, result.premiumPlus, result.preApiPurchases);
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Could not load emblem purchase stats for {user}", userId);
+            if (purchaseStatsCache.TryGetValue(userId, out var fallback))
+                return (fallback.premium, fallback.premiumPlus, fallback.preApiPurchases);
+            return (TimeSpan.Zero, TimeSpan.Zero, 0);
+        }
+    }
+
+    internal static TimeSpan SumOwnedTime(IEnumerable<OwnershipTimeFrame> timeFrames, string userId)
+    {
+        return TimeSpan.FromTicks(timeFrames
+            .Where(frame => frame.UserId == userId && frame.End > frame.Start)
+            .Sum(frame => (frame.End - frame.Start).Ticks));
+    }
+
+    internal static int CountPurchases(IEnumerable<OwnershipTimeFrame> timeFrames, string userId)
+    {
+        return timeFrames.Count(frame => frame.UserId == userId && frame.End > frame.Start);
+    }
+
+    internal static void AddPremiumTimeEmblems(HashSet<string> set, TimeSpan premium, TimeSpan premiumPlus)
+    {
+        foreach (var (minTime, emblemId) in premiumTimeEmblems)
+            if (premium >= minTime)
+                set.Add(emblemId);
+        foreach (var (minTime, emblemId) in premiumPlusTimeEmblems)
+            if (premiumPlus >= minTime)
+                set.Add(emblemId);
+    }
+
+    internal static void AddPreApiPurchaseEmblems(HashSet<string> set, int purchaseCount)
+    {
+        foreach (var (minPurchases, emblemId) in preApiPurchaseEmblems)
+            if (purchaseCount >= minPurchases)
+                set.Add(emblemId);
     }
 }

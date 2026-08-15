@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.MC;
+using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.ModCommands.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,6 +16,54 @@ namespace Coflnet.Sky.ModCommands.Services;
 
 public class EmblemServiceTests
 {
+    [Test]
+    public void PremiumTimeEmblemsUnlockAtEachThreshold()
+    {
+        var unlocked = new HashSet<string>();
+
+        EmblemService.AddPremiumTimeEmblems(unlocked, TimeSpan.FromDays(365 * 2), TimeSpan.FromDays(365));
+
+        Assert.That(unlocked, Does.Contain(Emblems.PremiumSixMonths));
+        Assert.That(unlocked, Does.Contain(Emblems.PremiumOneYear));
+        Assert.That(unlocked, Does.Contain(Emblems.PremiumTwoYears));
+        Assert.That(unlocked, Does.Not.Contain(Emblems.PremiumThreeYears));
+        Assert.That(unlocked, Does.Contain(Emblems.PremiumPlusSixMonths));
+        Assert.That(unlocked, Does.Contain(Emblems.PremiumPlusOneYear));
+        Assert.That(unlocked, Does.Not.Contain(Emblems.PremiumPlusTwoYears));
+    }
+
+    [Test]
+    public void PremiumTimeOnlyCountsPeriodsForTheRequestedUser()
+    {
+        var start = new DateTime(2024, 1, 1);
+        var periods = new[]
+        {
+            new OwnershipTimeFrame("42", start, start.AddDays(100)),
+            new OwnershipTimeFrame("7", start, start.AddDays(200)),
+            new OwnershipTimeFrame("42", start, start.AddDays(80)),
+            new OwnershipTimeFrame("42", start, start.AddDays(-1)),
+        };
+
+        Assert.That(EmblemService.SumOwnedTime(periods, "42"), Is.EqualTo(TimeSpan.FromDays(180)));
+        Assert.That(EmblemService.CountPurchases(periods, "42"), Is.EqualTo(2));
+    }
+
+    [Test]
+    public void PreApiEmblemsUnlockAtPurchaseThresholds()
+    {
+        var unlocked = new HashSet<string>();
+
+        EmblemService.AddPreApiPurchaseEmblems(unlocked, 10);
+
+        Assert.That(unlocked, Does.Contain(Emblems.PreApiOnePurchase));
+        Assert.That(unlocked, Does.Contain(Emblems.PreApiFivePurchases));
+        Assert.That(unlocked, Does.Contain(Emblems.PreApiTenPurchases));
+        Assert.That(unlocked, Does.Not.Contain(Emblems.PreApiTwentyPurchases));
+
+        EmblemService.AddPreApiPurchaseEmblems(unlocked, 20);
+        Assert.That(unlocked, Does.Contain(Emblems.PreApiTwentyPurchases));
+    }
+
     [TestCase("384a029294fc445e863f2c42fe9709cb", true, true)]
     [TestCase("384a029294fc445e863f2c42fe9709cb", false, false)]
     [TestCase("00000000000000000000000000000000", true, false)]

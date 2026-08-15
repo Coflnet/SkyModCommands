@@ -53,25 +53,36 @@ namespace Coflnet.Sky.Commands.MC
             var unlockedCount = Emblems.All.Count(e => unlockedSet.Contains(e.Id));
             socket.Dialog(db => db
                 .MsgLine($"{McColorCodes.GOLD}{McColorCodes.BOLD}Emblems {McColorCodes.RESET}{McColorCodes.GRAY}({unlockedCount}/{Emblems.All.Count} unlocked)")
-                .MsgLine($"{McColorCodes.GRAY}The emblem you equip is shown in front of your chat messages.")
-                .ForEach(Emblems.All, (d, emblem) =>
+                .MsgLine($"{McColorCodes.GRAY}Hover for details. Click an unlocked emblem to equip it.")
+                .ForEach(Emblems.All.GroupBy(emblem => emblem.Category), (d, category) =>
                 {
-                    if (unlockedSet.Contains(emblem.Id))
+                    d.MsgLine($"{McColorCodes.GOLD}{McColorCodes.BOLD}{category.Key}{McColorCodes.RESET}");
+                    d.ForEach(category, (row, emblem, index) =>
                     {
-                        d.Msg($"{emblem.Symbol} {McColorCodes.GREEN}{emblem.Name} {McColorCodes.GRAY}- {emblem.Description} ", null, emblem.Description);
-                        if (equipped == emblem.Symbol)
-                            d.MsgLine($"{McColorCodes.YELLOW}[equipped]");
+                        var hover = $"{McColorCodes.GOLD}{emblem.Name}\n{McColorCodes.GRAY}{emblem.Description}";
+                        if (unlockedSet.Contains(emblem.Id))
+                        {
+                            if (equipped == emblem.Symbol)
+                                row.Msg($"{McColorCodes.YELLOW}[{emblem.Symbol}{McColorCodes.YELLOW}] ", null, $"{hover}\n{McColorCodes.YELLOW}Equipped");
+                            else
+                                row.CoflCommand<EmblemCommand>($"{McColorCodes.GRAY}[{emblem.Symbol}{McColorCodes.GRAY}] ", $"set {emblem.Id}", $"{hover}\n{McColorCodes.AQUA}Click to equip");
+                        }
+                        else if (emblem.Mysterious)
+                        {
+                            row.Msg($"{McColorCodes.DARK_GRAY}[{emblem.Symbol}{McColorCodes.DARK_GRAY}] ", null,
+                                $"{McColorCodes.DARK_GRAY}???\nThis emblem is a mystery. Keep playing to discover it.\n{McColorCodes.RED}Locked");
+                        }
                         else
-                            d.CoflCommand<EmblemCommand>($"{McColorCodes.AQUA}[equip]", $"set {emblem.Id}", $"Show {emblem.Name} in front of your chat messages").LineBreak();
-                    }
-                    else if (emblem.Mysterious)
-                    {
-                        d.MsgLine($"{McColorCodes.DARK_GRAY}{emblem.Symbol} ??? {McColorCodes.GRAY}- {McColorCodes.DARK_GRAY}This emblem is a mystery. Keep playing to discover it.", null, "Mysterious emblem - the unlock condition is a surprise");
-                    }
-                    else
-                    {
-                        d.MsgLine($"{McColorCodes.DARK_GRAY}{emblem.Symbol} {emblem.Name} {McColorCodes.GRAY}- {McColorCodes.DARK_GRAY}{emblem.Description} {McColorCodes.RED}[locked]", null, emblem.Description);
-                    }
+                        {
+                            row.Msg($"{McColorCodes.DARK_GRAY}[{emblem.Symbol}{McColorCodes.DARK_GRAY}] ", null,
+                                $"{hover}\n{McColorCodes.RED}Locked");
+                        }
+
+                        if ((index + 1) % 6 == 0)
+                            row.LineBreak();
+                    });
+                    if (category.Count() % 6 != 0)
+                        d.LineBreak();
                 })
                 .If(() => !string.IsNullOrEmpty(equipped), d =>
                     d.CoflCommand<EmblemCommand>($"{McColorCodes.GRAY}[Clear equipped emblem]", "clear", "Stop showing an emblem in front of your chat messages")));
