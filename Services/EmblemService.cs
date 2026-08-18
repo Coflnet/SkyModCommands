@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
-using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
@@ -38,6 +37,7 @@ public class EmblemService
     private readonly ConcurrentDictionary<string, (HashSet<string> set, DateTime at)> cache = new();
     private readonly ConcurrentDictionary<string, (TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, DateTime at)> purchaseStatsCache = new();
     private static readonly TimeSpan cacheTtl = TimeSpan.FromMinutes(1);
+    private const int purchaseTransactionLimit = 2000;
 
     public EmblemService(HttpClient http, IConfiguration config, ILogger<EmblemService> logger)
     {
@@ -187,7 +187,7 @@ public class EmblemService
         return set;
     }
 
-    private async Task<(TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases)> GetPurchaseStats(MinecraftSocket socket, GoogleUser user)
+    internal async Task<(TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases)> GetPurchaseStats(MinecraftSocket socket, GoogleUser user)
     {
         var userId = user.Id.ToString();
         if (purchaseStatsCache.TryGetValue(userId, out var cached) && cached.at + cacheTtl > DateTime.UtcNow)
@@ -195,17 +195,23 @@ public class EmblemService
 
         try
         {
-            var productsApi = socket.GetService<IProductsApi>();
-            var now = DateTime.UtcNow;
-            var premiumTask = productsApi.ProductsServiceServiceSlugOwnedGetAsync(premiumSlug, user.CreatedAt, now);
-            var premiumPlusTask = productsApi.ProductsServiceServiceSlugOwnedGetAsync(premiumPlusSlug, user.CreatedAt, now);
-            var preApiTask = productsApi.ProductsServiceServiceSlugOwnedGetAsync(preApiSlug, user.CreatedAt, now);
-            await Task.WhenAll(premiumTask, premiumPlusTask, preApiTask);
-            var result = (
-                premium: SumOwnedTime(await premiumTask, userId),
-                premiumPlus: SumOwnedTime(await premiumPlusTask, userId),
-                preApiPurchases: CountPurchases(await preApiTask, userId),
-                at: DateTime.UtcNow);
+            var transactions = await socket.GetService<ITransactionApi>()
+                .TransactionUUserIdGetAsync(userId, 0, purchaseTransactionLimit);
+            var preApiPurchases = transactions.Count(t => t.ProductId?.StartsWith(preApiSlug, StringComparison.Ordinal) == true);
+            var historyCapped = transactions.Count >= purchaseTransactionLimit;
+            var premium = historyCapped ? TimeSpan.MaxValue : TimeSpan.Zero;
+            var premiumPlus = historyCapped ? TimeSpan.MaxValue : TimeSpan.Zero;
+            if (!historyCapped)
+            {
+                foreach (var transaction in transactions)
+                {
+                    var (duration, isPremiumPlus) = GetPremiumDuration(transaction.ProductId);
+                    premium += duration;
+                    if (isPremiumPlus)
+                        premiumPlus += duration;
+                }
+            }
+            var result = (premium, premiumPlus, preApiPurchases, at: DateTime.UtcNow);
             purchaseStatsCache[userId] = result;
             return (result.premium, result.premiumPlus, result.preApiPurchases);
         }
@@ -218,16 +224,43 @@ public class EmblemService
         }
     }
 
-    internal static TimeSpan SumOwnedTime(IEnumerable<OwnershipTimeFrame> timeFrames, string userId)
+    private (TimeSpan duration, bool premiumPlus) GetPremiumDuration(string productSlug)
     {
-        return TimeSpan.FromTicks(timeFrames
-            .Where(frame => frame.UserId == userId && frame.End > frame.Start)
-            .Sum(frame => (frame.End - frame.Start).Ticks));
+        if (productSlug?.StartsWith("l_prem_plus", StringComparison.Ordinal) == true)
+            return (GetDuration(productSlug, "l_prem_plus", TimeSpan.FromSeconds(2430000)), true);
+        if (productSlug?.StartsWith("l_premium", StringComparison.Ordinal) == true)
+            return (GetDuration(productSlug, "l_premium", TimeSpan.FromSeconds(2430000)), false);
+        if (productSlug?.StartsWith("test-premium", StringComparison.Ordinal) == true)
+            return (TimeSpan.FromDays(3), false);
+        if (productSlug?.StartsWith(premiumPlusSlug, StringComparison.Ordinal) == true)
+            return (GetDuration(productSlug, premiumPlusSlug, TimeSpan.FromDays(7)), true);
+        if (productSlug?.StartsWith(premiumSlug, StringComparison.Ordinal) == true)
+            return (GetDuration(productSlug, premiumSlug, TimeSpan.FromDays(30)), false);
+        return default;
     }
 
-    internal static int CountPurchases(IEnumerable<OwnershipTimeFrame> timeFrames, string userId)
+    private static TimeSpan GetDuration(string productSlug, string baseSlug, TimeSpan defaultDuration)
     {
-        return timeFrames.Count(frame => frame.UserId == userId && frame.End > frame.Start);
+        var suffix = productSlug.Substring(baseSlug.Length);
+        if (suffix.StartsWith("-hour", StringComparison.Ordinal))
+            return TimeSpan.FromHours(1);
+        if (suffix.StartsWith("-day", StringComparison.Ordinal))
+            return TimeSpan.FromDays(1);
+        if (suffix.StartsWith("-derpy", StringComparison.Ordinal))
+            return TimeSpan.FromDays(5);
+        if (suffix.StartsWith("-100", StringComparison.Ordinal))
+            return TimeSpan.FromDays(100);
+        if (suffix.StartsWith("-weeks", StringComparison.Ordinal))
+            return TimeSpan.FromDays(28);
+        if (suffix.StartsWith("-week", StringComparison.Ordinal))
+            return TimeSpan.FromDays(7);
+        if (suffix.StartsWith("-month", StringComparison.Ordinal))
+            return TimeSpan.FromDays(77);
+        if (suffix.StartsWith("-quart", StringComparison.Ordinal))
+            return TimeSpan.FromDays(90);
+        if (suffix.StartsWith("-year", StringComparison.Ordinal))
+            return TimeSpan.FromDays(365);
+        return defaultDuration;
     }
 
     internal static void AddPremiumTimeEmblems(HashSet<string> set, TimeSpan premium, TimeSpan premiumPlus)
