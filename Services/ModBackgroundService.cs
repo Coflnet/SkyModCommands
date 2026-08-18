@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -43,6 +44,14 @@ public class ModBackgroundService : BackgroundService
     private ConcurrentDictionary<(string, LowPricedAuction.FinderType, long), DateTime> alreadyProcessed = new();
 
     private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
+    private static readonly Prometheus.Counter redisFlipTasks = Prometheus.Metrics.CreateCounter(
+        "sky_mod_redis_flip_tasks_total", "Redis flip tasks scheduled", "source");
+    private static readonly Prometheus.Gauge redisFlipTasksOutstanding = Prometheus.Metrics.CreateGauge(
+        "sky_mod_redis_flip_tasks_outstanding", "Redis flip tasks queued or executing", "source");
+    private static readonly Prometheus.Gauge redisFlipTasksRunning = Prometheus.Metrics.CreateGauge(
+        "sky_mod_redis_flip_tasks_running", "Redis flip tasks whose delegate has started and not completed", "source");
+    private static readonly Prometheus.Histogram redisFlipTaskDuration = Prometheus.Metrics.CreateHistogram(
+        "sky_mod_redis_flip_task_duration_seconds", "Redis flip task execution duration", "source");
 
     public ModBackgroundService(
         IServiceScopeFactory scopeFactory,
@@ -184,7 +193,7 @@ public class ModBackgroundService : BackgroundService
         var hostName = System.Net.Dns.GetHostName();
         multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal("snipes"), (chan, val) =>
         {
-            Task.Run(async () =>
+            _ = RunRedisFlipTask("snipes", async () =>
             {
                 try
                 {
@@ -236,7 +245,7 @@ public class ModBackgroundService : BackgroundService
                 {
                     logger.LogError(e, "bfcs error on '{val}'", val.ToString());
                 }
-            }, new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token).ConfigureAwait(false);
+            });
         });
         logger.LogInformation("Subscribed to " + multiplexer.IsConnected + multiplexer.GetEndPoints().Select(e =>
         {
@@ -299,7 +308,7 @@ public class ModBackgroundService : BackgroundService
     {
         multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal(DonutFlipChannel), (chan, val) =>
         {
-            Task.Run(async () =>
+            _ = RunRedisFlipTask("donut", async () =>
             {
                 try
                 {
@@ -317,7 +326,7 @@ public class ModBackgroundService : BackgroundService
                 {
                     logger.LogError(e, "donut redis error on '{val}'", val.ToString());
                 }
-            }, new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token).ConfigureAwait(false);
+            });
         });
 
         logger.LogInformation("Subscribed to Donut flip redis on {Endpoint}", multiplexer.GetEndPoints().FirstOrDefault()?.ToString());
@@ -329,6 +338,36 @@ public class ModBackgroundService : BackgroundService
                 logger.LogInformation("Status of Donut Redis multiplexer: {Connected}", multiplexer.IsConnected);
             }
         });
+    }
+
+    private static async Task RunRedisFlipTask(string source, Func<Task> action)
+    {
+        var outstanding = redisFlipTasksOutstanding.WithLabels(source);
+        var running = redisFlipTasksRunning.WithLabels(source);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        outstanding.Inc();
+        redisFlipTasks.WithLabels(source).Inc();
+        try
+        {
+            await Task.Run(async () =>
+            {
+                var startedAt = Stopwatch.GetTimestamp();
+                running.Inc();
+                try
+                {
+                    await action().ConfigureAwait(false);
+                }
+                finally
+                {
+                    redisFlipTaskDuration.WithLabels(source).Observe(Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
+                    running.Dec();
+                }
+            }, cancellation.Token).ConfigureAwait(false);
+        }
+        finally
+        {
+            outstanding.Dec();
+        }
     }
 
     protected virtual async Task DistributeFlipOnServer(LowPricedAuction flip)
