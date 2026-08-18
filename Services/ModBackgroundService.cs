@@ -17,7 +17,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Coflnet.Sky.ModCommands.Services.Donut;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 using WebSocketSharp;
@@ -28,12 +27,10 @@ namespace Coflnet.Sky.ModCommands.Services;
 
 public class ModBackgroundService : BackgroundService
 {
-    private const string DonutFlipChannel = "donut:flips";
     private IServiceScopeFactory scopeFactory;
     private IConfiguration config;
     private ILogger<ModBackgroundService> logger;
     private FlipperService flipperService;
-    private IDonutFlipSubscriptionService donutFlipSubscriptionService;
     private CounterService? counterService;
     IDelayExemptList delayExemptList;
     FilterStateService filterStateService;
@@ -45,20 +42,19 @@ public class ModBackgroundService : BackgroundService
 
     private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
     private static readonly Prometheus.Counter redisFlipTasks = Prometheus.Metrics.CreateCounter(
-        "sky_mod_redis_flip_tasks_total", "Redis flip tasks scheduled", "source");
+        "sky_mod_redis_flip_tasks_total", "Redis flip tasks scheduled");
     private static readonly Prometheus.Gauge redisFlipTasksOutstanding = Prometheus.Metrics.CreateGauge(
-        "sky_mod_redis_flip_tasks_outstanding", "Redis flip tasks queued or executing", "source");
+        "sky_mod_redis_flip_tasks_outstanding", "Redis flip tasks queued or executing");
     private static readonly Prometheus.Gauge redisFlipTasksRunning = Prometheus.Metrics.CreateGauge(
-        "sky_mod_redis_flip_tasks_running", "Redis flip tasks whose delegate has started and not completed", "source");
+        "sky_mod_redis_flip_tasks_running", "Redis flip tasks whose delegate has started and not completed");
     private static readonly Prometheus.Histogram redisFlipTaskDuration = Prometheus.Metrics.CreateHistogram(
-        "sky_mod_redis_flip_task_duration_seconds", "Redis flip task execution duration", "source");
+        "sky_mod_redis_flip_task_duration_seconds", "Redis flip task execution duration");
 
     public ModBackgroundService(
         IServiceScopeFactory scopeFactory,
         IConfiguration config,
         ILogger<ModBackgroundService> logger,
         FlipperService flipperService,
-        IDonutFlipSubscriptionService donutFlipSubscriptionService,
         CounterService? counterService,
         IDelayExemptList iDelayExemptList,
         FilterStateService filterStateService,
@@ -69,7 +65,6 @@ public class ModBackgroundService : BackgroundService
         this.config = config;
         this.logger = logger;
         this.flipperService = flipperService;
-        this.donutFlipSubscriptionService = donutFlipSubscriptionService;
         this.counterService = counterService;
         delayExemptList = iDelayExemptList;
         this.filterStateService = filterStateService;
@@ -140,7 +135,6 @@ public class ModBackgroundService : BackgroundService
                 logger.LogError(e, "redis error");
             }
         }
-        SubscribeToDonutFlipRedis(stoppingToken);
     }
 
     private async Task<List<ConnectionMultiplexer>> GetConnections()
@@ -193,7 +187,7 @@ public class ModBackgroundService : BackgroundService
         var hostName = System.Net.Dns.GetHostName();
         multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal("snipes"), (chan, val) =>
         {
-            _ = RunRedisFlipTask("snipes", async () =>
+            _ = RunRedisFlipTask(async () =>
             {
                 try
                 {
@@ -284,102 +278,36 @@ public class ModBackgroundService : BackgroundService
         });
     }
 
-    private void SubscribeToDonutFlipRedis(CancellationToken stoppingToken)
+    private static async Task RunRedisFlipTask(Func<Task> action)
     {
-        var donutRedisHost = config["DONUT_FLIP_REDIS_HOST"];
-        if (string.IsNullOrWhiteSpace(donutRedisHost))
-        {
-            logger.LogInformation("No DONUT_FLIP_REDIS_HOST configured, skipping Donut flip subscription");
-            return;
-        }
-
-        try
-        {
-            var multiplexer = ConnectionMultiplexer.Connect(ConfigurationOptions.Parse(donutRedisHost));
-            SubscribeDonutConnection(multiplexer, stoppingToken);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Failed to connect to Donut flip redis");
-        }
-    }
-
-    private void SubscribeDonutConnection(ConnectionMultiplexer multiplexer, CancellationToken stoppingToken)
-    {
-        multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal(DonutFlipChannel), (chan, val) =>
-        {
-            _ = RunRedisFlipTask("donut", async () =>
-            {
-                try
-                {
-                    var flip = DonutPublishedFlipParser.Parse(val);
-                    if (flip == null || flip.TargetPrice < flip.Auction.StartingBid + 100_000)
-                        return;
-                    if (alreadyProcessed.TryGetValue((flip.Auction.Uuid, flip.Finder, flip.TargetPrice), out var last)
-                        && last > DateTime.UtcNow - TimeSpan.FromMinutes(1))
-                        return;
-
-                    alreadyProcessed[(flip.Auction.Uuid, flip.Finder, flip.TargetPrice)] = DateTime.UtcNow;
-                    await DistributeFlipOnServer(flip).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e, "donut redis error on '{val}'", val.ToString());
-                }
-            });
-        });
-
-        logger.LogInformation("Subscribed to Donut flip redis on {Endpoint}", multiplexer.GetEndPoints().FirstOrDefault()?.ToString());
-        Task.Run(async () =>
-        {
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(150), stoppingToken);
-                logger.LogInformation("Status of Donut Redis multiplexer: {Connected}", multiplexer.IsConnected);
-            }
-        });
-    }
-
-    private static async Task RunRedisFlipTask(string source, Func<Task> action)
-    {
-        var outstanding = redisFlipTasksOutstanding.WithLabels(source);
-        var running = redisFlipTasksRunning.WithLabels(source);
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-        outstanding.Inc();
-        redisFlipTasks.WithLabels(source).Inc();
+        redisFlipTasksOutstanding.Inc();
+        redisFlipTasks.Inc();
         try
         {
             await Task.Run(async () =>
             {
                 var startedAt = Stopwatch.GetTimestamp();
-                running.Inc();
+                redisFlipTasksRunning.Inc();
                 try
                 {
                     await action().ConfigureAwait(false);
                 }
                 finally
                 {
-                    redisFlipTaskDuration.WithLabels(source).Observe(Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
-                    running.Dec();
+                    redisFlipTaskDuration.Observe(Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
+                    redisFlipTasksRunning.Dec();
                 }
             }, cancellation.Token).ConfigureAwait(false);
         }
         finally
         {
-            outstanding.Dec();
+            redisFlipTasksOutstanding.Dec();
         }
     }
 
-    protected virtual async Task DistributeFlipOnServer(LowPricedAuction flip)
-    {
-        if (DonutServerContext.IsDonut(flip))
-        {
-            await donutFlipSubscriptionService.DeliverAsync(flip).ConfigureAwait(false);
-            return;
-        }
-
-        await flipperService.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
-    }
+    protected virtual Task DistributeFlipOnServer(LowPricedAuction flip)
+        => flipperService.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS);
 
     private static void FixTfmMetadata(LowPricedAuction flip)
     {
