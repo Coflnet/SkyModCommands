@@ -122,10 +122,19 @@ public static class BazaarOrderStateHelper
         return true;
     }
 
-    public static void SyncSentOrdersWithUpload(List<SentBazaarOrderInfo> sentOrders, IEnumerable<BazaarOrderInfo> uploadedOrders)
+    /// <summary>
+    /// Matches sent recommendations against the freshly uploaded order overview: any sent order that is
+    /// still open gets its <see cref="SentBazaarOrderInfo.ConfirmedAt"/> set (first time only), and any
+    /// sent order no longer present in the overview is dropped (either it filled/expired, or it was
+    /// never placed at all). Returns the recommendations that were newly confirmed by this call - i.e.
+    /// went from unconfirmed to confirmed just now - so callers can record the "user acted" compliance
+    /// signal (see BazaarRecommendationTelemetry) exactly once per recommendation.
+    /// </summary>
+    public static List<SentBazaarOrderInfo> SyncSentOrdersWithUpload(List<SentBazaarOrderInfo> sentOrders, IEnumerable<BazaarOrderInfo> uploadedOrders)
     {
+        var newlyConfirmed = new List<SentBazaarOrderInfo>();
         if (sentOrders == null || sentOrders.Count == 0)
-            return;
+            return newlyConfirmed;
 
         var uploadedKeys = (uploadedOrders ?? Enumerable.Empty<BazaarOrderInfo>())
             .Where(IsTrackedOrder)
@@ -134,10 +143,14 @@ public static class BazaarOrderStateHelper
 
         foreach (var tracked in sentOrders.Where(order => uploadedKeys.Contains(GetTrackingKey(order))))
         {
-            tracked.ConfirmedAt ??= DateTime.UtcNow;
+            if (tracked.ConfirmedAt != null)
+                continue;
+            tracked.ConfirmedAt = DateTime.UtcNow;
+            newlyConfirmed.Add(tracked);
         }
 
         sentOrders.RemoveAll(order => !uploadedKeys.Contains(GetTrackingKey(order)));
+        return newlyConfirmed;
     }
 
     private static BazaarOrderInfo ParseOrder(SaveAuction item)

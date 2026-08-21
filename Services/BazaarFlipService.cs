@@ -12,6 +12,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Items.Client.Api;
 using Coflnet.Sky.Items.Client.Model;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -27,13 +28,14 @@ public class BazaarFlipService : BackgroundService
     private readonly FlipperService flipperService;
     private readonly IBazaarFlipperApi bazaarFlipperApi;
     private readonly IOrderBookApi orderBookApi;
+    private readonly IFleetApi fleetApi;
     private readonly FilterStateService filterStateService;
     private readonly IItemsApi itemsApi;
+    private readonly IConfiguration configuration;
     private readonly ILogger<BazaarFlipService> logger;
 
     private static readonly Prometheus.Counter bazaarFlipsSent =
         Prometheus.Metrics.CreateCounter("sky_bazaar_flips_sent", "Count of bazaar flips distributed to users");
-
     private const int FlipsPerTierSlice = 3;
     private static readonly TimeSpan PremiumPlusFullListFallbackThreshold = TimeSpan.FromMinutes(5);
     /// <summary>
@@ -51,7 +53,6 @@ public class BazaarFlipService : BackgroundService
     /// ~4s between orders, so serial draining would blow past the 20s cycle once there are many users.
     /// </summary>
     private const int SellPhaseConcurrency = 8;
-
     /// <summary>
     /// Snapshot of the most recently fetched candidate pools and item names, reused by
     /// <see cref="RefillOrders"/> so an order overview upload can refill orders
@@ -60,20 +61,41 @@ public class BazaarFlipService : BackgroundService
     private volatile TierCandidatePools latestPools;
     private volatile Dictionary<string, string> latestNames;
 
+    /// <summary>Default number of coordinated SkyModCommands instances if FLEET_INSTANCE_COUNT is unset.</summary>
+    private const int DefaultFleetInstanceCount = 3;
+
     public BazaarFlipService(
         FlipperService flipperService,
         IBazaarFlipperApi bazaarFlipperApi,
         IOrderBookApi orderBookApi,
+        IFleetApi fleetApi,
         FilterStateService filterStateService,
         IItemsApi itemsApi,
+        IConfiguration configuration,
         ILogger<BazaarFlipService> logger)
     {
         this.flipperService = flipperService;
         this.bazaarFlipperApi = bazaarFlipperApi;
         this.orderBookApi = orderBookApi;
+        this.fleetApi = fleetApi;
         this.filterStateService = filterStateService;
         this.itemsApi = itemsApi;
+        this.configuration = configuration;
         this.logger = logger;
+    }
+
+    /// <summary>
+    /// Number of coordinated SkyModCommands instances sharing the bazaar's real absorption capacity.
+    /// Each instance must claim only its fair share (1/N) when calling IFleetApi.FleetAllocatePostAsync,
+    /// or the fleet across instances would over-allocate market capacity.
+    /// </summary>
+    private int FleetInstanceCount
+    {
+        get
+        {
+            var configured = configuration?.GetValue<int?>("FLEET_INSTANCE_COUNT");
+            return configured is > 0 ? configured.Value : DefaultFleetInstanceCount;
+        }
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -196,6 +218,16 @@ public class BazaarFlipService : BackgroundService
     /// </summary>
     private async Task RunBuyDistribution(List<MinecraftSocket> buyers, Dictionary<string, string> names, CancellationToken ct)
     {
+        try
+        {
+            await RunFleetAllocationBuyDistribution(buyers, names, ct);
+            return;
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Bazaar fleet allocation failed, falling back to tier-slice distribution for this cycle");
+        }
+
         var pools = latestPools;
         if (pools == null)
             return;
@@ -222,6 +254,171 @@ public class BazaarFlipService : BackgroundService
             await RecommendBestMatch(buyer.Socket, names, buyer.Candidates, buyer.UseFallback,
                 BazaarOrderStateHelper.MaxOpenBuyOrders, books, assignedTags);
         }
+    }
+
+    /// <summary>
+    /// Capacity-aware, budget-sized, cross-user-deconflicted alternative to the tier-slice buy
+    /// distribution above. Delegates sizing to SkyBazaarFlipper's fleet allocator
+    /// (<see cref="IFleetApi"/>'s FleetAllocatePostAsync) instead of each user independently picking
+    /// from their own tier slice, so the shared market capacity is split fairly across every
+    /// connected trader (and, via <see cref="FleetInstanceCount"/>, across every coordinated
+    /// SkyModCommands instance) instead of everyone piling onto the same top items.
+    /// </summary>
+    private async Task RunFleetAllocationBuyDistribution(List<MinecraftSocket> buyers, Dictionary<string, string> names, CancellationToken ct)
+    {
+        var roster = BuildFleetRoster(buyers);
+        if (roster.Count == 0)
+            return;
+
+        var request = new FleetAllocateRequest
+        {
+            Mode = "Fast",
+            CapacityShare = 1.0 / FleetInstanceCount,
+            TargetHoldTimeHours = 1,
+            MaxCoinExposurePerItem = 0,
+            Traders = roster,
+            InstanceId = System.Environment.MachineName,
+        };
+
+        var response = await fleetApi.FleetAllocatePostAsync(request, cancellationToken: ct);
+        if (response == null)
+            return;
+
+        await ApplyFleetAssignments(response.Assignments, buyers, names, ct);
+    }
+
+    /// <summary>
+    /// Builds the fleet roster from the same active-buyer set <see cref="RunBuyDistribution"/> already
+    /// computed (no separate gate), skipping anyone <see cref="BuildFleetTraderRequest"/> declines
+    /// (no free slot or no budget).
+    /// </summary>
+    private static List<FleetTraderRequest> BuildFleetRoster(List<MinecraftSocket> buyers)
+    {
+        var roster = new List<FleetTraderRequest>();
+        foreach (var socket in buyers)
+        {
+            var info = socket.SessionInfo;
+            var freeSlots = BazaarOrderStateHelper.MaxTotalOrders - info.ActiveBazaarOrderCount;
+            var trader = BuildFleetTraderRequest(info.McUuid, info.SessionTier, info.IsMacroBot, info.Purse, freeSlots);
+            if (trader != null)
+                roster.Add(trader);
+        }
+        return roster;
+    }
+
+    /// <summary>
+    /// Pure adapter from a connected buyer's live session fields into a <see cref="FleetTraderRequest"/>,
+    /// or null when the trader has no free buy slot or no budget to contend with this cycle. Priority
+    /// encodes tier as the dominant factor and real-user-over-bot as the tiebreak within a tier.
+    /// </summary>
+    internal static FleetTraderRequest BuildFleetTraderRequest(string uuid, AccountTier tier, bool isBot, long purse, int freeSlots)
+    {
+        if (freeSlots <= 0)
+            return null;
+
+        // TODO subtract outstanding open-order value
+        var budgetCoins = 2.0 / 3.0 * purse;
+        if (budgetCoins <= 0)
+            return null;
+
+        return new FleetTraderRequest
+        {
+            Id = uuid,
+            Priority = (int)tier * 2 + (isBot ? 0 : 1),
+            BudgetCoins = budgetCoins,
+            MaxItems = Math.Min(10, freeSlots),
+            IsBot = isBot
+        };
+    }
+
+    /// <summary>
+    /// Resolves each <see cref="TraderAllocationDto"/> back to its socket by uuid and sends at most one
+    /// buy recommendation per user via the existing <see cref="FullAfVersionAdapter.SendBazaarOrderRecommendation"/>
+    /// path, preserving today's one-per-cycle cadence. The allocator re-runs every cycle so a user's full
+    /// basket builds iteratively. // v2: send the full basket in one shot instead.
+    /// </summary>
+    private async Task ApplyFleetAssignments(List<TraderAllocationDto> assignments, List<MinecraftSocket> buyers, Dictionary<string, string> names, CancellationToken ct)
+    {
+        if (assignments == null || assignments.Count == 0)
+            return;
+
+        var byUuid = new Dictionary<string, MinecraftSocket>(StringComparer.OrdinalIgnoreCase);
+        foreach (var socket in buyers)
+        {
+            if (!string.IsNullOrEmpty(socket.SessionInfo.McUuid))
+                byUuid.TryAdd(socket.SessionInfo.McUuid, socket);
+        }
+
+        foreach (var assignment in assignments)
+        {
+            if (ct.IsCancellationRequested)
+                break;
+            if (assignment?.TraderId == null || !byUuid.TryGetValue(assignment.TraderId, out var socket))
+                continue;
+
+            var held = HeldItemTags(socket.SessionInfo);
+            var order = SelectOrderToSend(assignment, held);
+            if (order == null)
+                continue;
+
+            try
+            {
+                await SendFleetOrderRecommendation(socket, order, names);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error sending fleet allocation bazaar recommendation for user");
+            }
+        }
+    }
+
+    private static HashSet<string> HeldItemTags(SessionInfo sessionInfo)
+    {
+        var held = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var orders = sessionInfo?.BazaarOrders;
+        if (orders == null)
+            return held;
+        foreach (var order in orders)
+        {
+            if (order != null && !string.IsNullOrEmpty(order.ItemTag))
+                held.Add(order.ItemTag);
+        }
+        return held;
+    }
+
+    /// <summary>
+    /// Picks the single order to act on from one trader's fleet allocation: the first order for an
+    /// item the trader does not already hold an open order on (the endpoint returns orders
+    /// richest-first, so "first eligible" is also "best eligible"). Null when every offered item is
+    /// already held.
+    /// </summary>
+    internal static OrderRecommendationDto SelectOrderToSend(TraderAllocationDto allocation, IReadOnlySet<string> heldItemTags)
+    {
+        if (allocation?.Orders == null)
+            return null;
+
+        foreach (var order in allocation.Orders)
+        {
+            if (order == null || string.IsNullOrEmpty(order.ItemTag))
+                continue;
+            if (heldItemTags != null && heldItemTags.Contains(order.ItemTag))
+                continue;
+            return order;
+        }
+        return null;
+    }
+
+    private async Task SendFleetOrderRecommendation(MinecraftSocket socket, OrderRecommendationDto order, Dictionary<string, string> names)
+    {
+        if (socket.ModAdapter is not FullAfVersionAdapter fullAf || order.Amount <= 0)
+            return;
+
+        var itemName = BazaarUtils.GetSearchValue(order.ItemTag,
+            names.TryGetValue(order.ItemTag, out var dn) ? dn : order.ItemTag);
+        var category = await BazaarOrderAmountHelper.GetKnownItemCategory(order.ItemTag, filterStateService);
+        if (fullAf.SendBazaarOrderRecommendation(order.ItemTag, itemName, order.IsSell, order.PricePerUnit,
+            (int)Math.Round(order.Amount), category))
+            bazaarFlipsSent.Inc();
     }
 
     private async Task<IReadOnlyDictionary<string, OrderBook>> FetchOrderBooks(IEnumerable<string> tags)

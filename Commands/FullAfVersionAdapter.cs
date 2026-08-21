@@ -712,6 +712,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             // otherwise an actively-selling user never expands past their top tier bracket
             socket.SessionInfo.LastBazaarRecommendationAt = DateTime.UtcNow;
         BazaarOrderStateHelper.TryTrackSentOrder(socket.SessionInfo.SentBazaarOrders, itemTag, itemName, side, price, cappedAmount);
+        BazaarRecommendationTelemetry.RecordSent(socket.SessionInfo.SessionTier, socket.SessionInfo.IsMacroBot);
         return true;
     }
 

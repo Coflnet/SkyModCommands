@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.Commands.Shared;
 using Newtonsoft.Json;
@@ -29,7 +31,8 @@ public class UploadBazaarOrders : McCommand
         }
 
         socket.SessionInfo.BazaarOrders = BazaarOrderStateHelper.ParseOpenOrders(arguments, parser);
-        BazaarOrderStateHelper.SyncSentOrdersWithUpload(socket.SessionInfo.SentBazaarOrders, socket.SessionInfo.BazaarOrders);
+        var newlyConfirmed = BazaarOrderStateHelper.SyncSentOrdersWithUpload(socket.SessionInfo.SentBazaarOrders, socket.SessionInfo.BazaarOrders);
+        RecordActedRecommendations(socket, newlyConfirmed);
         Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.BazaarOrders));
         Activity.Current?.Log("Bazaar orders tracked: " + socket.SessionInfo.ActiveBazaarOrderCount);
         if(socket.SessionInfo.ActiveBazaarOrderCount >= 1)
@@ -38,6 +41,23 @@ public class UploadBazaarOrders : McCommand
         }
 
         await TryRefillOrders(socket);
+    }
+
+    /// <summary>
+    /// Records the "user acted on the recommendation" half of the compliance signal (see
+    /// BazaarRecommendationTelemetry) for every recommendation that just got its ConfirmedAt set by this
+    /// upload. Gated on <see cref="FullAfVersionAdapter"/> like <see cref="TryRefillOrders"/> below;
+    /// only macro-bot clients populate SentBazaarOrders.
+    /// </summary>
+    private static void RecordActedRecommendations(MinecraftSocket socket, List<SentBazaarOrderInfo> newlyConfirmed)
+    {
+        if (newlyConfirmed == null || newlyConfirmed.Count == 0 || socket.ModAdapter is not FullAfVersionAdapter)
+            return;
+
+        var tier = socket.SessionInfo.SessionTier;
+        var isBot = socket.SessionInfo.IsMacroBot;
+        foreach (var _ in newlyConfirmed)
+            BazaarRecommendationTelemetry.RecordActed(tier, isBot);
     }
 
     /// <summary>

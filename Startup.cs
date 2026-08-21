@@ -66,9 +66,12 @@ public class Startup
         services.AddHostedService(service =>
             service.GetRequiredService<AgreementManifestService>());
         services.AddHostedService<ModBackgroundService>();
+        services.AddHostedService<MemoryDiagnosticsService>();
         services.AddHostedService<MuseumDonationCleanupService>();
         services.AddSingleton<BazaarFlipService>();
         services.AddHostedService(s => s.GetRequiredService<BazaarFlipService>());
+        services.AddSingleton<IFleetApi, FleetApi>(s =>
+            new FleetApi(s.GetRequiredService<IConfiguration>()["BAZAARFLIPPER_BASE_URL"]));
         services.AddHostedService<BazaarSignalSubscriptionService>();
         services.AddHostedService(s => s.GetRequiredService<FlipperService>());
         services.AddJaeger(Configuration, 1, 1);

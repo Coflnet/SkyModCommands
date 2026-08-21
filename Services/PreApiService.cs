@@ -58,7 +58,9 @@ public class PreApiService : BackgroundService, IPreApiService
     private List<string> preApiUsers = new();
     private ConcurrentDictionary<string, AccountTier> sold = new();
     private ConcurrentDictionary<string, DateTime> sent = new();
-    private ConcurrentDictionary<int, List<IMinecraftSocket>> notifyWhenUserLeave = new();
+    private ConcurrentDictionary<(int count, IMinecraftSocket socket), byte> notifyWhenUserLeave = new();
+    private static readonly Prometheus.Gauge slotNotificationWaiters = Prometheus.Metrics.CreateGauge(
+        "sky_mod_preapi_slot_notification_waiters", "Connections retained while waiting for a pre-api slot");
     private IConfiguration config;
     public int PreApiUserCount => preApiUsers.Count;
     public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi, IBaseApi baseApi, IConfiguration config)
@@ -142,6 +144,11 @@ public class PreApiService : BackgroundService, IPreApiService
     public void RemoveUser(IFlipConnection connection)
     {
         localUsers.TryRemove(connection, out _);
+        if (connection is not IMinecraftSocket socket)
+            return;
+        foreach (var registration in notifyWhenUserLeave.Keys.Where(registration => ReferenceEquals(registration.socket, socket)))
+            notifyWhenUserLeave.TryRemove(registration, out _);
+        UpdateSlotNotificationWaiters();
     }
 
     private static void SendEndWarnings()
@@ -161,11 +168,8 @@ public class PreApiService : BackgroundService, IPreApiService
 
     public void AddNotify(int count, IMinecraftSocket socket)
     {
-        notifyWhenUserLeave.AddOrUpdate(count, new List<IMinecraftSocket>() { socket }, (_, old) =>
-        {
-            old.Add(socket);
-            return old;
-        });
+        notifyWhenUserLeave.TryAdd((count, socket), 0);
+        UpdateSlotNotificationWaiters();
     }
 
     public bool IsSold(string uuid)
@@ -182,21 +186,23 @@ public class PreApiService : BackgroundService, IPreApiService
         try
         {
             preApiUsers = await productsApi.ProductsServiceServiceSlugIdsGetAsync("pre_api") ?? new();
-            if (notifyWhenUserLeave.TryGetValue(preApiUsers.Count, out var sockets))
+            foreach (var registration in notifyWhenUserLeave.Keys.Where(registration => registration.count == preApiUsers.Count))
             {
-                foreach (var item in sockets)
-                {
-                    item.Dialog(db => db.CoflCommand<PurchaseCommand>($"There are now {McColorCodes.RED}{preApiUsers.Count}{McColorCodes.WHITE} users with {McColorCodes.RED}pre api{McColorCodes.WHITE}\nClick {McColorCodes.RED}here{McColorCodes.WHITE} to purchase", "pre_api",
-                    $"{McColorCodes.RED}Starts the purchase for an hour of {McColorCodes.RED}pre api{McColorCodes.WHITE}"));
-                }
-                notifyWhenUserLeave.TryRemove(preApiUsers.Count, out _);
+                if (!notifyWhenUserLeave.TryRemove(registration, out _))
+                    continue;
+                registration.socket.Dialog(db => db.CoflCommand<PurchaseCommand>($"There are now {McColorCodes.RED}{preApiUsers.Count}{McColorCodes.WHITE} users with {McColorCodes.RED}pre api{McColorCodes.WHITE}\nClick {McColorCodes.RED}here{McColorCodes.WHITE} to purchase", "pre_api",
+                        $"{McColorCodes.RED}Starts the purchase for an hour of {McColorCodes.RED}pre api{McColorCodes.WHITE}"));
             }
+            UpdateSlotNotificationWaiters();
         }
         catch (Exception e)
         {
             logger.LogError(e, "Failed to get pre api users");
         }
     }
+
+    private void UpdateSlotNotificationWaiters()
+        => slotNotificationWaiters.Set(notifyWhenUserLeave.Count);
 
     public void AddUser(IFlipConnection connection, DateTime expires)
     {

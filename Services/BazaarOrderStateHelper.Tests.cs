@@ -240,6 +240,34 @@ public class BazaarOrderStateHelperTests
         Assert.That(sentOrders[0].ConfirmedAt, Is.Not.Null);
     }
 
+    [Test]
+    public void SyncSentOrdersWithUploadReturnsOnlyNewlyConfirmedOrders()
+    {
+        var sentOrders = new List<SentBazaarOrderInfo>
+        {
+            // still open, not yet confirmed -> should be reported as newly confirmed
+            new() { ItemTag = "WHEAT", ItemName = "Wheat", Side = BazaarOrderSide.Buy, PricePerUnit = 25130.6, Amount = 400 },
+            // already confirmed by an earlier upload -> must not be reported again
+            new() { ItemTag = "VOLCANIC_ROCK", ItemName = "Volcanic Rock", Side = BazaarOrderSide.Sell, PricePerUnit = 2999999.7, Amount = 3, ConfirmedAt = System.DateTime.UtcNow.AddMinutes(-5) },
+            // never shows up in the overview -> ignored, not confirmed, dropped
+            new() { ItemTag = "ENCHANTED_COOKIE", ItemName = "Enchanted Cookie", Side = BazaarOrderSide.Buy, PricePerUnit = 5, Amount = 1 }
+        };
+        var uploadedOrders = new List<BazaarOrderInfo>
+        {
+            new() { ItemTag = "WHEAT", ItemName = "Wheat", Side = BazaarOrderSide.Buy, Amount = 400, PricePerUnit = 25130.6 },
+            new() { ItemTag = "VOLCANIC_ROCK", ItemName = "Volcanic Rock", Side = BazaarOrderSide.Sell, Amount = 3, PricePerUnit = 2999999.7 }
+        };
+
+        var newlyConfirmed = BazaarOrderStateHelper.SyncSentOrdersWithUpload(sentOrders, uploadedOrders);
+
+        Assert.That(newlyConfirmed.Count, Is.EqualTo(1));
+        Assert.That(newlyConfirmed[0].ItemTag, Is.EqualTo("WHEAT"));
+        // the previously-confirmed and now-ignored/dropped orders never appear
+        Assert.That(newlyConfirmed.Any(o => o.ItemTag == "VOLCANIC_ROCK"), Is.False);
+        Assert.That(newlyConfirmed.Any(o => o.ItemTag == "ENCHANTED_COOKIE"), Is.False);
+        Assert.That(sentOrders.Select(o => o.ItemTag), Is.EquivalentTo(new[] { "WHEAT", "VOLCANIC_ROCK" }));
+    }
+
     [TestCase(19, false)]
     [TestCase(20, true)]
     [TestCase(21, true)]
