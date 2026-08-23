@@ -4,6 +4,8 @@ using Coflnet.Sky.Commands.Shared;
 using NUnit.Framework;
 using Moq;
 using System.Linq;
+using System;
+using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC;
 public class ModVersionAdapterTests
@@ -51,5 +53,21 @@ public class ModVersionAdapterTests
         Assert.That(adapter.Messages.Count, Is.EqualTo(1));
         Assert.That(string.Join("|", adapter.Messages[0].Select(p => p.text)), Is.EqualTo(result));
 
+    }
+
+    [Test]
+    public void Login_prompt_hover_includes_link_and_web_links_hint()
+    {
+        const string loginLink = "https://example.com/login/test";
+        ChatPart[] message = null;
+        var socket = new Mock<IMinecraftSocket>();
+        socket.Setup(s => s.Dialog(It.IsAny<Func<SocketDialogBuilder, DialogBuilder>>()))
+            .Callback<Func<SocketDialogBuilder, DialogBuilder>>(create => message = create(new SocketDialogBuilder(null)).Build());
+
+        new TestModVersionAdapter(socket.Object).SendLoginPrompt(loginLink);
+
+        var loginPart = message.Single(p => p.onClick == loginLink);
+        Assert.That(loginPart.hover, Does.Contain(loginLink));
+        Assert.That(loginPart.hover, Does.Contain("enable Web Links"));
     }
 }

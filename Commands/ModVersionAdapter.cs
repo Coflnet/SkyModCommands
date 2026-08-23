@@ -145,7 +145,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             socket.Dialog(db => db.Msg($"Please {McColorCodes.WHITE}§lclick this [LINK] to login{McColorCodes.GRAY} so we can load your settings §8(do '/cofl help login' to get more info)"
              + $"\n{McColorCodes.DARK_GRAY}Run '/cofl nologin' to avoid this message",
-                loginLink, "Click to login")
+                loginLink, $"Click to login\n{loginLink}\nIf clicking does not work, enable Web Links in Minecraft's Chat Settings.")
                 .AddMargin(""));
         }
 
