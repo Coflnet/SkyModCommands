@@ -149,7 +149,7 @@ public class ModSessionLifesycleTests
     }
 
     [Test]
-    public async Task FlipAlwaysRegistersConnectionForDelivery()
+    public async Task FlipAlwaysDoesNotReplaceExistingRegistration()
     {
         var tierManager = new Mock<IAccountTierManager>();
         tierManager.Setup(manager => manager.GetCurrentCached()).ReturnsAsync(AccountTier.PREMIUM_PLUS);
@@ -161,13 +161,15 @@ public class ModSessionLifesycleTests
             ModSettings = new(),
             AllowedFinders = FinderType.FLIPPER_AND_SNIPERS
         });
+        lifesycle.UpdateConnectionTier(AccountTier.PREMIUM_PLUS);
+        var registration = DiHandler.GetService<FlipperService>().Connections.Single();
         socket.SessionInfo.FlipsEnabled = false;
 
         await new FlipCommand().Execute(socket, "always");
 
         socket.SessionInfo.FlipsEnabled.Should().BeTrue();
-        DiHandler.GetService<FlipperService>().Connections.Should().ContainSingle(
-            connection => ReferenceEquals(connection.Connection, socket));
+        DiHandler.GetService<FlipperService>().Connections.Should().ContainSingle()
+            .Which.Should().BeSameAs(registration);
     }
 
     [TestCase(true)]
