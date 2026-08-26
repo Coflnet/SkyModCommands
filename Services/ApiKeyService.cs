@@ -96,7 +96,7 @@ public class ApiKeyService
     /// <param name="profileId">The profile ID</param>
     /// <param name="minecraftName">The Minecraft name</param>
     /// <returns>The generated API key</returns>
-    public async Task<string> GenerateApiKey(string userId, string minecraftUuid, string profileId, string minecraftName)
+    public virtual async Task<string> GenerateApiKey(string userId, string minecraftUuid, string profileId, string minecraftName)
     {
         try
         {
@@ -194,12 +194,12 @@ public class ApiKeyService
     /// </summary>
     /// <param name="userId">The user ID</param>
     /// <returns>List of API keys for the user</returns>
-    public async Task<IEnumerable<ApiKey>> GetUserApiKeys(string userId)
+    public virtual async Task<IEnumerable<ApiKey>> GetUserApiKeys(string userId)
     {
         try
         {
-            // Note: This requires a secondary index on user_id which should be created separately
-            var result = await apiKeyTable.Where(k => k.UserId == userId).ExecuteAsync();
+            // user_id is not the partition key, and older deployments may not have its secondary index.
+            var result = await apiKeyTable.Where(k => k.UserId == userId).AllowFiltering().ExecuteAsync();
             return result;
         }
         catch (Exception ex)
