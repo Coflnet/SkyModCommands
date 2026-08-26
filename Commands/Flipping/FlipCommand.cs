@@ -30,6 +30,7 @@ public class FlipCommand : McCommand
                 flipSettings.Value.LastChanged = "flips enabled";
                 await flipSettings.Update();
                 socket.SessionInfo.FlipsEnabled = true;
+                socket.sessionLifesycle.UpdateConnectionTier(await socket.sessionLifesycle.TierManager.GetCurrentCached());
                 WriteCurrentState(socket);
                 socket.Dialog(db => db.CoflCommand<SetCommand>(
                     $"To disable flipper autostart do \n{McColorCodes.AQUA}/cofl set modAutoStartFlipper false",

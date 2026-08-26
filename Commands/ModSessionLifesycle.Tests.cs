@@ -148,6 +148,28 @@ public class ModSessionLifesycleTests
         DiHandler.GetService<FlipperService>().Connections.Should().HaveCount(1);
     }
 
+    [Test]
+    public async Task FlipAlwaysRegistersConnectionForDelivery()
+    {
+        var tierManager = new Mock<IAccountTierManager>();
+        tierManager.Setup(manager => manager.GetCurrentCached()).ReturnsAsync(AccountTier.PREMIUM_PLUS);
+        lifesycle.TierManager = tierManager.Object;
+        DiHandler.OverrideService<ITutorialService, TutorialService>(new TutorialService());
+        lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings
+        {
+            Visibility = new(),
+            ModSettings = new(),
+            AllowedFinders = FinderType.FLIPPER_AND_SNIPERS
+        });
+        socket.SessionInfo.FlipsEnabled = false;
+
+        await new FlipCommand().Execute(socket, "always");
+
+        socket.SessionInfo.FlipsEnabled.Should().BeTrue();
+        DiHandler.GetService<FlipperService>().Connections.Should().ContainSingle(
+            connection => ReferenceEquals(connection.Connection, socket));
+    }
+
     [TestCase(true)]
     [TestCase(false)]
     public async Task PremiumTierFilterUpgrades(bool replace)
