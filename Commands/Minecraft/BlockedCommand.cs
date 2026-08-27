@@ -242,7 +242,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (searchVal == "profit")
             {
-                flipsToSend = socket.TopBlocked.OrderByDescending(b => b.Flip.TargetPrice - b.Flip.Auction.StartingBid).Take(candidateCount).ToList();
+                flipsToSend = socket.TopBlocked.OrderByDescending(b => FlipInstance.ProfitAfterFees(b.Flip.TargetPrice, b.Flip.Auction.StartingBid)).Take(candidateCount).ToList();
                 socket.Dialog(db => db.MsgLine("Blocked flips sorted by profit"));
             }
             else if (IsBazaarSearch(searchVal))
