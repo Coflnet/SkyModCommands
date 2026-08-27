@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Coflnet.Sky.Core;
 using NUnit.Framework;
 
@@ -53,5 +55,36 @@ public class BlockedCommandTests
         Assert.That(BlockedCommand.GetOpenCommand(flip), Is.EqualTo("/bz Volcanic Rock"));
         Assert.That(BlockedCommand.GetOpenLabel(flip), Is.EqualTo(" §l[bz]§r"));
         Assert.That(BlockedCommand.SupportsFlipOptions(flip), Is.False);
+    }
+
+    [Test]
+    public void PrepareBlockedOutputKeepsProfitOrderAfterCollapsingEntries()
+    {
+        var highProfit = Blocked("high", 5_000_000, DateTime.UtcNow.AddMinutes(-1));
+        var recentLowProfit = Blocked("low", 1_000_000, DateTime.UtcNow);
+
+        var result = BlockedCommand.PrepareBlockedOutput(
+            [highProfit, recentLowProfit],
+            blocked => blocked.Flip.TargetPrice,
+            sortByProfit: true);
+
+        Assert.That(result.Select(display => display.Blocked.Flip.Auction.Uuid),
+            Is.EqualTo(new[] { "high", "low" }));
+        Assert.That(result.Select(display => display.Profit),
+            Is.EqualTo(new long[] { 5_000_000, 1_000_000 }));
+    }
+
+    private static MinecraftSocket.BlockedElement Blocked(string uuid, long targetPrice, DateTime now)
+    {
+        return new MinecraftSocket.BlockedElement
+        {
+            Flip = new LowPricedAuction
+            {
+                TargetPrice = targetPrice,
+                Auction = new SaveAuction { Uuid = uuid }
+            },
+            Reason = "minProfit",
+            Now = now
+        };
     }
 }

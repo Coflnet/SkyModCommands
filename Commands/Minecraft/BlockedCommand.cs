@@ -74,13 +74,17 @@ namespace Coflnet.Sky.Commands.MC
             return $"{auctionKey}|{blocked.Reason}";
         }
 
-        private class DisplayBlockedElement
+        internal class DisplayBlockedElement
         {
             public MinecraftSocket.BlockedElement Blocked = null!;
             public bool HasEstimateRange;
+            public long Profit;
         }
 
-        private static List<DisplayBlockedElement> LimitBlockedOutput(IEnumerable<MinecraftSocket.BlockedElement> blockedElements)
+        internal static List<DisplayBlockedElement> PrepareBlockedOutput(
+            IEnumerable<MinecraftSocket.BlockedElement> blockedElements,
+            Func<MinecraftSocket.BlockedElement, long> profitSelector,
+            bool sortByProfit)
         {
             var result = new List<DisplayBlockedElement>();
             foreach (var group in blockedElements.GroupBy(GetAuctionReasonKey))
@@ -111,7 +115,18 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }
 
-            return result.OrderByDescending(r => r.Blocked.Now).ToList();
+            foreach (var display in result)
+                display.Profit = profitSelector(display.Blocked);
+            return (sortByProfit
+                    ? result.OrderByDescending(r => r.Profit)
+                    : result.OrderByDescending(r => r.Blocked.Now))
+                .ToList();
+        }
+
+        private static long GetDisplayProfit(MinecraftSocket socket, MinecraftSocket.BlockedElement blocked)
+        {
+            socket.Settings.GetPrice(FlipperService.LowPriceToFlip(blocked.Flip), out _, out var profit);
+            return profit;
         }
 
         private static Dictionary<string, string[]> ReasonLookup = new Dictionary<string, string[]>()
@@ -242,7 +257,7 @@ namespace Coflnet.Sky.Commands.MC
 
             if (searchVal == "profit")
             {
-                flipsToSend = socket.TopBlocked.OrderByDescending(b => FlipInstance.ProfitAfterFees(b.Flip.TargetPrice, b.Flip.Auction.StartingBid)).Take(candidateCount).ToList();
+                flipsToSend = socket.TopBlocked.OrderByDescending(b => GetDisplayProfit(socket, b)).Take(candidateCount).ToList();
                 socket.Dialog(db => db.MsgLine("Blocked flips sorted by profit"));
             }
             else if (IsBazaarSearch(searchVal))
@@ -275,7 +290,7 @@ namespace Coflnet.Sky.Commands.MC
             else
                 flipsToSend = GetRandomFlips(socket, candidateCount);
 
-            var displayFlips = LimitBlockedOutput(flipsToSend)
+            var displayFlips = PrepareBlockedOutput(flipsToSend, b => GetDisplayProfit(socket, b), searchVal == "profit")
                 .Take(finalDisplayCount)
                 .ToList();
 
@@ -288,7 +303,7 @@ namespace Coflnet.Sky.Commands.MC
                 // add sent flips back to queue so when they are selected for flip options they are still there if they are at the end of the queue
                 if (!socket.TopBlocked.OrderByDescending(t => t.Now).Take(300).Contains(b))
                     socket.TopBlocked.Enqueue(b);
-                socket.Settings.GetPrice(FlipperService.LowPriceToFlip(b.Flip), out long targetPrice, out long profit);
+                var profit = display.Profit;
                 var formatedName = socket.formatProvider.GetRarityColor(b.Flip.Auction.Tier) + socket.formatProvider.GetItemName(b.Flip.Auction);
                 var longReason = "";
                 var matchingReason = ReasonLookup.Keys.FirstOrDefault(r => b.Reason.StartsWith(r));
