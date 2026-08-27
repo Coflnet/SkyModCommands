@@ -180,7 +180,16 @@ namespace Coflnet.Sky.Commands.MC
             if (!TierManager.IsNewConnection())
                 return;
             var messageService = socket.GetService<IMessageApi>();
-            var devlog = await messageService.GetMessagesAsync("devlog", DateTime.UtcNow.RoundDown(TimeSpan.FromHours(1)));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            List<Coflnet.DiscordBot.Client.Model.DiscordMessage> devlog;
+            try
+            {
+                devlog = await messageService.GetMessagesAsync("devlog", DateTime.UtcNow.RoundDown(TimeSpan.FromHours(1)), cancellationToken: timeout.Token);
+            }
+            catch (Exception) when (timeout.IsCancellationRequested)
+            {
+                return;
+            }
             var mostRecent = devlog.Where(d => d.CreatedAt > DateTime.UtcNow.AddDays(-1) && d.Content.Contains("➡️")).OrderByDescending(m => m.CreatedAt).FirstOrDefault();
             if (mostRecent == null)
                 return;
@@ -276,12 +285,12 @@ namespace Coflnet.Sky.Commands.MC
         protected virtual async Task SubToSettings(string userId)
         {
             using var span = socket.CreateActivity("subToSettings", ConSpan);
-            OnLogin?.Invoke(this, userId);
             ConSpan.Log("subbing to settings of " + userId);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DefaultSettings);
             var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings", () => new());
             Activity.Current.Log("got settings");
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
+            OnLogin?.Invoke(this, userId);
             Activity.Current.Log("got accountInfo");
             var oldSettings = FlipSettings;
             FlipSettings = await flipSettingsTask ??
