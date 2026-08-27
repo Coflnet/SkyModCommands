@@ -59,8 +59,7 @@ public class ApiKeyService
                 var enumerator = rs.GetEnumerator();
                 if (enumerator.MoveNext())
                 {
-                    logger.LogInformation("Table 'api_keys' already exists in keyspace {Keyspace}; skipping creation.", keyspace);
-                    return;
+                    logger.LogInformation("Table 'api_keys' already exists in keyspace {Keyspace}; ensuring schema.", keyspace);
                 }
             }
         }
@@ -198,8 +197,7 @@ public class ApiKeyService
     {
         try
         {
-            // user_id is not the partition key, and older deployments may not have its secondary index.
-            var result = await apiKeyTable.Where(k => k.UserId == userId).AllowFiltering().ExecuteAsync();
+            var result = await apiKeyTable.Where(k => k.UserId == userId).ExecuteAsync();
             return result;
         }
         catch (Exception ex)
