@@ -95,7 +95,7 @@ public class ApiKeyService
     /// <param name="profileId">The profile ID</param>
     /// <param name="minecraftName">The Minecraft name</param>
     /// <returns>The generated API key</returns>
-    public virtual async Task<string> GenerateApiKey(string userId, string minecraftUuid, string profileId, string minecraftName)
+    public async Task<string> GenerateApiKey(string userId, string minecraftUuid, string profileId, string minecraftName)
     {
         try
         {
@@ -193,7 +193,7 @@ public class ApiKeyService
     /// </summary>
     /// <param name="userId">The user ID</param>
     /// <returns>List of API keys for the user</returns>
-    public virtual async Task<IEnumerable<ApiKey>> GetUserApiKeys(string userId)
+    public async Task<IEnumerable<ApiKey>> GetUserApiKeys(string userId)
     {
         try
         {

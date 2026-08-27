@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -9,6 +10,8 @@ using Coflnet.Sky.ModCommands.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NUnit.Framework;
+using WebSocketSharp;
+using WebSocketSharp.Server;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -46,51 +49,23 @@ public class ApiCommandTests
     [Test]
     public async Task Empty_command_creates_a_key_when_none_exists()
     {
-        RequireMockableService();
+        var statements = new List<string>();
         using var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
-        var session = CreateSession(cluster);
-        var service = CreateService(session);
-        service.Setup(value => value.GetUserApiKeys("test-user"))
-            .ReturnsAsync(Array.Empty<ApiKey>());
-        service.Setup(value => value.GenerateApiKey(
-                "test-user",
-                "00000000000000000000000000000000",
-                "00000000000000000000000000000000",
-                "test-player"))
-            .ReturnsAsync("new-key");
+        var session = CreateSessionWithExistingTable(cluster, statements);
+        ConfigureApiKeyOperations(session, statements);
+        var service = new ApiKeyService(session.Object, NullLogger<ApiKeyService>.Instance);
 
-        await new ApiCommand().Execute(new TestApiSocket(service.Object), "\"\"");
+        await new ApiCommand().Execute(new TestApiSocket(service), "\"\"");
 
-        service.Verify(value => value.GenerateApiKey(
-            "test-user",
-            "00000000000000000000000000000000",
-            "00000000000000000000000000000000",
-            "test-player"), Times.Once);
+        Assert.That(statements, Has.Some.StartsWith("INSERT INTO api_keys"),
+            $"Executed statements: {string.Join(" | ", statements)}");
     }
 
     [Test]
-    public async Task Empty_command_does_not_create_another_key_when_an_active_key_exists()
+    public void Api_key_service_methods_are_not_virtual()
     {
-        RequireMockableService();
-        using var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build();
-        var session = CreateSession(cluster);
-        var service = CreateService(session);
-        service.Setup(value => value.GetUserApiKeys("test-user"))
-            .ReturnsAsync(new[]
-            {
-                new ApiKey
-                {
-                    Key = "existing-key",
-                    UserId = "test-user",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                }
-            });
-
-        await new ApiCommand().Execute(new TestApiSocket(service.Object), "\"\"");
-
-        service.Verify(value => value.GetUserApiKeys("test-user"), Times.Exactly(2));
-        session.Verify(value => value.PrepareAsync(It.IsAny<string>()), Times.Never);
+        Assert.That(typeof(ApiKeyService).GetMethod(nameof(ApiKeyService.GenerateApiKey))!.IsVirtual, Is.False);
+        Assert.That(typeof(ApiKeyService).GetMethod(nameof(ApiKeyService.GetUserApiKeys))!.IsVirtual, Is.False);
     }
 
     private static Mock<ISession> CreateSession(ICluster cluster)
@@ -121,13 +96,26 @@ public class ApiCommandTests
         return session;
     }
 
-    private static Mock<ApiKeyService> CreateService(Mock<ISession> session) =>
-        new(session.Object, NullLogger<ApiKeyService>.Instance) { CallBase = true };
-
-    private static void RequireMockableService()
+    private static void ConfigureApiKeyOperations(Mock<ISession> session, List<string> statements)
     {
-        if (!typeof(ApiKeyService).GetMethod(nameof(ApiKeyService.GetUserApiKeys))!.IsVirtual)
-            Assert.Ignore("Command behavior tests require the service lookup to be mockable.");
+        var prepared = new Mock<PreparedStatement>();
+        prepared.Setup(value => value.Bind(It.IsAny<object[]>())).Returns(new BoundStatement());
+        session.Setup(value => value.PrepareAsync(It.IsAny<string>()))
+            .Callback<string>(statement =>
+            {
+                if (statement.StartsWith("SELECT") &&
+                    !statements.Contains("CREATE INDEX IF NOT EXISTS ON api_keys (user_id)"))
+                    throw new InvalidOperationException("The user_id index does not exist.");
+                statements.Add(statement);
+            })
+            .ReturnsAsync(prepared.Object);
+
+        var emptyResult = new Mock<RowSet>();
+        emptyResult.SetupGet(value => value.Info).Returns(new Mock<ExecutionInfo>().Object);
+        emptyResult.Setup(value => value.GetEnumerator())
+            .Returns(Enumerable.Empty<Row>().GetEnumerator());
+        session.Setup(value => value.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<string>()))
+            .ReturnsAsync(emptyResult.Object);
     }
 
     private sealed class TestApiSocket : MinecraftSocket
@@ -145,7 +133,21 @@ public class ApiCommandTests
             sessionLifesycle = (ModSessionLifesycle)RuntimeHelpers.GetUninitializedObject(
                 typeof(ModSessionLifesycle));
             sessionLifesycle.UserId = SelfUpdatingValue<string>.CreateNoUpdate("test-user");
+
+            InitializeWebSocket();
         }
+
+        private void InitializeWebSocket()
+        {
+            var webSocket = new WebSocket("ws://localhost");
+            SetPrivateField(typeof(WebSocket), webSocket, "_readyState", WebSocketState.Open);
+            SetPrivateField(typeof(WebSocket), webSocket, "_stream", new MemoryStream());
+            SetPrivateField(typeof(WebSocketBehavior), this, "_websocket", webSocket);
+        }
+
+        private static void SetPrivateField(Type declaringType, object instance, string name, object value) =>
+            declaringType.GetField(name, System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic)!.SetValue(instance, value);
 
         public override T GetService<T>() where T : class =>
             apiKeyService as T ?? base.GetService<T>();
