@@ -56,6 +56,13 @@ public class SessionFilterState : IDisposable
         }
         if (loadedConfigMetadata == null)
             return;
+        if (string.IsNullOrWhiteSpace(loadedConfigMetadata.Name))
+        {
+            await ConfigsCommand.Unloadconfig(socket);
+            socket.Dialog(db => db.MsgLine("Your saved loaded config was invalid and has been unloaded.")
+                .MsgLine("Your current settings were kept. Load the config again to restore automatic updates."));
+            return;
+        }
         using var span = socket.CreateActivity("subToConfigChanges", lifesycle.ConSpan);
         if (AccountSettings.Value == null)
             await AccountSettings.Update(new AccountSettings());
