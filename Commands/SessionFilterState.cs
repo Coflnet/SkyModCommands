@@ -80,7 +80,7 @@ public class SessionFilterState : IDisposable
             loadedConfigMetadata.OwnerId,
             loadedConfigMetadata.Name,
             lifesycle.SessionInfo.McUuid,
-            lifesycle.AccountInfo.Value.UserId,
+            lifesycle.AccountInfo?.Value?.UserId ?? socket.UserId,
             loadedConfigMetadata.Version
         );
 
