@@ -125,6 +125,7 @@ public class Startup
         services.AddSingleton<PlayerState.Client.Api.ITaskApi>(s =>
             new PlayerState.Client.Api.TaskApi(Configuration["PLAYERSTATE_BASE_URL"]));
         services.AddCoflService();
+        services.AddHostedService(s => s.GetRequiredService<FilterStateService>());
 
         // warm critical downstream dependencies (redis + sky-settings http pool) before the
         // readiness probe passes, so fresh pods don't hand cold-start latency to the first
