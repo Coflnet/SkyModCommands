@@ -1084,17 +1084,18 @@ namespace Coflnet.Sky.Commands.MC
                             };
                     if (matchType.Item2.StartsWith("white"))
                         filter.Add("ForceBlacklist", "true");
-                    AddBlacklist(new()
+                    var added = AddBlacklist(new()
                     {
                         DisplayName = "Automatic blacklist of " + item.First().Auction.ItemName,
                         ItemTag = item.First().Auction.Tag,
                         filter = filter,
                         Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(48).ToString("s") }
                     });
-                    socket.Dialog(db => db.CoflCommand<BlacklistCommand>(
-                        $"Temporarily blacklisted {item.First().Auction.ItemName} from {item.First().Auction.AuctioneerId} for baiting",
-                        $"rm {item.First().Auction.Tag} Seller={item.First().Auction.AuctioneerId}",
-                        "click to remove again"));
+                    if (added)
+                        socket.Dialog(db => db.CoflCommand<BlacklistCommand>(
+                            $"Temporarily blacklisted {item.First().Auction.ItemName} from {item.First().Auction.AuctioneerId} for baiting",
+                            $"rm {item.First().Auction.Tag} Seller={item.First().Auction.AuctioneerId}",
+                            "click to remove again"));
                 }
                 await FlipSettings.Update();
                 FlipSettings.Value.RecompileMatchers();
@@ -1104,9 +1105,12 @@ namespace Coflnet.Sky.Commands.MC
             var threshold = FlipSettings.Value?.ModSettings?.TempBlacklistThreshold ?? 20;
             var boughtLast30Min = socket.LastPurchased.Where(l => l.Auction.Start > DateTime.UtcNow.AddMinutes(-30)).ToList();
             var boughtToMany = boughtLast30Min.GroupBy(l => l.Auction.Tag).Where(g => g.Count() > 2 && g.Count() * 100 / boughtLast30Min.Count() >= threshold).ToList();
+            var blacklistChanged = false;
             foreach (var item in boughtToMany)
             {
-                AddTempFilter(item.Key);
+                if (!AddTempFilter(item.Key))
+                    continue;
+                blacklistChanged = true;
                 socket.Dialog(db => db.Msg($"Temporarily blacklisted {item.First().Auction.ItemName} as you bought {item.Count()} recently which is more than {threshold}% of your flips in the last 30 minutes"
                     , null, "More than usual items of one type usually indicate \n"
                     + $"that the value is {McColorCodes.ITALIC}dropping due to a hypixel update{McColorCodes.RESET}.\n"
@@ -1124,10 +1128,12 @@ namespace Coflnet.Sky.Commands.MC
             var playersToBlock = BlockPlayerBaiting(preApiService);
             foreach (var item in toBlock)
             {
-                AddTempFilter(item.Key);
+                if (!AddTempFilter(item.Key))
+                    continue;
+                blacklistChanged = true;
                 socket.SendMessage(COFLNET + $"Temporarily blacklisted {item.First().Auction.ItemName} for spamming");
             }
-            if (toBlock.Count > 0 || playersToBlock.Count > 0 || boughtToMany.Count > 0)
+            if (playersToBlock.Count > 0 || blacklistChanged)
             {
                 await FlipSettings.Update();
                 FlipSettings.Value.RecompileMatchers();
@@ -1142,26 +1148,29 @@ namespace Coflnet.Sky.Commands.MC
                     !preApiService.IsSold(s.Auction.Uuid)
                 )
                 .GroupBy(s => s.Auction.AuctioneerId).Where(g => g.Count() >= 5).ToList();
+            var newlyBlocked = new List<IGrouping<string, LowPricedAuction>>();
             foreach (var item in playersToBlock)
             {
                 var player = item.Key;
-                AddBlacklist(new()
+                if (!AddBlacklist(new()
                 {
                     DisplayName = "Automatic blacklist",
                     filter = new()
                         { { "ForceBlacklist", "true" }, { "Seller", player }
                         },
                     Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(8).ToString("s") }
-                });
+                }))
+                    continue;
+                newlyBlocked.Add(item);
                 socket.SendMessage(COFLNET + $"Temporarily blacklisted {player} for baiting");
             }
 
-            return playersToBlock;
+            return newlyBlocked;
         }
 
-        private void AddTempFilter(string key)
+        private bool AddTempFilter(string key)
         {
-            AddBlacklist(new()
+            return AddBlacklist(new()
             {
                 DisplayName = "auto blacklist " + key,
                 ItemTag = key,
@@ -1172,10 +1181,13 @@ namespace Coflnet.Sky.Commands.MC
             });
         }
 
-        public void AddBlacklist(ListEntry toAdd)
+        public bool AddBlacklist(ListEntry toAdd)
         {
-            if (!FlipSettings.Value.BlackList.Contains(toAdd))
-                FlipSettings.Value.BlackList.Add(toAdd);
+            if (FlipSettings.Value.BlackList.Contains(toAdd))
+                return false;
+
+            FlipSettings.Value.BlackList.Add(toAdd);
+            return true;
         }
 
         private void SendBlockedMessage(int blockedFlipFilterCount)

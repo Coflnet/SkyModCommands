@@ -245,6 +245,35 @@ public class ModSessionLifesycleTests
         settings.PlayerInfo.Should().BeSameAs(socket.SessionInfo);
     }
 
+    [Test]
+    public void AddBlacklist_DoesNotAddSameFilterAgainWithNewExpiry()
+    {
+        lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings
+        {
+            BlackList = [],
+            WhiteList = [],
+            Visibility = new(),
+            ModSettings = new()
+        });
+        var filter = new Dictionary<string, string> { { "ForceBlacklist", "true" } };
+        var addBlacklist = typeof(ModSessionLifesycle).GetMethod(nameof(ModSessionLifesycle.AddBlacklist));
+
+        addBlacklist.Invoke(lifesycle, [new ListEntry
+        {
+            ItemTag = "TEST_ITEM",
+            filter = new Dictionary<string, string>(filter),
+            Tags = ["removeAfter=2026-08-23T12:00:00"]
+        }]).Should().Be(true);
+        addBlacklist.Invoke(lifesycle, [new ListEntry
+        {
+            ItemTag = "TEST_ITEM",
+            filter = new Dictionary<string, string>(filter),
+            Tags = ["removeAfter=2026-08-23T12:01:00"]
+        }]).Should().Be(false);
+
+        lifesycle.FlipSettings.Value.BlackList.Should().ContainSingle();
+    }
+
     private static LowPricedAuction CreateSampleFlip()
     {
         return new LowPricedAuction
