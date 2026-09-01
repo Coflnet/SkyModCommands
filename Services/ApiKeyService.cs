@@ -59,8 +59,7 @@ public class ApiKeyService
                 var enumerator = rs.GetEnumerator();
                 if (enumerator.MoveNext())
                 {
-                    logger.LogInformation("Table 'api_keys' already exists in keyspace {Keyspace}; skipping creation.", keyspace);
-                    return;
+                    logger.LogInformation("Table 'api_keys' already exists in keyspace {Keyspace}; ensuring schema.", keyspace);
                 }
             }
         }
@@ -198,7 +197,6 @@ public class ApiKeyService
     {
         try
         {
-            // Note: This requires a secondary index on user_id which should be created separately
             var result = await apiKeyTable.Where(k => k.UserId == userId).ExecuteAsync();
             return result;
         }
