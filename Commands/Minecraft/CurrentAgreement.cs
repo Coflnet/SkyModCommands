@@ -12,9 +12,9 @@ internal static class CurrentAgreement
     private const string CreatorAgreementId = "creatorMarketplace";
     private const string MarketplaceAgreementId = "expertMarketplace";
     internal const string ExpertMarketplaceHash =
-        "9177b208e3226cd0974afdce79d4023520d69d65aaa34a8d86e04dd3e60f2401";
+        "d477358662b81d464396331ff79511db1623d5ad5c77809e3b92a5f0ce50acfe";
     internal const string CreatorMarketplaceHash =
-        "652e91d78ec3aa86dd1e7e33c1e1a81dc423c7ecc1b004466cae1733c9c4a280";
+        "571ab277e36066ac89929fd72304096eb5b15dd324d8cb3718808a0454b76ddb";
     private const string PreviewUserId = "7";
     private static volatile AgreementSnapshot current;
     private static volatile AgreementSnapshot marketplace;
