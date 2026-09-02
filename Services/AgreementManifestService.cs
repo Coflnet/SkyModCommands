@@ -115,6 +115,8 @@ public sealed class AgreementManifestService : BackgroundService
         var manifest = Deserialize<Manifest>(
             await client.GetByteArrayAsync(uri, cancellationToken),
             "The legal manifest is invalid.");
+        foreach (var document in manifest.Documents)
+            document.Value.Key ??= document.Key;
         if (manifest.SchemaVersion != 1
             || manifest.AgreementTreeVersion != 1
             || !Uri.TryCreate(manifest.Source, UriKind.Absolute, out var source)
