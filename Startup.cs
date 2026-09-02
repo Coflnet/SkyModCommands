@@ -62,10 +62,13 @@ public class Startup
                 .EnableDetailedErrors()       // <-- with debugging (remove for production).
         );
         services.AddHttpClient();
+        services.AddSingleton<RewardLedgerClient>();
+        services.AddSingleton<ExpertConfigCheckoutClient>();
         services.AddSingleton<AgreementManifestService>();
         services.AddHostedService(service =>
             service.GetRequiredService<AgreementManifestService>());
         services.AddHostedService<ModBackgroundService>();
+        services.AddHostedService<ExpertConfigRefundService>();
         services.AddHostedService<MemoryDiagnosticsService>();
         services.AddHostedService<MuseumDonationCleanupService>();
         services.AddSingleton<BazaarFlipService>();

@@ -16,10 +16,16 @@ namespace Coflnet.Sky.ModCommands.Services;
 
 public sealed class AgreementManifestService : BackgroundService
 {
-    private const string AgreementId = "skycofl";
+    private const string SkyCoflAgreementId = "skycofl";
+    private const string MarketplaceAgreementId = "expertMarketplace";
+    private const string CreatorAgreementId = "creatorMarketplace";
     private const string AgreementKind = "coflnet-legal-agreement-node";
-    private static readonly string[] RequiredDocuments =
+    private static readonly string[] SkyCoflDocuments =
         ["terms", "commerceTerms", "aiTerms", "skycoflTerms"];
+    private static readonly string[] CreatorDocuments =
+        ["terms", "commerceTerms", "aiTerms", "skycoflTerms", "marketplaceTerms", "creatorLicense"];
+    private static readonly string[] MarketplaceDocuments =
+        ["terms", "commerceTerms", "aiTerms", "skycoflTerms", "marketplaceTerms"];
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan RefreshDelay = TimeSpan.FromHours(1);
     private static readonly Uri CoflnetOrigin = new("https://coflnet.com/");
@@ -27,8 +33,6 @@ public sealed class AgreementManifestService : BackgroundService
     private readonly IConfiguration configuration;
     private readonly ILogger<AgreementManifestService> logger;
     private Uri manifestUri;
-
-    internal string ActiveHash { get; private set; }
 
     public AgreementManifestService(
         IHttpClientFactory clients,
@@ -57,8 +61,22 @@ public sealed class AgreementManifestService : BackgroundService
         {
             try
             {
-                var agreement = await Load(manifestUri, stoppingToken);
-                var untilEffective = agreement.EffectiveFromUtc - DateTime.UtcNow;
+                var agreement = await Load(
+                    manifestUri, SkyCoflAgreementId, "service", SkyCoflDocuments, stoppingToken);
+                var marketplaceAgreement = await Load(
+                    manifestUri, MarketplaceAgreementId, "service", MarketplaceDocuments, stoppingToken);
+                var creatorAgreement = await Load(
+                    manifestUri, CreatorAgreementId, "role", CreatorDocuments, stoppingToken);
+                CurrentAgreement.InitializeExpertConfig(
+                    marketplaceAgreement,
+                    creatorAgreement);
+                var effectiveFrom = new[]
+                {
+                    agreement.EffectiveFromUtc,
+                    marketplaceAgreement.EffectiveFromUtc,
+                    creatorAgreement.EffectiveFromUtc
+                }.Max();
+                var untilEffective = effectiveFrom - DateTime.UtcNow;
                 if (untilEffective > TimeSpan.Zero)
                 {
                     await Task.Delay(
@@ -69,7 +87,6 @@ public sealed class AgreementManifestService : BackgroundService
                     continue;
                 }
                 CurrentAgreement.Initialize(agreement);
-                ActiveHash = agreement.Hash;
                 await Task.Delay(RefreshDelay, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -89,6 +106,9 @@ public sealed class AgreementManifestService : BackgroundService
 
     private async Task<AgreementSnapshot> Load(
         Uri uri,
+        string agreementId,
+        string agreementType,
+        IReadOnlyCollection<string> requiredDocuments,
         CancellationToken cancellationToken)
     {
         var client = clients.CreateClient(nameof(AgreementManifestService));
@@ -99,35 +119,35 @@ public sealed class AgreementManifestService : BackgroundService
             || manifest.AgreementTreeVersion != 1
             || !Uri.TryCreate(manifest.Source, UriKind.Absolute, out var source)
             || source != CoflnetOrigin
-            || !manifest.Agreements.TryGetValue(AgreementId, out var summary)
-            || summary.Type != "service"
+            || !manifest.Agreements.TryGetValue(agreementId, out var summary)
+            || summary.Type != agreementType
             || !IsSha256(summary.AgreementHash)
             || !TryAgreementUri(
                 summary.AgreementUrl,
                 summary.AgreementHash,
                 out var agreementUri))
             throw new InvalidOperationException(
-                "The SkyCofl agreement root is incomplete.");
+                $"The {agreementId} agreement root is incomplete.");
 
         var root = await LoadAgreement(
             client,
             agreementUri,
-            AgreementId,
+            agreementId,
             summary.AgreementHash,
             new Dictionary<string, LoadedAgreement>(
                 StringComparer.OrdinalIgnoreCase),
             new HashSet<string>(StringComparer.OrdinalIgnoreCase),
             cancellationToken);
         var resolved = ResolveDocuments(root);
-        if (!RequiredDocuments.All(resolved.ContainsKey)
-            || resolved.Count != RequiredDocuments.Length
+        if (!requiredDocuments.All(resolved.ContainsKey)
+            || resolved.Count != requiredDocuments.Count
             || summary.ResolvedDocuments.Count != resolved.Count
             || summary.ResolvedDocuments.Select(item => item.Key)
                 .Distinct(StringComparer.Ordinal).Count() != resolved.Count
-            || !RequiredDocuments.All(key =>
+            || !requiredDocuments.All(key =>
                 summary.ResolvedDocuments.Any(item => item.Key == key)))
             throw new InvalidOperationException(
-                "The SkyCofl agreement must resolve exactly four documents.");
+                $"The {agreementId} agreement resolves unexpected documents.");
 
         var documents = new List<AgreementDocumentSnapshot>();
         foreach (var item in summary.ResolvedDocuments)
@@ -152,18 +172,59 @@ public sealed class AgreementManifestService : BackgroundService
                     entry => entry.Value.Url)));
         }
 
-        var serviceTerms = root.Descriptor.Documents.SingleOrDefault(
-            document => document.Key == "skycoflTerms")
+        MarketplacePurchaseSnapshot purchase = null;
+        if (agreementId == MarketplaceAgreementId)
+        {
+            if (!manifest.Documents.TryGetValue("withdrawal", out var withdrawal))
+                throw new InvalidOperationException(
+                    "The Expert Marketplace purchase disclosure is incomplete.");
+            await VerifyNoticeDocument(client, withdrawal, cancellationToken);
+            var regimes = new Dictionary<string, MarketplacePurchaseRegimeSnapshot>();
+            foreach (var definition in new Dictionary<string, string>
+            {
+                ["EU"] = "digitalContentEarlySupplyEu",
+                ["UK"] = "digitalContentEarlySupplyUk",
+                ["US"] = "digitalContentEarlySupplyUs"
+            })
+            {
+                if (!manifest.Declarations.TryGetValue(
+                        definition.Value, out var declaration)
+                    || declaration.Locales.Count != 2
+                    || !declaration.Locales.Keys.All(
+                        withdrawal.Locales.ContainsKey)
+                    || declaration.Locales.Any(item =>
+                        string.IsNullOrWhiteSpace(item.Value.Text)
+                        || !IsSha256(item.Value.Sha256)
+                        || !Sha256(Encoding.UTF8.GetBytes(item.Value.Text)).Equals(
+                            item.Value.Sha256,
+                            StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException(
+                        $"The {definition.Key} Expert Marketplace purchase disclosure is incomplete.");
+                regimes.Add(definition.Key, new(
+                    declaration.Version,
+                    declaration.Locales.ToDictionary(item => item.Key, item =>
+                        new MarketplacePurchaseLocaleSnapshot(
+                            item.Value.Text,
+                            item.Value.Sha256,
+                            withdrawal.Version,
+                            withdrawal.Locales[item.Key].Sha256,
+                            withdrawal.Locales[item.Key].Url))));
+            }
+            purchase = new(regimes);
+        }
+
+        var ownTerms = root.Descriptor.Documents.SingleOrDefault()
             ?? throw new InvalidOperationException(
-                "The SkyCofl root does not contain its service terms.");
+                $"The {agreementId} root does not contain its own terms.");
         return new(
-            AgreementId,
-            serviceTerms.Version,
+            agreementId,
+            ownTerms.Version,
             summary.AgreementHash.ToLowerInvariant(),
             agreementUri.ToString(),
             documents.Max(document => DateTimeOffset.Parse(
                 resolved[document.Key].EffectiveFromUtc).UtcDateTime),
-            documents);
+            documents,
+            purchase);
     }
 
     private static async Task<LoadedAgreement> LoadAgreement(
@@ -282,6 +343,32 @@ public sealed class AgreementManifestService : BackgroundService
         }
     }
 
+    private static async Task VerifyNoticeDocument(
+        HttpClient client,
+        Document document,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(document.Version)
+            || document.Locales.Count != 2
+            || !document.Locales.ContainsKey("en")
+            || !document.Locales.ContainsKey("de"))
+            throw new InvalidOperationException(
+                "A legal notice entry is incomplete.");
+        foreach (var locale in document.Locales.Values)
+        {
+            if (!Uri.TryCreate(locale.Url, UriKind.Absolute, out var documentUri)
+                || !IsCoflnetHttpsOrigin(documentUri)
+                || !IsSha256(locale.Sha256)
+                || !Sha256(await client.GetByteArrayAsync(
+                        documentUri,
+                        cancellationToken)).Equals(
+                    locale.Sha256,
+                    StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    "A localized legal notice is invalid.");
+        }
+    }
+
     private static bool SameDocument(Document left, Document right) =>
         left.Key == right.Key
         && left.Version == right.Version
@@ -344,6 +431,7 @@ public sealed class AgreementManifestService : BackgroundService
         public string Source { get; set; }
         public Dictionary<string, Document> Documents { get; set; } = [];
         public Dictionary<string, AgreementSummary> Agreements { get; set; } = [];
+        public Dictionary<string, Declaration> Declarations { get; set; } = [];
     }
 
     private sealed class AgreementSummary
@@ -392,6 +480,18 @@ public sealed class AgreementManifestService : BackgroundService
     private sealed class Locale
     {
         public string Url { get; set; }
+        public string Sha256 { get; set; }
+    }
+
+    private sealed class Declaration
+    {
+        public string Version { get; set; }
+        public Dictionary<string, DeclarationLocale> Locales { get; set; } = [];
+    }
+
+    private sealed class DeclarationLocale
+    {
+        public string Text { get; set; }
         public string Sha256 { get; set; }
     }
 

@@ -5,6 +5,7 @@ using Cassandra.Data.Linq;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -35,15 +36,20 @@ public class OwnConfigsCommand : ListCommand<OwnedConfigs.OwnedConfig, List<Owne
         return await GetOwnConfigs(socket);
     }
 
-    public static async Task<List<OwnedConfigs.OwnedConfig>> GetOwnConfigs(MinecraftSocket socket)
+    public static async Task<List<OwnedConfigs.OwnedConfig>> GetOwnConfigs(IMinecraftSocket socket)
     {
         var obj = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
-        return obj.Value.Configs;
+        return obj.Value.Configs.Where(config => config.RevokedAtUtc == null)
+            .ToList();
     }
 
     protected override DialogBuilder FormatForList(DialogBuilder d, OwnedConfigs.OwnedConfig e)
     {
-        return d.Msg($"§6{e.Name} §7v{e.Version} §6{e.PricePaid} CoflCoins", null, e.ChangeNotes)
+        var details = e.AccessUntilUtc == null
+            ? e.ChangeNotes
+            : $"{e.ChangeNotes}\nManaged updates {(BuyConfigCommand.HasManagedUpdates(e) ? "end" : "ended")} {e.AccessUntilUtc:u}; Coflnet may extend them by {BuyConfigCommand.UpdateExtensionYears} years free, but no extension is promised. Your licence to the supplied version remains."
+                + (e.CreatorGift ? " (revocable creator gift)" : "");
+        return d.Msg($"§6{e.Name} §7v{e.Version} §6{e.PricePaid} CoflCoins", null, details)
             .CoflCommand<LoadConfigCommand>($" §a[Load]", $"{e.OwnerId} {e.Name}", $"Load {e.Name}");
     }
 
@@ -60,8 +66,15 @@ public class OwnConfigsCommand : ListCommand<OwnedConfigs.OwnedConfig, List<Owne
             socket.SendMessage("You can't remove a bought (non free) config.");
             return;
         }
-        var obj = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs");
-        obj.Value.Configs.RemoveAll(c => c.Name == toRemove.Name && c.OwnerId == toRemove.OwnerId);
+        await using var ownedLock = await OwnedConfigLock.Acquire(
+            socket.GetService<SettingsService>(), socket.UserId);
+        using var obj = await SelfUpdatingValue<OwnedConfigs>.Create(
+            socket.UserId, "owned_configs", () => new());
+        obj.Value.Configs.RemoveAll(c => c.PricePaid == 0
+            && c.RevokedAtUtc == null
+            && c.Name.Equals(toRemove.Name,
+                System.StringComparison.OrdinalIgnoreCase)
+            && c.OwnerId == toRemove.OwnerId);
         await obj.Update();
         socket.Dialog(db => db.MsgLine($"§6{toRemove.Name} §7v{toRemove.Version} §6removed"));
     }

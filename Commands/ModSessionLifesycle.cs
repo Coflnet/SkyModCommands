@@ -521,6 +521,13 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.TryAsyncTimes(async () =>
                 {
+                    if (current?.BlockExport == true)
+                    {
+                        await ConfigsCommand.Unloadconfig(socket);
+                        socket.SendMessage(
+                            "The protected Expert Config was unloaded without copying it into a backup.");
+                        return;
+                    }
                     socket.Dialog(db => db.MsgLine("Seems like you imported a different config, creating a backup of your current one")
                         .CoflCommand<BackupCommand>("Click to see your backups", "ls", "Click to see your backups\nRuns /cofl backup list"));
                     var backups = await BackupCommand.GetBackupList(socket);

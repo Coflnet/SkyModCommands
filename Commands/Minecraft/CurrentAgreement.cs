@@ -9,14 +9,65 @@ namespace Coflnet.Sky.Commands.MC;
 
 internal static class CurrentAgreement
 {
+    private const string CreatorAgreementId = "creatorMarketplace";
+    private const string MarketplaceAgreementId = "expertMarketplace";
+    internal const string ExpertMarketplaceHash =
+        "9177b208e3226cd0974afdce79d4023520d69d65aaa34a8d86e04dd3e60f2401";
+    internal const string CreatorMarketplaceHash =
+        "652e91d78ec3aa86dd1e7e33c1e1a81dc423c7ecc1b004466cae1733c9c4a280";
+    private const string PreviewUserId = "7";
     private static volatile AgreementSnapshot current;
+    private static volatile AgreementSnapshot marketplace;
+    private static volatile AgreementSnapshot creator;
     private static readonly TaskCompletionSource<AgreementSnapshot> loaded =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private static readonly TaskCompletionSource<AgreementSnapshot> creatorLoaded =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private static readonly TaskCompletionSource<AgreementSnapshot> marketplaceLoaded =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     internal static void Initialize(AgreementSnapshot agreement)
     {
         current = agreement ?? throw new ArgumentNullException(nameof(agreement));
         loaded.TrySetResult(agreement);
+    }
+
+    internal static void InitializeExpertConfig(
+        AgreementSnapshot marketplaceAgreement,
+        AgreementSnapshot creatorAgreement)
+    {
+        if (marketplaceAgreement?.Id != MarketplaceAgreementId
+            || marketplaceAgreement.Hash != ExpertMarketplaceHash
+            || creatorAgreement?.Id != CreatorAgreementId
+            || creatorAgreement.Hash != CreatorMarketplaceHash)
+            throw new InvalidOperationException(
+                "The Expert Config rollout agreement roots do not match the pinned release.");
+        marketplace = marketplaceAgreement;
+        creator = creatorAgreement;
+        marketplaceLoaded.TrySetResult(marketplaceAgreement);
+        creatorLoaded.TrySetResult(creatorAgreement);
+    }
+
+    internal static bool ExpertConfigAvailable(string userId, DateTime utcNow)
+    {
+        var marketplaceAgreement = marketplace;
+        var creatorAgreement = creator;
+        var effectiveFrom = marketplaceAgreement?.EffectiveFromUtc
+            > creatorAgreement?.EffectiveFromUtc
+                ? marketplaceAgreement.EffectiveFromUtc
+                : creatorAgreement?.EffectiveFromUtc;
+        return marketplaceAgreement?.Hash == ExpertMarketplaceHash
+            && creatorAgreement?.Hash == CreatorMarketplaceHash
+            && (userId == PreviewUserId
+                || utcNow >= effectiveFrom);
+    }
+
+    private static void RequireExpertConfigAvailable(string userId)
+    {
+        if (!ExpertConfigAvailable(userId, DateTime.UtcNow))
+            throw new CoflnetException(
+                "expert_config_rollout_pending",
+                "Expert Config publishing and acquisition are not available yet.");
     }
 
     internal static async Task RequestOnLogin(MinecraftSocket socket)
@@ -45,9 +96,76 @@ internal static class CurrentAgreement
         var agreement = current ?? throw new CoflnetException(
             "legal_manifest_unavailable",
             "The current SkyCofl agreement is temporarily unavailable.");
+        Ask(socket, agreement,
+            "Please review the current SkyCofl agreement package. Existing users may continue under previously accepted terms, but new purchases require current acceptance.",
+            $"/cofl terms {agreement.Hash} {Language(socket)}",
+            "Accept agreement package");
+    }
+
+    internal static async Task<bool> RequireCreator(MinecraftSocket socket)
+    {
+        RequireExpertConfigAvailable(socket.UserId);
+        var agreement = await GetCreator();
+        if (await HasCreatorAcceptance(socket.UserId, agreement))
+            return true;
+        Ask(socket, agreement,
+            "Before publishing an Expert Config, review and expressly accept the Creator Marketplace agreement. Acceptance is required even if you sold configs before.",
+            $"/cofl sellconfig accept {agreement.Hash} {Language(socket)}",
+            "Accept Creator agreement");
+        return false;
+    }
+
+    internal static async Task<bool> HasCreatorAcceptance(string userId) =>
+        await HasCreatorAcceptance(userId, await GetCreator());
+
+    internal static async Task<bool> HasMarketplaceAcceptance(string userId) =>
+        await HasCreatorAcceptance(userId, await GetMarketplace());
+
+    internal static async Task<MarketplacePurchaseContext> RequireMarketplace(
+        IMinecraftSocket socket,
+        string consumerRightsRegime = null)
+    {
+        RequireExpertConfigAvailable(socket.UserId);
+        var agreement = await GetMarketplace();
+        if (!await HasCreatorAcceptance(socket.UserId, agreement))
+        {
+            Ask(socket, agreement,
+                "Before acquiring an Expert Config, review and accept the current Expert Marketplace agreement.",
+                $"/cofl buyconfig accept {agreement.Hash} {Language(socket)}",
+                "Accept Expert Marketplace agreement");
+            return null;
+        }
+        var language = Language(socket);
+        var regime = consumerRightsRegime ?? "EU";
+        if (!agreement.Purchase.Regimes.TryGetValue(regime, out var purchase))
+            throw new CoflnetException(
+                "purchase_unavailable",
+                "Expert Config purchases are not supported for this country.");
+        return new(
+            agreement,
+            purchase.Locales[language],
+            language,
+            regime,
+            purchase.DeclarationVersion);
+    }
+
+    private static async Task<bool> HasCreatorAcceptance(
+        string userId,
+        AgreementSnapshot agreement) =>
+        int.TryParse(userId, out var id)
+        && await UserService.Instance.GetAgreementAcceptance(
+            id, agreement.Id, agreement.Hash) != null;
+
+    private static void Ask(
+        IMinecraftSocket socket,
+        AgreementSnapshot agreement,
+        string introduction,
+        string command,
+        string button)
+    {
         var language = Language(socket);
         socket.Dialog(dialog => dialog
-            .MsgLine("Please review the current SkyCofl agreement package. Existing users may continue under previously accepted terms, but new purchases require current acceptance.")
+            .MsgLine(introduction)
             .ForEach(agreement.Documents, (builder, document) => builder.MsgLine(
                 $"{McColorCodes.AQUA}[{document.Title} ({document.Version})]",
                 document.Locales[language],
@@ -57,9 +175,9 @@ internal static class CurrentAgreement
                 agreement.Url,
                 "Open the immutable agreement descriptor")
             .Button(
-                "Accept agreement package",
-                $"/cofl terms {agreement.Hash} {language}",
-                "Record acceptance of the displayed SkyCofl agreement package"));
+                button,
+                command,
+                "Record acceptance of the displayed agreement package"));
     }
 
     internal static async Task Accept(
@@ -67,12 +185,39 @@ internal static class CurrentAgreement
         string hash,
         string locale)
     {
-        var agreement = current;
+        await Accept(socket, current, hash, locale, "minecraft");
+    }
+
+    internal static async Task AcceptCreator(
+        IMinecraftSocket socket,
+        string hash,
+        string locale)
+    {
+        RequireExpertConfigAvailable(socket.UserId);
+        await Accept(socket, await GetCreator(), hash, locale, "minecraft-sellconfig");
+    }
+
+    internal static async Task AcceptMarketplace(
+        IMinecraftSocket socket,
+        string hash,
+        string locale)
+    {
+        RequireExpertConfigAvailable(socket.UserId);
+        await Accept(socket, await GetMarketplace(), hash, locale, "minecraft-buyconfig");
+    }
+
+    private static async Task Accept(
+        IMinecraftSocket socket,
+        AgreementSnapshot agreement,
+        string hash,
+        string locale,
+        string source)
+    {
         if (agreement == null
             || !string.Equals(hash, agreement.Hash, StringComparison.OrdinalIgnoreCase))
             throw new CoflnetException(
                 "agreement_changed",
-                "The SkyCofl agreement changed. Please review it again.");
+                "The agreement changed. Please review it again.");
         if (!int.TryParse(socket.UserId, out var userId))
             throw new CoflnetException(
                 "login_required",
@@ -86,7 +231,39 @@ internal static class CurrentAgreement
                     agreement.Version,
                     agreement.Hash,
                     DateTime.UtcNow,
-                    $"minecraft-{language}"));
+                    $"{source}-{language}"));
+    }
+
+    internal static async Task<AgreementSnapshot> GetCreator()
+    {
+        if (creator != null)
+            return creator;
+        try
+        {
+            return await creatorLoaded.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        }
+        catch (TimeoutException)
+        {
+            throw new CoflnetException(
+                "legal_manifest_unavailable",
+                "The Creator Marketplace agreement is temporarily unavailable.");
+        }
+    }
+
+    private static async Task<AgreementSnapshot> GetMarketplace()
+    {
+        if (marketplace != null)
+            return marketplace;
+        try
+        {
+            return await marketplaceLoaded.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        }
+        catch (TimeoutException)
+        {
+            throw new CoflnetException(
+                "legal_manifest_unavailable",
+                "The Expert Marketplace agreement is temporarily unavailable.");
+        }
     }
 
     private static string Language(IMinecraftSocket socket) =>
@@ -104,10 +281,32 @@ internal sealed record AgreementSnapshot(
     string Hash,
     string Url,
     DateTime EffectiveFromUtc,
-    IReadOnlyList<AgreementDocumentSnapshot> Documents);
+    IReadOnlyList<AgreementDocumentSnapshot> Documents,
+    MarketplacePurchaseSnapshot Purchase = null);
 
 internal sealed record AgreementDocumentSnapshot(
     string Key,
     string Title,
     string Version,
     IReadOnlyDictionary<string, string> Locales);
+
+internal sealed record MarketplacePurchaseSnapshot(
+    IReadOnlyDictionary<string, MarketplacePurchaseRegimeSnapshot> Regimes);
+
+internal sealed record MarketplacePurchaseRegimeSnapshot(
+    string DeclarationVersion,
+    IReadOnlyDictionary<string, MarketplacePurchaseLocaleSnapshot> Locales);
+
+internal sealed record MarketplacePurchaseLocaleSnapshot(
+    string DeclarationText,
+    string DeclarationSha256,
+    string WithdrawalVersion,
+    string WithdrawalSha256,
+    string WithdrawalUrl);
+
+internal sealed record MarketplacePurchaseContext(
+    AgreementSnapshot Agreement,
+    MarketplacePurchaseLocaleSnapshot Purchase,
+    string Locale,
+    string ConsumerRightsRegime,
+    string DeclarationVersion);

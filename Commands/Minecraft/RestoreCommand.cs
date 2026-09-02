@@ -16,12 +16,13 @@ namespace Coflnet.Sky.Commands.MC
         public override bool IsPublic => true;
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            var settings = socket.GetService<SettingsService>();
-            var list = await settings.GetCurrentValue(socket.UserId, "flipBackup", () => new List<BackupEntry>());
+            var list = await BackupCommand.GetBackupList(socket);
             socket.SendMessage(COFLNET + "Restoring settings");
             var toLoad = list.Where(l => l.Name == arguments.Trim('"')).Select(l => l.settings).FirstOrDefault();
             if (toLoad == null)
                 throw new CoflnetException("not_found", "No backup with that name found, try using /cofl backup list to see all backups and use the option to restore from there");
+            if (socket.sessionLifesycle.AccountSettings.Value.LoadedConfig != null)
+                await ConfigsCommand.Unloadconfig(socket);
             FlipFilter.CopyRelevantToNew(toLoad, socket.sessionLifesycle.FlipSettings);
             await socket.sessionLifesycle.FlipSettings.Update(toLoad);
         }

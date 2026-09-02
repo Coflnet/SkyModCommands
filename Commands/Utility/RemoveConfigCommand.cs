@@ -27,22 +27,19 @@ public class RemoveConfigCommand : ArgumentsCommand
         {
             OwnerId = ownerId
         });
-        if (rating.Downvotes.Count > 0 || rating.Upvotes.Count > 0)
+        string key = SellConfigCommand.GetKeyFromname(name);
+        using var container = await SelfUpdatingValue<ConfigContainer>.Create(
+            ownerId, key, () => null);
+        if (container.Value == null)
         {
-            socket.Dialog(db => db.Msg("You can't remove a config that has been voted on."));
+            socket.SendMessage("The config doesn't exist.");
             return;
         }
+        container.Value.Delisted = true;
+        container.Value.ModeratorDelisted = ownerId != socket.UserId;
+        await container.Update();
         await ConfigsCommand.Delete(configsCommand.GetTable(), rating);
-        string key = SellConfigCommand.GetKeyFromname(name);
-        using var container = await SelfUpdatingValue<ConfigContainer>.Create(socket.UserId, key);
-        var settingsService = socket.GetService<SettingsService>();
-        await settingsService.UpdateSetting(ownerId, key, (ConfigContainer)null);
-        using var createdConfigs = await SelfUpdatingValue<CreatedConfigs>.Create(ownerId, "created_configs", () => new());
-        createdConfigs.Value.Configs.Remove(name);
-        await createdConfigs.Update();
-        using var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(ownerId, "owned_configs", () => new());
-        ownedConfigs.Value.Configs.RemoveAll(c => c.Name == name && c.OwnerId == ownerId);
-        await ownedConfigs.Update();
-        socket.Dialog(db => db.MsgLine($"§6{name} §7removed"));
+        socket.Dialog(db => db.MsgLine(
+            $"§6{name} §7delisted; existing recipients keep their supplied version and managed updates"));
     }
 }
