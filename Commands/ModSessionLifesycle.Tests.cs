@@ -246,6 +246,20 @@ public class ModSessionLifesycleTests
     }
 
     [Test]
+    public void EnsureSessionContextOnFlipSettings_BackfillsMissingNestedSettings()
+    {
+        var settings = new FlipSettings();
+
+        lifesycle.EnsureSessionContextOnFlipSettings(settings);
+
+        settings.ModSettings.Should().NotBeNull();
+        settings.ModSettings.ShortNumbers.Should().BeTrue();
+        settings.Visibility.Should().NotBeNull();
+        settings.Visibility.SellerOpenButton.Should().BeTrue();
+        settings.Visibility.Lore.Should().BeTrue();
+    }
+
+    [Test]
     public void AddBlacklist_DoesNotAddSameFilterAgainWithNewExpiry()
     {
         lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings

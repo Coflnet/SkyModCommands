@@ -93,6 +93,9 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (settings == null)
                 return;
+            var defaults = DefaultSettings;
+            settings.ModSettings ??= defaults.ModSettings;
+            settings.Visibility ??= defaults.Visibility;
             if (!ReferenceEquals(settings.PlayerInfo, socket.SessionInfo))
                 settings.PlayerInfo = socket.SessionInfo;
             if (previousSettings != null && !ReferenceEquals(settings, previousSettings))
@@ -403,6 +406,7 @@ namespace Coflnet.Sky.Commands.MC
                 span.Log("settings are null, not applying");
                 return;
             }
+            EnsureSessionContextOnFlipSettings(settings, FlipSettings);
             var testFlip = BlacklistCommand.GetTestFlip("test");
             if (settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.CraftCost))
                 testFlip.Finder = LowPricedAuction.FinderType.CraftCost;
@@ -428,7 +432,6 @@ namespace Coflnet.Sky.Commands.MC
                         "showlbin false",
                         $"You can also enable only lbin based flips \nby executing {McColorCodes.AQUA}/cofl set finders sniper.\nClicking this will hide lbin in flip messages. \nYou can still see lbin in item descriptions."));
                 }
-                EnsureSessionContextOnFlipSettings(settings, FlipSettings);
                 // preload flip settings
                 settings.MatchesSettings(testFlip);
                 span.Log(JSON.Stringify(settings));
