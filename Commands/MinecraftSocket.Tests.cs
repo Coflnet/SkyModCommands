@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 using System.Collections.Concurrent;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.ModCommands.Tests;
 
@@ -43,6 +44,29 @@ public class MinecraftSocketTests
         dictionary.TryAdd(new MinecraftSocket(), DateTime.UtcNow);
         dictionary.TryAdd(new MinecraftSocket(), DateTime.UtcNow);
         Assert.That(dictionary.Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task StoresExactCommandForPremiumPlusRetry()
+    {
+        var session = new Mock<ModSessionLifesycle>(new Mock<MinecraftSocket>().Object);
+        var socket = new TestSocket(session.Object);
+
+        await socket.InvokeCommand(
+            new Response("premiumPlusTest", JsonConvert.SerializeObject("sort attribute 2")),
+            new PremiumPlusTestCommand());
+
+        Assert.That(socket.TakePremiumPlusRetryCommand(), Is.EqualTo("/cofl premiumplustest sort attribute 2"));
+        Assert.That(socket.TakePremiumPlusRetryCommand(), Is.Null);
+    }
+
+    private sealed class PremiumPlusTestCommand : McCommand
+    {
+        public override Task Execute(MinecraftSocket socket, string arguments)
+        {
+            socket.StoreCurrentCommandForPremiumPlusRetry();
+            return Task.CompletedTask;
+        }
     }
 
     public class TestSocket : MinecraftSocket

@@ -22,6 +22,7 @@ public interface IAccountTierManager : IDisposable
     bool IsLicense { get; }
 
     string GetSessionInfo();
+    void InvalidateCache();
     Task RefreshTier();
     bool IsConnectedFromOtherAccount(out string otherAccount, out AccountTier tier);
     event EventHandler<AccountTier>? OnTierChange;
@@ -96,8 +97,13 @@ public class AccountTierManager : IAccountTierManager
 
     public async Task RefreshTier()
     {
-        expiresAt = DateTime.UtcNow;
+        InvalidateCache();
         await CheckAccounttier(true);
+    }
+
+    public void InvalidateCache()
+    {
+        expiresAt = DateTime.UtcNow;
     }
 
     public bool HasAtLeast(AccountTier tier)

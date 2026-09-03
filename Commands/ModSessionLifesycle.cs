@@ -260,7 +260,15 @@ namespace Coflnet.Sky.Commands.MC
             // the tier may only resolve after the welcome flow already ran with an unknown tier,
             // re-evaluate region routing so a now-known Premium+ user still gets redirected to their region
             if (Newtier >= AccountTier.PREMIUM_PLUS)
+            {
+                var retryCommand = socket.TakePremiumPlusRetryCommand();
+                if (retryCommand != null)
+                    socket.Dialog(db => db.MsgLine(
+                        $"{McColorCodes.GREEN}Premium+ is active. {McColorCodes.YELLOW}[Click to retry your last command]",
+                        retryCommand,
+                        $"Run {retryCommand}"));
                 socket.TryAsyncTimes(() => ApplyStoredRegionRouting(AccountInfo?.Value, knownTier: Newtier), "region routing on tier change", 1);
+            }
         }
 
         private async Task SendLoginPromptMessage(string stringId)
@@ -304,7 +312,11 @@ namespace Coflnet.Sky.Commands.MC
 
             SetActiveConIdToCurrent();
             Activity.Current.Log("single connection check");
-            AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
+            AccountInfo.OnChange += (ai) =>
+            {
+                TierManager.InvalidateCache();
+                Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
+            };
             if (AccountInfo.Value != default)
                 await UpdateAccountInfo(AccountInfo);
             else

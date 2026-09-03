@@ -54,6 +54,8 @@ namespace Coflnet.Sky.Commands.MC
         void SendSound(string soundId, float pitch = 1);
         void SetLifecycleVersion(string version);
         void ScheduleTimer(ModSettings? mod = null, Activity? timerSpan = null);
+        void StoreCurrentCommandForPremiumPlusRetry();
+        string? TakePremiumPlusRetryCommand();
         ConfiguredTaskAwaitable TryAsyncTimes(Func<Task> action, string errorMessage, int times = 3);
         Task<AccountTier> UserAccountTier();
     }

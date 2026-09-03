@@ -453,6 +453,7 @@ public static class CommonDialogExtension
         {
             return true;
         }
+        socket.StoreCurrentCommandForPremiumPlusRetry();
         socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
             $"{McColorCodes.RED}{McColorCodes.BOLD}ABORTED\n"
             + $"{McColorCodes.RED}You need to be a premium plus user to use this command"

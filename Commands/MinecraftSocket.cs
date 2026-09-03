@@ -611,6 +611,8 @@ namespace Coflnet.Sky.Commands.MC
 
 
         private int waiting = 0;
+        private readonly AsyncLocal<string?> currentCommand = new();
+        private string? premiumPlusRetryCommand;
 
         protected override void OnMessage(MessageEventArgs e)
         {
@@ -735,10 +737,12 @@ namespace Coflnet.Sky.Commands.MC
             }, "run client command");
         }
 
-        private async Task InvokeCommand(Response a, McCommand command)
+        internal async Task InvokeCommand(Response a, McCommand command)
         {
+            var previousCommand = currentCommand.Value;
             try
             {
+                currentCommand.Value = FormatCommand(command, a.data);
                 if (IsClosed)
                     return;
                 await command.Execute(this, a.data).ConfigureAwait(false);
@@ -766,8 +770,34 @@ namespace Coflnet.Sky.Commands.MC
             }
             finally
             {
+                currentCommand.Value = previousCommand;
                 waiting--;
             }
+        }
+
+        private static string FormatCommand(McCommand command, string data)
+        {
+            string arguments;
+            try
+            {
+                arguments = JsonConvert.DeserializeObject<string>(data) ?? string.Empty;
+            }
+            catch (JsonException)
+            {
+                arguments = data.Trim('"');
+            }
+            return $"/cofl {command.Slug} {arguments}".TrimEnd();
+        }
+
+        public void StoreCurrentCommandForPremiumPlusRetry()
+        {
+            if (!string.IsNullOrEmpty(currentCommand.Value))
+                Interlocked.Exchange(ref premiumPlusRetryCommand, currentCommand.Value);
+        }
+
+        public string? TakePremiumPlusRetryCommand()
+        {
+            return Interlocked.Exchange(ref premiumPlusRetryCommand, null);
         }
 
         private static string GetApiErrorMessage(string message)
