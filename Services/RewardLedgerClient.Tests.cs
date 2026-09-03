@@ -61,9 +61,10 @@ public class RewardLedgerClientTests
                     ["CREATOR_ONBOARDING:READ_TOKEN"] = new string('a', 32)
                 }).Build());
 
+        var uuid = "903f634eaf90459aba2ada6d078501f2";
         var hash = new string('b', 64);
         var result = await client.GetCreatorEligibility(
-            "creator 1", "abc", hash);
+            "creator 1", uuid, hash);
 
         Assert.Multiple(() =>
         {
@@ -71,8 +72,28 @@ public class RewardLedgerClientTests
             Assert.That(result.PaidPublicationReady, Is.True);
             Assert.That(handler.Path,
                 Is.EqualTo(
-                    $"/api/creator-onboarding/creator%201/eligibility?minecraftUuid=abc&agreementHash={hash}"));
+                    $"/api/creator-onboarding/creator%201/eligibility?minecraftUuid={uuid}&agreementHash={hash}"));
             Assert.That(handler.Token, Is.EqualTo(new string('a', 32)));
+        });
+    }
+
+    [Test]
+    public async Task MissingCreatorMinecraftUuidIsIneligibleWithoutRequest()
+    {
+        var handler = new Handler();
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(item => item.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient(handler));
+        var client = new RewardLedgerClient(factory.Object,
+            new ConfigurationBuilder().Build());
+
+        var result = await client.GetCreatorEligibility("creator", null, null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Eligible, Is.False);
+            Assert.That(result.PaidPublicationReady, Is.False);
+            Assert.That(handler.Path, Is.Null);
         });
     }
 

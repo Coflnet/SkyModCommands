@@ -70,6 +70,8 @@ public sealed class RewardLedgerClient
         string minecraftUuid,
         string creatorAgreementHash)
     {
+        if (!Guid.TryParse(minecraftUuid, out _))
+            return new(false, false);
         var (uri, token) = OnboardingConnection();
         var path = $"/api/creator-onboarding/{Uri.EscapeDataString(creatorUserId)}/eligibility"
             + $"?minecraftUuid={Uri.EscapeDataString(minecraftUuid ?? "")}"
