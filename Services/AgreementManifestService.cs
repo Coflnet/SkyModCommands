@@ -169,6 +169,7 @@ public sealed class AgreementManifestService : BackgroundService
                 item.Key,
                 document.Title,
                 document.Version,
+                DateTimeOffset.Parse(document.EffectiveFromUtc).UtcDateTime,
                 document.Locales.ToDictionary(
                     entry => entry.Key,
                     entry => entry.Value.Url)));
@@ -223,8 +224,7 @@ public sealed class AgreementManifestService : BackgroundService
             ownTerms.Version,
             summary.AgreementHash.ToLowerInvariant(),
             agreementUri.ToString(),
-            documents.Max(document => DateTimeOffset.Parse(
-                resolved[document.Key].EffectiveFromUtc).UtcDateTime),
+            documents.Max(document => document.EffectiveFromUtc),
             documents,
             purchase);
     }

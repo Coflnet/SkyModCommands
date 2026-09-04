@@ -15,19 +15,20 @@ namespace Coflnet.Sky.Commands.MC;
 public class CurrentAgreementLoginTests
 {
     [Test]
-    public async Task Prompt_links_every_document_and_accepts_the_exact_root()
+    public async Task Prompt_links_only_updated_documents_to_rendered_page_and_accepts_exact_root()
     {
         var hash = new string('a', 64);
+        var effective = new DateTime(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         CurrentAgreement.Initialize(new(
             "skycofl",
             "2030-01-01",
             hash,
             $"https://coflnet.com/legal/agreements/{hash}.json",
-            DateTime.UtcNow,
+            effective,
             new[]
             {
                 Document("terms"),
-                Document("commerceTerms"),
+                Document("commerceTerms", effective),
                 Document("aiTerms"),
                 Document("skycoflTerms")
             }));
@@ -48,8 +49,13 @@ public class CurrentAgreementLoginTests
         Assert.Multiple(() =>
         {
             Assert.That(
-                dialog.Count(part => part.onClick?.EndsWith("-en") == true),
-                Is.EqualTo(4));
+                dialog.Count(part => part.onClick ==
+                    "https://coflnet.com/commerce-and-programme-terms"),
+                Is.EqualTo(1));
+            Assert.That(
+                dialog.Any(part => part.onClick ==
+                    "https://coflnet.com/legal/archive/commerceTerms-en.md"),
+                Is.False);
             Assert.That(
                 dialog.Any(part => part.onClick ==
                     $"https://coflnet.com/legal/agreements/{hash}.json"),
@@ -187,13 +193,16 @@ public class CurrentAgreementLoginTests
             effective,
             new[] { Document(id) });
 
-    private static AgreementDocumentSnapshot Document(string key) => new(
+    private static AgreementDocumentSnapshot Document(
+        string key,
+        DateTime? effective = null) => new(
         key,
         key,
         "2030-01-01",
+        effective ?? new DateTime(2029, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         new Dictionary<string, string>
         {
-            ["en"] = $"https://coflnet.com/{key}-en",
-            ["de"] = $"https://coflnet.com/{key}-de"
+            ["en"] = $"https://coflnet.com/legal/archive/{key}-en.md",
+            ["de"] = $"https://coflnet.com/legal/archive/{key}-de.md"
         });
 }

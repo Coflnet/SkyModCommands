@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
@@ -97,9 +98,11 @@ internal static class CurrentAgreement
             "legal_manifest_unavailable",
             "The current SkyCofl agreement is temporarily unavailable.");
         Ask(socket, agreement,
-            "Please review the current SkyCofl agreement package. Existing users may continue under previously accepted terms, but new purchases require current acceptance.",
+            "Please review the updated SkyCofl terms below. Other terms are unchanged. Existing users may continue under previously accepted terms, but new purchases require current acceptance.",
             $"/cofl terms {agreement.Hash} {Language(socket)}",
-            "Accept agreement package");
+            "Accept agreement package",
+            agreement.Documents.Where(document =>
+                document.EffectiveFromUtc == agreement.EffectiveFromUtc));
     }
 
     internal static async Task<bool> RequireCreator(MinecraftSocket socket)
@@ -161,14 +164,15 @@ internal static class CurrentAgreement
         AgreementSnapshot agreement,
         string introduction,
         string command,
-        string button)
+        string button,
+        IEnumerable<AgreementDocumentSnapshot> documents = null)
     {
         var language = Language(socket);
         socket.Dialog(dialog => dialog
             .MsgLine(introduction)
-            .ForEach(agreement.Documents, (builder, document) => builder.MsgLine(
+            .ForEach(documents ?? agreement.Documents, (builder, document) => builder.MsgLine(
                 $"{McColorCodes.AQUA}[{document.Title} ({document.Version})]",
-                document.Locales[language],
+                DocumentUrl(document, language),
                 $"Open {document.Title}"))
             .MsgLine(
                 $"{McColorCodes.AQUA}[Agreement descriptor]",
@@ -177,8 +181,14 @@ internal static class CurrentAgreement
             .Button(
                 button,
                 command,
-                "Record acceptance of the displayed agreement package"));
+                "Record acceptance of the current agreement package"));
     }
+
+    private static string DocumentUrl(
+        AgreementDocumentSnapshot document,
+        string language) => document.Key == "commerceTerms"
+            ? $"https://coflnet.com/{(language == "de" ? "de/" : "")}commerce-and-programme-terms"
+            : document.Locales[language];
 
     internal static async Task Accept(
         IMinecraftSocket socket,
@@ -288,6 +298,7 @@ internal sealed record AgreementDocumentSnapshot(
     string Key,
     string Title,
     string Version,
+    DateTime EffectiveFromUtc,
     IReadOnlyDictionary<string, string> Locales);
 
 internal sealed record MarketplacePurchaseSnapshot(
