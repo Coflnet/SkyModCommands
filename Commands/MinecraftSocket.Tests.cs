@@ -60,6 +60,21 @@ public class MinecraftSocketTests
         Assert.That(socket.TakePremiumPlusRetryCommand(), Is.Null);
     }
 
+    [Test]
+    public void RegistersProxySyncOnlyOnce()
+    {
+        var socket = new MinecraftSocket();
+        var registrations = 0;
+
+        Parallel.For(0, 20, _ =>
+        {
+            if (socket.TryRegisterProxySync())
+                Interlocked.Increment(ref registrations);
+        });
+
+        Assert.That(registrations, Is.EqualTo(1));
+    }
+
     private sealed class PremiumPlusTestCommand : McCommand
     {
         public override Task Execute(MinecraftSocket socket, string arguments)

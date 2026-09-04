@@ -46,19 +46,26 @@ public class ProxyReqSyncCommand : McCommand
         SendGlobalState(socket);
         await Task.Delay(200);
         SendState(socket);
+        var lifesycle = socket.sessionLifesycle;
+        if (socket.IsClosed || lifesycle == null || !socket.TryRegisterProxySync())
+            return;
+        var accountInfo = lifesycle.AccountInfo;
+        var flipSettings = lifesycle.FlipSettings;
         Action<AccountInfo> accounthandler = (a) => SendState(socket);
-        Action<TimeSpan> delayUpdate = (a) => SendState(socket);
-        socket.sessionLifesycle.AccountInfo.OnChange += accounthandler;
-        socket.sessionLifesycle.FlipSettings.ShouldPreventUpdate += (a) =>
+        Func<FlipSettings, bool> settingsHandler = (a) =>
         {
             SendState(socket);
             return false;
         };
-        socket.sessionLifesycle.OnDelayChange += delayUpdate;
+        Action<TimeSpan> delayUpdate = (a) => SendState(socket);
+        accountInfo.OnChange += accounthandler;
+        flipSettings.ShouldPreventUpdate += settingsHandler;
+        lifesycle.OnDelayChange += delayUpdate;
         socket.OnConClose += () =>
         {
-            socket.sessionLifesycle.AccountInfo.OnChange -= accounthandler;
-            socket.sessionLifesycle.OnDelayChange -= delayUpdate;
+            accountInfo.OnChange -= accounthandler;
+            flipSettings.ShouldPreventUpdate -= settingsHandler;
+            lifesycle.OnDelayChange -= delayUpdate;
         };
     }
 
@@ -75,13 +82,22 @@ public class ProxyReqSyncCommand : McCommand
 
     private static void SendState(MinecraftSocket socket)
     {
+        var lifesycle = socket.sessionLifesycle;
+        if (socket.IsClosed || lifesycle == null)
+            return;
+        var settings = lifesycle.FlipSettings?.Value;
+        var accountInfo = lifesycle.AccountInfo?.Value;
+        if (settings == null || accountInfo == null)
+            return;
+        if (!ReferenceEquals(settings.PlayerInfo, socket.SessionInfo))
+            settings.PlayerInfo = socket.SessionInfo;
         using var sync = socket.CreateActivity("settingsSync");
         socket.Send(Create("proxySync", new Format()
         {
-            Settings = socket.Settings,
+            Settings = settings,
             SessionInfo = socket.SessionInfo,
-            AccountInfo = socket.AccountInfo,
-            ApproxDelay = socket.sessionLifesycle.CurrentDelay.TotalMilliseconds
+            AccountInfo = accountInfo,
+            ApproxDelay = lifesycle.CurrentDelay.TotalMilliseconds
         }));
     }
 

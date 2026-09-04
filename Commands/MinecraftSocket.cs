@@ -112,6 +112,12 @@ namespace Coflnet.Sky.Commands.MC
         /// Triggered when the connection closes
         /// </summary>
         public event Action? OnConClose;
+        private int proxySyncRegistered;
+
+        internal bool TryRegisterProxySync()
+        {
+            return Interlocked.CompareExchange(ref proxySyncRegistered, 1, 0) == 0;
+        }
 
         public class BlockedElement
         {
