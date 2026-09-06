@@ -86,14 +86,14 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
         public bool Expanded;
     }
 
-    private class CraftTree
+    internal class CraftTree
     {
         public double Cost;
         public List<CraftNode> Nodes;
         public Dictionary<string, ItemInfo> Names;
     }
 
-    private record ItemInfo(string Name, string Color, bool IsBazaar);
+    internal record ItemInfo(string Name, string Color, bool IsBazaar);
 
     internal class BackendAcquisitionFill
     {
@@ -133,7 +133,7 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
     /// Fetches the quantity-specific acquisition tree selected by SkyCrafts and flattens it for chat.
     /// All pricing, order-book walking, and buy-vs-craft decisions stay in SkyCrafts.
     /// </summary>
-    private static async Task<CraftTree> BuildCraftTree(MinecraftSocket socket, string tag)
+    internal static async Task<CraftTree> BuildCraftTree(MinecraftSocket socket, string tag)
     {
         if (string.IsNullOrEmpty(tag))
             return null;
@@ -209,15 +209,15 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
         return new AcquisitionBucket(quantity, quantity > 0 ? cost / quantity : 0, cost);
     }
 
-    private static void RenderCraftTree(MinecraftSocket socket, DialogBuilder db, CraftTree tree)
+    internal static void RenderCraftTree(MinecraftSocket socket, DialogBuilder db, CraftTree tree)
     {
         if (tree == null || tree.Nodes.Count == 0)
             return;
-        var subCraftCount = tree.Nodes.Count(n => n.Method == "craft");
+        var subCraftCount = tree.Nodes.Count(n => n.CraftedCount > 0);
         db.LineBreak()
             .MsgLine($"{McColorCodes.YELLOW}Craft recipe breakdown{McColorCodes.GRAY} ({(subCraftCount > 0 ? $"{McColorCodes.GREEN}{subCraftCount} sub-craft(s) used" : "no sub-crafts, all bought directly")}{McColorCodes.GRAY}):", null,
                 $"{McColorCodes.GRAY}Shows the cheapest path found for each ingredient.\n"
-                + $"{McColorCodes.GREEN}crafted{McColorCodes.GRAY} = building it was cheaper than buying it\n"
+                + $"{McColorCodes.GREEN}crafted{McColorCodes.GRAY} = make this separately using the indented ingredients\n"
                 + $"{McColorCodes.GRAY}bought = market split (npc -> buy order -> insta)");
         db.ForEach(tree.Nodes, (db, node) => db.MsgLine(FormatNode(socket, tree, node), NodeClick(tree, node), NodeHover(socket, node)));
         db.MsgLine($"Cheapest craft cost: {McColorCodes.GOLD}{socket.FormatPrice(tree.Cost)} coins{McColorCodes.GRAY} (using the sub-crafts marked above)");
@@ -237,8 +237,10 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
                 : McColorCodes.GRAY,
             _ => McColorCodes.GRAY
         };
+        var savings = node.Enough && node.CraftedCount > 0 && node.DirectBuyAvailable ? Math.Max(0, node.DirectBuyCost - node.Cost) : 0;
         return $"{indent}{branch}{info.Color}{info.Name} {McColorCodes.GRAY}x{node.Count} "
-            + $"{methodColor}{methodText} {McColorCodes.GRAY}~{McColorCodes.GOLD}{socket.FormatPrice(node.Cost)}";
+            + $"{methodColor}{methodText} {McColorCodes.GRAY}~{McColorCodes.GOLD}{socket.FormatPrice(node.Cost)}"
+            + (savings > 0 ? $" {McColorCodes.GREEN}(subcraft saves {socket.FormatPrice(savings)})" : "");
     }
 
     private static string GetNodeMethodText(CraftNode node)
@@ -260,7 +262,7 @@ public class CraftBreakDownCommand : ItemSelectCommand<CraftBreakDownCommand>
 
     private static string NodeClick(CraftTree tree, CraftNode node)
     {
-        if (node.Method == "craft")
+        if (node.CraftedCount > 0)
             return $"/cofl recipe {node.Tag}";
         var info = tree.Names.GetValueOrDefault(node.Tag);
         if (info == null)

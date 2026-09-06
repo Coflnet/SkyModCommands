@@ -51,13 +51,18 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
             click = "/cofl buy starter_premium";
             hoverText = $"{McColorCodes.GRAY}You need starter premium or higher to see the top 3\n{McColorCodes.YELLOW}Click to buy a tier";
         }
-        db.MsgLine($" {elem.ItemName} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice(elem.Median)} {McColorCodes.YELLOW}[Open Recipe]", click, hoverText);
+        var subcrafts = elem.Ingredients.Where(i => i.Type == "craft").ToList();
+        var savings = subcrafts.Sum(i => Math.Max(0, i.BuyOrderCost - i.Cost));
+        var highlight = subcrafts.Count == 0 ? "" : $" {McColorCodes.GREEN}[Subcraft{(savings > 0 ? $" saves {socket.FormatPrice(savings)}" : " ingredients")}]";
+        db.MsgLine($" {elem.ItemName} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice(elem.Median)}{highlight} {McColorCodes.YELLOW}[Open Recipe]", click, hoverText);
     }
 
     private static string FormatIngredientText(MinecraftSocket socket, Ingredient i)
     {
         if (i.Type == "craft")
-            return $"{McColorCodes.YELLOW} craft {McColorCodes.GOLD}{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost ~{McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}{McColorCodes.GRAY}(cheaper)";
+            return $"{McColorCodes.GREEN} Subcraft {McColorCodes.GOLD}{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost ~{McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}"
+                + (i.BuyOrderCost > i.Cost ? $"{McColorCodes.GREEN} (saves {socket.FormatPrice(i.BuyOrderCost - i.Cost)})" : "")
+                + $"\n{McColorCodes.GRAY}   Open Recipe to see what to use";
         return $"{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost {McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}";
     }
 
