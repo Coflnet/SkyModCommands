@@ -19,7 +19,7 @@
     <PackageReference Include="CassandraCSharpDriver" Version="3.22.0" />
     <PackageReference Include="Coflnet.DiscordBot.Client" Version="0.0.1" />
     <PackageReference Include="Coflnet.Leaderboard.Client" Version="0.3.3" />
-    <PackageReference Include="Coflnet.Payments.Client" Version="0.26.0" />
+    <PackageReference Include="Coflnet.Payments.Client" Version="0.27.0" />
     <PackageReference Include="Figgle.Fonts" Version="0.6.6" />
     <PackageReference Include="Coflnet.Sky.Chat.Client" Version="1.0.1" />
     <PackageReference Include="Coflnet.Sky.Indexer.Client" Version="0.1.1" />
