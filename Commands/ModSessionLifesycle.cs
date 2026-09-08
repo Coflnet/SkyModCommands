@@ -1242,14 +1242,14 @@ namespace Coflnet.Sky.Commands.MC
 
         private void UpdateConnectionIfNoFlipSent(Activity span)
         {
-            if (socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-3)))
-                return; // got a flip in the last 3 minutes
-
             socket.TryAsyncTimes(async () =>
             {
+                // Revocation must also reach connections that are actively receiving flips.
                 var tier = await TierManager.GetCurrentCached();
-                UpdateConnectionTier(tier, span);
-            }, "resub to flips");
+                if (tier != SessionInfo.SessionTier
+                    || !socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-3)))
+                    UpdateConnectionTier(tier, span);
+            }, "refresh access and resub to flips");
         }
 
         private void SendReminders()
