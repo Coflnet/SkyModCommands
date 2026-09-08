@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
-using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Newtonsoft.Json;
@@ -38,7 +37,6 @@ public class AccountTierManager : IAccountTierManager
     public event EventHandler<AccountTier>? OnTierChange;
     private AccountTier? lastTier;
     private DateTime expiresAt;
-    private DateTime nextTierRefresh;
     private string userId = string.Empty;
     IAuthUpdate loginNotification;
     public DateTime ExpiresAt => expiresAt;
@@ -92,7 +90,7 @@ public class AccountTierManager : IAccountTierManager
 
     public async Task<AccountTier> GetCurrentCached()
     {
-        if (lastTier == null || DateTime.UtcNow > expiresAt || DateTime.UtcNow >= nextTierRefresh)
+        if (lastTier == null || DateTime.UtcNow > expiresAt)
             await CheckAccounttier();
         return lastTier ?? AccountTier.NONE;
     }
@@ -117,20 +115,19 @@ public class AccountTierManager : IAccountTierManager
     {
         if (Disposed)
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
-        if (expiresAt > DateTime.UtcNow && DateTime.UtcNow < nextTierRefresh && !forceUpdate && lastTier != null)
+        if (expiresAt > DateTime.UtcNow && !forceUpdate && lastTier != null)
         {
             return (lastTier.Value, expiresAt);
         }
-        var currentTier = await CalculateCurrentTierWithExpire();
+        var currentTier = await CalculateCurrentTierWithExpire(forceUpdate);
         if (currentTier.tier != lastTier)
         {
             OnTierChange?.Invoke(this, currentTier.tier);
         }
         (lastTier, expiresAt) = currentTier;
-        nextTierRefresh = DateTime.UtcNow.AddSeconds(30);
         return currentTier;
     }
-    private async Task<(AccountTier tier, DateTime expiresAt)> CalculateCurrentTierWithExpire()
+    private async Task<(AccountTier tier, DateTime expiresAt)> CalculateCurrentTierWithExpire(bool force = false)
     {
         if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(socket.SessionInfo.McUuid))
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
@@ -138,32 +135,24 @@ public class AccountTierManager : IAccountTierManager
         span?.SetTag("conId", socket.SessionInfo.ConnectionId);
         var userApi = socket.GetService<PremiumService>();
         var licenseSettingsTask = socket.GetService<SettingsService>().GetCurrentValue<LicenseSetting>(userId, "licenses", () => new LicenseSetting());
-        // One Payments call contains personal access and all applicable slot sources.
-        // Only personal access is persisted in AccountInfo for outage fallback.
-        List<OwnershipAccess> access = [];
-        var expires = (socket.AccountInfo.Tier, socket.AccountInfo.ExpiresAt);
-        try
+        (AccountTier, DateTime) expires;
+        if (expiresAt < DateTime.UtcNow.AddMinutes(5) || force)
         {
-            access = await socket.GetService<IUserApi>().UserUserIdOwnsEntriesPostAsync(userId, socket.SessionInfo.McUuid,
-                ["starter_premium", "premium", "premium_plus", "test-premium", "pre_api"]);
-            var personal = access.Where(a => a.SlotId == null && a.ExpiresAt > DateTime.UtcNow)
-                .OrderByDescending(GetTier).ThenByDescending(a => a.ExpiresAt).FirstOrDefault();
-            expires = personal == null ? (AccountTier.NONE, DateTime.UtcNow.AddHours(3)) : (GetTier(personal), personal.ExpiresAt);
-            if (socket.AccountInfo.Tier != expires.Item1
-                || (personal != null && socket.AccountInfo.ExpiresAt != expires.Item2))
+            var response = await userApi.GetCurrentTier(userId);
+            if (response.Item1 == null)
+                expires = (socket.AccountInfo.Tier, socket.AccountInfo.ExpiresAt);
+            else
+                expires = (response.Item1 ?? socket.AccountInfo.Tier, response.Item2);
+            if(socket.AccountInfo.Tier != expires.Item1)
             {
+                using var updateSpan = socket.CreateActivity("updateAccountInfoTier", span);
                 socket.AccountInfo.Tier = expires.Item1;
                 socket.AccountInfo.ExpiresAt = expires.Item2;
                 await socket.sessionLifesycle.AccountInfo.Update();
             }
         }
-        catch (Exception e)
-        {
-            socket.Error(e, "Unable to refresh account and slot access");
-            if (expires.Item2 <= DateTime.UtcNow)
-                expires = (AccountTier.NONE, DateTime.UtcNow.AddSeconds(30));
-        }
-        IsLicense = false;
+        else
+            expires = (lastTier ?? AccountTier.NONE, expiresAt);
         if (activeSessions?.Value == null)
         {
             Console.WriteLine($"No active sessions for {socket.SessionInfo.McUuid} {userId}");
@@ -254,8 +243,7 @@ public class AccountTierManager : IAccountTierManager
             return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromSeconds(5));
         }
         var isCurrentConOnlyCon = sessions.All(s => s.ConnectionId == socket.SessionInfo.ConnectionId || s.Outdated || s.LastActive < DateTime.UtcNow - TimeSpan.FromHours(1));
-        currentSessions.UserAccountTier = access.Where(a => a.MinecraftUuid == null && a.ExpiresAt > DateTime.UtcNow)
-            .Select(GetTier).DefaultIfEmpty(expires.Item1).Max();
+        currentSessions.UserAccountTier = expires.Item1;
 
         span.Log($"AccountTier {expires.Item1} {expires.Item2}");
         span.Log($"Sessions {JsonConvert.SerializeObject(sessions)}");
@@ -264,34 +252,35 @@ public class AccountTierManager : IAccountTierManager
         var licenseSettings = await licenseSettingsTask;
         var matchingNewLicense = licenseSettings.Licenses.OrderByDescending(l => l.Tier).FirstOrDefault(l => l.UseOnAccount == socket.SessionInfo.McUuid);
 
-        if (matchingNewLicense != null && matchingNewLicense.Expires < DateTime.UtcNow)
+        if (useEmailOnThisCon && expires.Item1 >= matchingNewLicense?.Tier)
         {
-            var tierFor = await userApi.GetCurrentTier($"{userId}#{matchingNewLicense.VirtualId}");
-            matchingNewLicense.Expires = tierFor.Item2;
-            matchingNewLicense.Tier = tierFor.Item1 ?? AccountTier.NONE;
-            if (ExpiresAt > DateTime.UtcNow.AddMinutes(10))
-                await socket.GetService<SettingsService>().UpdateSetting(userId, "licenses", licenseSettings);
+            return (expires.Item1, expires.Item2);
         }
-        var selected = useEmailOnThisCon ? expires : (AccountTier.NONE, DateTime.UtcNow);
-        if (matchingNewLicense != null && matchingNewLicense.Expires > DateTime.UtcNow
-            && matchingNewLicense.Tier > selected.Item1)
+        IsLicense = false;
+        if (Disposed)
+            activeSessions?.Dispose(); // async functions could have been running while the connection closed
+        span.Log($"Matching {JsonConvert.SerializeObject(matchingNewLicense)}");
+        if (matchingNewLicense != default)
         {
-            selected = (matchingNewLicense.Tier, matchingNewLicense.Expires);
-            IsLicense = true;
-        }
-        foreach (var slot in access.Where(a => a.SlotId != null && (a.MinecraftUuid != null || useEmailOnThisCon)))
-        {
-            if (slot.ExpiresAt > DateTime.UtcNow
-                && (GetTier(slot) > selected.Item1 || (GetTier(slot) == selected.Item1 && slot.ExpiresAt > selected.Item2)))
+            if (matchingNewLicense.Expires < DateTime.UtcNow)
             {
-                selected = (GetTier(slot), slot.ExpiresAt);
+                var tierFor = await userApi.GetCurrentTier($"{userId}#{matchingNewLicense.VirtualId}");
+                matchingNewLicense.Expires = tierFor.Item2;
+                matchingNewLicense.Tier = tierFor.Item1 ?? AccountTier.NONE;
+                if (ExpiresAt > DateTime.UtcNow + TimeSpan.FromMinutes(10))
+                    await socket.GetService<SettingsService>().UpdateSetting(userId, "licenses", licenseSettings);
+            }
+            if (matchingNewLicense.Tier > AccountTier.NONE)
+            {
                 IsLicense = true;
+                return (matchingNewLicense.Tier, matchingNewLicense.Expires);
             }
         }
-        if (selected.Item1 > AccountTier.NONE)
+        if (useEmailOnThisCon && expires.Item1 > AccountTier.NONE)
         {
-            thisSession.Tier = selected.Item1;
-            return selected;
+            span.Log("using account tier " + expires.Item1);
+            thisSession.Tier = expires.Item1;
+            return (expires.Item1, expires.Item2);
         }
         thisSession.Tier = AccountTier.NONE;
         if (socket.AccountInfo.ProxyOptIn)
@@ -301,15 +290,6 @@ public class AccountTierManager : IAccountTierManager
         span.Log("none");
         return (AccountTier.NONE, DateTime.UtcNow + TimeSpan.FromMinutes(15));
     }
-
-    private static AccountTier GetTier(OwnershipAccess access) => access.ProductSlug switch
-    {
-        "pre_api" => AccountTier.SUPER_PREMIUM,
-        "premium_plus" => AccountTier.PREMIUM_PLUS,
-        "premium" or "test-premium" => AccountTier.PREMIUM,
-        "starter_premium" => AccountTier.STARTER_PREMIUM,
-        _ => AccountTier.NONE
-    };
 
     private static bool IsNotPreApi((AccountTier, DateTime) expires)
     {

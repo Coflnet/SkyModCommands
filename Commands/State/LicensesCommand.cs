@@ -24,34 +24,6 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
     {
         var args = stringArgs.Split(' ');
         var command = args[0];
-        if (command == "slots")
-        {
-            var client = socket.GetService<ITierSlotsApi>();
-            var owned = await client.ApiTierSlotsOwnerOwnerIdGetAsync(socket.UserId);
-            if (args.Length == 1)
-            {
-                socket.Dialog(db => db.MsgLine("Your tier slots:"));
-                foreach (var slot in owned)
-                    socket.Dialog(db => db.MsgLine($"{slot.Id}: {slot.Tier} until {slot.Expires:u}, assigned to {slot.MinecraftUuid ?? slot.AssignedUserId ?? "nobody"}"));
-                var assigned = await client.ApiTierSlotsAccessGetAsync(socket.UserId, socket.SessionInfo.McUuid);
-                foreach (var slot in assigned.Where(s => !s.CanManage))
-                    socket.Dialog(db => db.MsgLine($"{slot.Tier} until {slot.Expires:u}: owned and managed by another account"));
-                socket.Dialog(db => db.MsgLine("Use /cofl licenses slots <id> <Minecraft name|clear> to assign or release an owned slot."));
-                return;
-            }
-            if (args.Length != 3 || !long.TryParse(args[1], out var slotId))
-                throw new CoflnetException("invalid_arguments", "Use /cofl licenses slots <id> <Minecraft name|clear>");
-            var target = owned.FirstOrDefault(s => s.Id == slotId)
-                ?? throw new CoflnetException("not_owner", "Only the purchaser can manage this slot");
-            var minecraftUuid = args[2] == "clear" ? null : await socket.GetPlayerUuid(args[2]);
-            if (args[2] != "clear" && string.IsNullOrEmpty(minecraftUuid))
-                throw new CoflnetException("unknown_player", "Minecraft account not found");
-            await client.ApiTierSlotsOwnerOwnerIdIdAssignmentPutAsync(socket.UserId, slotId,
-                new TierSlotAssignment(minecraftUuid: minecraftUuid, varVersion: target.VarVersion));
-            await socket.sessionLifesycle.TierManager.RefreshTier();
-            socket.Dialog(db => db.MsgLine("Slot assignment updated"));
-            return;
-        }
         if (command == "default")
         {
             if (args.Length == 1)
@@ -219,7 +191,6 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} use <id> <userName>{DEFAULT_COLOR} switch the user of a license")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} useconfig <id> <config>{DEFAULT_COLOR} use a certain config", null, "with backup:name you can select configs from your backup")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} list{DEFAULT_COLOR} lists all licenses")
-            .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} slots{DEFAULT_COLOR} manage purchased tier slots")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} default <userName>{DEFAULT_COLOR} switch mcName using account premium")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} refresh{DEFAULT_COLOR} refresh all licenses (time andtier)")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} help{DEFAULT_COLOR} display this help"));
