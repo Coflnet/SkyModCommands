@@ -40,6 +40,7 @@ public class UploadBazaarOrders : McCommand
             Activity.Current?.AddTag("orders", "some");
         }
 
+        BazaarOrderDisplay.Send(socket);
         await TryRefillOrders(socket);
     }
 

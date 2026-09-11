@@ -21,9 +21,9 @@ public static class BazaarOrderStateHelper
     public const string CancelOrderDisplayName = "Cancel Order";
 
     private static readonly Regex FormattingRegex = new("§.", RegexOptions.Compiled);
-    private static readonly Regex AmountRegex = new(@"(?:Offer amount|Order amount|Selling|Order): §a([\d,]+)§7x", RegexOptions.Compiled);
-    private static readonly Regex PriceRegex = new(@"Price per unit: §6([\d,]+(?:\.\d+)?) coins", RegexOptions.Compiled);
-    private static readonly Regex FilledRegex = new(@"Filled: §6([\d,]+)§7/(?:§6)?([\d,]+)", RegexOptions.Compiled);
+    private static readonly Regex AmountRegex = new(@"(?:Offer amount|Order amount|Selling|Order): ([\d,]+)x", RegexOptions.Compiled);
+    private static readonly Regex PriceRegex = new(@"Price per unit: ([\d,]+(?:\.\d+)?) coins", RegexOptions.Compiled);
+    private static readonly Regex FilledRegex = new(@"Filled: ([\d,]+)/([\d,]+)", RegexOptions.Compiled);
     private static readonly Regex PlayerRegex = new(@"^§8- §a([\d,]+)§7x (.+?)(?:§f §8(.+))?$", RegexOptions.Compiled);
     private static readonly Regex ByRegex = new(@"^§7By: (.+)$", RegexOptions.Compiled);
     private static readonly Regex ExpiresRegex = new(@"^(?:Expires in|Expiration): (.+)$", RegexOptions.Compiled);
@@ -196,13 +196,13 @@ public static class BazaarOrderStateHelper
 
         var lines = lore.Split('\n', StringSplitOptions.None);
         var plainDisplayName = StripFormatting(displayName);
-        var amountMatch = lines.Select(line => AmountRegex.Match(line)).FirstOrDefault(match => match.Success);
-        var filledMatch = lines.Select(line => FilledRegex.Match(line)).FirstOrDefault(match => match.Success);
+        var amountMatch = lines.Select(line => AmountRegex.Match(StripFormatting(line))).FirstOrDefault(match => match.Success);
+        var filledMatch = lines.Select(line => FilledRegex.Match(StripFormatting(line))).FirstOrDefault(match => match.Success);
         var players = lines
             .Select(ParsePlayer)
             .Where(player => player != null)
             .ToList();
-        var priceMatch = lines.Select(line => PriceRegex.Match(line)).FirstOrDefault(match => match.Success);
+        var priceMatch = lines.Select(line => PriceRegex.Match(StripFormatting(line))).FirstOrDefault(match => match.Success);
         var byMatch = lines.Select(line => ByRegex.Match(line)).FirstOrDefault(match => match.Success);
         var expirationText = GetExpirationText(lines);
 

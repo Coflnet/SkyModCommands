@@ -17,6 +17,26 @@ namespace Coflnet.Sky.Commands.MC
     {
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
+            var displayArguments = arguments.Trim('"');
+            if (displayArguments == "display" || displayArguments == "display clear")
+            {
+                var clear = displayArguments == "display clear";
+                socket.Send(Response.Create("infoDisplay", new InfoDisplay
+                {
+                    Id = 1,
+                    Title = "§6§lSkyCofl test",
+                    Lines = new[]
+                    {
+                        new ChatPart("§aInfo display protocol works!"),
+                        new ChatPart("§eClick to clear", "/cofl test display clear", "Clear this test panel")
+                    },
+                    Ttl = 60,
+                    Clear = clear
+                }));
+                socket.Dialog(db => db.Msg(clear ? "Cleared test info display #1." : "Sent test info display #1 for 60 seconds. Use /cofl displays to position it."));
+                return;
+            }
+
             if (arguments == "empty-proxy")
             {
                 socket.Send(Response.Create("proxy", Array.Empty<ProxyRequest>()));

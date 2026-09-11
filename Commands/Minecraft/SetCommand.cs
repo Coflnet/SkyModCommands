@@ -67,6 +67,8 @@ public class SetCommand : McCommand
                 await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
             }
             var doc = updater.GetDocFor(name);
+            if (doc.RealName == nameof(ModSettings.HideBazaarOrderDisplay))
+                Coflnet.Sky.ModCommands.Services.BazaarOrderDisplay.Send(socket);
             socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{doc.RealName}{DEFAULT_COLOR} to {McColorCodes.WHITE}{finalValue}", null, doc.Info));
             if (page > 0)
                 await PrintSettingsPage(socket, page);
