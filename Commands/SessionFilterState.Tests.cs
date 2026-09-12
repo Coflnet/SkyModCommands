@@ -27,8 +27,8 @@ public class SessionFilterStateTests
         const string ownerId = "17";
         const string configName = "test";
         var config = CreateConfig(ownerId, configName);
-        ConfigureSettingsService(ownerId, configName, config);
         var (socket, lifecycle) = CreateLifecycle(userId, ownerId, configName, config.Version);
+        ConfigureSettingsService(socket.UserId, ownerId, configName, config);
         socket.AddService((ConfigStatsService)RuntimeHelpers.GetUninitializedObject(typeof(ConfigStatsService)));
 
         Assert.DoesNotThrowAsync(async () => await lifecycle.FilterState.SubToConfigChanges());
@@ -49,9 +49,19 @@ public class SessionFilterStateTests
         };
     }
 
-    private static void ConfigureSettingsService(string ownerId, string configName, ConfigContainer config)
+    private static void ConfigureSettingsService(string userId, string ownerId, string configName, ConfigContainer config)
     {
         var settingsApi = new Mock<ISettingsApi>();
+        settingsApi
+            .Setup(api => api.GetSettingWithHttpInfoAsync(
+                userId,
+                "owned_configs",
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ApiResponse<string>(HttpStatusCode.OK, JsonConvert.SerializeObject(new OwnedConfigs
+            {
+                Configs = [new OwnedConfigs.OwnedConfig { OwnerId = ownerId, Name = configName, Version = config.Version }]
+            })));
         settingsApi
             .Setup(api => api.GetSettingWithHttpInfoAsync(
                 ownerId,
