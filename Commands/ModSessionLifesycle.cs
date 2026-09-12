@@ -218,7 +218,7 @@ namespace Coflnet.Sky.Commands.MC
 
             try
             {
-                if (!socket.Version.Contains("af") && (!Version.TryParse(socket.Version, out var clientVer) || clientVer < new Version(1, 7, 5)))
+                if (!socket.Version.Contains("af") && (!Version.TryParse(socket.Version, out var clientVer) || clientVer < new Version(1, 7, 5)) && !socket.Version.Contains("2.0.0-pre"))
                 {
                     socket.Dialog(db => db.MsgLine($"Your mod version is outdated, please update to the latest version to get bug fixes.\n" +
                         $"Click here to open the github release page.", "https://github.com/Coflnet/SkyblockMod/tags", "Open github page")
