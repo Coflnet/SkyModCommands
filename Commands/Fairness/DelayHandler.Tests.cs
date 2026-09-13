@@ -17,6 +17,7 @@ public class DelayHandlerTests
     private SelfUpdatingValue<AccountInfo> accountInfo;
     private DelayHandler delayHandler;
     private SpeedCompResult result;
+    private Mock<FlipTrackingService> flipTrackingService;
     private FlipInstance flipInstance;
     [SetUp]
     public void Setup()
@@ -24,7 +25,7 @@ public class DelayHandlerTests
         timeProvider = new MockTimeProvider();
         ids = new string[] { "hi" };
         var configuration = new Mock<IConfiguration>();
-        var flipTrackingService = new Mock<FlipTrackingService>(null, null, configuration.Object, null, null, null, null, null, null, null);
+        flipTrackingService = new Mock<FlipTrackingService>(null, null, configuration.Object, null, null, null, null, null, null, null);
         sessionInfo = new SessionInfo() { };
         accountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(() => new AccountInfo() { }).Result;
         result = new SpeedCompResult() { Penalty = 1, MacroedFlips = new(), BoughtWorth = 50_000_000 };
@@ -32,6 +33,24 @@ public class DelayHandlerTests
         delayHandler = new DelayHandler(timeProvider, flipTrackingService.Object, sessionInfo, accountInfo, new Random(5));
         flipInstance = new FlipInstance() { Auction = new() { StartingBid = 5 } };
         DiHandler.OverrideService<DelayService, DelayService>(new DelayService(null));
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task LicenseAccessSeparatesTheCurrentMinecraftAccountsDelay(bool isLicense)
+    {
+        string[] accounts = ["current", "other"];
+        sessionInfo.VerifiedMc = true;
+        flipTrackingService.Setup(f => f.GetSpeedComp(accounts, 0)).ReturnsAsync(result);
+        flipTrackingService.Setup(f => f.GetSpeedComp(It.Is<string[]>(ids => ids.Length == 1 && ids[0] == "current"), 25))
+            .ReturnsAsync(new SpeedCompResult { Penalty = 0.2, MacroedFlips = new() });
+
+        var summary = await delayHandler.Update(accounts, timeProvider.Now, isLicense ? "current" : null);
+
+        Assert.That(summary.SingleAccountDelay, Is.EqualTo(isLicense));
+        Assert.That(summary.Penalty.TotalSeconds, Is.EqualTo(isLicense ? 0.2 : 1));
+        flipTrackingService.Verify(f => f.GetSpeedComp(It.Is<string[]>(ids => ids.Length == 1 && ids[0] == "current"), 25),
+            isLicense ? Times.Once() : Times.Never());
     }
 
     public async Task RequireMc()
