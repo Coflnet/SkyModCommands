@@ -65,6 +65,102 @@ public class EmblemServiceTests
     }
 
     [Test]
+    public async Task ReportedBulkPurchasesUnlockSixMonthPremium()
+    {
+        var transactionApi = new Mock<ITransactionApi>();
+        transactionApi.Setup(api => api.TransactionUUserIdGetAsync("45", 0, 2000, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExternalTransaction>
+            {
+                new(id: "371866", productId: "premium", amount: -1800),
+                new(id: "371865", productId: "premium", amount: -5400),
+                new(id: "371864", productId: "premium", amount: -5400),
+                new(id: "371863", productId: "premium", amount: -5400),
+                new(id: "370474", productId: "premium_plus", amount: -2700),
+                new(id: "370469", productId: "premium", amount: -1800)
+            });
+        var productsApi = new Mock<IProductsApi>();
+        productsApi.Setup(api => api.ProductsPProductSlugGetAsync("premium", 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PurchaseableProduct(cost: 1800));
+        productsApi.Setup(api => api.ProductsPProductSlugGetAsync("premium_plus", 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PurchaseableProduct(cost: 2700));
+        var socket = new Mock<MinecraftSocket>();
+        socket.Setup(s => s.GetService<ITransactionApi>()).Returns(transactionApi.Object);
+        socket.Setup(s => s.GetService<IProductsApi>()).Returns(productsApi.Object);
+        var service = CreateService();
+
+        var result = await service.GetPurchaseStats(socket.Object, new GoogleUser { Id = 45 });
+        var unlocked = new HashSet<string>();
+        EmblemService.AddPremiumTimeEmblems(unlocked, result.premium, result.premiumPlus);
+
+        Assert.That(result.premium, Is.EqualTo(TimeSpan.FromDays(337)));
+        Assert.That(result.premiumPlus, Is.EqualTo(TimeSpan.FromDays(7)));
+        Assert.That(unlocked, Is.EquivalentTo(new[] { Emblems.PremiumSixMonths }));
+        Assert.That(await service.GetPurchaseStats(socket.Object, new GoogleUser { Id = 45 }), Is.EqualTo(result));
+        productsApi.Verify(api => api.ProductsPProductSlugGetAsync("premium", 0, It.IsAny<CancellationToken>()), Times.Once);
+        productsApi.Verify(api => api.ProductsPProductSlugGetAsync("premium_plus", 0, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestCase("premium", 1800, -5400, 90)]
+    [TestCase("premium_plus", 2700, -8100, 21)]
+    [TestCase("premium_plus-weeks", 9000, -27000, 84)]
+    [TestCase("premium_plus-months", 21600, -64800, 231)]
+    [TestCase("premium-old", 1200, -3600, 90)]
+    [TestCase("premium", 1800, -900, 30)]
+    [TestCase("premium", 1800, -2700, 30)]
+    [TestCase("premium", 0, -5400, 30)]
+    [TestCase("premium", 1800, 0, 30)]
+    public async Task BulkPurchaseDurationsUseProductPrice(string slug, double cost, double amount, int days)
+    {
+        var transactionApi = new Mock<ITransactionApi>();
+        transactionApi.Setup(api => api.TransactionUUserIdGetAsync("46", 0, 2000, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExternalTransaction> { new(productId: slug, amount: amount) });
+        var productsApi = new Mock<IProductsApi>();
+        productsApi.Setup(api => api.ProductsPProductSlugGetAsync(slug, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PurchaseableProduct(cost: cost));
+        var socket = new Mock<MinecraftSocket>();
+        socket.Setup(s => s.GetService<ITransactionApi>()).Returns(transactionApi.Object);
+        socket.Setup(s => s.GetService<IProductsApi>()).Returns(productsApi.Object);
+
+        var result = await CreateService().GetPurchaseStats(socket.Object, new GoogleUser { Id = 46 });
+
+        Assert.That(result.premium, Is.EqualTo(TimeSpan.FromDays(days)));
+        Assert.That(result.premiumPlus, Is.EqualTo(slug.StartsWith("premium_plus") ? TimeSpan.FromDays(days) : TimeSpan.Zero));
+        var unlocked = new HashSet<string>();
+        EmblemService.AddPremiumTimeEmblems(unlocked, result.premium, result.premiumPlus);
+        Assert.That(unlocked.Contains(Emblems.PremiumPlusSixMonths), Is.EqualTo(result.premiumPlus.TotalDays >= 180));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task UnavailableProductPricePreservesOtherPurchaseStats(bool throws)
+    {
+        var transactionApi = new Mock<ITransactionApi>();
+        transactionApi.Setup(api => api.TransactionUUserIdGetAsync("47", 0, 2000, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExternalTransaction>
+            {
+                new(productId: "premium", amount: -5400),
+                new(productId: "premium_plus", amount: -8100),
+                new(productId: "pre_api", amount: -1400)
+            });
+        var productsApi = new Mock<IProductsApi>();
+        if (throws)
+            productsApi.Setup(api => api.ProductsPProductSlugGetAsync("premium", 0, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new HttpRequestException("Product lookup unavailable"));
+        productsApi.Setup(api => api.ProductsPProductSlugGetAsync("premium_plus", 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PurchaseableProduct(cost: 2700));
+        var socket = new Mock<MinecraftSocket>();
+        socket.Setup(s => s.GetService<ITransactionApi>()).Returns(transactionApi.Object);
+        socket.Setup(s => s.GetService<IProductsApi>()).Returns(productsApi.Object);
+
+        var result = await CreateService().GetPurchaseStats(socket.Object, new GoogleUser { Id = 47 });
+
+        Assert.That(result.premium, Is.EqualTo(TimeSpan.FromDays(51)));
+        Assert.That(result.premiumPlus, Is.EqualTo(TimeSpan.FromDays(21)));
+        Assert.That(result.preApiPurchases, Is.EqualTo(1));
+        productsApi.Verify(api => api.ProductsPProductSlugGetAsync("pre_api", 0, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
     public async Task TransactionCapSpeculativelyUnlocksAllPremiumEmblems()
     {
         var transactionApi = new Mock<ITransactionApi>();

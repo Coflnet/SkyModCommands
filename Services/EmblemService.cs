@@ -203,12 +203,31 @@ public class EmblemService
             var premiumPlus = historyCapped ? TimeSpan.MaxValue : TimeSpan.Zero;
             if (!historyCapped)
             {
-                foreach (var transaction in transactions)
+                foreach (var purchases in transactions.GroupBy(t => t.ProductId))
                 {
-                    var (duration, isPremiumPlus) = GetPremiumDuration(transaction.ProductId);
-                    premium += duration;
+                    var (duration, isPremiumPlus) = GetPremiumDuration(purchases.Key);
+                    if (duration == TimeSpan.Zero)
+                        continue;
+                    var unitCost = 0d;
+                    if (purchases.Any(t => t.Amount < 0))
+                    {
+                        try
+                        {
+                            var product = await socket.GetService<IProductsApi>().ProductsPProductSlugGetAsync(purchases.Key);
+                            unitCost = product?.Cost ?? 0;
+                        }
+                        catch (Exception e)
+                        {
+                            logger.LogWarning(e, "Could not load emblem product price for {product}", purchases.Key);
+                        }
+                    }
+                    // History has no quantity or applied discount. Count full-price units conservatively,
+                    // retaining one duration for discounted/free purchases or unavailable product prices.
+                    var count = purchases.Sum(t => unitCost > 0 ? Math.Max(1, Math.Floor(-t.Amount / unitCost)) : 1);
+                    var purchasedDuration = duration * count;
+                    premium += purchasedDuration;
                     if (isPremiumPlus)
-                        premiumPlus += duration;
+                        premiumPlus += purchasedDuration;
                 }
             }
             var result = (premium, premiumPlus, preApiPurchases, at: DateTime.UtcNow);
