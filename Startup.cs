@@ -75,9 +75,23 @@ public class Startup
         services.AddHostedService(s => s.GetRequiredService<BazaarFlipService>());
         services.AddSingleton<IFleetApi, FleetApi>(s =>
             new FleetApi(s.GetRequiredService<IConfiguration>()["BAZAARFLIPPER_BASE_URL"]));
-        services.AddHostedService<BazaarSignalSubscriptionService>();
+        services.AddKeyedSingleton<IConnectionMultiplexer>("bazaar", (sp, key) => {
+            var options = ConfigurationOptions.Parse(Configuration["EVENTS_REDIS_HOST"] ?? "sky-event-broker-redis");
+            options.AbortOnConnectFail = false;
+            options.ConnectTimeout = 1000;
+            options.AsyncTimeout = 1000;
+            options.ConnectRetry = 0;
+            return ConnectionMultiplexer.Connect(options);
+        });
+        services.AddHttpClient("BazaarOrders", client => {
+            client.BaseAddress = new Uri(Configuration["BAZAAR_BASE_URL"].TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(3);
+        });
+        services.AddSingleton<BazaarSignalSubscriptionService>();
+        services.AddHostedService(sp => sp.GetRequiredService<BazaarSignalSubscriptionService>());
         services.AddHostedService(s => s.GetRequiredService<FlipperService>());
         services.AddJaeger(Configuration, 1, 1);
+        services.AddOpenTelemetry().WithTracing(b => b.AddSource(BazaarOrderDisplay.SourceName));
         services.AddTransient<CounterService>();
         services.AddSingleton<ModeratorService>();
         services.AddSingleton<ChatService>();

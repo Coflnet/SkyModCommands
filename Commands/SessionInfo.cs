@@ -110,6 +110,11 @@ namespace Coflnet.Sky.Commands.MC
 
         public List<SaveAuction> Inventory { get; set; } = new();
 
+        [JsonIgnore]
+        public BazaarOrderSnapshot BazaarDisplayState { get; set; }
+        [JsonIgnore]
+        public System.Threading.SemaphoreSlim BazaarDisplayLock { get; } = new(1);
+
         public List<BazaarOrderInfo> BazaarOrders { get; set; } = new();
 
         [JsonIgnore]

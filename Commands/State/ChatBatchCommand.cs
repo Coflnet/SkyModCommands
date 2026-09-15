@@ -56,7 +56,6 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task ProcessLine(MinecraftSocket socket, List<string> batch, string item)
         {
-            await BazaarOrderDisplay.HandleChat(socket, item);
             if (item.Contains("was filled!"))
             {
                 var fillMatch = Regex.Match(item, @"(Buy Order|Sell Offer) for ([\d,]+)x (.+) was filled!");

@@ -32,6 +32,9 @@ namespace Coflnet.Sky.Commands.MC
 
         public long Id { get; private set; }
 
+        internal static System.Collections.Generic.IEnumerable<MinecraftSocket> GetActiveSockets(string userId) =>
+            ActiveSockets.Keys.Where(s => !s.IsClosed && s.sessionLifesycle?.AccountInfo?.Value?.UserId == userId);
+
         public SessionInfo SessionInfo { get; } = new SessionInfo();
 
         public FlipSettings Settings

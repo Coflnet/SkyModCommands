@@ -640,6 +640,8 @@ namespace Coflnet.Sky.Commands.MC
                 }
 
                 await userIsVerifiedTask;
+                _ = socket.TryAsyncTimes(() => socket.GetService<BazaarSignalSubscriptionService>().RestoreAsync(socket),
+                    "restore Bazaar orders", 2);
                 socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc, tier = tier.ToString() }));
                 if (isSilentReconnect)
                     Console.WriteLine("silent reconnect for " + socket.SessionInfo.McName + " conid " + socket.SessionInfo.clientConId);
