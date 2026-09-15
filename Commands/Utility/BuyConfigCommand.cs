@@ -288,8 +288,10 @@ public class BuyConfigCommand : ArgumentsCommand
                 throw new CoflnetException(
                     "purchase_incomplete",
                     "The Expert Config transaction ID is invalid.");
-            await socket.GetService<ExpertConfigCheckoutClient>()
-                .WaitForConfirmation(transactionId);
+            // The receipt/order-confirmation email is delivered asynchronously by
+            // SkyEventBroker and must never gate supply of the licence: a payment that already
+            // settled is supplied immediately below, regardless of whether or when the email
+            // goes out.
             if (IsReverted(await GetTransactions(socket), transactionId))
                 throw new CoflnetException(
                     "purchase_reverted",
@@ -515,8 +517,9 @@ public class BuyConfigCommand : ArgumentsCommand
                 sellerUserId,
                 owned.CreatorFeeEurCents,
                 owned.RewardPendingId ?? pendingId.Value);
-            socket.Dialog(db => db.MsgLine(
-                $"§6{toBebought.Value.Name} §7v{toBebought.Value.Version} §6bought"));
+            socket.Dialog(db => db
+                .MsgLine($"§6{toBebought.Value.Name} §7v{toBebought.Value.Version} §6bought")
+                .MsgLine("Your order confirmation and receipt will be emailed to you separately."));
         }
         else
             socket.Dialog(db => db.MsgLine(

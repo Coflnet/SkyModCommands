@@ -1,7 +1,5 @@
 using System;
-using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -43,46 +41,9 @@ public sealed class ExpertConfigCheckoutClient
         await EnsureSuccess(response);
     }
 
-    public async Task WaitForConfirmation(long transactionId)
-    {
-        var token = configuration["PURCHASE_CONFIRMATIONS:READ_TOKEN"];
-        if (token?.Length < 32)
-            throw new InvalidOperationException(
-                "Purchase-confirmation delivery is not configured.");
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-        do
-        {
-            using var request = new HttpRequestMessage(
-                HttpMethod.Get,
-                new Uri(EventsUri(),
-                    $"/api/purchase-confirmations/coflcoins/{transactionId}/service_purchase"));
-            request.Headers.Authorization = new AuthenticationHeaderValue(
-                "Bearer",
-                token);
-            using var response = await clients.CreateClient(nameof(ExpertConfigCheckoutClient))
-                .SendAsync(request);
-            if (response.StatusCode == HttpStatusCode.NoContent)
-                return;
-            if (response.StatusCode == HttpStatusCode.Conflict)
-                throw new InvalidOperationException(
-                    "The purchase confirmation could not be delivered. Contact support; no Config access was granted.");
-            if (response.StatusCode is not HttpStatusCode.NotFound
-                and not HttpStatusCode.Accepted)
-                await EnsureSuccess(response);
-            await Task.Delay(TimeSpan.FromSeconds(1));
-        } while (DateTime.UtcNow < deadline);
-
-        throw new InvalidOperationException(
-            "Payment was recorded, but its email confirmation is still pending. Run buyconfig again to resume; no duplicate charge or Config access will occur.");
-    }
-
     private Uri PaymentsUri() => RequiredUri(
         "PAYMENTS_BASE_URL",
         "Expert Config checkout");
-
-    private Uri EventsUri() => RequiredUri(
-        "EVENTS_BASE_URL",
-        "Purchase-confirmation delivery");
 
     private Uri RequiredUri(string key, string name) =>
         Uri.TryCreate(configuration[key], UriKind.Absolute, out var uri)
