@@ -37,7 +37,7 @@ namespace Coflnet.Sky.Commands.MC
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter (180 days)", "starter_premium 1", $"purchase starter premium for {McColorCodes.AQUA}half a year").LineBreak()
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (hour)", "premium_plus-hour 1", $"Purchase {McColorCodes.GOLD}prem+{McColorCodes.WHITE} for 60 minutes")
                         .CoflCommand<PurchaseCommand>($" {McColorCodes.WHITE}starter (a day)", "starter_premium-day 1", $"purchase starter premium for a {McColorCodes.AQUA}single day").LineBreak()
-                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (4 weeks) {McColorCodes.BOLD}33% cheaper than 1 week", "premium_plus-weeks", $"Purchase {McColorCodes.GOLD}prem+{McColorCodes.WHITE} for 4 weeks"));
+                        .CoflCommand<PurchaseCommand>($" {McColorCodes.GOLD}premium+ (4 weeks) {McColorCodes.BOLD}17% cheaper than 1 week", "premium_plus-weeks", $"Purchase {McColorCodes.GOLD}prem+{McColorCodes.WHITE} for 4 weeks"));
 
                 var userInfo = await userApi.UserUserIdGetAsync(socket.UserId);
                 if (userInfo.Balance <= 3)
