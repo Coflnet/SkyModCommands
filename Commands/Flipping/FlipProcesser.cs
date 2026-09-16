@@ -376,18 +376,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             Activity.Current?.Log("Initiating send");
-            var sent = false;
-            try
-            {
-                sent = await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
-                if (!sent)
-                    return;
-            }
-            finally
-            {
-                if (!sent)
-                    SentFlips.TryRemove(flip.Auction.UId, out _);
-            }
+            await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
             Activity.Current?.Log("Sent flip");
             if (flip.AdditionalProps.ContainsKey("isRR") && socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.SUPER_PREMIUM))
                 await socket.TriggerTutorial<RoundRobinTutorial>().ConfigureAwait(false);
