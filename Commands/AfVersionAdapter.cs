@@ -27,7 +27,7 @@ public class AfVersionAdapter : ModVersionAdapter
             var reason = stopBuy ? "stopBuy" : "ShouldSkipFlip";
             socket.sessionLifesycle.FlipProcessor.BlockedFlip(flip.ToLowPriced(), reason);
             Activity.Current?.Log($"blocked by {reason}");
-            return true;
+            return false; // not delivered, so it is not tracked as sent and can be retried
         }
         var name = GetItemName(flip.Auction);
         if (flip.Auction.Count > 1)
