@@ -75,6 +75,33 @@ public class BazaarOrderDisplayTests
         tutorials.Verify(t => t.Trigger<BazaarOrderDisplayTutorial>(socket.Object), Times.Once);
     }
 
+    [TestCase(null)]
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task FillProgressHasNoEstimateLabelAndTooltipRetainsConfirmationDetails(bool? estimate)
+    {
+        var state = Snapshot(1, 16);
+        state.Orders[0].IsEstimate = estimate;
+        await BazaarOrderDisplay.Apply(socket.Object, state);
+        Assert.That(Display.Lines[0].text, Is.EqualTo("§6SELL §fWheat §716/64"));
+        Assert.That(Display.Lines[0].hover.Split('\n'), Has.Length.EqualTo(3));
+        Assert.That(Display.Lines[0].hover, Does.Contain(estimate == false ? "Confirmed" : "Estimated"));
+        Assert.That(Display.Lines.Last().text, Is.EqualTo("§c[Disable display]"));
+    }
+
+    [Test]
+    public async Task ExpiredPartialClaimShowsRemainingQuantityWithoutCompletionLabel()
+    {
+        var state = Snapshot();
+        state.Orders[0].Amount = 1024;
+        state.Orders[0].Filled = 1024;
+        state.Orders[0].Claimed = 512;
+        state.Orders[0].IsExpired = true;
+        await BazaarOrderDisplay.Apply(socket.Object, state);
+        Assert.That(Display.Lines[0].text, Does.Contain("Expired").And.Contain("512 to claim").And.Not.Contain("Filled!"));
+        Assert.That(Display.Lines[0].hover, Does.Contain("Claimed: 512").And.Contain("Expired: no further fills."));
+    }
+
     [Test]
     public async Task PartialFillPushUpdatesWithoutMenuAndStaleSnapshotCannotUndoIt()
     {
@@ -146,7 +173,7 @@ public class BazaarOrderDisplayTests
         var estimated = Snapshot(2, 64);
         estimated.Orders[0].IsEstimate = true;
         await BazaarOrderDisplay.Apply(socket.Object, estimated);
-        Assert.That(Display.Lines[0].text, Does.Contain("estimate").And.Not.Contain("Filled!"));
+        Assert.That(Display.Lines[0].text, Does.Not.Contain("estimate").And.Not.Contain("Filled!"));
         await BazaarOrderDisplay.Apply(socket.Object, Snapshot(3, 64));
         Assert.That(Display.Lines[0].text, Does.Contain("Filled!"));
     }

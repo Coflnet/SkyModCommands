@@ -23,6 +23,8 @@ public class BazaarDisplayOrder
     public string PlayerName { get; set; }
     public int Amount { get; set; }
     public int Filled { get; set; }
+    public bool IsExpired { get; set; }
+    public int? Claimed { get; set; }
     public bool? IsEstimate { get; set; }
     public bool IsSell { get; set; }
     public double PricePerUnit { get; set; }

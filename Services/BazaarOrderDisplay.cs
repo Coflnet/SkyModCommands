@@ -38,10 +38,10 @@ public static class BazaarOrderDisplay
             Title = "§6§lBazaar orders",
             Clear = clear,
             Lines = clear ? Array.Empty<ChatPart>() : orders.Take(28).Select(order => new ChatPart(
-                $"{(order.IsSell ? "§6SELL" : "§aBUY")} §f{state.ItemNames.GetValueOrDefault(order.ItemId, order.ItemId)} §7{order.Filled:N0}/{order.Amount:N0} §a{(order.IsEstimate != false ? "estimate" : order.Filled == order.Amount ? "Filled!" : "filled")}",
+                $"{(order.IsSell ? "§6SELL" : "§aBUY")} §f{state.ItemNames.GetValueOrDefault(order.ItemId, order.ItemId)} §7{order.Filled:N0}/{order.Amount:N0}{(order.IsExpired ? " §8Expired" : order.IsEstimate == false && order.Filled == order.Amount ? " §aFilled!" : "")}{(order.Claimed.HasValue ? $" §e{Math.Max(0, order.Filled - order.Claimed.Value):N0} to claim" : "")}",
                 "/managebazaarorders",
-                $"Filled: {order.Filled:N0}/{order.Amount:N0}\n{(order.IsEstimate != false ? "Estimated from price-level changes." : "Confirmed fill state.")} Updated automatically by SkyBazaar.\nPrice per unit: {order.PricePerUnit:N1} coins"))
-                .Append(new ChatPart("§7[T: hover/click] §c[Disable display]", DisableCommand,
+                $"Filled: {order.Filled:N0}/{order.Amount:N0}{(order.Claimed.HasValue ? $"\nClaimed: {order.Claimed:N0}; remaining to claim: {Math.Max(0, order.Filled - order.Claimed.Value):N0}" : "")}{(order.IsExpired ? "\nExpired: no further fills." : "")}\n{(order.IsEstimate != false ? "Estimated from price-level changes." : "Confirmed fill state.")} Updated automatically by SkyBazaar.\nPrice per unit: {order.PricePerUnit:N1} coins"))
+                .Append(new ChatPart("§c[Disable display]", DisableCommand,
                     "Hide this display. Re-enable with /cofl set modhideBazaarOrderDisplay false"))
                 .ToArray()
         }));
