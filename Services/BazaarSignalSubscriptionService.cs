@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -82,12 +83,18 @@ public class BazaarSignalSubscriptionService : BackgroundService
             var sockets = MinecraftSocket.GetActiveSockets(state.UserId).ToList();
             logger.LogDebug("Received Bazaar snapshot for {UserId}, revision {Revision}, active sockets {SocketCount}, origin {TraceParent}",
                 state.UserId, state.Revision, sockets.Count, state.TraceParent);
-            foreach (var socket in sockets)
-                try { await BazaarOrderDisplay.Apply(socket, state, logger: logger); }
-                catch (Exception e) { logger.LogError(e, "Failed to send Bazaar orders for {UserId}, revision {Revision}, origin {TraceParent}", state.UserId, state.Revision, state.TraceParent); }
+            await SendOrdersAsync(sockets, state);
         }
         catch (Exception e) { logger.LogError(e, "Failed to read Bazaar order state"); }
     }
+
+    internal Task SendOrdersAsync(IEnumerable<IMinecraftSocket> sockets, BazaarOrderSnapshot state) =>
+        Task.WhenAll(sockets.Select(async socket =>
+        {
+            // A slow tutorial or failed connection must not block the user's other sessions.
+            try { await BazaarOrderDisplay.Apply(socket, state, logger: logger); }
+            catch (Exception e) { logger.LogError(e, "Failed to send Bazaar orders for {UserId}, revision {Revision}, origin {TraceParent}", state.UserId, state.Revision, state.TraceParent); }
+        }));
 
     public async Task RestoreAsync(IMinecraftSocket socket)
     {

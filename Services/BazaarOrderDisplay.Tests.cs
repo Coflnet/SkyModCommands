@@ -203,6 +203,29 @@ public class BazaarOrderDisplayTests
         tutorials.Verify(t => t.Trigger<BazaarOrderDisplayTutorial>(socket.Object), Times.Never);
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task AllSessionsReceiveSnapshotDespiteSlowTutorialOrFailedSocket(bool fail)
+    {
+        var tutorial = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        tutorials.Setup(t => t.Trigger<BazaarOrderDisplayTutorial>(socket.Object)).Returns(tutorial.Task);
+        if (fail)
+            socket.Setup(s => s.Send(It.IsAny<Response>())).Throws(new InvalidOperationException("Disconnected"));
+        var second = new Mock<IMinecraftSocket>();
+        second.SetupGet(s => s.Version).Returns(BazaarOrderDisplay.ClientVersion);
+        second.SetupGet(s => s.UserId).Returns("1");
+        second.SetupGet(s => s.SessionInfo).Returns(new SessionInfo { McName = "Ekwav" });
+        tutorials.Setup(t => t.Trigger<BazaarOrderDisplayTutorial>(second.Object)).Returns(Task.CompletedTask);
+        second.Setup(s => s.GetService<ITutorialService>()).Returns(tutorials.Object);
+        var delivered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        second.Setup(s => s.Send(It.IsAny<Response>())).Callback(() => delivered.TrySetResult());
+        using var service = new BazaarSignalSubscriptionService(null, NullLogger<BazaarSignalSubscriptionService>.Instance, null);
+        var delivery = service.SendOrdersAsync(new[] { socket.Object, second.Object }, Snapshot());
+        try { await delivered.Task.WaitAsync(TimeSpan.FromSeconds(2)); }
+        finally { tutorial.TrySetResult(); await delivery; }
+        Assert.That(second.Object.SessionInfo.BazaarDisplayState.Revision, Is.EqualTo(1));
+    }
+
     [Test]
     public async Task RedisRestartDuringSubscriptionDoesNotStopTheHost()
     {
