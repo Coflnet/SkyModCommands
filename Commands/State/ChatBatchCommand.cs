@@ -32,12 +32,14 @@ namespace Coflnet.Sky.Commands.MC
             var playerId = socket.SessionInfo?.McName;
             if (playerId == "Ekwav" || MinecraftSocket.IsDevMode)
                 Console.WriteLine("produced chat batch " + string.Join(',', batch));
+            var receivedAt = DateTime.UtcNow;
+            _ = BazaarInstantBuy.Forward(socket, batch, receivedAt);
             try
             {
                 socket.GetService<IStateUpdateService>().Produce(playerId, new()
                 {
                     ChatBatch = batch,
-                    ReceivedAt = DateTime.UtcNow,
+                    ReceivedAt = receivedAt,
                     PlayerId = playerId,
                     Kind = UpdateMessage.UpdateKind.CHAT,
                     UserId = socket.UserId

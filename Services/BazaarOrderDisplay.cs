@@ -28,7 +28,7 @@ public static class BazaarOrderDisplay
             return;
         var state = socket.SessionInfo.BazaarDisplayState;
         var orders = state?.Orders.Where(o => string.Equals(o.PlayerName, socket.SessionInfo.McName,
-            StringComparison.OrdinalIgnoreCase)).OrderBy(o => o.Timestamp).ToList() ?? new();
+            StringComparison.OrdinalIgnoreCase)).OrderByDescending(o => o.IsSell).ThenBy(o => o.Timestamp).ToList() ?? new();
         var clear = socket.Settings?.ModSettings?.HideBazaarOrderDisplay == true || orders.Count == 0;
         logger.LogDebug("Sending Bazaar HUD for {UserId}, revision {Revision}, player {PlayerName}, matching orders {OrderCount}, hidden {Hidden}, clear {Clear}; TraceId {TraceId}",
             socket.UserId, state?.Revision, socket.SessionInfo.McName, orders.Count, socket.Settings?.ModSettings?.HideBazaarOrderDisplay == true, clear, Activity.Current?.TraceId.ToString());

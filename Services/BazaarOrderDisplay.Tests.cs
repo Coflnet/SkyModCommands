@@ -48,6 +48,20 @@ public class BazaarOrderDisplayTests
 
     private InfoDisplay Display => JsonConvert.DeserializeObject<InfoDisplay>(sent.Last().data);
 
+    [Test]
+    public async Task NewSellOffersStayAboveOlderBuysInTimestampOrder()
+    {
+        var state = Snapshot();
+        var oldest = state.Orders[0];
+        oldest.IsSell = false;
+        oldest.Amount = 1;
+        state.Orders.Add(new() { ItemId = "WHEAT", PlayerName = "Ekwav", IsSell = true, Amount = 3, Timestamp = oldest.Timestamp.AddSeconds(2) });
+        state.Orders.Add(new() { ItemId = "WHEAT", PlayerName = "Ekwav", IsSell = true, Amount = 2, Timestamp = oldest.Timestamp.AddSeconds(1) });
+        await BazaarOrderDisplay.Apply(socket.Object, state);
+        Assert.That(Display.Lines.Take(3).Select(l => l.text), Is.EqualTo(new[] {
+            "§6SELL §fWheat §70/2", "§6SELL §fWheat §70/3", "§aBUY §fWheat §70/1" }));
+    }
+
     [TestCase("1.9.3")]
     [TestCase("2.0.0")]
     [TestCase("2.0.0-pre2")]
