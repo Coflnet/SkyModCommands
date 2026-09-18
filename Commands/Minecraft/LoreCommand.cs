@@ -20,7 +20,8 @@ namespace Coflnet.Sky.Commands.MC
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var service = socket.GetService<SettingsService>();
-            if (!descriptionCache.TryGetValue(socket.UserId, out var cache) || cache.Item2.AddMinutes(1) < DateTime.UtcNow)
+            if (!descriptionCache.TryGetValue(socket.UserId, out var cache) || cache.Item2.AddMinutes(1) < DateTime.UtcNow
+                || arguments.Trim('"') == "json")
             {
                 cache.Item1 = await service.GetCurrentValue<DescriptionSetting>(socket.UserId, "description", () =>
                 {
@@ -35,11 +36,13 @@ namespace Coflnet.Sky.Commands.MC
                 // assume this is a full json settings object
                 settings = Convert<DescriptionSetting>(arguments);
                 await service.UpdateSetting(socket.UserId, "description", settings);
+                descriptionCache[socket.UserId] = (settings, DateTime.UtcNow);
+                socket.Send(Response.Create("loreSettings", Newtonsoft.Json.JsonConvert.SerializeObject(settings)));
                 SendCurrentState(socket, settings);
                 socket.Dialog(db => db.MsgLine("Imported settings (check above)"));
                 return;
             }
-            if(arguments == "json")
+            if (arguments.Trim('"') == "json")
             {
                 socket.Send(Response.Create("loreSettings", Newtonsoft.Json.JsonConvert.SerializeObject(settings, Newtonsoft.Json.Formatting.Indented)));
                 return;
