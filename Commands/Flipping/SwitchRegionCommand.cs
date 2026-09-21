@@ -40,7 +40,7 @@ public class SwitchRegionCommand : McCommand
             }
 
             socket.Dialog(db => db.MsgLine($"Switching to {McColorCodes.AQUA}EU"));
-            socket.ExecuteCommand("/cofl connect ws://sky-mod.coflnet.com/modsocket");
+            socket.ExecuteCommand("/cofl connect wss://sky.coflnet.com/modsocket");
         }
         else if (selected == "us")
         {
@@ -71,7 +71,7 @@ public class SwitchRegionCommand : McCommand
             "172.23",
             "130.131", //azure
         };
-        var protocol = !Version.TryParse(socket.Version, out var version) || version < new Version(1, 7, 9) ? "ws" : "wss";
+        var protocol = "wss"; // Always use secure WebSocket now that 1.7.9 version can't join hypixel anymore
 
         if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith))
         {
