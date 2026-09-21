@@ -24,6 +24,7 @@ public class BazaarDisplayOrder
     public int Amount { get; set; }
     public int Filled { get; set; }
     public bool IsExpired { get; set; }
+    public bool? IsTopOrder { get; set; }
     public int? Claimed { get; set; }
     public bool? IsEstimate { get; set; }
     public bool IsSell { get; set; }

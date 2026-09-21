@@ -48,6 +48,34 @@ public class BazaarOrderDisplayTests
 
     private InfoDisplay Display => JsonConvert.DeserializeObject<InfoDisplay>(sent.Last().data);
 
+    [TestCase(true, "Undercut")]
+    [TestCase(false, "Outbid")]
+    public async Task TopPricePushChangesLabelWithoutChangingFill(bool sell, string label)
+    {
+        foreach (var (revision, top) in new[] { (1L, true), (2L, false), (3L, true) })
+        {
+            var state = Snapshot(revision, 16);
+            state.Orders[0].IsSell = sell;
+            state.Orders[0].IsTopOrder = top;
+            await BazaarOrderDisplay.Apply(socket.Object, state);
+            Assert.That(Display.Lines[0].text, Does.Contain("16/64").And.Contain(top ? "§aTop order" : "§c" + label));
+            Assert.That(Display.Lines[0].hover, Does.Contain(top ? "best known price" : "better price"));
+        }
+        Assert.That(sent, Has.Count.EqualTo(3));
+    }
+
+    [TestCase(true, 16)]
+    [TestCase(false, 64)]
+    public async Task InactiveOrdersNeverShowTopPriceLabel(bool expired, int filled)
+    {
+        var state = Snapshot(1, filled);
+        state.Orders[0].IsExpired = expired;
+        state.Orders[0].IsTopOrder = true;
+        await BazaarOrderDisplay.Apply(socket.Object, state);
+        Assert.That(Display.Lines[0].text, Does.Not.Contain("Top order"));
+        Assert.That(Display.Lines[0].hover, Does.Not.Contain("best known price"));
+    }
+
     [Test]
     public async Task NewSellOffersStayAboveOlderBuysInTimestampOrder()
     {
