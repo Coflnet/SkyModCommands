@@ -12,11 +12,30 @@ namespace Coflnet.Sky.Commands.MC
             if (arguments.Contains("The Rift"))
                 await MinecraftSocket.Commands["uploadscoreboard"].Execute(socket, arguments);
 
+            if (socket.sessionLifesycle?.UserId?.Value == null)
+                return;
             var youtuberService = socket.GetService<YoutuberService>();
             var fields = this.Convert<string[]>(arguments);
+
+            var playerId = socket.SessionInfo?.McName;
+            try
+            {
+                socket.GetService<IStateUpdateService>().Produce(playerId, new()
+                {
+                    ReceivedAt = DateTime.UtcNow,
+                    PlayerId = playerId,
+                    Kind = UpdateMessage.UpdateKind.Tab,
+                    UserId = socket.UserId,
+                    Tab = fields
+                });
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("tab produce failed " + e);
+            }
             foreach (var item in fields)
             {
-                if(item.StartsWith("Profile: "))
+                if (item.StartsWith("Profile: "))
                 {
                     socket.SessionInfo.ProfileId = item["Profile: ".Length..];
                 }

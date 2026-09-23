@@ -8,38 +8,6 @@ public class TransferCoinsCommand : McCommand
     public override bool IsPublic => true;
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        var args = arguments.Trim('"').Split(' ');
-        var amount = 0;
-        var minecraftName = "";
-        try
-        {
-            amount = int.Parse(args[0]);
-            minecraftName = args[1];
-        }
-        catch
-        {
-            throw new CoflnetException("invalid_arguments", "Usage /cofl transfercoins <amount> <user>");
-        }
-        if(amount <= 0)
-            throw new CoflnetException("invalid_arguments", "Amount has to be greater than 0");
-        string targetUser = await GetUserIdFromMcName(socket, minecraftName, true);
-
-        var userApi = socket.GetService<IUserApi>();
-        try
-        {
-            var currentUserId = socket.sessionLifesycle.UserId.Value ?? throw new CoflnetException("not_logged_in", "You need to be logged in to transfer coins");
-            var transaction = await userApi.UserUserIdTransferPostAsync(currentUserId, new Coflnet.Payments.Client.Model.TransferRequest()
-            {
-                Amount = amount,
-                Reference = minecraftName + "-" + socket.SessionInfo.ConnectionId.Truncate(5),
-                TargetUser = targetUser
-            });
-            socket.Dialog(db => db.MsgLine($"You sent {amount * -1} coins to {minecraftName}"));
-        }
-        catch (Payments.Client.Client.ApiException ex)
-        {
-            throw new CoflnetException("payment_error", ex.Message.Substring("Error calling UserUserIdTransferPost: {.Message.:".Length));
-        }
+        socket.SendMessage("Coins are not transfarable anymore. The feature only holds up against US law while lots of users are outside of the US so it was removed.");
     }
-
 }

@@ -1,2 +1,5 @@
 bin
 obj
+Client
+.vscode
+.git

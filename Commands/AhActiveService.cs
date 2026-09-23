@@ -11,7 +11,7 @@ public class AhActiveService : IAhActive
     public bool IsAhDisabledDerpy {get; private set;}
     CurrentMayorDetailedFlipFilter instance = new CurrentMayorDetailedFlipFilter();
 
-    private FilterStateService filterStateService;
+    private FilterStateService? filterStateService;
 
     public AhActiveService(FilterStateService filterStateService)
     {
@@ -23,7 +23,7 @@ public class AhActiveService : IAhActive
         {
             try
             {
-                IsAhDisabledDerpy = filterStateService!.State.CurrentMayor == "Derpy";
+                IsAhDisabledDerpy = filterStateService?.State.CurrentMayor == "Derpy";
             }
             catch (Exception e)
             {

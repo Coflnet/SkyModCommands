@@ -444,10 +444,16 @@ public static class CommonDialogExtension
 {
     public static async Task<bool> ReguirePremPlus(this IMinecraftSocket socket)
     {
+        if (socket.sessionLifesycle.UserId?.Value == null)
+        {
+            await socket.SendLoginPrompt();
+            return false;
+        }
         if (await socket.UserAccountTier() >= Shared.AccountTier.PREMIUM_PLUS)
         {
             return true;
         }
+        socket.StoreCurrentCommandForPremiumPlusRetry();
         socket.Dialog(db => db.CoflCommand<PurchaseCommand>(
             $"{McColorCodes.RED}{McColorCodes.BOLD}ABORTED\n"
             + $"{McColorCodes.RED}You need to be a premium plus user to use this command"
@@ -458,6 +464,11 @@ public static class CommonDialogExtension
 
     public static async Task<bool> RequirePremium(this IMinecraftSocket socket)
     {
+        if (socket.sessionLifesycle.UserId?.Value == null)
+        {
+            await socket.SendLoginPrompt();
+            return false;
+        }
         var tier = await socket.UserAccountTier();
         if (tier >= Shared.AccountTier.PREMIUM)
         {

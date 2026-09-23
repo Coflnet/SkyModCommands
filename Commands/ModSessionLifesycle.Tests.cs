@@ -9,10 +9,11 @@ using NUnit.Framework;
 using static Coflnet.Sky.Core.LowPricedAuction;
 using Coflnet.Sky.Core;
 using System.Diagnostics;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Coflnet.Sky.Filter;
 using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.ModCommands.Services.Donut;
 using Newtonsoft.Json;
 using System.Linq;
 
@@ -23,6 +24,70 @@ public class ModSessionLifesycleTests
     private ModSessionLifesycle lifesycle;
 
     private TestSocket socket;
+    private FakeDonutFlipSubscriptionService donutFlipSubscriptionService;
+
+    [TestCase(null, true)]
+    [TestCase("", true)]
+    [TestCase("proxy", false)]
+    public void UsesDirectConnectionTypeTreatsBlankAsDirect(string connectionType, bool expected)
+    {
+        Assert.That(ModSessionLifesycle.UsesDirectConnectionType(connectionType), Is.EqualTo(expected));
+    }
+
+    [TestCase(null, false)]
+    [TestCase("", false)]
+    [TestCase("proxy", true)]
+    public void ShouldReconnectToEuRequiresNonDirectConnection(string connectionType, bool expected)
+    {
+        var info = new AccountInfo() { Region = "eu" };
+        Assert.That(ModSessionLifesycle.ShouldReconnectToEu(info, connectionType), Is.EqualTo(expected));
+    }
+
+    [TestCase("eu", "US", true, "us")]
+    [TestCase("eu", "us", true, "us")]
+    [TestCase("eu", "US", false, "eu")]
+    [TestCase("eu", "DE", true, "eu")]
+    [TestCase("us", null, true, "us")]
+    public void DeterminePreferredRegion_UsesCloudflareCountryForPremiumPlus(
+        string storedRegion,
+        string countryCode,
+        bool hasPremiumPlus,
+        string expected)
+    {
+        Assert.That(
+            ModSessionLifesycle.DeterminePreferredRegion(storedRegion, countryCode, hasPremiumPlus),
+            Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void DetermineRegionRoutingAction_RedirectsUsForPremiumPlusDirectConnection()
+    {
+        var info = new AccountInfo() { Region = "us" };
+
+        var action = ModSessionLifesycle.DetermineRegionRoutingAction(
+            info,
+            string.Empty,
+            hasPremiumPlus: true,
+            supportsRegionReconnect: true,
+            isDevMode: false);
+
+        Assert.That(action, Is.EqualTo(ModSessionLifesycle.RegionRoutingAction.RedirectToUs));
+    }
+
+    [Test]
+    public void DetermineRegionRoutingAction_ShowsUnsupportedMessageForLegacyMacroClient()
+    {
+        var info = new AccountInfo() { Region = "us" };
+
+        var action = ModSessionLifesycle.DetermineRegionRoutingAction(
+            info,
+            string.Empty,
+            hasPremiumPlus: true,
+            supportsRegionReconnect: false,
+            isDevMode: false);
+
+        Assert.That(action, Is.EqualTo(ModSessionLifesycle.RegionRoutingAction.ShowUnsupportedUsReconnect));
+    }
 
     [SetUp]
     public void Setup()
@@ -38,12 +103,49 @@ public class ModSessionLifesycleTests
         DiHandler.OverrideService<IIsSold, IIsSold>(mockIsSold.Object);
         DiHandler.OverrideService<IDelayExemptList, IDelayExemptList>(exemptList);
         DiHandler.OverrideService<IFlipTrackingService, IFlipTrackingService>(flipTrackingMock.Object);
+        DiHandler.OverrideService<IFlipReceiveTracker, IFlipTrackingService>(flipTrackingMock.Object);
         DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine(mockNbt.Object));
         DiHandler.OverrideService<FlipperService, FlipperService>(new FlipperService(null, NullLogger<FlipperService>.Instance));
+        donutFlipSubscriptionService = new FakeDonutFlipSubscriptionService();
+        DiHandler.OverrideService<IDonutFlipSubscriptionService, FakeDonutFlipSubscriptionService>(donutFlipSubscriptionService);
         socket = new TestSocket();
         lifesycle = new ModSessionLifesycle(socket);
         socket.SetLifecycle(lifesycle);
         socket.SessionInfo.FlipsEnabled = true;
+    }
+
+    [Test]
+    public async Task UpdateConnectionTier_UsesDonutSubscriptionOutsideSkyblock()
+    {
+        lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings
+        {
+            Visibility = new(),
+            ModSettings = new(),
+            AllowedFinders = FinderType.FLIPPER_AND_SNIPERS
+        });
+        socket.SessionInfo.GameServer = DonutServerContext.Name;
+
+        lifesycle.UpdateConnectionTier(AccountTier.PREMIUM_PLUS);
+        await donutFlipSubscriptionService.RefreshCompletion.Task.ConfigureAwait(false);
+
+        donutFlipSubscriptionService.RefreshCalls.Should().Be(1);
+        DiHandler.GetService<FlipperService>().Connections.Should().BeEmpty();
+    }
+
+    [Test]
+    public void UpdateConnectionTier_UsesSkyblockFlipperOnSkyblock()
+    {
+        lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings
+        {
+            Visibility = new(),
+            ModSettings = new(),
+            AllowedFinders = FinderType.FLIPPER_AND_SNIPERS
+        });
+
+        lifesycle.UpdateConnectionTier(AccountTier.PREMIUM);
+
+        donutFlipSubscriptionService.RefreshCalls.Should().Be(0);
+        DiHandler.GetService<FlipperService>().Connections.Should().HaveCount(1);
     }
 
     [TestCase(true)]
@@ -131,6 +233,61 @@ public class ModSessionLifesycleTests
         }
     }
 
+    [Test]
+    public void SocketSettingsGetterBackfillsPlayerInfoForTierFilters()
+    {
+        var settings = CreateTierAwareSettings();
+        lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(settings);
+
+        Action act = () => socket.Settings.MatchesSettings(FlipperService.LowPriceToFlip(CreateSampleFlip()));
+
+        act.Should().NotThrow();
+        settings.PlayerInfo.Should().BeSameAs(socket.SessionInfo);
+    }
+
+    [Test]
+    public void EnsureSessionContextOnFlipSettings_BackfillsMissingNestedSettings()
+    {
+        var settings = new FlipSettings();
+
+        lifesycle.EnsureSessionContextOnFlipSettings(settings);
+
+        settings.ModSettings.Should().NotBeNull();
+        settings.ModSettings.ShortNumbers.Should().BeTrue();
+        settings.Visibility.Should().NotBeNull();
+        settings.Visibility.SellerOpenButton.Should().BeTrue();
+        settings.Visibility.Lore.Should().BeTrue();
+    }
+
+    [Test]
+    public void AddBlacklist_DoesNotAddSameFilterAgainWithNewExpiry()
+    {
+        lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings
+        {
+            BlackList = [],
+            WhiteList = [],
+            Visibility = new(),
+            ModSettings = new()
+        });
+        var filter = new Dictionary<string, string> { { "ForceBlacklist", "true" } };
+        var addBlacklist = typeof(ModSessionLifesycle).GetMethod(nameof(ModSessionLifesycle.AddBlacklist));
+
+        addBlacklist.Invoke(lifesycle, [new ListEntry
+        {
+            ItemTag = "TEST_ITEM",
+            filter = new Dictionary<string, string>(filter),
+            Tags = ["removeAfter=2026-08-23T12:00:00"]
+        }]).Should().Be(true);
+        addBlacklist.Invoke(lifesycle, [new ListEntry
+        {
+            ItemTag = "TEST_ITEM",
+            filter = new Dictionary<string, string>(filter),
+            Tags = ["removeAfter=2026-08-23T12:01:00"]
+        }]).Should().Be(false);
+
+        lifesycle.FlipSettings.Value.BlackList.Should().ContainSingle();
+    }
+
     private static LowPricedAuction CreateSampleFlip()
     {
         return new LowPricedAuction
@@ -149,6 +306,30 @@ public class ModSessionLifesycleTests
                 {"key","matchingKey"}
             },
             TargetPrice = 6_500_000
+        };
+    }
+
+    private static FlipSettings CreateTierAwareSettings()
+    {
+        return new FlipSettings()
+        {
+            BlackList = new()
+            {
+                new()
+                {
+                    filter = new Dictionary<string, string>
+                    {
+                        { "UserPremiumTier", "PREMIUM_PLUS" },
+                        { "ForceBlacklist", "true" }
+                    }
+                }
+            },
+            WhiteList = [],
+            Visibility = new(),
+            ModSettings = new(),
+            AllowedFinders = FinderType.SNIPER_MEDIAN,
+            MinVolume = 0,
+            BlockHighCompetitionFlips = false
         };
     }
 
@@ -173,6 +354,29 @@ public class ModSessionLifesycleTests
         }
         public TestSocket()
         {
+            ConSpan = new Activity("test-connection");
+        }
+    }
+
+    private sealed class FakeDonutFlipSubscriptionService : IDonutFlipSubscriptionService
+    {
+        public int RefreshCalls { get; private set; }
+        public TaskCompletionSource<bool> RefreshCompletion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task RefreshSubscriptionAsync(IFlipConnection connection)
+        {
+            RefreshCalls++;
+            RefreshCompletion.TrySetResult(true);
+            return Task.CompletedTask;
+        }
+
+        public void RemoveConnection(IFlipConnection connection)
+        {
+        }
+
+        public Task DeliverAsync(LowPricedAuction flip)
+        {
+            return Task.CompletedTask;
         }
     }
 

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,6 +21,8 @@ using Newtonsoft.Json;
 using StackExchange.Redis;
 using WebSocketSharp;
 
+#nullable enable
+
 namespace Coflnet.Sky.ModCommands.Services;
 
 public class ModBackgroundService : BackgroundService
@@ -27,7 +31,7 @@ public class ModBackgroundService : BackgroundService
     private IConfiguration config;
     private ILogger<ModBackgroundService> logger;
     private FlipperService flipperService;
-    private CounterService counterService;
+    private CounterService? counterService;
     IDelayExemptList delayExemptList;
     FilterStateService filterStateService;
     HypixelItemService hypixelItemService;
@@ -37,13 +41,21 @@ public class ModBackgroundService : BackgroundService
     private ConcurrentDictionary<(string, LowPricedAuction.FinderType, long), DateTime> alreadyProcessed = new();
 
     private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
+    private static readonly Prometheus.Counter redisFlipTasks = Prometheus.Metrics.CreateCounter(
+        "sky_mod_redis_flip_tasks_total", "Redis flip tasks scheduled");
+    private static readonly Prometheus.Gauge redisFlipTasksOutstanding = Prometheus.Metrics.CreateGauge(
+        "sky_mod_redis_flip_tasks_outstanding", "Redis flip tasks queued or executing");
+    private static readonly Prometheus.Gauge redisFlipTasksRunning = Prometheus.Metrics.CreateGauge(
+        "sky_mod_redis_flip_tasks_running", "Redis flip tasks whose delegate has started and not completed");
+    private static readonly Prometheus.Histogram redisFlipTaskDuration = Prometheus.Metrics.CreateHistogram(
+        "sky_mod_redis_flip_task_duration_seconds", "Redis flip task execution duration");
 
     public ModBackgroundService(
         IServiceScopeFactory scopeFactory,
         IConfiguration config,
         ILogger<ModBackgroundService> logger,
         FlipperService flipperService,
-        CounterService counterService,
+        CounterService? counterService,
         IDelayExemptList iDelayExemptList,
         FilterStateService filterStateService,
         HypixelItemService hypixelItemService,
@@ -71,7 +83,10 @@ public class ModBackgroundService : BackgroundService
         logger.LogInformation("Loaded flip filter data");
         await SubscribeToRedisSnipes(stoppingToken);
         logger.LogInformation("set up fast track flipper");
-        await counterService.GetTable().CreateIfNotExistsAsync();
+        if (counterService != null)
+            await counterService.GetTable().CreateIfNotExistsAsync();
+        else
+            logger.LogInformation("CounterService not configured, skipping counter table initialization");
         await LoadDelayExcemptKeys();
         await hypixelItemService.GetItemsAsync();
         await Task.Delay(1000);
@@ -172,7 +187,7 @@ public class ModBackgroundService : BackgroundService
         var hostName = System.Net.Dns.GetHostName();
         multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal("snipes"), (chan, val) =>
         {
-            Task.Run(async () =>
+            _ = RunRedisFlipTask(async () =>
             {
                 try
                 {
@@ -224,7 +239,7 @@ public class ModBackgroundService : BackgroundService
                 {
                     logger.LogError(e, "bfcs error on '{val}'", val.ToString());
                 }
-            }, new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token).ConfigureAwait(false);
+            });
         });
         logger.LogInformation("Subscribed to " + multiplexer.IsConnected + multiplexer.GetEndPoints().Select(e =>
         {
@@ -263,10 +278,36 @@ public class ModBackgroundService : BackgroundService
         });
     }
 
-    protected virtual async Task DistributeFlipOnServer(LowPricedAuction flip)
+    private static async Task RunRedisFlipTask(Func<Task> action)
     {
-        await flipperService.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS).ConfigureAwait(false);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        redisFlipTasksOutstanding.Inc();
+        redisFlipTasks.Inc();
+        try
+        {
+            await Task.Run(async () =>
+            {
+                var startedAt = Stopwatch.GetTimestamp();
+                redisFlipTasksRunning.Inc();
+                try
+                {
+                    await action().ConfigureAwait(false);
+                }
+                finally
+                {
+                    redisFlipTaskDuration.Observe(Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
+                    redisFlipTasksRunning.Dec();
+                }
+            }, cancellation.Token).ConfigureAwait(false);
+        }
+        finally
+        {
+            redisFlipTasksOutstanding.Dec();
+        }
     }
+
+    protected virtual Task DistributeFlipOnServer(LowPricedAuction flip)
+        => flipperService.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS);
 
     private static void FixTfmMetadata(LowPricedAuction flip)
     {

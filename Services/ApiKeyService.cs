@@ -9,6 +9,8 @@ using Cassandra.Mapping;
 using Coflnet.Core;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Coflnet.Sky.ModCommands.Services;
 
 /// <summary>

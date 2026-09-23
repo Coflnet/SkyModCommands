@@ -1,7 +1,9 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Services;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
@@ -24,6 +26,24 @@ public class UpdateCurrentConfigCommand : ArgumentsCommand
         if (loadedConfigMetadata == null)
         {
             socket.SendMessage("No config loaded, aborting.");
+            return;
+        }
+        var currentAccess = (await OwnConfigsCommand.GetOwnConfigs(socket)).FirstOrDefault(
+            config => config.OwnerId == loadedConfigMetadata.OwnerId
+                && config.Name.Equals(loadedConfigMetadata.Name,
+                    StringComparison.OrdinalIgnoreCase));
+        if (currentAccess == null)
+        {
+            await ConfigsCommand.Unloadconfig(socket);
+            socket.SendMessage(
+                "Your Config entitlement was removed, so it was unloaded.");
+            return;
+        }
+        loadedConfigMetadata.AccessUntilUtc = currentAccess.AccessUntilUtc;
+        if (!BuyConfigCommand.HasManagedUpdates(currentAccess))
+        {
+            socket.SendMessage(
+                "Your managed update period ended; your licence to the supplied Config version remains.");
             return;
         }
         using var configData = await SelfUpdatingValue<ConfigContainer>.Create(

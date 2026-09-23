@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Coflnet.Sky.ModCommands.Dialogs
 {
-    public class FlipOptionsDialog : Dialog
+    public class FlipOptionsDialog : OfferOptionsDialog
     {
         public override ChatPart[] GetResponse(DialogArgs context)
         {
@@ -29,45 +29,21 @@ namespace Coflnet.Sky.ModCommands.Dialogs
             .CoflCommand<RateCommand>(
                 $" {greenHeard}  upvote flip",
                 $"{flip.Auction.Uuid} {flip.Finder} up",
-                "Vote this flip up").Break
-            .CoflCommand<BlacklistCommand>(
-                $" {redX}  Blacklist this item",
-                $"add {flip.Auction.Tag} forceBlacklist=true",
-                $"Don't show {McColorCodes.AQUA}{ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.RED} AT ALL anymore")
-            .CoflCommand<BlacklistCommand>(
-                $" {McColorCodes.GREEN}for 1week,",
-                $"add {flip.Auction.Tag} forceBlacklist=true duration=7d",
-                $"Don't show {McColorCodes.AQUA}{ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GREEN} for a week")
-            .CoflCommand<BlacklistCommand>(
-                $" {McColorCodes.GREEN}{McColorCodes.ITALIC}1 day",
-                $"add {flip.Auction.Tag} forceBlacklist=true duration=1d",
-                $"Don't show {McColorCodes.AQUA}{ItemReferences.RemoveReforgesAndLevel(flip.Auction.ItemName)}{McColorCodes.GREEN} for 24 hours")
-            .CoflCommand<BlacklistCommand>(
-                $" {McColorCodes.YELLOW}seller",
-                $"add seller={flip.Auction.AuctioneerId} forceBlacklist=true",
-                $"Don't show seller {McColorCodes.AQUA}{flip.Auction.AuctioneerId}{McColorCodes.YELLOW} AT ALL anymore")
-            .CoflCommand<BlacklistCommand>(
-                $" {McColorCodes.YELLOW}{McColorCodes.ITALIC}1 day",
-                $"add seller={flip.Auction.AuctioneerId} forceBlacklist=true duration=1d",
-                $"Don't show seller {McColorCodes.AQUA}{flip.Auction.AuctioneerId}{McColorCodes.YELLOW} for a day")
-                .Break
+                "Vote this flip up").Break;
+
+            response = AddBlacklistActions(response, flip.Auction, flip.Auction.AuctioneerId).Break
             .CoflCommand<TimeCommand>(
                 timingMessage,
                 $"{flip.Auction.Uuid}",
-                "Get your timings for flip").Break
-            .CoflCommand<AhOpenCommand>(
-                $"{McColorCodes.GOLD} AH {McColorCodes.GRAY}open seller's ah ",
-                $"{flip.Auction.AuctioneerId}",
-                "Open the sellers ah")
-                .CoflCommand<GetMcNameForCommand>(McColorCodes.DARK_GREEN + " Get Name", flip.Auction.AuctioneerId, "Get the name of the seller").Break
+                "Get your timings for flip").Break;
+
+            response = AddSellerActions(response, flip.Auction).Break
             .CoflCommand<ReferenceCommand>(
                 $"{McColorCodes.WHITE}[?]{McColorCodes.GRAY} Get references",
                 $"{flip.Auction.Uuid}",
-                "Find out why this was deemed a flip").Break
-                .MsgLine(
-                    " ➹  Open on website",
-                    $"https://sky.coflnet.com/a/{flip.Auction.Uuid}",
-                    "Open link");
+                "Find out why this was deemed a flip").Break;
+
+            response = AddWebsiteAction(response, $"https://sky.coflnet.com/a/{flip.Auction.Uuid}", " ➹  Open on website", "Open link");
 
             if (context.socket.GetService<Services.ModeratorService>().IsModerator(context.socket))
                 response.Msg(McColorCodes.DARK_GRAY + " . ", null, flip.Auction.Context?.GetValueOrDefault("pre-api", flip.AdditionalProps?.GetValueOrDefault("server", "non")) ?? "no context");

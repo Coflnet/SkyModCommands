@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Models;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
@@ -24,7 +26,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public string SessionId = "";
         public bool ListeningToChat;
-        public string McName { get; set; }
+        public string McName { get; set; } = string.Empty;
         public string McUuid { get; set; } = string.Empty;
         /// <summary>
         /// List of all minecraft uuids the user has verified
@@ -76,11 +78,14 @@ namespace Coflnet.Sky.Commands.MC
         public CaptchaInfo captchaInfo = new();
 
         public bool IsNotFlipable => IsIronman || IsBingo || IsStranded || IsDungeon || IsRift || IsDarkAuction || Purse == -1;
-        public string ConnectionType { get; set; }
+        public string ConnectionType { get; set; } = string.Empty;
+
+        [JsonIgnore]
+        public string GameServer { get; set; } = "skyblock";
 
         public int SkipLikeliness { get; set; }
         public int LicensePoints { get; set; }
-        public string ActiveStream { get; set; }
+        public string ActiveStream { get; set; } = string.Empty;
         public bool IsDebug { get; set; }
 
         public AccountTier SessionTier { get; set; }
@@ -93,17 +98,40 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public int NotPurchaseRate { get; set; }
         public bool NoSharedDelay { get; set; }
-        public string ToLowListingAttempt { get; set; }
+        public string ToLowListingAttempt { get; set; } = string.Empty;
         public long AhSlotsOpen { get; set; } = -1;
         public int BestHotkeyUsageCount { get; set; }
-        public string[] ModsFound { get; set; }
-        public string ProfileId { get; set; }
-        public SaveAuction SelectedItem { get; set; }
+        public string[] ModsFound { get; set; } = Array.Empty<string>();
+        public string ProfileId { get; set; } = string.Empty;
+        public SaveAuction SelectedItem { get; set; } = new SaveAuction();
         public DateTime ConnectedAt { get; set; } = DateTime.UtcNow;
 
         public bool SellAll;
 
-        public List<SaveAuction> Inventory { get; set; }
+        public List<SaveAuction> Inventory { get; set; } = new();
+
+        [JsonIgnore]
+        public BazaarOrderSnapshot BazaarDisplayState { get; set; }
+        [JsonIgnore]
+        public System.Threading.SemaphoreSlim BazaarDisplayLock { get; } = new(1);
+
+        public List<BazaarOrderInfo> BazaarOrders { get; set; } = new();
+
+        [JsonIgnore]
+        public List<SentBazaarOrderInfo> SentBazaarOrders { get; set; } = new();
+
+        [JsonIgnore]
+        public DateTime? LastBazaarRecommendationAt { get; set; }
+
+        /// <summary>
+        /// Last time an order-overview upload triggered a refill (sell/buy order placement).
+        /// Used to throttle rapid duplicate uploads so they don't double-place orders.
+        /// </summary>
+        [JsonIgnore]
+        public DateTime LastBazaarRefillAttempt { get; set; }
+
+        [JsonIgnore]
+        public int ActiveBazaarOrderCount => BazaarOrders?.Count(order => order != null) ?? 0;
 
         /// <summary>
         /// Tracks recently filled bazaar orders (item name + amount) to suppress outbid notifications.

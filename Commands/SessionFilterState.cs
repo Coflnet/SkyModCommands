@@ -41,7 +41,7 @@ public class SessionFilterState : IDisposable
                     var backup = backupConfig.FirstOrDefault(b => b.Name == targetSettings.ConfigUsed.Substring(7));
                     if (backup != null)
                     {
-                        lifesycle.FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => backup.settings);
+                        await lifesycle.ReplaceFlipSettings(SelfUpdatingValue<FlipSettings>.CreateNoUpdate(backup.settings));
                         socket.Dialog(db => db.MsgLine($"Backupconfig with name §6{backup.Name} §6loaded"));
                         return;
                     }
@@ -56,6 +56,31 @@ public class SessionFilterState : IDisposable
         }
         if (loadedConfigMetadata == null)
             return;
+        var currentAccess = (await OwnConfigsCommand.GetOwnConfigs(socket)).FirstOrDefault(
+            config => config.OwnerId == loadedConfigMetadata.OwnerId
+                && config.Name.Equals(loadedConfigMetadata.Name,
+                    StringComparison.OrdinalIgnoreCase));
+        if (currentAccess == null)
+        {
+            await ConfigsCommand.Unloadconfig(socket);
+            socket.Dialog(db => db.MsgLine(
+                "Your Config licence was removed, so the managed Config was unloaded."));
+            return;
+        }
+        loadedConfigMetadata.AccessUntilUtc = currentAccess.AccessUntilUtc;
+        if (!BuyConfigCommand.HasManagedUpdates(loadedConfigMetadata))
+        {
+            socket.Dialog(db => db.MsgLine(
+                "Your managed Config update period ended. The supplied version remains loaded, but it will not receive automatic updates."));
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(loadedConfigMetadata.Name))
+        {
+            await ConfigsCommand.Unloadconfig(socket);
+            socket.Dialog(db => db.MsgLine("Your saved loaded config was invalid and has been unloaded.")
+                .MsgLine("Your current settings were kept. Load the config again to restore automatic updates."));
+            return;
+        }
         using var span = socket.CreateActivity("subToConfigChanges", lifesycle.ConSpan);
         if (AccountSettings.Value == null)
             await AccountSettings.Update(new AccountSettings());
@@ -80,7 +105,7 @@ public class SessionFilterState : IDisposable
             loadedConfigMetadata.OwnerId,
             loadedConfigMetadata.Name,
             lifesycle.SessionInfo.McUuid,
-            lifesycle.AccountInfo.Value.UserId,
+            lifesycle.AccountInfo?.Value?.UserId ?? socket.UserId,
             loadedConfigMetadata.Version
         );
 
@@ -121,6 +146,16 @@ public class SessionFilterState : IDisposable
         BaseConfig = await LoadConfigCommand.GetContainer(lifesycle.socket, childConfig.Settings.BasedConfig);
         if (BaseConfig?.Value == null)
             return;
+        var baseAccess = (await OwnConfigsCommand.GetOwnConfigs(lifesycle.socket))
+            .FirstOrDefault(config => config.OwnerId == BaseConfig.Value.OwnerId
+                && config.Name.Equals(
+                    BaseConfig.Value.Name, StringComparison.OrdinalIgnoreCase));
+        if (!BuyConfigCommand.HasManagedUpdates(baseAccess))
+        {
+            BaseConfig.Dispose();
+            BaseConfig = null;
+            return;
+        }
         Activity.Current.Log($"Baseconfig version {BaseConfig?.Value?.Version} > {lifesycle.AccountSettings?.Value?.BaseConfigVersion}");
         if (BaseConfig.Value.Version > lifesycle.AccountSettings.Value.BaseConfigVersion && BaseConfig.Value.Version > 0)
         {
@@ -141,7 +176,7 @@ public class SessionFilterState : IDisposable
                 db => db.CoflCommand<LoadConfigCommand>($"[click to load]", $"{childConfig.OwnerId} {childConfig.Name}", "load new version\nWill override your current settings")));
         if (autoUpdate)
         {
-            MinecraftSocket.Commands["updatecurrentconfig"].Execute(lifesycle.socket, childConfig.OwnerId + " " + childConfig.Name);
+            MinecraftSocket.Commands["loadconfig"].Execute(lifesycle.socket, childConfig.OwnerId + " " + childConfig.Name);
         }
     }
 }

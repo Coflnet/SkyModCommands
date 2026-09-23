@@ -10,11 +10,11 @@ namespace Coflnet.Sky.Commands.MC;
 public class ActiveSessions
 {
     [DataMember(Name = "useAccountTierOn")]
-    public string? UseAccountTierOn;
+    public string UseAccountTierOn = string.Empty;
     [DataMember(Name = "userAccountTier")]
     public AccountTier UserAccountTier;
     [DataMember(Name = "sessions")]
-    public List<ActiveSession?> Sessions = new List<ActiveSession?>();
+    public List<ActiveSession> Sessions = new List<ActiveSession>();
     [DataMember(Name = "licenses")]
     public List<License> Licenses = new List<License>();
 }
@@ -34,7 +34,7 @@ public class License
 public class ActiveSession
 {
     [DataMember(Name = "connectionId")]
-    public string ConnectionId;
+    public string ConnectionId = string.Empty;
     [DataMember(Name = "lastActive")]
     public DateTime LastActive;
     [DataMember(Name = "connectedAt")]
@@ -42,13 +42,13 @@ public class ActiveSession
     [DataMember(Name = "ip")]
     public string? Ip;
     [DataMember(Name = "version")]
-    public string Version;
+    public string Version = string.Empty;
     [DataMember(Name = "sessionId")]
-    public string ClientSessionId;
+    public string ClientSessionId = string.Empty;
     [DataMember(Name = "clientConId")]
     public string? ClientConId;
     [DataMember(Name = "minecraftUuid")]
-    public string MinecraftUuid;
+    public string MinecraftUuid = string.Empty;
     /// <summary>
     /// Service tier used for this connection
     /// </summary>

@@ -13,6 +13,7 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.ModCommands.Services.Donut;
 using Coflnet.Sky.ModCommands.Tutorials;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -88,6 +89,39 @@ namespace Coflnet.Sky.Commands.MC
             FlipProcessor = new FlipProcesser(socket, spamController, DelayHandler);
         }
 
+        internal void EnsureSessionContextOnFlipSettings(FlipSettings settings, FlipSettings previousSettings = null)
+        {
+            if (settings == null)
+                return;
+            var defaults = DefaultSettings;
+            settings.ModSettings ??= defaults.ModSettings;
+            settings.Visibility ??= defaults.Visibility;
+            if (!ReferenceEquals(settings.PlayerInfo, socket.SessionInfo))
+                settings.PlayerInfo = socket.SessionInfo;
+            if (previousSettings != null && !ReferenceEquals(settings, previousSettings))
+                settings.CopyListMatchers(previousSettings);
+        }
+
+        private void InitializeCurrentFlipSettings(SelfUpdatingValue<FlipSettings> previousSettings = null)
+        {
+            if (FlipSettings?.Value == null)
+                throw new Exception("flipSettings.Value is null");
+
+            EnsureSessionContextOnFlipSettings(FlipSettings.Value, previousSettings?.Value);
+            FlipSettings.OnChange += UpdateSettings;
+            FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
+        }
+
+        public async Task ReplaceFlipSettings(SelfUpdatingValue<FlipSettings> flipSettings)
+        {
+            var previousSettings = FlipSettings;
+            FlipSettings = flipSettings ?? throw new Exception("flipSettings is null");
+            InitializeCurrentFlipSettings(previousSettings);
+            previousSettings?.Dispose();
+            await ApplyFlipSettings(FlipSettings.Value, ConSpan);
+            Registerkeybinds(FlipSettings.Value, true);
+        }
+
         public async Task SetupConnectionSettings(string stringId)
         {
             /*    socket.Dialog(db => db.Lines("The welcome pig greets you",
@@ -126,6 +160,7 @@ namespace Coflnet.Sky.Commands.MC
                 waitLogin.Log(GetAuthLink(stringId));
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
                 FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DefaultSettings);
+                InitializeCurrentFlipSettings();
             }
             else
             {
@@ -148,7 +183,16 @@ namespace Coflnet.Sky.Commands.MC
             if (!TierManager.IsNewConnection())
                 return;
             var messageService = socket.GetService<IMessageApi>();
-            var devlog = await messageService.GetMessagesAsync("devlog", DateTime.UtcNow.RoundDown(TimeSpan.FromHours(1)));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            List<Coflnet.DiscordBot.Client.Model.DiscordMessage> devlog;
+            try
+            {
+                devlog = await messageService.GetMessagesAsync("devlog", DateTime.UtcNow.RoundDown(TimeSpan.FromHours(1)), cancellationToken: timeout.Token);
+            }
+            catch (Exception) when (timeout.IsCancellationRequested)
+            {
+                return;
+            }
             var mostRecent = devlog.Where(d => d.CreatedAt > DateTime.UtcNow.AddDays(-1) && d.Content.Contains("➡️")).OrderByDescending(m => m.CreatedAt).FirstOrDefault();
             if (mostRecent == null)
                 return;
@@ -158,7 +202,8 @@ namespace Coflnet.Sky.Commands.MC
             if (match.Success)
             {
                 var url = match.Value;
-                SendMessage(COFLNET + "Latest change:\n" + content, url, $"Open {url}");
+                content = Regex.Replace(content, @"\[([^\]]*)\]\(([^\)]+)\)", m => $"{McColorCodes.AQUA}{m.Groups[2].Value}{McColorCodes.WHITE}");
+                SendMessage(COFLNET + "Latest change:\n" + content, url, url);
             }
             else if (commandLink.Success)
             {
@@ -173,7 +218,7 @@ namespace Coflnet.Sky.Commands.MC
 
             try
             {
-                if (!socket.Version.Contains("af") && (!Version.TryParse(socket.Version, out var clientVer) || clientVer < new Version(1, 7, 5)))
+                if (!socket.Version.Contains("af") && (!Version.TryParse(socket.Version, out var clientVer) || clientVer < new Version(1, 7, 5)) && !socket.Version.Contains("2.0.0-pre"))
                 {
                     socket.Dialog(db => db.MsgLine($"Your mod version is outdated, please update to the latest version to get bug fixes.\n" +
                         $"Click here to open the github release page.", "https://github.com/Coflnet/SkyblockMod/tags", "Open github page")
@@ -212,6 +257,18 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine("tier changed to " + Newtier);
             socket.SessionInfo.SessionTier = Newtier;
             UpdateConnectionTier(Newtier);
+            // the tier may only resolve after the welcome flow already ran with an unknown tier,
+            // re-evaluate region routing so a now-known Premium+ user still gets redirected to their region
+            if (Newtier >= AccountTier.PREMIUM_PLUS)
+            {
+                var retryCommand = socket.TakePremiumPlusRetryCommand();
+                if (retryCommand != null)
+                    socket.Dialog(db => db.MsgLine(
+                        $"{McColorCodes.GREEN}Premium+ is active. {McColorCodes.YELLOW}[Click to retry your last command]",
+                        retryCommand,
+                        $"Run {retryCommand}"));
+                socket.TryAsyncTimes(() => ApplyStoredRegionRouting(AccountInfo?.Value, knownTier: Newtier), "region routing on tier change", 1);
+            }
         }
 
         private async Task SendLoginPromptMessage(string stringId)
@@ -239,30 +296,35 @@ namespace Coflnet.Sky.Commands.MC
         protected virtual async Task SubToSettings(string userId)
         {
             using var span = socket.CreateActivity("subToSettings", ConSpan);
-            OnLogin?.Invoke(this, userId);
             ConSpan.Log("subbing to settings of " + userId);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DefaultSettings);
             var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings", () => new());
             Activity.Current.Log("got settings");
             AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
+            OnLogin?.Invoke(this, userId);
             Activity.Current.Log("got accountInfo");
             var oldSettings = FlipSettings;
             FlipSettings = await flipSettingsTask ??
                 throw new Exception("flipSettings is null");
             Activity.Current.Log("got flipSettings");
+            InitializeCurrentFlipSettings(oldSettings);
             oldSettings?.Dispose();
-            if (FlipSettings?.Value == null)
-                throw new Exception("flipSettings.Value is null");
 
             SetActiveConIdToCurrent();
             Activity.Current.Log("single connection check");
-            FlipSettings.OnChange += UpdateSettings;
-            FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
-            AccountInfo.OnChange += (ai) => Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
+            AccountInfo.OnChange += (ai) =>
+            {
+                TierManager.InvalidateCache();
+                Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
+            };
             if (AccountInfo.Value != default)
                 await UpdateAccountInfo(AccountInfo);
             else
                 Console.WriteLine("accountinfo is default");
+            _ = socket.TryAsyncTimes(
+                () => CurrentAgreement.RequestOnLogin(socket),
+                "agreement acceptance prompt",
+                1);
             Activity.Current.Log("updated accountInfo");
             SetupFlipProcessor(AccountInfo);
             AccountSettings = await accountSettingsTask;
@@ -356,6 +418,7 @@ namespace Coflnet.Sky.Commands.MC
                 span.Log("settings are null, not applying");
                 return;
             }
+            EnsureSessionContextOnFlipSettings(settings, FlipSettings);
             var testFlip = BlacklistCommand.GetTestFlip("test");
             if (settings.AllowedFinders.HasFlag(LowPricedAuction.FinderType.CraftCost))
                 testFlip.Finder = LowPricedAuction.FinderType.CraftCost;
@@ -381,8 +444,6 @@ namespace Coflnet.Sky.Commands.MC
                         "showlbin false",
                         $"You can also enable only lbin based flips \nby executing {McColorCodes.AQUA}/cofl set finders sniper.\nClicking this will hide lbin in flip messages. \nYou can still see lbin in item descriptions."));
                 }
-                settings.PlayerInfo = socket.SessionInfo;
-                settings.CopyListMatchers(FlipSettings);
                 // preload flip settings
                 settings.MatchesSettings(testFlip);
                 span.Log(JSON.Stringify(settings));
@@ -475,6 +536,13 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.TryAsyncTimes(async () =>
                 {
+                    if (current?.BlockExport == true)
+                    {
+                        await ConfigsCommand.Unloadconfig(socket);
+                        socket.SendMessage(
+                            "The protected Expert Config was unloaded without copying it into a backup.");
+                        return;
+                    }
                     socket.Dialog(db => db.MsgLine("Seems like you imported a different config, creating a backup of your current one")
                         .CoflCommand<BackupCommand>("Click to see your backups", "ls", "Click to see your backups\nRuns /cofl backup list"));
                     var backups = await BackupCommand.GetBackupList(socket);
@@ -525,26 +593,6 @@ namespace Coflnet.Sky.Commands.MC
                     SessionInfo.IsMacroBot = true;
                 }
 
-                // Check rust addon ownership from payment service (lazy - only when needed)
-                // Store as null initially, will be checked when Rust finder is actually used
-                SessionInfo.RustAddonOwned = null;
-                _ = socket.TryAsyncTimes(async () =>
-                {
-                    // Only check if Rust finder is enabled in settings
-                    if (FlipSettings?.Value?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Rust) ?? false)
-                    {
-                        await CheckRustOwnership(info.UserId);
-                        if (SessionInfo.RustAddonOwned == false)
-                        {
-                            // disable rust finder if ownership not valid
-                            var fs = FlipSettings.Value;
-                            fs.AllowedFinders &= ~LowPricedAuction.FinderType.Rust;
-                            await FlipSettings.Update(fs);
-                            socket.SendMessage(COFLNET + "Your Rust Finder add-on ownership could not be verified, disabling Rust Finder in your finders list.");
-                        }
-                    }
-                }, "check rust addon", 1);
-
                 var userIsVerifiedTask = VerificationHandler.MakeSureUserIsVerified(info, socket.SessionInfo);
                 span.Log(JsonConvert.SerializeObject(info, Formatting.Indented));
                 if (info.UserId != socket.UserId && socket.UserId?.Length > 2)
@@ -575,48 +623,28 @@ namespace Coflnet.Sky.Commands.MC
                         proxyService.UnregisterSocket(socket);
                 }, "proxy optin check", 1);
                 var tier = await TierManager.GetCurrentCached();
-                if (!TierManager.IsNewConnection())
+                socket.SessionInfo.SessionTier = tier;
+                // A silent reconnect is one where the same client reconnected (e.g. after a network blip).
+                // Note: IsNewConnection() is derived asynchronously from the tier calculation and may not be
+                // ready when this runs, so a genuinely new connection can be misdetected as a reconnect here.
+                // Either way the setup below (settings wait, region routing, flip activation, flipper
+                // registration) has to run so the connection actually works; only the user facing welcome
+                // messages are suppressed on silent reconnects to avoid spamming them on every reconnect.
+                var isSilentReconnect = !TierManager.IsNewConnection();
+
+                // the welcome flow is only run once per connection, reconnects re-run the setup every time
+                // (it is idempotent) so a connection misdetected as a reconnect still gets set up
+                if (isSilentReconnect || !SessionInfo.SentWelcome)
                 {
-                    socket.SessionInfo.SessionTier = tier;
-                    await userIsVerifiedTask;
-                    socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc }));
-                    Console.WriteLine("silent reconnect for " + socket.SessionInfo.McName + " conid " + socket.SessionInfo.clientConId);
-                    return;
+                    await SetupConnection(info, tier, span, isSilentReconnect);
                 }
 
-                if (SessionInfo.SentWelcome)
-                    return; // don't send hello again
-                SessionInfo.SentWelcome = true;
-                await SendAuthorizedHello(info);
-
-                await WaitForSettingsLoaded(span);
-                if (FlipSettings.Value.ModSettings.AutoStartFlipper)
-                {
-                    SendMessage(socket.formatProvider.WelcomeMessage());
-                    SessionInfo.FlipsEnabled = true;
-                    UpdateConnectionTier(tier, span);
-                    span?.AddTag("autoStart", "true");
-                    await PrintRegionInfo(info);
-                }
-                else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
-                {
-                    socket.Dialog(db => db.Msg("What do you want to do?").Break
-                        .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)\nexecutes {McColorCodes.AQUA}/cofl flip")
-                        .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
-                        .DialogLink<FlipDisableDialog>(McColorCodes.BLUE + " use the pricing data ", "never", "I don't want to flip")
-                        .Break);
-                    await socket.TriggerTutorial<Welcome>();
-                    span?.AddTag("autoStart", "false");
-                }
                 await userIsVerifiedTask;
-                socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc }));
-
-                if (DateTime.Now < new DateTime(2024, 4, 2))
-                {
-                    socket.Dialog(db =>
-                        db.MsgLine($"{McColorCodes.BOLD}Happy Easter! {McColorCodes.OBFUSCATED}!!")
-                        .CoflCommand<PurchaseCommand>($"We got a special {McColorCodes.AQUA}100 days prem+ offer{McColorCodes.RESET} for {McColorCodes.RED}26% cheaper{McColorCodes.RESET} than buying it weekly {McColorCodes.YELLOW}(click)", "premium_plus-100", "Click to buy 100 days prem+ for 26% off"));
-                }
+                _ = socket.TryAsyncTimes(() => socket.GetService<BazaarSignalSubscriptionService>().RestoreAsync(socket),
+                    "restore Bazaar orders", 2);
+                socket.Send(Response.Create("loggedIn", new { uuid = SessionInfo.McUuid, verified = SessionInfo.VerifiedMc, tier = tier.ToString() }));
+                if (isSilentReconnect)
+                    Console.WriteLine("silent reconnect for " + socket.SessionInfo.McName + " conid " + socket.SessionInfo.clientConId);
             }
             catch (Exception e)
             {
@@ -626,12 +654,59 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        /// <summary>
+        /// Runs the shared connection setup for both freshly opened connections and silent reconnects.
+        /// Flip activation and flipper registration happen on both so flips keep flowing, while the user
+        /// facing onboarding (hello, welcome message, region routing/redirects, tutorial) only runs for
+        /// genuinely new connections so silent reconnects stay completely quiet.
+        /// </summary>
+        private async Task SetupConnection(AccountInfo info, AccountTier tier, Activity span, bool isSilentReconnect)
+        {
+            await WaitForSettingsLoaded(span);
+
+            // (Re)activate flips and register with the flipper on every (re)connect so flips keep flowing.
+            // This part must stay silent, it doesn't send any onboarding messages.
+            if (FlipSettings.Value.ModSettings.AutoStartFlipper)
+            {
+                SessionInfo.FlipsEnabled = true;
+                UpdateConnectionTier(tier, span);
+                span?.AddTag("autoStart", isSilentReconnect ? "reconnect" : "true");
+            }
+            else
+                span?.AddTag("autoStart", "false");
+
+            // A silent reconnect is the same client reconnecting: it has already been welcomed and routed to
+            // its region. Sending the welcome again is spammy, and re-running region routing would redirect
+            // it, spawning a fresh connection that shows the whole welcome once more. So stop here and keep
+            // silent reconnects quiet, the onboarding below is only for genuinely new connections.
+            if (isSilentReconnect)
+                return;
+
+            SessionInfo.SentWelcome = true;
+            await SendAuthorizedHello(info);
+            await ApplyStoredRegionRouting(info, span);
+            if (FlipSettings.Value.ModSettings.AutoStartFlipper)
+            {
+                SendMessage(socket.formatProvider.WelcomeMessage());
+                ShowRegionHintIfApplicable(info);
+            }
+            else if (!FlipSettings.Value.ModSettings.AhDataOnlyMode)
+            {
+                socket.Dialog(db => db.Msg("What do you want to do?").Break
+                    .CoflCommand<FlipCommand>($"> {McColorCodes.GOLD}AH flip  ", "true", $"{McColorCodes.GOLD}Show me flips!\n{McColorCodes.DARK_GREEN}(and reask on every start)\nexecutes {McColorCodes.AQUA}/cofl flip")
+                    .CoflCommand<FlipCommand>(McColorCodes.DARK_GREEN + " always ah flip ", "always", McColorCodes.DARK_GREEN + "don't show this again and always show me flips")
+                    .DialogLink<FlipDisableDialog>(McColorCodes.BLUE + " use the pricing data ", "never", "I don't want to flip")
+                    .Break);
+                await socket.TriggerTutorial<Welcome>();
+            }
+        }
+
         public async Task CheckRustOwnership(string userId)
         {
             try
             {
                 var userApi = socket.GetService<Payments.Client.Api.UserApi>();
-                var owns = await userApi.UserUserIdOwnsUntilPostAsync(userId, new() { "rust-addon" });
+                var owns = await userApi.UserUserIdOwnsUntilPostAsync(userId, requestBody: new() { "rust-addon" });
                 SessionInfo.RustAddonOwned = owns.Any(o => o.Key == "rust-addon" && o.Value > DateTime.UtcNow) || userId == "187605" || userId == "7"; // special case for developer
             }
             catch (Exception e)
@@ -640,27 +715,114 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private async Task PrintRegionInfo(AccountInfo info)
+        internal static bool UsesDirectConnectionType(string connectionType)
         {
-            if (TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS) && SessionInfo.ConnectionType == null)
-            {
-                if ((socket.CurrentRegion == info.Region || info.Region == null) && info.Locale == "en")
-                    socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>(McColorCodes.GRAY + "Switching region is now done with /cofl switchregion <region>", "", "Click to see region options"));
-                else if (SessionInfo.IsMacroBot && socket.Version.StartsWith("1.5.0"))
-                {
-                    socket.Dialog(db => db.MsgLine("Your client doesn't seem to support switching regions"));
-                }
-                else if (info.Region == "us" && !MinecraftSocket.IsDevMode)
-                {
-                    // check if reachable
-                    await SwitchRegionCommand.TryToConnect(socket);
+            return string.IsNullOrWhiteSpace(connectionType);
+        }
 
-                }
-            }
-            else if (info.Region == "eu" && SessionInfo.ConnectionType != null)
+        internal static bool ShouldReconnectToEu(AccountInfo info, string connectionType)
+        {
+            return info.Region == "eu" && !UsesDirectConnectionType(connectionType);
+        }
+
+        internal enum RegionRoutingAction
+        {
+            None,
+            ShowUnsupportedUsReconnect,
+            RedirectToUs,
+            RedirectToEu,
+        }
+
+        internal static bool SupportsRegionReconnect(bool isMacroBot, string version)
+        {
+            return !isMacroBot || !(version?.StartsWith("1.5.0") ?? false);
+        }
+
+        internal static string DeterminePreferredRegion(string storedRegion, string countryCode, bool hasPremiumPlus)
+        {
+            return hasPremiumPlus && string.Equals(countryCode, "US", StringComparison.OrdinalIgnoreCase)
+                ? "us"
+                : storedRegion;
+        }
+
+        internal static RegionRoutingAction DetermineRegionRoutingAction(AccountInfo info, string connectionType, bool hasPremiumPlus, bool supportsRegionReconnect, bool isDevMode)
+        {
+            if (hasPremiumPlus && UsesDirectConnectionType(connectionType))
             {
-                socket.Dialog(db => db.MsgLine("Switching to eu server"));
-                socket.ExecuteCommand("/cofl connect wss://sky.coflnet.com/modsocket");
+                if (info.Region == "us")
+                {
+                    if (!supportsRegionReconnect)
+                        return RegionRoutingAction.ShowUnsupportedUsReconnect;
+                    if (!isDevMode)
+                        return RegionRoutingAction.RedirectToUs;
+                }
+                return RegionRoutingAction.None;
+            }
+
+            if (ShouldReconnectToEu(info, connectionType))
+                return RegionRoutingAction.RedirectToEu;
+
+            return RegionRoutingAction.None;
+        }
+
+        private int regionRoutingApplied;
+
+        // knownTier overrides the cached tier, used when re-evaluating on a tier change before the cache is updated
+        private async Task ApplyStoredRegionRouting(AccountInfo info, Activity span = null, AccountTier? knownTier = null)
+        {
+            if (info == null)
+                return;
+            var hasPremiumPlus = knownTier.HasValue
+                ? knownTier.Value >= AccountTier.PREMIUM_PLUS
+                : TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS);
+            var countryCode = socket.Headers["CF-IPCountry"];
+            var preferredRegion = DeterminePreferredRegion(info.Region, countryCode, hasPremiumPlus);
+            if (preferredRegion != info.Region)
+            {
+                info.Region = preferredRegion;
+                await AccountInfo.Update(info);
+            }
+            var action = DetermineRegionRoutingAction(
+                info,
+                SessionInfo.ConnectionType,
+                hasPremiumPlus,
+                SupportsRegionReconnect(SessionInfo.IsMacroBot, socket.Version),
+                MinecraftSocket.IsDevMode);
+            span?.AddTag("countryCode", countryCode);
+            span?.AddTag("regionRouting", action.ToString());
+
+            if (action == RegionRoutingAction.None)
+                return;
+            // only route once per connection, the welcome flow and a later tier change can both reach this
+            if (Interlocked.Exchange(ref regionRoutingApplied, 1) != 0)
+                return;
+
+            switch (action)
+            {
+                case RegionRoutingAction.ShowUnsupportedUsReconnect:
+                    socket.Dialog(db => db.MsgLine("Your client doesn't seem to support switching regions"));
+                    return;
+                case RegionRoutingAction.RedirectToUs:
+                    await SwitchRegionCommand.TryToConnect(socket);
+                    return;
+                case RegionRoutingAction.RedirectToEu:
+                    socket.Dialog(db => db.MsgLine("Switching to eu server"));
+                    socket.ExecuteCommand("/cofl connect wss://sky.coflnet.com/modsocket");
+                    return;
+                default:
+                    return;
+            }
+        }
+
+        private void ShowRegionHintIfApplicable(AccountInfo info)
+        {
+            var usesDirectConnection = UsesDirectConnectionType(SessionInfo.ConnectionType);
+            if (TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS)
+                && usesDirectConnection
+                && (socket.CurrentRegion == info.Region || info.Region == null)
+                && info.Locale == "en")
+            {
+                socket.Dialog(db => db.CoflCommand<SwitchRegionCommand>(McColorCodes.GRAY + "Switching region is now done with /cofl switchregion <region>", "", "Click to see region options"));
             }
         }
 
@@ -720,13 +882,39 @@ namespace Coflnet.Sky.Commands.MC
                 sum += decoded[i];
             }
             var newid = Convert.ToBase64String(decoded.Append((byte)(sum % 256)).ToArray());
+            var authBaseUrl = DonutServerContext.IsDonut(SessionInfo.GameServer)
+                ? "https://donut.coflnet.com"
+                : "https://sky.coflnet.com";
 
-            return $"https://sky.coflnet.com/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(newid)}";
+            return $"{authBaseUrl}/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(newid)}";
         }
 
         public void UpdateConnectionTier(AccountTier tier, Activity span = null)
         {
             ConSpan.SetTag("tier", tier.ToString());
+            var flipperService = socket.GetService<FlipperService>();
+            var donutFlipService = socket.GetService<IDonutFlipSubscriptionService>();
+
+            if (DonutServerContext.IsDonut(SessionInfo.GameServer))
+            {
+                flipperService.RemoveConnection(socket);
+                if (socket.HasFlippingDisabled() || FlipSettings.Value == null)
+                {
+                    donutFlipService.RemoveConnection(socket);
+                    return;
+                }
+                if (FlipSettings.Value.DisableFlips)
+                {
+                    donutFlipService.RemoveConnection(socket);
+                    SendMessage(COFLNET + "you currently don't receive flips because you disabled them", "/cofl set disableflips false", "click to enable");
+                    return;
+                }
+
+                socket.TryAsyncTimes(() => donutFlipService.RefreshSubscriptionAsync(socket), "refresh donut flip subscription", 1);
+                return;
+            }
+
+            donutFlipService.RemoveConnection(socket);
             if (socket.HasFlippingDisabled() || FlipSettings.Value == null)
                 return;
             if (FlipSettings.Value.DisableFlips)
@@ -734,7 +922,6 @@ namespace Coflnet.Sky.Commands.MC
                 SendMessage(COFLNET + "you currently don't receive flips because you disabled them", "/cofl set disableflips false", "click to enable");
                 return;
             }
-            var flipperService = socket.GetService<FlipperService>();
             if (tier == AccountTier.NONE)
             {
                 // remove other tiers
@@ -921,17 +1108,18 @@ namespace Coflnet.Sky.Commands.MC
                             };
                     if (matchType.Item2.StartsWith("white"))
                         filter.Add("ForceBlacklist", "true");
-                    AddBlacklist(new()
+                    var added = AddBlacklist(new()
                     {
                         DisplayName = "Automatic blacklist of " + item.First().Auction.ItemName,
                         ItemTag = item.First().Auction.Tag,
                         filter = filter,
                         Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(48).ToString("s") }
                     });
-                    socket.Dialog(db => db.CoflCommand<BlacklistCommand>(
-                        $"Temporarily blacklisted {item.First().Auction.ItemName} from {item.First().Auction.AuctioneerId} for baiting",
-                        $"rm {item.First().Auction.Tag} Seller={item.First().Auction.AuctioneerId}",
-                        "click to remove again"));
+                    if (added)
+                        socket.Dialog(db => db.CoflCommand<BlacklistCommand>(
+                            $"Temporarily blacklisted {item.First().Auction.ItemName} from {item.First().Auction.AuctioneerId} for baiting",
+                            $"rm {item.First().Auction.Tag} Seller={item.First().Auction.AuctioneerId}",
+                            "click to remove again"));
                 }
                 await FlipSettings.Update();
                 FlipSettings.Value.RecompileMatchers();
@@ -941,9 +1129,12 @@ namespace Coflnet.Sky.Commands.MC
             var threshold = FlipSettings.Value?.ModSettings?.TempBlacklistThreshold ?? 20;
             var boughtLast30Min = socket.LastPurchased.Where(l => l.Auction.Start > DateTime.UtcNow.AddMinutes(-30)).ToList();
             var boughtToMany = boughtLast30Min.GroupBy(l => l.Auction.Tag).Where(g => g.Count() > 2 && g.Count() * 100 / boughtLast30Min.Count() >= threshold).ToList();
+            var blacklistChanged = false;
             foreach (var item in boughtToMany)
             {
-                AddTempFilter(item.Key);
+                if (!AddTempFilter(item.Key))
+                    continue;
+                blacklistChanged = true;
                 socket.Dialog(db => db.Msg($"Temporarily blacklisted {item.First().Auction.ItemName} as you bought {item.Count()} recently which is more than {threshold}% of your flips in the last 30 minutes"
                     , null, "More than usual items of one type usually indicate \n"
                     + $"that the value is {McColorCodes.ITALIC}dropping due to a hypixel update{McColorCodes.RESET}.\n"
@@ -961,10 +1152,12 @@ namespace Coflnet.Sky.Commands.MC
             var playersToBlock = BlockPlayerBaiting(preApiService);
             foreach (var item in toBlock)
             {
-                AddTempFilter(item.Key);
+                if (!AddTempFilter(item.Key))
+                    continue;
+                blacklistChanged = true;
                 socket.SendMessage(COFLNET + $"Temporarily blacklisted {item.First().Auction.ItemName} for spamming");
             }
-            if (toBlock.Count > 0 || playersToBlock.Count > 0 || boughtToMany.Count > 0)
+            if (playersToBlock.Count > 0 || blacklistChanged)
             {
                 await FlipSettings.Update();
                 FlipSettings.Value.RecompileMatchers();
@@ -979,26 +1172,29 @@ namespace Coflnet.Sky.Commands.MC
                     !preApiService.IsSold(s.Auction.Uuid)
                 )
                 .GroupBy(s => s.Auction.AuctioneerId).Where(g => g.Count() >= 5).ToList();
+            var newlyBlocked = new List<IGrouping<string, LowPricedAuction>>();
             foreach (var item in playersToBlock)
             {
                 var player = item.Key;
-                AddBlacklist(new()
+                if (!AddBlacklist(new()
                 {
                     DisplayName = "Automatic blacklist",
                     filter = new()
                         { { "ForceBlacklist", "true" }, { "Seller", player }
                         },
                     Tags = new List<string>() { "removeAfter=" + DateTime.UtcNow.AddHours(8).ToString("s") }
-                });
+                }))
+                    continue;
+                newlyBlocked.Add(item);
                 socket.SendMessage(COFLNET + $"Temporarily blacklisted {player} for baiting");
             }
 
-            return playersToBlock;
+            return newlyBlocked;
         }
 
-        private void AddTempFilter(string key)
+        private bool AddTempFilter(string key)
         {
-            AddBlacklist(new()
+            return AddBlacklist(new()
             {
                 DisplayName = "auto blacklist " + key,
                 ItemTag = key,
@@ -1009,10 +1205,13 @@ namespace Coflnet.Sky.Commands.MC
             });
         }
 
-        public void AddBlacklist(ListEntry toAdd)
+        public bool AddBlacklist(ListEntry toAdd)
         {
-            if (!FlipSettings.Value.BlackList.Contains(toAdd))
-                FlipSettings.Value.BlackList.Add(toAdd);
+            if (FlipSettings.Value.BlackList.Contains(toAdd))
+                return false;
+
+            FlipSettings.Value.BlackList.Add(toAdd);
+            return true;
         }
 
         private void SendBlockedMessage(int blockedFlipFilterCount)
@@ -1045,14 +1244,14 @@ namespace Coflnet.Sky.Commands.MC
 
         private void UpdateConnectionIfNoFlipSent(Activity span)
         {
-            if (socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-3)))
-                return; // got a flip in the last 3 minutes
-
             socket.TryAsyncTimes(async () =>
             {
+                // Revocation must also reach connections that are actively receiving flips.
                 var tier = await TierManager.GetCurrentCached();
-                UpdateConnectionTier(tier, span);
-            }, "resub to flips");
+                if (tier != SessionInfo.SessionTier
+                    || !socket.LastSent.Any(s => s.Auction.Start > DateTime.UtcNow.AddMinutes(-3)))
+                    UpdateConnectionTier(tier, span);
+            }, "refresh access and resub to flips");
         }
 
         private void SendReminders()
@@ -1198,7 +1397,7 @@ namespace Coflnet.Sky.Commands.MC
                 if (loss < 10_000_000)
                     continue;
                 var tracker = DiHandler.GetService<CircumventTracker>();
-                await tracker.SendChallangeFlip(socket, FlipperService.LowPriceToFlip(new LowPricedAuction()
+                var sent = await tracker.SendChallangeFlip(socket, FlipperService.LowPriceToFlip(new LowPricedAuction()
                 {
                     Auction = auction,
                     Finder = LowPricedAuction.FinderType.SNIPER,
@@ -1206,6 +1405,8 @@ namespace Coflnet.Sky.Commands.MC
                     AdditionalProps = new() { { "match", "whitelist shitflip" } },
                     TargetPrice = (long)(auction.StartingBid * (1.1 + Random.Shared.NextDouble()))
                 }));
+                if (!sent)
+                    continue;
                 await Task.Delay(Random.Shared.Next(500, 10000));
             }
 

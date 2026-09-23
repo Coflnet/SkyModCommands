@@ -5,6 +5,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Models;
+using Coflnet.Sky.ModCommands.Services;
 
 namespace Coflnet.Sky.Commands.MC
 {
@@ -15,12 +16,24 @@ namespace Coflnet.Sky.Commands.MC
     public class BackupCommand : ListCommand<BackupEntry, List<BackupEntry>>
     {
         public override bool IsPublic => true;
-        protected override Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)
+        protected override async Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)
         {
-            return Task.FromResult(new CreationOption[]{new (){Element = new BackupEntry(){
+            var settings = socket.Settings;
+            if (settings.BlockExport)
+            {
+                settings = SettingsDiffer.GetUserDifferenceConfig(
+                    settings,
+                    (await ExpertConfigRefundService.GetLoadedManagedSettings(
+                        socket.GetService<SettingsService>(),
+                        socket.UserId,
+                        socket.sessionLifesycle.AccountSettings.Value)).Settings);
+                socket.SendMessage(
+                    "The backup contains only your personal changes, not the Expert Config.");
+            }
+            return new CreationOption[]{new (){Element = new BackupEntry(){
                 Name = val,
-                settings = socket.Settings
-            }}}.AsEnumerable());
+                settings = settings
+            }}}.AsEnumerable();
         }
 
         protected override string Format(BackupEntry elem)
@@ -64,7 +77,10 @@ namespace Coflnet.Sky.Commands.MC
         public static async Task<List<BackupEntry>> GetBackupList(MinecraftSocket socket)
         {
             var settings = socket.GetService<SettingsService>();
-            return await settings.GetCurrentValue(socket.UserId, "flipBackup", () => new List<BackupEntry>());
+            return (await settings.GetCurrentValue(socket.UserId, "flipBackup",
+                    () => new List<BackupEntry>()))
+                .Where(entry => entry.settings?.BlockExport != true)
+                .ToList();
         }
 
         protected override async Task Update(MinecraftSocket socket, List<BackupEntry> newCol)

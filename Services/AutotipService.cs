@@ -202,15 +202,13 @@ public class AutotipService
             logger.LogInformation("Updating booster cache from Hypixel API");
 
             // Request boosters via the proxy API so we don't need a Hypixel API key locally
-            var res = await proxyApi.ProxyHypixelGetAsync("/v2/boosters");
-            if (res == null)
+            var json = await proxyApi.ProxyHypixelGetAsync("/v2/boosters");
+            if (json == null)
             {
                 logger.LogWarning("Proxy API returned null for boosters request");
                 return;
             }
 
-            // The proxy client typically returns a JSON-encoded string, unwrap as done elsewhere
-            var json = JsonConvert.DeserializeObject<string>(res);
             var boosterResponse = JsonConvert.DeserializeObject<BoosterResponse>(json);
             if (boosterResponse == null || !boosterResponse.success || boosterResponse.boosters == null || boosterResponse.boosters.Count == 0)
             {

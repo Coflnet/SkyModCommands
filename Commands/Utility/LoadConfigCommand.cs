@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
+using Coflnet.Sky.ModCommands.Services;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -16,101 +18,153 @@ public class LoadConfigCommand : ArgumentsCommand
         var ownerName = owner;
         var name = args["configName"];
         var ownedConfigs = await SelfUpdatingValue<OwnedConfigs>.Create(socket.UserId, "owned_configs", () => new());
-        OwnedConfigs.OwnedConfig inOwnerShip = GetOwnership(owner, name, ownedConfigs);
         if (!int.TryParse(owner, out _))
+            owner = await GetUserIdFromMcName(socket, owner);
+        var inOwnerShip = GetOwnership(owner, name, ownedConfigs);
+        if (inOwnerShip?.PurchaseTransactionId > 0
+            && (ownedConfigs.Value.RevertedPurchaseIds.Contains(
+                    inOwnerShip.PurchaseTransactionId)
+                || BuyConfigCommand.IsReverted(
+                    await BuyConfigCommand.GetTransactions(socket),
+                    inOwnerShip.PurchaseTransactionId)))
         {
-            if (inOwnerShip == default)
-            {
-                owner = await GetUserIdFromMcName(socket, owner);
-            }
-            else
-                owner = inOwnerShip.OwnerId;
+            var storage = socket.GetService<SettingsService>();
+            await using var ownedLock = await OwnedConfigLock.Acquire(
+                storage, socket.UserId);
+            using var latest = await SelfUpdatingValue<OwnedConfigs>.Create(
+                socket.UserId, "owned_configs", () => new());
+            var revoked = latest.Value.Configs.Where(config =>
+                config.PurchaseTransactionId
+                    == inOwnerShip.PurchaseTransactionId).ToList();
+            foreach (var config in revoked)
+                config.RevokedAtUtc ??= System.DateTime.UtcNow;
+            latest.Value.RevertedPurchaseIds.Add(
+                inOwnerShip.PurchaseTransactionId);
+            await latest.Update();
+            if (!revoked.Any(revokedConfig => latest.Value.Configs.Any(active =>
+                    active.RevokedAtUtc == null
+                    && active.OwnerId == revokedConfig.OwnerId
+                    && active.Name.Equals(revokedConfig.Name,
+                        System.StringComparison.OrdinalIgnoreCase))))
+                await ConfigsCommand.Unloadconfig(socket);
+            socket.SendMessage(
+                "This purchase was reverted, so the Expert Config is no longer available.");
+            return;
         }
-        ConfigContainer settings = await GetConfig(owner, name);
+        var published = await GetConfig(owner, name);
         if (inOwnerShip == default)
         {
-            if (settings.Price == 0)
-            {
-                inOwnerShip = MakeConfigOwned(ownerName, ownedConfigs, settings);
-            }
-            else
-            {
-                socket.Dialog(db => db.CoflCommand<BuyConfigCommand>($"You don't own this config. {McColorCodes.GOLD}[buy it]", $"{owner} {name}", "Buy the config to use it"));
-                return;
-            }
+            socket.Dialog(db => db.CoflCommand<BuyConfigCommand>(
+                published.Price == 0
+                    ? $"Add this free config first. {McColorCodes.GOLD}[review and add]"
+                    : $"You don't own this config. {McColorCodes.GOLD}[buy it]",
+                $"{ownerName} {name}",
+                "Review the Config licence and managed-update terms before using this config"));
+            return;
         }
+        var settingsService = socket.GetService<SettingsService>();
+        var settings = BuyConfigCommand.HasManagedUpdates(inOwnerShip)
+            ? published
+            : await SellConfigCommand.GetArchived(
+                settingsService, inOwnerShip.OwnerId,
+                inOwnerShip.Name, inOwnerShip.Version)
+                ?? throw new CoflnetException(
+                    "config_archive_missing",
+                    "Your supplied Config version is temporarily unavailable. Contact support.");
         if (settings?.Settings == null)
         {
             socket.Dialog(db => db.MsgLine("The config is invalid (completely empty), please contact the creator.")
                 .MsgLine($"{McColorCodes.DARK_GRAY}Debug info: {owner} {name}"));
             return;
         }
-        settings.Settings.BlockExport = settings.OwnerId != socket.UserId;
-
-        FlipFilter.CopyRelevantToNew(settings.Settings, socket.sessionLifesycle.FlipSettings);
-        socket.Dialog(db => db.MsgLine($"§6{settings.Name} §7v{settings.Version} §6loaded"));
-        inOwnerShip.ChangeNotes = settings.ChangeNotes;
-        inOwnerShip.Version = settings.Version;
         if (socket.sessionLifesycle.AccountSettings.Value == null)
         {
             throw new CoflnetException("missing_account_settings", "Account settings not loaded, please try reconnecting");
         }
-
-        await ownedConfigs.Update(); // update used version
-        await socket.sessionLifesycle.FilterState.SubToConfigChanges();
-        _ = socket.TryAsyncTimes(async () =>
-        {
-            await Task.Delay(12000);
-            await UpdateConfig(socket, inOwnerShip);
-        }, "updateConfig", 1);
-        await UpdateConfig(socket, inOwnerShip);
-
         var configId = settings.Settings.BasedConfig;
-        if (string.IsNullOrWhiteSpace(configId) || !configId.Contains(':'))
-        {
-            await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
-            await socket.sessionLifesycle.FilterState.SubToConfigChanges();
-            return;
-        }
-
-        using var baseConfig = await GetContainer(socket, configId);
-        if (baseConfig?.Value == null)
+        var hasBaseConfig = !string.IsNullOrWhiteSpace(configId)
+            && configId.Contains(':');
+        using var baseConfig = hasBaseConfig
+            ? await GetContainer(socket, configId)
+            : null;
+        OwnedConfigs.OwnedConfig baseOwnership = null;
+        if (hasBaseConfig && baseConfig?.Value == null)
         {
             socket.Dialog(db => db.MsgLine($"The configured base config doesn't exist, ask the creator to correct it."));
             return;
         }
-        var baseOwnership = GetOwnership(baseConfig.Value.OwnerId, baseConfig.Value.Name, ownedConfigs);
-        if (baseOwnership == default)
+        if (hasBaseConfig)
         {
-            socket.Dialog(db => db.MsgLine($"You aren't in procession of the base config ({baseConfig.Value.Name}) your config `{name}` is based on .")
-                .CoflCommand<BuyConfigCommand>($"[click to buy]", $"{baseConfig.Value.OwnerId} {baseConfig.Value.Name}", "Buy the base config to use this config\nLoad it afterwards"));
-            return;
-        }
-        CopyIfFlagged(baseConfig.Value.Settings.BlackList, settings.Settings.BlackList);
-        CopyIfFlagged(baseConfig.Value.Settings.WhiteList, settings.Settings.WhiteList);
-        void CopyIfFlagged(List<ListEntry> oldList, List<ListEntry> newList)
-        {
-            var loadConfigLookup = newList.ToLookup(e => GetFilterKey(e));
-            foreach (var item in newList.ToList())
+            baseOwnership = GetOwnership(
+                baseConfig.Value.OwnerId, baseConfig.Value.Name, ownedConfigs);
+            if (baseOwnership == default)
             {
-                if (item.Tags == null || !item.Tags.Contains("from BaseConfig"))
-                {
-                    continue;
-                }
-                newList.Remove(item);
+                socket.Dialog(db => db.MsgLine($"You aren't in procession of the base config ({baseConfig.Value.Name}) your config `{name}` is based on .")
+                    .CoflCommand<BuyConfigCommand>($"[click to buy]", $"{baseConfig.Value.OwnerId} {baseConfig.Value.Name}", "Buy the base config to use this config\nLoad it afterwards"));
+                return;
             }
-            foreach (var filter in oldList)
+        }
+
+        if (BuyConfigCommand.HasManagedUpdates(inOwnerShip))
+            await SellConfigCommand.EnsureArchived(settingsService, settings);
+        var loadedBase = baseConfig?.Value;
+        if (hasBaseConfig && !BuyConfigCommand.HasManagedUpdates(baseOwnership))
+            loadedBase = await SellConfigCommand.GetArchived(
+                settingsService, baseOwnership.OwnerId,
+                baseOwnership.Name, baseOwnership.Version)
+                ?? throw new CoflnetException(
+                    "config_archive_missing",
+                    "Your supplied base Config version is temporarily unavailable. Contact support.");
+        else if (loadedBase != null)
+            await SellConfigCommand.EnsureArchived(settingsService, loadedBase);
+        var combinedSettings = BuildManagedSettings(
+            settings, loadedBase, socket.UserId);
+        FlipFilter.CopyRelevantToNew(
+            combinedSettings, socket.sessionLifesycle.FlipSettings);
+
+        inOwnerShip.ChangeNotes = settings.ChangeNotes;
+        inOwnerShip.Version = settings.Version;
+        if (baseOwnership != null)
+            baseOwnership.Version = loadedBase.Version;
+        await ownedConfigs.Update();
+        await socket.sessionLifesycle.FlipSettings.Update(combinedSettings);
+        var baseVersion = loadedBase?.Version ?? 0;
+        await UpdateConfig(socket, inOwnerShip, baseVersion);
+        socket.Dialog(db => db.MsgLine($"§6{settings.Name} §7v{settings.Version} §6loaded"));
+        await socket.sessionLifesycle.FilterState.SubToConfigChanges();
+        if (hasBaseConfig)
+            socket.Dialog(db => db.MsgLine($"also §6{loadedBase.Name} §7v{loadedBase.Version} §6loaded (BaseConfig)"));
+
+    }
+
+    internal static FlipSettings BuildManagedSettings(
+        ConfigContainer config,
+        ConfigContainer baseConfig,
+        string userId)
+    {
+        var managed = Clone(config.Settings);
+        FlipFilter.CopyRelevantToNew(managed, new FlipSettings());
+        managed.BlockExport = config.OwnerId != userId;
+        if (baseConfig != null)
+        {
+            CopyIfFlagged(baseConfig.Settings.BlackList, managed.BlackList);
+            CopyIfFlagged(baseConfig.Settings.WhiteList, managed.WhiteList);
+        }
+        return managed;
+
+        static void CopyIfFlagged(
+            List<ListEntry> oldList,
+            List<ListEntry> newList)
+        {
+            var loadConfigLookup = newList.ToLookup(GetFilterKey);
+            newList.RemoveAll(item => item.Tags?.Contains("from BaseConfig") == true);
+            foreach (var filter in oldList.Where(filter =>
+                !loadConfigLookup.Contains(GetFilterKey(filter))))
             {
-                if (loadConfigLookup.Contains(GetFilterKey(filter)))
-                {
-                    continue;
-                }
-                if (filter.Tags == null)
-                {
-                    filter.Tags = new List<string>();
-                }
-                filter.Tags.Add("from BaseConfig");
-                newList.Add(filter);
+                var copy = Clone(filter);
+                copy.Tags ??= new List<string>();
+                copy.Tags.Add("from BaseConfig");
+                newList.Add(copy);
             }
 
             static string GetFilterKey(ListEntry e)
@@ -129,36 +183,20 @@ public class LoadConfigCommand : ArgumentsCommand
                 return CamelCaseNameDictionary<DetailedFlipFilter>.GetCleardName<T>();
             }
         }
-        await socket.sessionLifesycle.FlipSettings.Update(settings.Settings);
-        socket.Dialog(db => db.MsgLine($"also §6{baseConfig.Value.Name} §7v{baseConfig.Value.Version} §6loaded (BaseConfig)"));
-        socket.sessionLifesycle.AccountSettings.Value.BaseConfigVersion = baseConfig.Value.Version;
-
-        await socket.sessionLifesycle.FilterState.SubToConfigChanges();
-        await UpdateConfig(socket, inOwnerShip);
     }
 
+    private static T Clone<T>(T value) =>
+        JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(value));
 
-    private static async Task UpdateConfig(IMinecraftSocket socket, OwnedConfigs.OwnedConfig inOwnerShip)
+    private static async Task UpdateConfig(
+        IMinecraftSocket socket,
+        OwnedConfigs.OwnedConfig inOwnerShip,
+        int baseVersion)
     {
         socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = inOwnerShip;
+        socket.sessionLifesycle.AccountSettings.Value.BaseConfigVersion =
+            baseVersion;
         await socket.sessionLifesycle.AccountSettings.Update();
-    }
-
-    private static OwnedConfigs.OwnedConfig MakeConfigOwned(string ownerName, SelfUpdatingValue<OwnedConfigs> ownedConfigs, ConfigContainer settings)
-    {
-        // implicitly buy the config
-        OwnedConfigs.OwnedConfig inOwnerShip = new OwnedConfigs.OwnedConfig
-        {
-            Name = settings.Name,
-            OwnerId = settings.OwnerId,
-            Version = settings.Version,
-            ChangeNotes = settings.ChangeNotes,
-            BoughtAt = System.DateTime.UtcNow,
-            OwnerName = ownerName,
-            PricePaid = 0
-        };
-        ownedConfigs.Value.Configs.Add(inOwnerShip);
-        return inOwnerShip;
     }
 
     private static async Task<ConfigContainer> GetConfig(string owner, string name)
@@ -175,8 +213,10 @@ public class LoadConfigCommand : ArgumentsCommand
 
     private static OwnedConfigs.OwnedConfig GetOwnership(string owner, string name, SelfUpdatingValue<OwnedConfigs> ownedConfigs)
     {
-        return ownedConfigs.Value.Configs.Where(c => c.Name.Equals(name, System.StringComparison.InvariantCultureIgnoreCase) && c.OwnerId == owner).FirstOrDefault()
-            ?? ownedConfigs.Value.Configs.Where(c => c.Name.Equals(name, System.StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+        return ownedConfigs.Value.Configs.FirstOrDefault(c =>
+                c.Name.Equals(name, System.StringComparison.InvariantCultureIgnoreCase)
+                && c.OwnerId == owner
+                && c.RevokedAtUtc == null);
     }
 
     public static async Task<SelfUpdatingValue<ConfigContainer>> GetContainer(IMinecraftSocket socket, string configId)

@@ -20,6 +20,7 @@ namespace Coflnet.Sky.ModCommands.Services
             Dialogs.Add<NoBestFlipDialog>();
             Dialogs.Add<FlipDisableDialog>();
             Dialogs.Add<FlipOptionsDialog>();
+            Dialogs.Add<LowballOptionsDialog>();
         }
         public ChatPart[] GetResponse(MinecraftSocket socket, string context)
         {

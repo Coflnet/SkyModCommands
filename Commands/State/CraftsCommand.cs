@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -50,13 +51,18 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
             click = "/cofl buy starter_premium";
             hoverText = $"{McColorCodes.GRAY}You need starter premium or higher to see the top 3\n{McColorCodes.YELLOW}Click to buy a tier";
         }
-        db.MsgLine($" {elem.ItemName} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice(elem.Median)} {McColorCodes.YELLOW}[Open Recipe]", click, hoverText);
+        var subcrafts = elem.Ingredients.Where(i => i.Type == "craft").ToList();
+        var savings = subcrafts.Sum(i => Math.Max(0, i.BuyOrderCost - i.Cost));
+        var highlight = subcrafts.Count == 0 ? "" : $" {McColorCodes.GREEN}[Subcraft{(savings > 0 ? $" saves {socket.FormatPrice(savings)}" : " ingredients")}]";
+        db.MsgLine($" {elem.ItemName} {McColorCodes.GRAY}for {McColorCodes.AQUA}{socket.FormatPrice(elem.Median)}{highlight} {McColorCodes.YELLOW}[Open Recipe]", click, hoverText);
     }
 
     private static string FormatIngredientText(MinecraftSocket socket, Ingredient i)
     {
         if (i.Type == "craft")
-            return $"{McColorCodes.YELLOW} craft {McColorCodes.GOLD}{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost ~{McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}{McColorCodes.GRAY}(cheaper)";
+            return $"{McColorCodes.GREEN} Subcraft {McColorCodes.GOLD}{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost ~{McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}"
+                + (i.BuyOrderCost > i.Cost ? $"{McColorCodes.GREEN} (saves {socket.FormatPrice(i.BuyOrderCost - i.Cost)})" : "")
+                + $"\n{McColorCodes.GRAY}   Open Recipe to see what to use";
         return $"{i.ItemId} {McColorCodes.AQUA}x{i.Count} {McColorCodes.GRAY}cost {McColorCodes.GOLD}{socket.FormatPrice(i.Cost)}";
     }
 
@@ -65,8 +71,20 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
         var craftApi = socket.GetService<ICraftsApi>();
         var profileApi = socket.GetService<IProfileClient>();
         var craftsTask = NewMethod(craftApi);
-        var filtered = (await profileApi.FilterProfitableCrafts(craftsTask, socket.SessionInfo.McUuid, "current"))
-                .OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost) * f.Volume);
+        IOrderedEnumerable<ProfitableCraft> filtered;
+        try
+        {
+
+            filtered = (await profileApi.FilterProfitableCrafts(craftsTask, socket.SessionInfo.McUuid, "current"))
+                    .OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost) * f.Volume);
+        }
+        catch (Exception e)
+        {
+            socket.Error(e, "filtering crafts for profile");
+            socket.Dialog(db => db.MsgLine($"Error while filtering crafts: {e.Message}").MsgLine("Showing unfiltered crafts, consider creating a report about this"));
+            var crafts = await craftsTask;
+            filtered = crafts.OrderByDescending(f => FlipInstance.ProfitAfterFees((long)f.SellPrice, (long)f.CraftCost) * f.Volume);
+        }
 
         if (OnBazaar.Count == 0)
             _ = socket.TryAsyncTimes(async () =>
@@ -81,7 +99,7 @@ public class CraftsCommand : ReadOnlyListCommand<ProfitableCraft>
 
     protected override IEnumerable<ProfitableCraft> FilterElementsForProfile(MinecraftSocket socket, IEnumerable<ProfitableCraft> elements)
     {
-        var filtered = elements.Where(f => f.CraftCost < socket.SessionInfo.Purse && socket.SessionInfo.Purse > 0).ToList();
+        var filtered = elements.Where(f => f.CraftCost < socket.SessionInfo.Purse || socket.SessionInfo.Purse <= 0).ToList();
         if (filtered.Count != elements.Count())
             socket.Dialog(db => db.MsgLine($"Filtered {elements.Count() - filtered.Count} crafts that cost more than your purse ({socket.FormatPrice(socket.SessionInfo.Purse)})"));
         return filtered;

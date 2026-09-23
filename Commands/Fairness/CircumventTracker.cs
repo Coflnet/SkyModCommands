@@ -58,49 +58,53 @@ public class CircumventTracker
             return null;
         }
 
-        var auction = await FindAuction(socket) ?? throw new Exception("No auction found");
-        if (auction.Context.ContainsKey("cname") && !auction.Context["cname"].EndsWith("-us") && Random.Shared.NextDouble() < 0.5)
+        var excludedAuctions = new HashSet<string>();
+        for (var attempt = 0; attempt < 4; attempt++)
         {
-            auction.Context["cname"] = auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + '.', "").Replace(McColorCodes.DARK_GRAY + "!", "") + McColorCodes.GRAY + "-us";
-        }
-        var lowPriced = new LowPricedAuction()
-        {
-            Auction = auction,
-            TargetPrice = auction.StartingBid + (long)(Math.Max(socket.Settings.MinProfit, 15_000_000) * (0.2 + Random.Shared.NextDouble())),
-            AdditionalProps = new() { { "bfcs", "redis" }, { "challenge", "" } },
-            DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() + 0.1f),
-            Finder = (Random.Shared.NextDouble() < 0.7) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
-        };
-        var flip = FlipperService.LowPriceToFlip(lowPriced);
-        var isMatch = socket.Settings.MatchesSettings(flip);
-        if (isMatch.Item1)
-        {
-            lastSeen.TryAdd(socket.UserId, flip);
+            var auction = await FindAuction(socket, excludedAuctions) ?? throw new Exception("No auction found");
+            if (auction.Context.ContainsKey("cname") && !auction.Context["cname"].EndsWith("-us") && Random.Shared.NextDouble() < 0.5)
+            {
+                auction.Context["cname"] = auction.Context["cname"].Replace(McColorCodes.DARK_GRAY + '.', "").Replace(McColorCodes.DARK_GRAY + "!", "") + McColorCodes.GRAY + "-us";
+            }
+            var lowPriced = new LowPricedAuction()
+            {
+                Auction = auction,
+                TargetPrice = auction.StartingBid + (long)(Math.Max(socket.Settings.MinProfit, 15_000_000) * (0.2 + Random.Shared.NextDouble())),
+                AdditionalProps = new() { { "bfcs", "redis" }, { "challenge", "" } },
+                DailyVolume = (float)(socket.Settings.MinVolume + Random.Shared.NextDouble() + 0.1f),
+                Finder = (Random.Shared.NextDouble() < 0.7) ? LowPricedAuction.FinderType.SNIPER : LowPricedAuction.FinderType.SNIPER_MEDIAN
+            };
+            var flip = FlipperService.LowPriceToFlip(lowPriced);
+            var isMatch = socket.Settings.MatchesSettings(flip);
+            if (!isMatch.Item1)
+            {
+                if ((socket.AccountInfo.BadActionCount > 20 || socket.SessionInfo.McName == "Ekwav") && Random.Shared.NextDouble() < 0.4)
+                    flip.Context["match"] = "whitelist challenge"; // make it match
+                LogMatchingFilter(socket, flip);
+                await LoadNewPlayerThreshold();
+                var min = 4;
+                if (int.TryParse(socket.UserId, out int id) && id > minNewPlayerId)
+                    min = 2; // new players are checked earlier
+                if (socket.AccountInfo?.ShadinessLevel > 90)
+                    min /= 2;
+                if (socket.SessionInfo.NotPurchaseRate < min && !forceCreate)
+                {
+                    logger.LogError("Testflip doesn't match {UserId} ({socket.SessionInfo.McUuid}) because {reson} {flip}", socket.UserId, socket.SessionInfo.McUuid, isMatch.Item2, JsonConvert.SerializeObject(lowPriced));
+                    throw new Exception("No matching flip found " + JsonConvert.SerializeObject(lowPriced));
+                }
+            }
+            if (!await TryReserveChallenge(flip.Auction.Uuid, socket.SessionInfo.McUuid, socket.UserId))
+            {
+                excludedAuctions.Add(flip.Auction.Uuid);
+                continue;
+            }
+            lastSeen[socket.UserId] = flip;
+            if (!isMatch.Item1)
+                logger.LogInformation("Creating fake flip for {UserId} {uuid} {auctionUuid} rate was at {rate}", socket.UserId, socket.SessionInfo.McUuid, auction.Uuid, socket.SessionInfo.NotPurchaseRate);
             return flip.Auction.Uuid;
         }
-        if ((socket.AccountInfo.BadActionCount > 20 || socket.SessionInfo.McName == "Ekwav") && Random.Shared.NextDouble() < 0.4)
-        {
-            flip.Context["match"] = "whitelist challenge"; // make it match
-        };
-        LogMatchingFilter(socket, flip);
-        await LoadNewPlayerThreshold();
-        var min = 4;
-        if (int.TryParse(socket.UserId, out int id) && id > minNewPlayerId)
-        {
-            min = 2; // new players are checked earlier
-        }
-        if (socket.AccountInfo?.ShadinessLevel > 90)
-            min /= 2;
-        if (socket.SessionInfo.NotPurchaseRate >= min || forceCreate)
-        {
-            // very sus, make a flip up
-            lastSeen.TryAdd(socket.UserId, flip);
-            logger.LogInformation("Creating fake flip for {UserId} {uuid} {auctionUuid} rate was at {rate}", socket.UserId, socket.SessionInfo.McUuid, auction.Uuid, socket.SessionInfo.NotPurchaseRate);
-            return flip.Auction.Uuid;
-        }
-
-        logger.LogError("Testflip doesn't match {UserId} ({socket.SessionInfo.McUuid}) because {reson} {flip}", socket.UserId, socket.SessionInfo.McUuid, isMatch.Item2, JsonConvert.SerializeObject(lowPriced));
-        throw new Exception("No matching flip found " + JsonConvert.SerializeObject(lowPriced));
+        logger.LogWarning("Could not reserve a challenge auction for {UserId} after excluding {Count} occupied auctions", socket.UserId, excludedAuctions.Count);
+        return null;
     }
 
     private static bool LikelyLegit(IMinecraftSocket socket)
@@ -144,21 +148,25 @@ public class CircumventTracker
                     break;
                 flip.Auction.Start += +TimeSpan.FromSeconds(20);
             }
-            await SendChallangeFlip(socket, flip);
+            await SendReservedChallengeFlip(socket, flip);
         }, "sheduling challenge");
     }
 
-    public async Task SendChallangeFlip(IMinecraftSocket socket, FlipInstance flip)
+    public async Task<bool> SendChallangeFlip(IMinecraftSocket socket, FlipInstance flip)
     {
-        var trackTask = connectApi.ConnectChallengePostAsync(new()
+        if (!await TryReserveChallenge(flip.Auction.Uuid, socket.SessionInfo.McUuid, socket.UserId))
         {
-            AuctionUuid = flip.Auction.Uuid,
-            MinecraftUuid = socket.SessionInfo.McUuid,
-            UserId = socket.UserId
-        });
+            logger.LogWarning("Not sending challenge auction {AuctionUuid} to {UserId}: it is reserved by another challenge", flip.Auction.Uuid, socket.UserId);
+            return false;
+        }
+        await SendReservedChallengeFlip(socket, flip);
+        return true;
+    }
+
+    private async Task SendReservedChallengeFlip(IMinecraftSocket socket, FlipInstance flip)
+    {
         var adapter = (socket as MinecraftSocket)?.ModAdapter ?? throw new Exception("Minecraft socket required to send flip");
         await adapter.SendFlip(flip);
-        await trackTask;
         await Task.Delay(5000);
         if (flip.Context.GetValueOrDefault("match")?.Contains("shitflip") ?? false)
         {
@@ -186,12 +194,32 @@ public class CircumventTracker
             await adapter.SendFlip(flip);
     }
 
-    private static async Task<SaveAuction?> FindAuction(IMinecraftSocket socket)
+    internal async Task<bool> TryReserveChallenge(string auctionUuid, string minecraftUuid, string userId)
+    {
+        try
+        {
+            await connectApi.ConnectChallengePostAsync(new()
+            {
+                AuctionUuid = auctionUuid,
+                MinecraftUuid = minecraftUuid,
+                UserId = userId
+            });
+            return true;
+        }
+        catch (Coflnet.Sky.McConnect.Client.ApiException e) when (e.ErrorCode == 409)
+        {
+            return false;
+        }
+    }
+
+    private static async Task<SaveAuction?> FindAuction(IMinecraftSocket socket, ISet<string>? excludedAuctions = null)
     {
         var oldestStart = DateTime.UtcNow - TimeSpan.FromMinutes(1);
         foreach (var blocked in socket.TopBlocked.Where(b => b.Flip.Auction.Start > oldestStart && b.Flip.Auction.Bin)
                                     .OrderBy(b => b.Flip.Auction.StartingBid / b.Flip.DailyVolume))
         {
+            if (excludedAuctions?.Contains(blocked.Flip.Auction.Uuid) == true)
+                continue;
             if (blocked.Flip.Auction.StartingBid > 90_000_000)
                 continue; // bit too pricey
             if (blocked.Reason != "minProfit" && blocked.Reason != "minVolume")
@@ -202,8 +230,15 @@ public class CircumventTracker
         }
         using var context = new HypixelContext();
         Activity.Current?.Log("From db");
-        return await context.Auctions.OrderByDescending(a => a.Id).Include(a => a.Enchantments).Include(a => a.NbtData)
+        var excluded = excludedAuctions?.ToArray() ?? Array.Empty<string>();
+        return await ChallengeAuctionQuery(context, oldestStart, excluded).FirstOrDefaultAsync();
+    }
+
+    internal static IQueryable<SaveAuction> ChallengeAuctionQuery(HypixelContext context, DateTime oldestStart, string[] excludedAuctions)
+    {
+        return context.Auctions.OrderByDescending(a => a.Id).Include(a => a.Enchantments).Include(a => a.NbtData)
             .Take(350)
-            .Where(a => a.HighestBidAmount == 0 && a.Start > oldestStart && a.StartingBid < 5_000_000).FirstOrDefaultAsync();
+            .Where(a => a.HighestBidAmount == 0 && a.Start > oldestStart && a.StartingBid < 5_000_000
+                && !excludedAuctions.Contains(a.Uuid));
     }
 }

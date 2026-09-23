@@ -12,6 +12,7 @@ using Coflnet.Sky.Commands.Shared;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
+using Coflnet.Sky.ModCommands.Models;
 
 namespace Coflnet.Sky.ModCommands.Services;
 public class ChatService
@@ -46,7 +47,7 @@ public class ChatService
         {
             try
             {
-                var sub = await GetCon().SubscribeAsync(channel);
+                var sub = await GetCon().SubscribeAsync(RedisChannel.Literal(channel));
 
                 sub.OnMessage((value) =>
                 {
@@ -68,7 +69,7 @@ public class ChatService
 
     public async Task SendToChannel(string channel, ChatMessage message)
     {
-        await GetCon().PublishAsync(channel, JsonConvert.SerializeObject(message));
+        await GetCon().PublishAsync(RedisChannel.Literal(channel), JsonConvert.SerializeObject(message));
     }
 
     public async Task<List<string>> GetMuteUuids()
@@ -97,20 +98,7 @@ public class ChatService
         try
         {
             var isMod = moderatorService.IsModerator(socket);
-            var prefix = message.Tier switch
-            {
-                AccountTier.SUPER_PREMIUM => McColorCodes.RED,
-                AccountTier.PREMIUM_PLUS => McColorCodes.GOLD,
-                AccountTier.PREMIUM => McColorCodes.DARK_GREEN,
-                AccountTier.STARTER_PREMIUM => McColorCodes.WHITE,
-                _ => McColorCodes.GRAY
-            };
-            if (isMod)
-            {
-                if (message.Tier < AccountTier.PREMIUM)
-                    prefix = McColorCodes.DARK_GREEN;
-                prefix = McColorCodes.GOLD + "ⓂⓄⒹ" + prefix;
-            }
+            var prefix = GetPrefix(message.Tier, socket.AccountInfo?.Emblem, isMod);
             var chatMsg = new ChatMessage(
                 message.SenderUuid ?? throw new CoflnetException("invalid_sender", "Sender uuid is null"),
                 message.SenderName,
@@ -124,6 +112,21 @@ public class ChatService
             RefreshMutedUsers();
             throw JsonConvert.DeserializeObject<CoflnetException>(e.Message?.Replace("Error calling ApiChatSendPost: ", ""));
         }
+    }
+
+    internal static string GetPrefix(AccountTier tier, string emblem, bool isModerator)
+    {
+        var prefix = tier switch
+        {
+            AccountTier.SUPER_PREMIUM => McColorCodes.RED,
+            AccountTier.PREMIUM_PLUS => McColorCodes.GOLD,
+            AccountTier.PREMIUM => McColorCodes.DARK_GREEN,
+            AccountTier.STARTER_PREMIUM => McColorCodes.WHITE,
+            _ => McColorCodes.GRAY
+        };
+        if (!string.IsNullOrEmpty(emblem) && (emblem != Emblems.ModeratorSymbol || isModerator))
+            prefix = emblem + " " + prefix;
+        return prefix;
     }
 
     public async Task Mute(Mute mute)
@@ -150,4 +153,3 @@ public class ChatService
         return settingsService.Con?.GetSubscriber() ?? throw new Exception("No chat connection available");
     }
 }
-

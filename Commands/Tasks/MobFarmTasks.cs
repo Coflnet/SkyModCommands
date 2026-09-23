@@ -29,11 +29,11 @@ public class CinderbatTask : BaseGalateaMobTask
 }
 public class BurningsoulTask : BaseGalateaMobTask
 {
-    protected override string MethodName => "Burningsoul";
+    protected override string MethodName => "Inferno Demonlord";
     protected override HashSet<string> Locations => ["Dive-Ember Pass", "Stride-Ember Fissure", "Side-Ember Way"];
     protected override HashSet<string> DetectionItems => ["SHARD_BURNINGSOUL"];
     protected override List<MethodDrop> FormulaDrops => [new("SHARD_BURNINGSOUL", 280)];
-    protected override string HowTo => "Go to the Ember areas on Galatea and kill Burningsouls. Found alongside Cinderbats.";
+    protected override string HowTo => "Go to the Ember areas on Galatea and kill Inferno Demonlords. Found alongside Cinderbats.";
 }
 public class LumisquidTask : BaseGalateaMobTask
 {

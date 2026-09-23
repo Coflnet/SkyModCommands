@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using Coflnet.Sky.Bazaar.Flipper.Client.Api;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Core.Services;
+using Coflnet.Sky.ModCommands.Services.Donut;
 using Coflnet.Sky.ModCommands.Services.Vps;
 
 namespace Coflnet.Sky.ModCommands;
@@ -33,6 +34,7 @@ public class Startup
     public Startup(IConfiguration configuration)
     {
         Configuration = configuration;
+        HypixelContext.SetConfiguration(configuration);
     }
 
     public IConfiguration Configuration { get; }
@@ -59,16 +61,43 @@ public class Startup
                 .EnableSensitiveDataLogging() // <-- These two calls are optional but help
                 .EnableDetailedErrors()       // <-- with debugging (remove for production).
         );
+        services.AddHttpClient();
+        services.AddSingleton<RewardLedgerClient>();
+        services.AddSingleton<ExpertConfigCheckoutClient>();
+        services.AddSingleton<AgreementManifestService>();
+        services.AddHostedService(service =>
+            service.GetRequiredService<AgreementManifestService>());
         services.AddHostedService<ModBackgroundService>();
+        services.AddHostedService<ExpertConfigRefundService>();
+        services.AddHostedService<MemoryDiagnosticsService>();
         services.AddHostedService<MuseumDonationCleanupService>();
-        services.AddHostedService<BazaarFlipService>();
+        services.AddSingleton<BazaarFlipService>();
+        services.AddHostedService(s => s.GetRequiredService<BazaarFlipService>());
+        services.AddSingleton<IFleetApi, FleetApi>(s =>
+            new FleetApi(s.GetRequiredService<IConfiguration>()["BAZAARFLIPPER_BASE_URL"]));
+        services.AddKeyedSingleton<IConnectionMultiplexer>("bazaar", (sp, key) => {
+            var options = ConfigurationOptions.Parse(Configuration["EVENTS_REDIS_HOST"] ?? "sky-event-broker-redis");
+            options.AbortOnConnectFail = false;
+            options.ConnectTimeout = 1000;
+            options.AsyncTimeout = 1000;
+            options.ConnectRetry = 0;
+            return ConnectionMultiplexer.Connect(options);
+        });
+        services.AddHttpClient("BazaarOrders", client => {
+            client.BaseAddress = new Uri(Configuration["BAZAAR_BASE_URL"].TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(3);
+        });
+        services.AddSingleton<BazaarSignalSubscriptionService>();
+        services.AddHostedService(sp => sp.GetRequiredService<BazaarSignalSubscriptionService>());
         services.AddHostedService(s => s.GetRequiredService<FlipperService>());
         services.AddJaeger(Configuration, 1, 1);
+        services.AddOpenTelemetry().WithTracing(b => b.AddSource(BazaarOrderDisplay.SourceName));
         services.AddTransient<CounterService>();
         services.AddSingleton<ModeratorService>();
         services.AddSingleton<ChatService>();
         services.AddSingleton<ITutorialService, TutorialService>();
         services.AddSingleton<IFlipApi, FlipApi>(s => new FlipApi(Configuration["API_BASE_URL"]));
+        services.AddSingleton<IDonutFlipSubscriptionService, DonutFlipSubscriptionService>();
         services.AddSingleton<PreApiService>();
         services.AddSingleton<CommandSyncService>();
         services.AddSingleton<IIsSold>(s => s.GetRequiredService<PreApiService>());
@@ -91,6 +120,9 @@ public class Startup
         services.AddSingleton<HypixelItemService>();
         services.AddSingleton<IHypixelItemStore, HypixelItemService>(di => di.GetRequiredService<HypixelItemService>());
         services.AddSingleton<System.Net.Http.HttpClient>();
+        services.AddSingleton<Coflnet.Sky.Indexer.Client.Api.IUserApi>(
+            new Coflnet.Sky.Indexer.Client.Api.UserApi(
+                Configuration["INDEXER_BASE_URL"]));
         services.AddSingleton<IPriceStorageService, PriceStorageService>();
         services.AddSingleton<DelayService>();
         services.AddSingleton<AltChecker>();
@@ -102,12 +134,22 @@ public class Startup
         services.AddSingleton<ApiKeyService>();
         services.AddSingleton<ProxyService>();
         services.AddSingleton<LowballOfferService>();
-        services.AddSingleton<MinecraftLoreRenderer>();
+        services.AddSingleton<EmblemService>();
         services.AddSingleton<AutotipService>();
         services.AddSingleton<YoutuberService>();
         services.AddSingleton<TaskService>();
         services.AddSingleton<ActivityTrackingService>();
+        services.AddSingleton<PlayerState.Client.Api.ITaskApi>(s =>
+            new PlayerState.Client.Api.TaskApi(Configuration["PLAYERSTATE_BASE_URL"]));
         services.AddCoflService();
+        services.AddHostedService(s => s.GetRequiredService<FilterStateService>());
+
+        // warm critical downstream dependencies (redis + sky-settings http pool) before the
+        // readiness probe passes, so fresh pods don't hand cold-start latency to the first
+        // connections after a deploy.
+        services.AddSingleton<WarmupState>();
+        services.AddHostedService<StartupWarmupService>();
+        services.AddHealthChecks().AddCheck<WarmupHealthCheck>("warmup");
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -131,6 +173,7 @@ public class Startup
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapMetrics();
+            endpoints.MapHealthChecks("/health/ready");
             endpoints.MapControllers();
         });
     }
@@ -160,7 +203,7 @@ public class Startup
                 var password = Configuration["CASSANDRA:X509Certificate_PASSWORD"] ?? throw new InvalidOperationException("CASSANDRA:X509Certificate_PASSWORD must be set if CASSANDRA:X509Certificate_PATHS is set.");
                 CustomRootCaCertificateValidator certificateValidator = null;
                 if (!string.IsNullOrEmpty(validationCertificatePath))
-                    certificateValidator = new CustomRootCaCertificateValidator(new X509Certificate2(validationCertificatePath, password));
+                    certificateValidator = new CustomRootCaCertificateValidator(X509CertificateLoader.LoadPkcs12FromFile(validationCertificatePath, password, X509KeyStorageFlags.DefaultKeySet, Pkcs12LoaderLimits.Defaults));
                 var sslOptions = new SSLOptions(
                     // TLSv1.2 is required as of October 9, 2019.
                     // See: https://www.instaclustr.com/removing-support-for-outdated-encryption-mechanisms/
@@ -168,7 +211,7 @@ public class Startup
                     false,
                     // Custom validator avoids need to trust the CA system-wide.
                     (sender, certificate, chain, errors) => certificateValidator?.Validate(certificate, chain, errors) ?? true
-                ).SetCertificateCollection(new(certificatePaths.Split(',').Select(p => new X509Certificate2(p, password)).ToArray()));
+                ).SetCertificateCollection(new(certificatePaths.Split(',').Select(p => X509CertificateLoader.LoadPkcs12FromFile(p, password, X509KeyStorageFlags.DefaultKeySet, Pkcs12LoaderLimits.Defaults)).ToArray()));
                 builder.WithSSL(sslOptions);
             }
             var cluster = builder.Build();

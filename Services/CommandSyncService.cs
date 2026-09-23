@@ -44,7 +44,7 @@ public class CommandSyncService
                 });
                 return sub;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 if (i >= 2)
                     throw;
@@ -55,7 +55,7 @@ public class CommandSyncService
     }
     public async Task Publish(ExecuteRequest request)
     {
-        await redis.GetSubscriber().PublishAsync(request.MinecraftName.ToLower(), JsonConvert.SerializeObject(request));
+        await redis.GetSubscriber().PublishAsync(RedisChannel.Literal(request.MinecraftName.ToLower()), JsonConvert.SerializeObject(request));
     }
 
     public class ExecuteRequest

@@ -9,6 +9,8 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.FlipTracker.Client.Api;
 using Coflnet.Sky.FlipTracker.Client.Model;
+using Coflnet.Sky.Items.Client.Model;
+using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -54,6 +56,15 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             _bazaarTagsLastRefresh = DateTime.UtcNow;
         }
         return newTags;
+    }
+
+    private async Task<ItemCategory?> GetBazaarItemCategory(string tag)
+    {
+        if (string.IsNullOrWhiteSpace(tag))
+            return null;
+
+        var filterStateService = socket.GetService<FilterStateService>();
+        return await BazaarOrderAmountHelper.GetKnownItemCategory(tag, filterStateService);
     }
 
     public override async Task<bool> SendFlip(FlipInstance flip)
@@ -170,25 +181,43 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         }
     }
 
-    private async Task ListBazaar(List<SaveAuction> inventory = null)
+    /// <summary>
+    /// Places bazaar sell orders for stackable items currently in the inventory to drain it into
+    /// free bazaar order slots. Selling is prioritized over buying on order uploads so that
+    /// purchases can never outpace sales (unsold items pile up in the inventory and crash the client).
+    /// Stops once <paramref name="maxOrders"/> orders have actually been placed.
+    /// </summary>
+    /// <param name="maxOrders">Maximum number of new sell orders to place.</param>
+    /// <returns>The number of sell orders actually placed.</returns>
+    public Task<int> PlaceInventorySellOrders(int maxOrders)
     {
-        if (socket.Version.StartsWith("af-2"))
-            return;
+        return ListBazaar(socket.SessionInfo.Inventory, maxOrders);
+    }
+
+    private async Task<int> ListBazaar(List<SaveAuction> inventory = null, int maxOrders = int.MaxValue)
+    {
+        if (socket.Version.StartsWith("af-2") || maxOrders <= 0)
+            return 0;
         inventory ??= await WaitForInventory();
         var cachedBazaarTags = await GetBazaarTags();
         var tags = inventory.Where(i => i != null && i.Tag != null && cachedBazaarTags.Contains(i.Tag)).Select(i => i.Tag).ToHashSet();
         var bazaarItems = await socket.GetService<Bazaar.Client.Api.IOrderBookApi>().GetOrderBooksAsync(tags.ToList());
         var bazaaritemTags = bazaarItems.Where(b => b.Value.Sell?.Count > 0).Select(b => b.Key).ToHashSet();
         var amounts = inventory.Where(i => i?.Tag != null && bazaaritemTags.Contains(i.Tag)).GroupBy(i => i.Tag).ToDictionary(g => g.Key, g => (g.Sum(i => i.Count), g.First().ItemName));
+        var placed = 0;
         foreach (var item in amounts)
         {
             var tag = item.Key;
             var amount = item.Value.Item1;
             var name = item.Value.Item2;
             var price = bazaarItems[tag].Sell.OrderBy(o => o.PricePerUnit).First().PricePerUnit - 0.1;
-            await RecommendBazaarSellOrder(tag, name, amount, price);
+            if (await RecommendBazaarSellOrder(tag, name, amount, price))
+                placed++;
+            if (placed >= maxOrders)
+                break;
             await Task.Delay(4_000);
         }
+        return placed;
     }
 
     private async Task UpdateAhSlots(Activity span)
@@ -244,7 +273,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             var res = await socket.GetService<Proxy.Client.Api.IProxyApi>().ProxyHypixelGetAsync($"/v2/skyblock/profiles?uuid={socket.SessionInfo.McUuid}");
             if (res == null)
                 throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
-            var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(JsonConvert.DeserializeObject<string>(res));
+            var profiles = JsonConvert.DeserializeObject<ProfilesResponse>(res);
             if (profiles?.Profiles == null)
                 throw new CoflnetException("proxy_error", "Could not check how many coop members you have, if this persists please contact support");
             var profile = profiles.Profiles.FirstOrDefault(x => x.Selected);
@@ -566,6 +595,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             socket.Error(new(), "Price is 0, skipping listing, og: " + price, JsonConvert.SerializeObject(auction));
             return;
         }
+        socket.SessionInfo.ToLowListingAttempt = string.Empty;
         socket.Send(Response.Create("createAuction", new
         {
             Slot = index,
@@ -575,15 +605,21 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             Id = id
         }));
         await Task.Delay(5500);
-        if (socket.SessionInfo.ToLowListingAttempt == null)
+        var minimumListingAttempt = socket.SessionInfo.ToLowListingAttempt;
+        socket.SessionInfo.ToLowListingAttempt = string.Empty;
+        if (string.IsNullOrWhiteSpace(minimumListingAttempt))
             return;
-        await RetryListingWithMinimum(span, auction, index, sellPrice, id, listTime);
+        await RetryListingWithMinimum(span, auction, index, sellPrice, id, listTime, minimumListingAttempt);
     }
 
-    private async Task RetryListingWithMinimum(Activity span, SaveAuction auction, int index, long sellPrice, string id, int? listTime)
+    private async Task RetryListingWithMinimum(Activity span, SaveAuction auction, int index, long sellPrice, string id, int? listTime, string minimumListingAttempt)
     {
-        // sample string:You must set it to at least 1,500,000!
-        var parsed = int.Parse(socket.SessionInfo.ToLowListingAttempt.Split(" ").Last().Replace(",", "").Replace("!", ""));
+        if (!TryExtractMinimumListingPrice(minimumListingAttempt, out var parsed))
+        {
+            span.Log($"Could not parse minimum listing price from '{minimumListingAttempt}'");
+            return;
+        }
+
         if (parsed > sellPrice && parsed < sellPrice * 1.1)
         {
             span.Log($"Price too low, retrying with {parsed}");
@@ -595,11 +631,23 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
                 ItemName = auction.ItemName,
                 Id = id
             }));
-            socket.SessionInfo.ToLowListingAttempt = null;
             await Task.Delay(2000);
         }
         else
             span.Log($"Retry price outside of range {parsed} vs {sellPrice}");
+    }
+
+    internal static bool TryExtractMinimumListingPrice(string minimumListingAttempt, out int minimumListingPrice)
+    {
+        minimumListingPrice = 0;
+        if (string.IsNullOrWhiteSpace(minimumListingAttempt))
+            return false;
+
+        var match = Regex.Match(minimumListingAttempt, @"at least\s+([\d,]+)", RegexOptions.IgnoreCase);
+        if (!match.Success)
+            return false;
+
+        return int.TryParse(match.Groups[1].Value.Replace(",", string.Empty), out minimumListingPrice);
     }
 
     private static string MapToGameTag(SaveAuction auction)
@@ -631,30 +679,41 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         socket.sessionLifesycle.FlipSettings.Value.ModSettings.AutoStartFlipper = true;
         socket.sessionLifesycle.FlipSettings.Value.Visibility.Seller = false;
     }
-
-    /// <summary>
-    /// Sends a bazaar order placement recommendation to the client
-    /// </summary>
-    /// <param name="itemTag">The item tag (e.g., "ENCHANTED_DIAMOND")</param>
-    /// <param name="itemName">The display name for the item</param>
-    /// <param name="isSell">True for sell orders, false for buy orders</param>
-    /// <param name="price">The price per unit</param>
-    /// <param name="amount">The amount to order</param>
-    public void SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount)
+    public bool SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount, ItemCategory? itemCategory = null)
     {
-        if(itemName == "Enchanted Book")
+        var cappedAmount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount, itemCategory);
+        if (cappedAmount != amount)
+            Activity.Current?.Log($"Capped bazaar order amount for {itemTag} from {amount} to {cappedAmount}");
+
+        if (itemName == "Enchanted Book")
         {
             // for enchanted books, include enchantments in the name for better clarity
             itemName = BazaarUtils.GetSearchValue(itemTag, itemName);
             Activity.Current?.Log($"Updated item name for enchanted book recommendation: {itemName}");
         }
+
+        var side = isSell ? BazaarOrderSide.Sell : BazaarOrderSide.Buy;
+        if (BazaarOrderStateHelper.HasTrackedSentOrder(socket.SessionInfo.SentBazaarOrders, itemTag, itemName, side, price))
+        {
+            Activity.Current?.Log($"Skipping duplicate bazaar order recommendation for {itemTag} at {price}");
+            return false;
+        }
+
         socket.Send(Response.Create("placeOrder", new
         {
             itemName = itemName,
             isSell = isSell,
             price = price,
-            amount = amount
+            amount = cappedAmount
         }));
+
+        if (!isSell)
+            // only buy recommendations should reset the buy-side full-list fallback timer;
+            // otherwise an actively-selling user never expands past their top tier bracket
+            socket.SessionInfo.LastBazaarRecommendationAt = DateTime.UtcNow;
+        BazaarOrderStateHelper.TryTrackSentOrder(socket.SessionInfo.SentBazaarOrders, itemTag, itemName, side, price, cappedAmount);
+        BazaarRecommendationTelemetry.RecordSent(socket.SessionInfo.SessionTier, socket.SessionInfo.IsMacroBot);
+        return true;
     }
 
     /// <summary>
@@ -664,10 +723,11 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
     /// <param name="itemName">The display name</param>
     /// <param name="amount">Amount to sell (default 64)</param>
     /// <param name="sellPrice"></param>
-    public async Task RecommendBazaarSellOrder(string itemTag, string itemName, int amount = 64, double sellPrice = -1)
+    /// <returns>True if a new sell order was placed, false if it was skipped (already sent, no price, etc.).</returns>
+    public async Task<bool> RecommendBazaarSellOrder(string itemTag, string itemName, int amount = 64, double sellPrice = -1)
     {
         if (itemTag == "SKYBLOCK_MENU")
-            return; // not an item
+            return false; // not an item
         try
         {
             using var span = socket.CreateActivity("bazaarSellRecom");
@@ -678,24 +738,29 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             if (latestPrice == null)
             {
                 socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Could not fetch bazaar price for {itemName}-{itemTag}"));
-                return;
+                return false;
             }
-            //clear formatting from name 
+            //clear formatting from name
             itemName = FormatRegex().Replace(itemName, "");
             // Use sell price (what buyers pay) for sell orders
             if (sellPrice < 0)
                 sellPrice = latestPrice.Sell;
+            var itemCategory = await GetBazaarItemCategory(itemTag);
+            amount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount, itemCategory);
             span.Log($"For {itemName} x {amount} recommending sell at {sellPrice}");
-            SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount);
+            if (!SendBazaarOrderRecommendation(itemTag, itemName, true, sellPrice, amount, itemCategory))
+                return false;
 
             socket.Dialog(db => db.MsgLine(
                 $"{McColorCodes.GRAY}Recommending sell order: {McColorCodes.YELLOW}{amount}x {itemName} {McColorCodes.GRAY}at {McColorCodes.GREEN}{socket.FormatPrice((long)sellPrice)}{McColorCodes.GRAY} per unit",
                 $"/bz {BazaarUtils.GetSearchValue(itemTag, itemName)}",
                 "Click to open in bazaar"));
+            return true;
         }
         catch (Exception e)
         {
             socket.Error(e, $"Failed to recommend bazaar sell order for {itemTag}");
+            return false;
         }
     }
 

@@ -71,7 +71,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
         return DialogBuilder.New.MsgLine($"{title} (page {page}/{totalPages})", $"/cofl {Slug} {page + 1}", $"Click to go to next page ({page + 1})")
         .ForEach(toDisplay, (db, elem, i) =>
         {
-            if (page <= 1 && i <= HidetopWithoutPremium && !socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
+            if (HidetopWithoutPremium > 0 && page <= 1 && i <= HidetopWithoutPremium && !socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
             {
                 db.MsgLine($"Top {HidetopWithoutPremium} require starter premium to see");
             }

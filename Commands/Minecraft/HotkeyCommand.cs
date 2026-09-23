@@ -56,10 +56,35 @@ public class HotkeyCommand : McCommand
         var sniperService = socket.GetService<ISniperClient>();
         var valuesTask = sniperService.GetPrices([auction]);
         Task<string> filterLinkTask = GetLinkWithFilters(socket, auction);
-        var price = (await valuesTask).First();
+
+        // Timeout after 8 seconds — price lookups should be near-instant.
+        // Longer waits block the WebSocket connection and freeze the user's mod UI.
+        Sniper.Client.Model.PriceEstimate price;
+        try
+        {
+            price = (await valuesTask.WaitAsync(TimeSpan.FromSeconds(8))).First();
+        }
+        catch (TimeoutException)
+        {
+            socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Price lookup timed out, please try again, or create a report"));
+            return;
+        }
         var instaSell = SniperClient.InstaSellPrice(price);
         var lbinAuction = await GetAuction(socket, price.Lbin.AuctionId);
-        int index = await GetItemIndex(auction, inventoryTask);
+        // The lowball offer relies on locating the item in the player's inventory.
+        // If that lookup fails (e.g. the player state database is unavailable) we still
+        // want to show the rest of the item info, so the offer is just disabled.
+        int index = -1;
+        bool inventoryAvailable = true;
+        try
+        {
+            index = await GetItemIndex(auction, inventoryTask);
+        }
+        catch (Exception e)
+        {
+            inventoryAvailable = false;
+            socket.Error(e, "Failed to load inventory for lowball offer");
+        }
         var filterLink = await filterLinkTask;
 
         var isInInventory = index != -1;
@@ -67,8 +92,10 @@ public class HotkeyCommand : McCommand
         socket.Dialog(db => db.MsgLine($"The value of this item is {McColorCodes.AQUA}{socket.FormatPrice(price.Median)}", null,
                 $"Took into account these modifiers:\n{price.MedianKey}")
             .If(() => isInInventory, db => db.CoflCommandButton<LowballCommand>($"{McColorCodes.GREEN}Offer this item to a lowballer", $"offer {index}", "Click to offer this item to lowballers").LineBreak())
-            .If(() => price.Lbin.AuctionId != 0, db => db
-            .MsgLine($"Lowest bin sits at {McColorCodes.AQUA}{socket.FormatPrice(price.Lbin.Price)}", "/viewauction " + lbinAuction.Uuid, "click to open lbin on ah"))
+            .If(() => !inventoryAvailable, db => db.MsgLine($"{McColorCodes.GRAY}{McColorCodes.STRIKE}Offer this item to a lowballer{McColorCodes.RESET}{McColorCodes.GRAY} (temporarily unavailable)", null,
+                "Could not load your inventory right now,\nso lowball offers are unavailable for this item.\nPlease try again later.").LineBreak())
+            .If(() => price.Lbin.AuctionId != 0 && lbinAuction != null, db => db
+            .MsgLine($"Lowest bin sits at {McColorCodes.AQUA}{socket.FormatPrice(price.Lbin.Price)}", "/viewauction " + lbinAuction!.Uuid, "click to open lbin on ah"))
             .Msg($"To sell quickly list at {McColorCodes.AQUA}{formattedInstasell}", $"copy:{formattedInstasell}", "click to copy")
             .MsgLine($"{McColorCodes.GRAY}[put into chat]", $"suggest:{formattedInstasell}", "click to put \nsuggestion into chat")
             .Button($"Open filter on website", filterLink, "Click to view on SkyCofl Website"));

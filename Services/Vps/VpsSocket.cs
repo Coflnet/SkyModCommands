@@ -17,6 +17,7 @@ namespace Coflnet.Sky.ModCommands.Services.Vps;
 public class VpsSocket : WebSocketBehavior
 {
     public string IP { get; set; }
+    public string[] Apps { get; set; }
     private ILogger<VpsSocket> logger;
 
     protected override void OnOpen()
@@ -24,6 +25,12 @@ public class VpsSocket : WebSocketBehavior
         logger = DiHandler.GetService<ILogger<VpsSocket>>();
         var args = QueryString;
         IP = args["ip"];
+        Apps = (args["apps"] ?? "tpm,tpm+").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (string.IsNullOrWhiteSpace(IP) || Apps.Length == 0)
+        {
+            Close();
+            return;
+        }
         var secret = args["secret"];
         var configuration = DiHandler.GetService<IConfiguration>();
         if (secret != configuration["vps:secret"] && configuration["vps:secret"] != null)
@@ -39,7 +46,7 @@ public class VpsSocket : WebSocketBehavior
             {
                 var vps = await vpsService.GetRunningVps(IP);
                 Send(JsonConvert.SerializeObject(Response.Create("init", vps)));
-                vpsService.Connected(IP);
+                vpsService.Connected(IP, Apps);
             }
             catch (System.Exception e)
             {
@@ -48,7 +55,7 @@ public class VpsSocket : WebSocketBehavior
             while (this.ReadyState == WebSocketState.Open)
             {
                 await Task.Delay(60_000);
-                vpsService.Connected(IP);
+                vpsService.Connected(IP, Apps);
             }
             logger.LogWarning("VPS {ip} disconnected", IP);
             vpsService.OnInstanceCreated -= Distributeupdate;
@@ -398,6 +405,122 @@ public class TPM
         public bool skins;
     }
 
+}
+
+public class FBAF
+{
+    public static readonly string NormalDefault = """
+    {
+      "ingame_name": "",
+      "multi_switch_time": 0,
+      "websocket_url": "wss://sky.coflnet.com/modsocket",
+      "multisocket_urls": [],
+      "finder_ws_url": "",
+      "finder_ws_token": "",
+      "finder_report_purse": false,
+      "finder_auto_list": true,
+      "do_not_relist_ids": ["HYPERION", "TERMINATOR"],
+      "do_not_relist_finders": ["craftcost"],
+      "do_not_relist_over_profit": 200000000,
+      "enable_bazaar_flips": true,
+      "enable_ah_flips": true,
+      "remove_drill_parts": false,
+      "skip": false,
+      "bedtiming": true,
+      "command_delay_ms": 500,
+      "bed_spam_click_delay": 100,
+      "bed_pre_click_ms": 30,
+      "auction_listing_delay_ms": 1500,
+      "bazaar_order_check_interval_seconds": 60,
+      "bazaar_order_cancel_minutes_per_million": 1,
+      "bazaar_tax_rate": 1.25,
+      "auction_duration_hours": 24,
+      "max_items_in_inventory": 12,
+      "auto_cookie": 0,
+      "auto_cookie_prompted": true,
+      "use_cofl_chat": true,
+      "enable_console_input": false,
+      "proxy_enabled": false,
+      "proxy_address": "",
+      "proxy_credentials": "",
+      "web_gui_port": 0,
+      "web_gui_password": "",
+      "web_https": false,
+      "web_tls_cert_path": "",
+      "web_tls_key_path": "",
+      "hypixel_api_key": "",
+      "webhook_url": "",
+      "bazaar_webhook_url": "",
+      "discord_id": "",
+      "share_legendary_flips": true,
+      "notify_island_visitors": true,
+      "notify_name_mentions": true,
+      "backend_enabled": true,
+      "backend_url": "wss://backend.auctionflipper.bz/ws",
+      "backend_allowed_ids": "",
+      "humanization_enabled": false,
+      "humanization_min_interval_minutes": 45,
+      "humanization_max_interval_minutes": 120,
+      "humanization_min_break_minutes": 2,
+      "humanization_max_break_minutes": 10
+    }
+    """;
+
+    public class Config
+    {
+        public string ingame_name;
+        public double multi_switch_time;
+        public string websocket_url;
+        public string[] multisocket_urls;
+        public string finder_ws_url;
+        public string finder_ws_token;
+        public bool finder_report_purse;
+        public bool finder_auto_list;
+        public string[] do_not_relist_ids;
+        public string[] do_not_relist_finders;
+        public long do_not_relist_over_profit;
+        public bool enable_bazaar_flips;
+        public bool enable_ah_flips;
+        public bool remove_drill_parts;
+        public bool skip;
+        public bool bedtiming;
+        public long command_delay_ms;
+        public long bed_spam_click_delay;
+        public long bed_pre_click_ms;
+        public long auction_listing_delay_ms;
+        public long bazaar_order_check_interval_seconds;
+        public long bazaar_order_cancel_minutes_per_million;
+        public double bazaar_tax_rate;
+        public long auction_duration_hours;
+        public long max_items_in_inventory;
+        public long auto_cookie;
+        public bool auto_cookie_prompted;
+        public bool use_cofl_chat;
+        public bool enable_console_input;
+        public bool proxy_enabled;
+        public string proxy_address;
+        public string proxy_credentials;
+        public int web_gui_port;
+        public string web_gui_password;
+        public bool web_https;
+        public string web_tls_cert_path;
+        public string web_tls_key_path;
+        public string hypixel_api_key;
+        public string webhook_url;
+        public string bazaar_webhook_url;
+        public string discord_id;
+        public bool share_legendary_flips;
+        public bool notify_island_visitors;
+        public bool notify_name_mentions;
+        public bool backend_enabled;
+        public string backend_url;
+        public string backend_allowed_ids;
+        public bool humanization_enabled;
+        public long humanization_min_interval_minutes;
+        public long humanization_max_interval_minutes;
+        public long humanization_min_break_minutes;
+        public long humanization_max_break_minutes;
+    }
 }
 
 public class VPsStateUpdate

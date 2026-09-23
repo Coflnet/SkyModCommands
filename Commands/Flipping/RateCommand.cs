@@ -15,6 +15,10 @@ namespace Coflnet.Sky.Commands.MC
             var finder = args[1];
             var rating = args[2];
             using var span = socket.CreateActivity("vote", socket.ConSpan).AddTag("type", rating).AddTag("finder", finder).AddTag("uuid", uuid);
+            var filterState = socket.GetService<FilterStateService>()?.State;
+            span.AddTag("activePerks", filterState == null ? "unavailable" : string.Join(",", filterState.CurrentPerks))
+                .AddTag("currentMayor", filterState?.CurrentMayor)
+                .AddTag("perksLastUpdate", filterState?.LastUpdate.ToString("o"));
             var bad = socket.GetFlip(uuid);
             span.Log(JSON.Stringify(bad));
             span.Log(JSON.Stringify(bad?.AdditionalProps));

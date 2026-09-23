@@ -28,6 +28,7 @@ public class RecipeCommand : McCommand
             socket.Dialog(db => db.MsgLine($"No recipe found for item: {itemId}"));
             return;
         }
+        var craftTree = await CraftBreakDownCommand.BuildCraftTree(socket, itemId);
         string[][] location = [[recipe.A1, recipe.A2, recipe.A3],
                                [recipe.B1, recipe.B2, recipe.B3],
                                [recipe.C1, recipe.C2, recipe.C3]];
@@ -53,7 +54,9 @@ public class RecipeCommand : McCommand
             Color = socket.formatProvider.GetRarityColor((Core.Tier)i.Tier)
         });
 
-        socket.Dialog(d => d.MsgLine($"Recipe:")
+        socket.Dialog(d =>
+        {
+            d.MsgLine($"Recipe:")
             .ForEach(location, (db, row) =>
             {
                 db.ForEach(row, (db2, item) =>
@@ -67,20 +70,26 @@ public class RecipeCommand : McCommand
                     var itemId = parts[0];
                     var info = itemLookup.GetValueOrDefault(itemId, new { Name = itemId, IsBazaar = false, Color = McColorCodes.WHITE });
                     var command = info.IsBazaar ? $"/bazaar {info.Name}" : $"/ahs {info.Name}";
-                    db2.Button(info.Color + info.Name.First(), command, "Open " + (info.IsBazaar ? "bazaar" : "auction house") + $" for {info.Color}{info.Name} {McColorCodes.GRAY}x{parts.Last()}");
+                    var subcraft = craftTree?.Nodes.Any(n => n.Depth == 0 && n.Tag == itemId && n.CraftedCount > 0) == true;
+                    db2.Button(info.Color + info.Name.First(), subcraft ? $"/cofl recipe {itemId}" : command,
+                        (subcraft ? "Subcraft separately: " : "Open " + (info.IsBazaar ? "bazaar" : "auction house") + " for ")
+                        + $"{info.Color}{info.Name} {McColorCodes.GRAY}x{parts.Last()}");
                 }).LineBreak();
-            }).LineBreak()
-            .MsgLine("Parts needed:")
-            .ForEach(partCount, (db, kvp) =>
+            }).LineBreak();
+            if (craftTree != null)
             {
-                var itemId = kvp.Key;
-                var count = kvp.Value;
-                var info = itemLookup.GetValueOrDefault(itemId, new { Name = itemId, IsBazaar = false, Color = McColorCodes.WHITE });
-                var command = info.IsBazaar ? $"/bazaar {info.Name}" : $"/ahs {info.Name}";
-                db.Button($"{info.Name} {McColorCodes.GRAY}x{count}", command, $"Open {(info.IsBazaar ? "bazaar" : "auction house")} for {info.Color}{info.Name} (x{count})")
-                    .LineBreak();
-            })
-            .MsgLine("Open recipe menu for " + name, $"/recipe {itemId}").LineBreak()
-        );
+                CraftBreakDownCommand.RenderCraftTree(socket, d, craftTree);
+            }
+            else
+            {
+                d.MsgLine($"{McColorCodes.YELLOW}Live subcraft breakdown unavailable. Base recipe parts (may be cheaper to subcraft):")
+                    .ForEach(partCount, (db, kvp) =>
+                    {
+                        var info = itemLookup.GetValueOrDefault(kvp.Key, new { Name = kvp.Key, IsBazaar = false, Color = McColorCodes.WHITE });
+                        db.MsgLine($"{info.Name} {McColorCodes.GRAY}x{kvp.Value}", $"/cofl recipe {kvp.Key}", "Check recipe for this ingredient");
+                    });
+            }
+            return d.MsgLine("Open recipe menu for " + name, $"/recipe {itemId}").LineBreak();
+        });
     }
 }

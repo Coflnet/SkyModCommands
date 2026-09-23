@@ -179,15 +179,28 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
     private static async Task UnloadAndResetConfig(MinecraftSocket socket)
     {
         await Unloadconfig(socket);
-        await socket.sessionLifesycle.FlipSettings.Update(ModSessionLifesycle.DefaultSettings);
-        socket.SendMessage("Unloaded config you won't get updates anymore.");
-        socket.Dialog(db => db.MsgLine($"If you want to reset it to the default do {McColorCodes.AQUA}/cofl configs reset", "/cofl configs reset", "reset config"));
+        socket.SendMessage(
+            "Unloaded the Config; only your personal changes remain and updates stopped.");
+        socket.Dialog(db => db.MsgLine(
+            $"To discard those too, use {McColorCodes.AQUA}/cofl configs reset",
+            "/cofl configs reset",
+            "reset config"));
     }
 
-    public static async Task Unloadconfig(MinecraftSocket socket)
+    public static async Task Unloadconfig(IMinecraftSocket socket)
     {
-        socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = null;
-        await socket.sessionLifesycle.AccountSettings.Update();
+        var account = socket.sessionLifesycle.AccountSettings.Value;
+        if (account.LoadedConfig != null)
+        {
+            var userSettings = await ExpertConfigRefundService.ResetLoaded(
+                socket.GetService<SettingsService>(), socket.UserId,
+                [account.LoadedConfig], persist: false);
+            if (userSettings != null)
+                await socket.sessionLifesycle.FlipSettings.Update(userSettings);
+            account.LoadedConfig = null;
+            account.BaseConfigVersion = 0;
+            await socket.sessionLifesycle.AccountSettings.Update();
+        }
         var state = socket.sessionLifesycle.FilterState;
         state.LoadedConfig?.Dispose();
         state.LoadedConfig = null;
@@ -241,6 +254,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
         }
         var owned = ownedConfigs.Value.Configs
             .Where(w => w.Name.Equals(configName, System.StringComparison.CurrentCultureIgnoreCase)
+                && w.RevokedAtUtc == null
                 && (w.OwnerId == owner || (w.OwnerName?.Equals(owner, System.StringComparison.CurrentCultureIgnoreCase) ?? true))).FirstOrDefault();
         if (owned == default)
         {

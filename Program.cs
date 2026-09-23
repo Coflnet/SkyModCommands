@@ -1,5 +1,8 @@
+using Coflnet.Core;
+using Coflnet.Security.OpenBao;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using WebSocketSharp.Server;
 using Coflnet.Sky.Commands.MC;
 using System.Threading.Tasks;
@@ -8,6 +11,7 @@ using Coflnet.Sky.ModCommands.Services.Vps;
 using Coflnet.Sky.Commands.Shared;
 using System.Text;
 using Coflnet.Sky.Core;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Coflnet.Sky.ModCommands.MC
 {
@@ -48,7 +52,14 @@ namespace Coflnet.Sky.ModCommands.MC
             };
             server.Start();
             System.Threading.ThreadPool.SetMinThreads(10, 10);
-            CreateHostBuilder(args).Build().Run();
+            var host = CreateHostBuilder(args).Build();
+            host.Services.GetRequiredService<IHostApplicationLifetime>()
+                .ApplicationStopping.Register(() =>
+                {
+                    MinecraftSocket.BroadcastApplicationStopping();
+                    server.Stop();
+                });
+            host.Run();
         }
 
         private static async Task HandleLogRequest(HttpRequestEventArgs e)
@@ -73,6 +84,13 @@ namespace Coflnet.Sky.ModCommands.MC
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((_, config) => config.AddOpenBaoFromEnvironment())
+                // Shared OTel logging configuration from Coflnet.Core.
+                // Bridges ILogger -> OTLP (HttpProtobuf) with trace-log correlation,
+                // k8s pod attributes, and DEV_LOGGING console fallback.
+                .ConfigureLogging((context, logging) => logging.AddOpenTelemetryLogging(
+                    context.Configuration,
+                    context.Configuration["JAEGER_SERVICE_NAME"] ?? "sky-commands-mod"))
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();

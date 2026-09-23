@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 using Coflnet.Sky.PlayerState.Client.Model;
-using FluentAssertions;
+using AwesomeAssertions;
 using Newtonsoft.Json;
 using NUnit.Framework;
 

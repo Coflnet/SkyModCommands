@@ -114,7 +114,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
 
         // request summaries for all linked accounts and aggregate totals
         var summaries = await Task.WhenAll(accounts.Select(a =>
-            bazaarProfitService.BazaarProfitSummaryPlayerUuidGetAsync(Guid.Parse(a), DateTime.UtcNow.AddDays(-days), DateTime.UtcNow, 500)));
+            bazaarProfitService.BazaarProfitSummaryPlayerUuidGetAsync(Guid.Parse(a), DateTime.UtcNow.AddDays(-days), DateTime.UtcNow, 1500)));
 
         var totalProfit = summaries.Sum(s => s.TotalProfit);
         var flipCount = summaries.Sum(s => s.FlipCount);

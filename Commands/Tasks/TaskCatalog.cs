@@ -1,9 +1,31 @@
+using System;
+using System.Collections.Generic;
 using Coflnet.Sky.Commands.Shared;
 
 namespace Coflnet.Sky.Commands.MC.Tasks;
 
 internal static class TaskCatalog
 {
+    /// <summary>
+    /// Task classes that exist but are deliberately not offered to users,
+    /// mostly because a more specific task supersedes them.
+    /// Kept explicit so the completeness test catches genuinely forgotten registrations.
+    /// </summary>
+    internal static readonly HashSet<Type> IntentionallyUnregistered =
+    [
+        typeof(SlayerTask),             // superseded by per-tier tasks in SlayerTasks.cs
+        typeof(CatacombsTask),          // superseded by M4-M7 dungeon tasks
+        typeof(CrystalHollowsTask),     // superseded by gem/powder mining tasks
+        typeof(DwarvenMinesTask),       // superseded by DwarvenMinesMiningTask
+        typeof(CrimsonIsleFishingTask), // superseded by CrimsonFishingTask variants
+        typeof(TheParkForagingTask),    // superseded by TheParkTask
+        typeof(RiftTask),               // superseded by RiftAccessTask
+        typeof(HubTask),                // not a money making area
+        typeof(DungeonHubTask),         // not a money making area
+        typeof(FarmingIslandsTask),     // superseded by GardenTask
+        typeof(SpidersDenTask),         // superseded by tarantula slayer tasks
+    ];
+
     internal static ClassNameDictonary<ProfitTask> Create()
     {
         var tasks = new ClassNameDictonary<ProfitTask>();

@@ -11,6 +11,7 @@ using WebSocketSharp;
 using WebSocketSharp.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.ModCommands.Services.Donut;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Threading;
@@ -27,31 +28,49 @@ namespace Coflnet.Sky.Commands.MC
         public static string COFLNET = "[§1C§6oflnet§f]§7: ";
         public virtual string CurrentRegion => "eu";
         private static readonly Prometheus.Gauge PremUserCount = Prometheus.Metrics.CreateGauge("sky_mod_users", "How many premium users are connected");
+        private static readonly ConcurrentDictionary<MinecraftSocket, byte> ActiveSockets = new();
 
         public long Id { get; private set; }
 
+        internal static System.Collections.Generic.IEnumerable<MinecraftSocket> GetActiveSockets(string userId) =>
+            ActiveSockets.Keys.Where(s => !s.IsClosed && s.sessionLifesycle?.AccountInfo?.Value?.UserId == userId);
+
         public SessionInfo SessionInfo { get; } = new SessionInfo();
 
-        public FlipSettings Settings => sessionLifesycle?.FlipSettings;
+        public FlipSettings Settings
+        {
+            get
+            {
+                var settings = sessionLifesycle?.FlipSettings?.Value;
+                if (settings != null && !ReferenceEquals(settings.PlayerInfo, SessionInfo))
+                    settings.PlayerInfo = SessionInfo;
+                return settings!;
+            }
+        }
         public AccountInfo AccountInfo => sessionLifesycle?.AccountInfo;
 
-        public string Version { get; private set; }
+        public string Version { get; private set; } = string.Empty;
         public ActivitySource tracer => DiHandler.ServiceProvider.GetRequiredService<ActivitySource>();
-        public Activity ConSpan { get; protected set; }
-        public IModVersionAdapter ModAdapter;
+        public Activity ConSpan { get; protected set; } = null!;
+        public IModVersionAdapter ModAdapter = null!;
 
         public FormatProvider formatProvider { get; private set; }
-        public ModSessionLifesycle sessionLifesycle { get; protected set; }
+        public ModSessionLifesycle sessionLifesycle { get; protected set; } = null!;
 
         public static bool IsDevMode { get; } = System.Net.Dns.GetHostName().Contains("ekwav");
         public string ClientIp => DetermineUserIp();
 
         private string DetermineUserIp()
         {
-            var directIp = Headers["CF-Connecting-IP"] ?? Headers["X-Forwarded-For"] ?? UserEndPoint.Address.ToString();
+            var directIp = Headers["CF-Connecting-IP"];
+            if (string.IsNullOrWhiteSpace(directIp))
+                directIp = Headers["X-Forwarded-For"]?.Split(',')[0].Trim();
+            if (string.IsNullOrWhiteSpace(directIp))
+                directIp = UserEndPoint.Address.ToString();
             if (directIp == "107.152.37.100")
             {
-                return QueryString["ip"] ?? directIp;
+                var forwardedIp = QueryString["ip"];
+                return string.IsNullOrWhiteSpace(forwardedIp) ? directIp : forwardedIp;
             }
             return directIp;
         }
@@ -82,6 +101,8 @@ namespace Coflnet.Sky.Commands.MC
 
         public virtual bool IsClosed => ReadyState == WebSocketState.Closed || ReadyState == WebSocketState.Closing;
 
+        public string GameServer => SessionInfo.GameServer;
+
         public List<LowPricedAuction> LastPurchased { get; } = new List<LowPricedAuction>();
 
         private static Timer? tenSecTimer;
@@ -94,6 +115,12 @@ namespace Coflnet.Sky.Commands.MC
         /// Triggered when the connection closes
         /// </summary>
         public event Action? OnConClose;
+        private int proxySyncRegistered;
+
+        internal bool TryRegisterProxySync()
+        {
+            return Interlocked.CompareExchange(ref proxySyncRegistered, 1, 0) == 0;
+        }
 
         public class BlockedElement
         {
@@ -107,6 +134,12 @@ namespace Coflnet.Sky.Commands.MC
             formatProvider = new FormatProvider(this);
         }
 
+        public static void BroadcastApplicationStopping()
+        {
+            foreach (var socket in ActiveSockets.Keys)
+                socket.SendMessage(COFLNET + "Server is restarting for an update.",
+                    "/cofl start", $"you may experience connection issues for a few seconds.\n{McColorCodes.YELLOW}if it doesn't auto reconnect click this");
+        }
 
         static MinecraftSocket()
         {
@@ -217,6 +250,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<TakeConfigCommand>();
             Commands.Add<RewardHandler.ClaimHypixelRewardCommand>();
             Commands.Add<LicensesCommand>("license");
+            Commands.Add<AgreementTermsCommand>("terms");
             Commands.Add<VerifyCommand>("login");
             Commands.Add<UnVerifyCommand>();
             Commands.Add<AttributeFlipCommand>();
@@ -243,6 +277,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<AnankeCommand>();
             Commands.Add<Tasks.TaskCommand>();
             Commands.Add<Tasks.TaskDetailsCommand>();
+            Commands.Add<Tasks.TaskClaimCommand>();
             Commands.Add<LowballCommand>();
             Commands.Add<BzMoveCommand>();
             Commands.Add<UploadSettingsCommand>();
@@ -261,6 +296,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<BitsCommand>();
             Commands.Add<NpcCommand>();
             Commands.Add<CopperCommand>();
+            Commands.Add<EmblemCommand>();
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
@@ -347,10 +383,9 @@ namespace Coflnet.Sky.Commands.MC
                 }
             }, new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token).ConfigureAwait(false);
 
-            Console.CancelKeyPress += OnApplicationStop;
-
             NextUpdateStart -= TenSecBeforeUpdate;
             NextUpdateStart += TenSecBeforeUpdate;
+            ActiveSockets.TryAdd(this, 0);
         }
 
         public void StartNewConnectionSpan()
@@ -385,7 +420,8 @@ namespace Coflnet.Sky.Commands.MC
             (Id, var stringId) = GetService<IdConverter>().ComputeConnectionId(passedId, SessionInfo.clientSessionId);
             ConSpan.SetTag("conId", stringId);
 
-            GetService<FlipperService>().AddNonConnection(this, false);
+            if (!DonutServerContext.IsDonut(SessionInfo.GameServer))
+                GetService<FlipperService>().AddNonConnection(this, false);
             SetLifecycleVersion(Version);
             Task.Run(async () =>
             {
@@ -407,6 +443,7 @@ namespace Coflnet.Sky.Commands.MC
                     .SetTag("player", passedId)
                     .SetTag("uuid", SessionInfo.McUuid)
                     .SetTag("name", SessionInfo.McName)
+                    .SetTag("server", SessionInfo.GameServer)
                     .SetTag("version", Version)
                     .SetTag("SId", SessionInfo.clientSessionId)
                     .SetTag("type", SessionInfo.ConnectionType);
@@ -425,6 +462,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             SessionInfo.clientSessionId = args["SId"].Truncate(60);
             SessionInfo.clientConId = args["cId"]?.Truncate(60);
+            SessionInfo.GameServer = NormalizeServerContext(args["server"]);
             if (args["version"] == null)
             {
                 Send(Response.Create("error", "the connection query string needs to include 'version' with client version"));
@@ -432,12 +470,13 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (args["type"] != null)
             {
-                SessionInfo.ConnectionType = args["type"];
+                SessionInfo.ConnectionType = args["type"]!;
             }
             Version = args["version"].Truncate(14);
 
             ModAdapter = Version switch
             {
+                "2.0.0-pre1" => new BinGuiVersionAdapter(this),
                 "1.3.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.2-Alpha" => new SecondVersionAdapter(this),
@@ -447,6 +486,7 @@ namespace Coflnet.Sky.Commands.MC
                 "af-2.0.0" => new FullAfVersionAdapter(this),
                 "af-2.0.1" => new FullAfVersionAdapter(this),
                 "1.5.0-afclient" => new AfVersionAdapter(this),
+                string v when v.StartsWith("1.9.") => new BinGuiVersionAdapter(this),
                 string v when v.StartsWith("1.8.") => new BinGuiVersionAdapter(this),
                 string v when v.StartsWith("1.7.") => new BinGuiVersionAdapter(this),
                 string v when v.StartsWith("1.6.") => new BinGuiVersionAdapter(this),
@@ -455,7 +495,15 @@ namespace Coflnet.Sky.Commands.MC
                 _ => new FirstModVersionAdapter(this)
             };
             Activity.Current?.SetTag("version", Version);
+            Activity.Current?.SetTag("server", SessionInfo.GameServer);
             return args;
+        }
+
+        private static string NormalizeServerContext(string? requestedServer)
+        {
+            return DonutServerContext.IsDonut(requestedServer)
+                ? DonutServerContext.Name
+                : "skyblock";
         }
 
         public void SetLifecycleVersion(string version)
@@ -573,18 +621,34 @@ namespace Coflnet.Sky.Commands.MC
 
 
         private int waiting = 0;
+        private readonly AsyncLocal<string?> currentCommand = new();
+        private string? premiumPlusRetryCommand;
 
         protected override void OnMessage(MessageEventArgs e)
         {
+            Response a;
+            try
+            {
+                a = JsonConvert.DeserializeObject<Response>(e.Data)
+                    ?? throw new JsonSerializationException("The message payload was null");
+            }
+            catch (JsonException ex)
+            {
+                SendMessage(COFLNET + "Your command could not be executed.\n" +
+                    "Make sure you send a valid json string eg '{\"type\":\"chat\",\"data\":\"\\\\\"Testing\\\\\"\"}' where the data is another json string");
+                Error(ex, "parsing command", e.Data);
+                return;
+            }
+
             try
             {
                 var parallelAllowed = 4;
-                if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.PREMIUM_PLUS))
+                var tierManager = sessionLifesycle?.TierManager;
+                if (tierManager?.HasAtLeast(AccountTier.PREMIUM_PLUS) == true)
                     parallelAllowed = 8;
-                else if (sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM))
+                else if (tierManager?.HasAtLeast(AccountTier.STARTER_PREMIUM) == true)
                     parallelAllowed = 6;
 
-                var a = JsonConvert.DeserializeObject<Response>(e.Data) ?? throw new ArgumentNullException();
                 if (waiting > parallelAllowed && (a.type != "chatbatch" && a.type != "uploadScoreboard" && a.type != "updatePurse" || waiting > parallelAllowed + 2))
                 {
                     SendMessage(COFLNET + $"You are executing too many commands please wait a bit");
@@ -600,9 +664,8 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (Exception ex)
             {
-                SendMessage(COFLNET + "Your command could not be executed.\n" +
-                    "Make sure you send a valid json string eg '{\"type\":\"chat\",\"data\":\"\\\\\"Testing\\\\\"\"}' where the data is another json string");
-                Error(ex, "handling command", e.Data);
+                var id = Error(ex, "handling command", e.Data);
+                SendMessage(COFLNET + $"An internal error occurred while handling a client message. The error was recorded and can be referenced by {id}");
             }
         }
 
@@ -659,7 +722,10 @@ namespace Coflnet.Sky.Commands.MC
                     await Task.Delay(2200).ConfigureAwait(false);
                 try
                 {
-                    if (commandType == "chatbatch" && !Regex.IsMatch(JsonConvert.DeserializeObject<string[]>(a.data)[0], sessionLifesycle?.PrivacySettings?.Value?.ChatRegex ?? "noMatch"))
+                    var chatBatch = commandType == "chatbatch"
+                        ? JsonConvert.DeserializeObject<string[]>(a.data)
+                        : null;
+                    if (commandType == "chatbatch" && (chatBatch == null || chatBatch.Length == 0 || !Regex.IsMatch(chatBatch[0], sessionLifesycle?.PrivacySettings?.Value?.ChatRegex ?? "noMatch")))
                     {
                         waiting--;
                         Console.WriteLine("dropped chatbatch due to regex " + a.data);
@@ -681,13 +747,25 @@ namespace Coflnet.Sky.Commands.MC
             }, "run client command");
         }
 
-        private async Task InvokeCommand(Response a, McCommand command)
+        internal async Task InvokeCommand(Response a, McCommand command)
         {
+            var previousCommand = currentCommand.Value;
             try
             {
+                currentCommand.Value = FormatCommand(command, a.data);
                 if (IsClosed)
                     return;
                 await command.Execute(this, a.data).ConfigureAwait(false);
+            }
+            catch (Coflnet.Sky.PlayerState.Client.Client.ApiException e)
+            {
+                Error(e, "mod command playerstate");
+                SendMessage(COFLNET + $"{McColorCodes.RED}{GetApiErrorMessage(e.Message)}");
+            }
+            catch (Coflnet.Payments.Client.Client.ApiException e)
+            {
+                Error(e, "mod command payments");
+                SendMessage(COFLNET + $"{McColorCodes.RED}{GetApiErrorMessage(e.Message)}");
             }
             catch (CoflnetException e)
             {
@@ -702,7 +780,46 @@ namespace Coflnet.Sky.Commands.MC
             }
             finally
             {
+                currentCommand.Value = previousCommand;
                 waiting--;
+            }
+        }
+
+        private static string FormatCommand(McCommand command, string data)
+        {
+            string arguments;
+            try
+            {
+                arguments = JsonConvert.DeserializeObject<string>(data) ?? string.Empty;
+            }
+            catch (JsonException)
+            {
+                arguments = data.Trim('"');
+            }
+            return $"/cofl {command.Slug} {arguments}".TrimEnd();
+        }
+
+        public void StoreCurrentCommandForPremiumPlusRetry()
+        {
+            if (!string.IsNullOrEmpty(currentCommand.Value))
+                Interlocked.Exchange(ref premiumPlusRetryCommand, currentCommand.Value);
+        }
+
+        public string? TakePremiumPlusRetryCommand()
+        {
+            return Interlocked.Exchange(ref premiumPlusRetryCommand, null);
+        }
+
+        private static string GetApiErrorMessage(string message)
+        {
+            var json = Regex.Replace(message, "^Error calling [^:]+: ", "");
+            try
+            {
+                return JsonConvert.DeserializeObject<CoflnetException>(json)?.Message ?? json;
+            }
+            catch (JsonException)
+            {
+                return json;
             }
         }
 
@@ -723,11 +840,14 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override void OnClose(CloseEventArgs? e)
         {
+            ActiveSockets.TryRemove(this, out _);
+            NextUpdateStart -= TenSecBeforeUpdate;
             using var closingSpan = CreateActivity("closing", ConSpan);
             base.OnClose(e);
             try
             {
                 GetService<FlipperService>().RemoveConnection(this);
+                GetService<IDonutFlipSubscriptionService>().RemoveConnection(this);
             }
             catch (Exception er)
             {
@@ -739,6 +859,9 @@ namespace Coflnet.Sky.Commands.MC
             OnConClose?.Invoke();
             sessionLifesycle?.Dispose();
             TopBlocked.Clear();
+            LastSent.Clear();
+            LastPurchased.Clear();
+            ReceivedConfirm.Clear();
             sessionLifesycle = null!;
         }
 
@@ -805,6 +928,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var span = CreateActivity("removing", ConSpan);
             GetService<FlipperService>().RemoveConnection(this);
+            GetService<IDonutFlipSubscriptionService>().RemoveConnection(this);
             sessionLifesycle?.Dispose();
             Task.Run(async () =>
             {
@@ -846,19 +970,12 @@ namespace Coflnet.Sky.Commands.MC
             span?.Dispose();
             Close();
             sessionLifesycle.Dispose();
-            Console.CancelKeyPress -= OnApplicationStop;
         }
 
-        private void OnApplicationStop(object? sender, ConsoleCancelEventArgs e)
-        {
-            SendMessage(COFLNET + "Server is restarting, you may experience connection issues for a few seconds.",
-                 "/cofl start", "if it doesn't auto reconnect click this");
-        }
-
-        public virtual string? Error(Exception exception, string? message = null, string? additionalLog = null)
+        public virtual string Error(Exception exception, string? message = null, string? additionalLog = null)
         {
             using var error = CreateActivity("error", ConSpan)?.AddTag("message", message).AddTag("error", "true");
-            if (IsDevMode || SessionInfo?.McUuid == "384a029294fc445e863f2c42fe9709cb")
+            if (IsDevMode || QueryString["player"] =="Ekwav")
                 dev.Logger.Instance.Error(exception, message);
 
             error?.Log(exception.ToString());
@@ -867,7 +984,7 @@ namespace Coflnet.Sky.Commands.MC
             errorContext.Log(JsonConvert.SerializeObject(sessionLifesycle?.AccountInfo?.Value));
             errorContext.Log($"session: {JsonConvert.SerializeObject(SessionInfo)}");
             errorContext.Log(JsonConvert.SerializeObject(Settings).Truncate(10_000));
-            return error?.Context.TraceId.ToString();
+            return error?.Context.TraceId.ToString() ?? string.Empty;
         }
 
         /// <summary>
@@ -875,7 +992,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         /// <param name="message"></param>
         /// <param name="level"></param>
-        public new void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information)
+        public void Log(string message, Microsoft.Extensions.Logging.LogLevel level = Microsoft.Extensions.Logging.LogLevel.Information)
         {
             if (level == Microsoft.Extensions.Logging.LogLevel.Error)
             {
@@ -1009,9 +1126,23 @@ namespace Coflnet.Sky.Commands.MC
                     if (updated.expiresAt > DateTime.UtcNow.AddMinutes(2))
                         return;
                     tierSpan?.Log($"reloaded tier {JsonConvert.SerializeObject(updated)} userId:{sessionLifesycle?.UserId?.Value}");
-                    Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
-                    .CoflCommand<PurchaseCommand>($"Your premium tier is about to expire in {(int)(expiresAt - DateTime.UtcNow).TotalMinutes} minutes. {McColorCodes.YELLOW}[CLICK to see options]", "", "show purchase menu")
-                    .Break.Msg($"{McColorCodes.RED}-----------------------------"));
+                    var minutesLeft = (int)(expiresAt - DateTime.UtcNow).TotalMinutes;
+                    (string? name, string? slug) = updated.tier switch
+                    {
+                        AccountTier.SUPER_PREMIUM => ($"{McColorCodes.RED}pre api", "pre_api"),
+                        AccountTier.PREMIUM_PLUS => ($"{McColorCodes.GOLD}premium+", "premium_plus"),
+                        AccountTier.PREMIUM => ($"{McColorCodes.GREEN}premium", "premium"),
+                        AccountTier.STARTER_PREMIUM => ($"{McColorCodes.WHITE}starter premium", "starter_premium"),
+                        _ => (null, null)
+                    };
+                    if (slug != null)
+                        Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
+                        .CoflCommand<PurchaseCommand>($"Your {name}{McColorCodes.WHITE} is about to expire in {minutesLeft} minutes. {McColorCodes.YELLOW}[CLICK to extend]", slug, $"{McColorCodes.WHITE}Starts the purchase to extend your {name}")
+                        .Break.Msg($"{McColorCodes.RED}-----------------------------"));
+                    else
+                        Dialog(db => db.MsgLine($"{McColorCodes.RED}-----------------------------")
+                        .CoflCommand<PurchaseCommand>($"Your premium tier is about to expire in {minutesLeft} minutes. {McColorCodes.YELLOW}[CLICK to see options]", "", "show purchase menu")
+                        .Break.Msg($"{McColorCodes.RED}-----------------------------"));
                 }, "reloading tier");
 
             }

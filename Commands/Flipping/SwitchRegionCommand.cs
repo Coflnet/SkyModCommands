@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Net.WebSockets;
 using Newtonsoft.Json;
-using WebSocketSharp;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -29,10 +30,17 @@ public class SwitchRegionCommand : McCommand
         }
         if (selected == "eu")
         {
-            socket.Dialog(db => db.MsgLine($"Switching to {McColorCodes.AQUA}EU"));
             socket.AccountInfo.Region = "eu";
             await socket.sessionLifesycle.AccountInfo.Update();
-            socket.ExecuteCommand("/cofl connect ws://sky-mod.coflnet.com/modsocket");
+
+            if (ModSessionLifesycle.UsesDirectConnectionType(socket.SessionInfo.ConnectionType))
+            {
+                socket.Dialog(db => db.MsgLine("Already connected to eu server"));
+                return;
+            }
+
+            socket.Dialog(db => db.MsgLine($"Switching to {McColorCodes.AQUA}EU"));
+            socket.ExecuteCommand("/cofl connect wss://sky.coflnet.com/modsocket");
         }
         else if (selected == "us")
         {
@@ -46,7 +54,6 @@ public class SwitchRegionCommand : McCommand
             await socket.sessionLifesycle.AccountInfo.Update();
 
             await TryToConnect(socket);
-            //socket.ExecuteCommand("/cofl connect ws://sky-us.coflnet.com/modsocket");
         }
         else
         {
@@ -64,30 +71,23 @@ public class SwitchRegionCommand : McCommand
             "172.23",
             "130.131", //azure
         };
-        var protocol = !Version.TryParse(socket.Version, out var version) || version < new Version(1, 7, 9) ? "ws" : "wss";
+        var protocol = "wss"; // Always use secure WebSocket now that 1.7.9 version can't join hypixel anymore
 
         if (!string.IsNullOrEmpty(clientIp) && linodePrefixes.Any(clientIp.StartsWith))
         {
             socket.Dialog(db => db.MsgLine("You seem have good connection to linode, switching to us-linode"));
             tobeUsed = "us-linode";
         }
-        // check twice if the server is reachable
-        if (await CheckReachable(tobeUsed) || await CheckReachable(tobeUsed))
+        // Retry the preferred region once, then try the other region.
+        var candidates = new[] { tobeUsed, tobeUsed, tobeUsed == MainUs ? "us-linode" : MainUs };
+        foreach (var host in candidates)
         {
+            var endpoint = new Uri($"{protocol}://{host}.coflnet.com/modsocket");
+            if (!await CheckReachable(endpoint))
+                continue;
+
             socket.Dialog(db => db.MsgLine("Switching to us server"));
-            socket.ExecuteCommand($"/cofl connect {protocol}://{tobeUsed}.coflnet.com/modsocket");
-            return;
-        }
-        if (tobeUsed != MainUs && await CheckReachable(MainUs))
-        {
-            socket.Dialog(db => db.MsgLine("Switching to us server"));
-            socket.ExecuteCommand($"/cofl connect {protocol}://{MainUs}.coflnet.com/modsocket");
-            return;
-        }
-        if (tobeUsed == MainUs && await CheckReachable("us-linode"))
-        {
-            socket.Dialog(db => db.MsgLine("Switching to us-linode server"));
-            socket.ExecuteCommand($"/cofl connect {protocol}://us-linode.coflnet.com/modsocket");
+            socket.ExecuteCommand($"/cofl connect {endpoint}");
             return;
         }
 
@@ -95,16 +95,21 @@ public class SwitchRegionCommand : McCommand
 
     }
 
-    private static async Task<bool> CheckReachable(string tobeUsed)
+    internal static async Task<bool> CheckReachable(Uri endpoint, CancellationToken cancellationToken = default)
     {
-        // timeout after 5 seconds
-        var restClient = new RestSharp.RestClient($"http://{tobeUsed}.coflnet.com");
-        var request = new RestSharp.RestRequest("/modsocket")
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(5));
+        using var client = new ClientWebSocket();
+        try
         {
-            Timeout = TimeSpan.FromSeconds(5)
-        };
-        var response = await restClient.ExecuteAsync(request);
-        var reachable = response.StatusCode != 0 && response.StatusCode != System.Net.HttpStatusCode.NotFound;
-        return reachable;
+            // Plain HTTP invokes BFCS's unrelated outbound HTTP health check.
+            // Verify the same WebSocket endpoint that the client will connect to.
+            await client.ConnectAsync(endpoint, timeout.Token);
+            return true;
+        }
+        catch (Exception ex) when (ex is WebSocketException or OperationCanceledException)
+        {
+            return false;
+        }
     }
 }

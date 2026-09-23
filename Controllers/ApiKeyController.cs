@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Coflnet.Sky.ModCommands.Services;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Coflnet.Sky.ModCommands.Controllers;
 
 /// <summary>
