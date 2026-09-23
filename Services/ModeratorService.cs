@@ -15,7 +15,7 @@ public class ModeratorService
         "cc4fe6e3a3b24e998d36680f85f681b0", // Dylan
         "839271a6a485403492fb96f98ff620c1", // SkilledBear
         "6da36b38ef0149f1bfd00873d7ce5210", // Aistoze     
-        "e7246661de77474f94627fabf9880f60", // IcyHenryT  
+        "b643d166da894e5a81d415688886e7e9", // Nickk  
         "cfc37fbedfab4498893ea7799deedde5", // Flooored
         "dcc434c06bf9463188a1c5ca09c3431d", // Thompie
         "89326ee470ca4b98af8722b540e9db5e", // Trexito
