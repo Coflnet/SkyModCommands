@@ -20,6 +20,7 @@ public class ConfigController : ControllerBase
     [HttpGet()]
     public async Task<IEnumerable<ConfigsCommand.ConfigRating>> GetConfigs()
     {
-        return await MinecraftSocket.Commands.GetBy<ConfigsCommand>().GetTable().Where(c => c.Type == "config").ExecuteAsync();
+        var configs = await MinecraftSocket.Commands.GetBy<ConfigsCommand>().GetTable().Where(c => c.Type == "config").ExecuteAsync();
+        return ConfigsCommand.RankForListing(configs);
     }
 }

@@ -370,7 +370,33 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
             }
         }
         
-        return deduplicatedConfigs.OrderByDescending(c => c.Rating).ToList();
+        return RankForListing(deduplicatedConfigs);
+    }
+
+    internal static List<ConfigRating> RankForListing(
+        IEnumerable<ConfigRating> configs, DateTime? utcNow = null)
+    {
+        var now = utcNow ?? DateTime.UtcNow;
+        // Publishing since August 2026 is the proxy for migration to the new creator system.
+        var migrationCutoff = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc);
+        return configs.Select(config =>
+        {
+            // Apply only to listing copies: Rating is part of the stored vote record's key.
+            var listing = config.Copy();
+            if (listing.LastUpdated < migrationCutoff)
+                listing.Rating -= 50;
+
+            // Legacy entries without an update timestamp age from creation when known.
+            var lastUpdated = listing.LastUpdated == default ? listing.Created : listing.LastUpdated;
+            if (lastUpdated != default && lastUpdated < now)
+            {
+                var months = (now.Year - lastUpdated.Year) * 12 + now.Month - lastUpdated.Month;
+                if (lastUpdated.AddMonths(months) > now)
+                    months--;
+                listing.Rating -= months * 2;
+            }
+            return listing;
+        }).OrderByDescending(config => config.Rating).ToList();
     }
 
     protected override Task Update(MinecraftSocket socket, List<ConfigRating> newCol)
