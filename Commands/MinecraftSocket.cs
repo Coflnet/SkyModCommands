@@ -59,6 +59,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public static bool IsDevMode { get; } = System.Net.Dns.GetHostName().Contains("ekwav");
         public string ClientIp => DetermineUserIp();
+        public virtual string? ConnectionHost => Headers["Host"]?.Split(':')[0];
 
         private string DetermineUserIp()
         {

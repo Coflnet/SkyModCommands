@@ -89,6 +89,32 @@ public class ModSessionLifesycleTests
         Assert.That(action, Is.EqualTo(ModSessionLifesycle.RegionRoutingAction.ShowUnsupportedUsReconnect));
     }
 
+    [TestCase("sky-mod.coflnet.com", null, "sky-commands.coflnet.com")]
+    [TestCase("SKY-MOD.COFLNET.COM", null, "sky-commands.coflnet.com")]
+    [TestCase("sky-commands.coflnet.com", null, "sky-commands.coflnet.com")]
+    [TestCase("sky.coflnet.com", null, "sky.coflnet.com")]
+    [TestCase(null, null, "sky.coflnet.com")]
+    [TestCase("sky-mod.coflnet.com.attacker.invalid", null, "sky.coflnet.com")]
+    [TestCase("attacker.invalid", null, "sky.coflnet.com")]
+    [TestCase("sky-mod.coflnet.com", "donut", "donut.coflnet.com")]
+    public void AuthLinkUsesTrustedConnectionHost(string host, string gameServer, string expectedHost)
+    {
+        socket.Host = host;
+        socket.SessionInfo.GameServer = gameServer;
+        socket.SessionInfo.McName = "TestPlayer";
+        var connectionId = Enumerable.Range(240, 16).Select(i => (byte)i).ToArray();
+
+        var link = new Uri(lifesycle.GetAuthLink(Convert.ToBase64String(connectionId)));
+        var query = System.Web.HttpUtility.ParseQueryString(link.Query);
+        var expectedId = connectionId.Append((byte)(connectionId.Sum(b => b) % 256)).ToArray();
+
+        Assert.That(link.Scheme, Is.EqualTo("https"));
+        Assert.That(link.Host, Is.EqualTo(expectedHost));
+        Assert.That(link.AbsolutePath, Is.EqualTo("/authmod"));
+        Assert.That(query["mcid"], Is.EqualTo("TestPlayer"));
+        Assert.That(Convert.FromBase64String(query["conId"]), Is.EqualTo(expectedId));
+    }
+
     [SetUp]
     public void Setup()
     {
@@ -335,6 +361,8 @@ public class ModSessionLifesycleTests
 
     public class TestSocket : MinecraftSocket
     {
+        public string Host { get; set; }
+        public override string ConnectionHost => Host;
         public List<ChatPart[]> Messages = new();
         public List<FlipInstance> Flips = new();
         public override bool IsClosed => false;

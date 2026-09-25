@@ -884,7 +884,9 @@ namespace Coflnet.Sky.Commands.MC
             var newid = Convert.ToBase64String(decoded.Append((byte)(sum % 256)).ToArray());
             var authBaseUrl = DonutServerContext.IsDonut(SessionInfo.GameServer)
                 ? "https://donut.coflnet.com"
-                : "https://sky.coflnet.com";
+                : socket.ConnectionHost?.ToLowerInvariant() is "sky-mod.coflnet.com" or "sky-commands.coflnet.com"
+                    ? "https://sky-commands.coflnet.com"
+                    : "https://sky.coflnet.com";
 
             return $"{authBaseUrl}/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(newid)}";
         }
