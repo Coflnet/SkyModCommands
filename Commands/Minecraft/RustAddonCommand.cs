@@ -6,83 +6,12 @@ using Coflnet.Sky.ModCommands.Dialogs;
 
 namespace Coflnet.Sky.Commands.MC
 {
-    [CommandDescription("Manage your Rust Finder add-on",
-        "Usage: /cofl rust",
-        "Shows your Rust Finder add-on status and allows you to purchase or use it",
-        "The Rust Finder detects items with hidden stats that are underpriced")]
+    [CommandDescription("Addon removed")]
     public class RustAddonCommand : McCommand
     {
-        public override bool IsPublic => true;
-
         public override async Task Execute(MinecraftSocket socket, string arguments)
-        {
-            var args = arguments?.Trim().ToLowerInvariant();
-
-            // Handle status subcommand (same as default behavior)
-            if (args == "status" || string.IsNullOrEmpty(args))
-            {
-                await ShowStatus(socket);
-                return;
-            }
-
-            // If there are other arguments, fall through to default behavior
-            await ShowStatus(socket);
-        }
-
-        private async Task ShowStatus(MinecraftSocket socket)
-        {
-            var currentTier = await socket.sessionLifesycle.TierManager.GetCurrentCached();
-            var isOwned = socket.SessionInfo.RustAddonOwned;
-            if (isOwned == null)
-            {
-                await socket.sessionLifesycle.CheckRustOwnership(socket.UserId);
-            }
-
-            // Build the dialog
-            var dialogBuilder = DialogBuilder.New;
-
-            // Title and status
-            dialogBuilder.MsgLine($"{McColorCodes.LIGHT_PURPLE}Rust Finder Add-on Status");
-
-            if (isOwned == true)
-            {
-                dialogBuilder.MsgLine($"{McColorCodes.GREEN}✓ You own the Rust Finder add-on");
-                dialogBuilder.Msg($"{McColorCodes.GRAY}The Rust Finder is enabled in your finders list.");
-
-                if (socket.Settings?.AllowedFinders.HasFlag(LowPricedAuction.FinderType.Rust) ?? false)
-                {
-                    dialogBuilder.MsgLine($"{McColorCodes.GREEN} It is currently {McColorCodes.BOLD}ENABLED{McColorCodes.RESET} and will find flips");
-                    dialogBuilder.CoflCommand<SetCommand>(
-                        $"{McColorCodes.YELLOW}Disable Rust Finder",
-                        "finders " + (socket.Settings.AllowedFinders & ~LowPricedAuction.FinderType.Rust),
-                        "Click to disable the Rust Finder");
-                }
-                else
-                {
-                    dialogBuilder.MsgLine($"{McColorCodes.YELLOW}It is currently {McColorCodes.BOLD}DISABLED{McColorCodes.RESET}");
-                    dialogBuilder.CoflCommand<SetCommand>(
-                        $"{McColorCodes.GREEN}Enable Rust Finder",
-                        "finders " + (socket.Settings.AllowedFinders | LowPricedAuction.FinderType.Rust),
-                        "Click to enable the Rust Finder");
-                }
-            }
-            else if (isOwned == false)
-            {
-                dialogBuilder.CoflCommand<SetCommand>(
-                    $"{McColorCodes.GRAY}The rust finder is no longer available for purchase. The partner developing it quit the cooperation. \nInstead we recommend taking a look at the AI-finder for advanced flips, please report any misspricings if you find them, you get 600 CoflCoins for each unique item.",
-                    "finders " + (socket.Settings.AllowedFinders | LowPricedAuction.FinderType.AI),
-                    "Click to enable the AI-finder");
-            }
-            else
-            {
-                // Ownership status is being checked
-                dialogBuilder.MsgLine($"{McColorCodes.YELLOW}Checking ownership status...");
-                dialogBuilder.Msg($"{McColorCodes.GRAY}Please wait, we're verifying your Rust Finder add-on status.");
-            }
-
-            dialogBuilder.LineBreak();
-
-            socket.SendMessage(dialogBuilder);
+        {   
+            socket.Dialog(d => d.MsgLine("The Rust Finder is superseeded by updates to the Median and AI finder."));
         }
     }
 }
