@@ -272,7 +272,6 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<HotkeyCommand>();
             Commands.Add<KeyBindCommand>();
             Commands.Add<NetworthCommand>();
-            Commands.Add<VpsCommand>();
             Commands.Add<RecipeCommand>();
             Commands.Add<NoLoginCommand>();
             Commands.Add<AnankeCommand>();
