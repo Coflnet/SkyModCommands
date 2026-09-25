@@ -91,7 +91,6 @@ public class BazaarOrderDisplayTests
     }
 
     [TestCase("1.9.3")]
-    [TestCase("2.0.0")]
     [TestCase("2.0.0-pre2")]
     [TestCase("af-2.0.0")]
     public async Task OtherVersionsReceiveNoDisplayOrTutorial(string version)
@@ -101,6 +100,16 @@ public class BazaarOrderDisplayTests
         BazaarOrderDisplay.Send(socket.Object);
         Assert.That(sent, Is.Empty);
         tutorials.Verify(t => t.Trigger<BazaarOrderDisplayTutorial>(It.IsAny<IMinecraftSocket>()), Times.Never);
+    }
+
+    [TestCase("2.0.0")]
+    [TestCase("2.0.0-pre1")]
+    public async Task SupportedVersionsReceiveDisplayAndTutorial(string version)
+    {
+        socket.SetupGet(s => s.Version).Returns(version);
+        await BazaarOrderDisplay.Apply(socket.Object, Snapshot());
+        Assert.That(sent.Single().type, Is.EqualTo("infoDisplay"));
+        tutorials.Verify(t => t.Trigger<BazaarOrderDisplayTutorial>(socket.Object), Times.Once);
     }
 
     [Test]

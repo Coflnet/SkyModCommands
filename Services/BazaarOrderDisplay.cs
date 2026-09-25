@@ -17,9 +17,9 @@ public static class BazaarOrderDisplay
     internal const string SourceName = "Coflnet.Sky.ModCommands.Bazaar";
     internal static readonly ActivitySource Traces = new(SourceName);
     internal static readonly Counter Snapshots = Metrics.CreateCounter("sky_mod_bazaar_snapshots_total", "HUD snapshot application outcomes", new CounterConfiguration { LabelNames = new[] { "result" } });
-    public const string ClientVersion = "2.0.0-pre1";
+    public const string ClientVersion = "2.0.0";
     public const string DisableCommand = "/cofl set modhideBazaarOrderDisplay true";
-    public static bool Supports(IMinecraftSocket socket) => socket.Version == ClientVersion;
+    public static bool Supports(IMinecraftSocket socket) => socket.Version == ClientVersion || socket.Version == "2.0.0-pre1";
 
     public static void Send(IMinecraftSocket socket, ILogger logger = null)
     {
