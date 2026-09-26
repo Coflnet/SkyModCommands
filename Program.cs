@@ -23,7 +23,7 @@ namespace Coflnet.Sky.ModCommands.MC
             if (!int.TryParse(args.Length > 0 ? args[0] : "", out int port))
                 port = 8008;
             var server = new HttpServer(port);
-            server.KeepClean = false;
+            ConfigureSessionCleanup(server);
             server.AddWebSocketService<MinecraftSocket>("/modsocket");
             server.AddWebSocketService<VpsSocket>("/instances");
             server.Log.Level = WebSocketSharp.LogLevel.Debug;
@@ -60,6 +60,25 @@ namespace Coflnet.Sky.ModCommands.MC
                     server.Stop();
                 });
             host.Run();
+        }
+
+        /// <summary>
+        /// Keeps websocket-sharp's session sweeper enabled and gives it a more forgiving pong
+        /// deadline. Must run before <c>AddWebSocketService</c>, since the service manager only
+        /// copies WaitTime/KeepClean onto a newly added service host at that point (or through
+        /// its own setters afterwards).
+        ///
+        /// The sweeper (WebSocketSessionManager.Sweep) runs every 60s: it pings every session that
+        /// reports as Open and drops any session that is no longer Open. A session whose TCP
+        /// connection dies before or while it is being registered is only ever cleaned up by this
+        /// sweep. WaitTime is raised from the 1s default to 10s so slow-but-alive clients aren't
+        /// dropped on the pong deadline. KeepClean used to be disabled here; that leaked dead
+        /// sessions and their per-connection state until the pods OOM'd.
+        /// </summary>
+        internal static void ConfigureSessionCleanup(HttpServer server)
+        {
+            server.WaitTime = TimeSpan.FromSeconds(10);
+            server.KeepClean = true;
         }
 
         private static async Task HandleLogRequest(HttpRequestEventArgs e)
