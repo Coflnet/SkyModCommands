@@ -119,9 +119,23 @@ namespace Coflnet.Sky.Commands.MC
                 c.Connection.Settings?.ModSettings,
                 c.Connection.Settings?.BasedOnLBin,
                 c.Connection.Settings?.AllowedFinders,
-                c.Connection.UserId
+                UserId = GetReportUserId(c.Connection)
             });
             reportSpan.Log(JsonConvert.SerializeObject(result, Formatting.Indented));
+        }
+
+        private static string GetReportUserId(IFlipConnection connection)
+        {
+            try
+            {
+                return connection.UserId;
+            }
+            catch (NoLoginException)
+            {
+                // Connections includes clients that have not logged in yet. Keep their settings
+                // in diagnostics without weakening UserId's authentication requirement.
+                return "unavailable: no login";
+            }
         }
     }
 }
