@@ -407,6 +407,13 @@ namespace Coflnet.Sky.Commands.MC
         protected override void OnError(ErrorEventArgs e)
         {
             Log(e.Message, Microsoft.Extensions.Logging.LogLevel.Error);
+            // Errors (eg. a failed send) never close the library session by themselves, only
+            // ever raise OnError. Without this the session stays "Open" in the library's session
+            // manager forever, even though our app-level state may already be torn down. Abnormal
+            // (1006) is a reserved code that is never written to the wire, so this is a safe
+            // local-only close for a connection that may already be dead - it mirrors what
+            // WebSocketSessionManager.Sweep uses when it reaps stale sessions.
+            Close(CloseStatusCode.Abnormal, string.Empty);
         }
 
         private void StartConnection()
