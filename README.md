@@ -1,5 +1,18 @@
 # SkyModCommands
 
+SkyModCommands owns the Minecraft socket command registry and sends public command
+metadata to the client. The trade overlay command is registered here and uses a
+typed response consumed by CoflSkyCore and Fabric.
+
+Build and test with the existing container workflow:
+
+```sh
+docker build --target build -t sky-mod-commands-test .
+```
+
+This uses .NET 10 and restores the sibling projects specified by the Dockerfile.
+See [command flow and local verification](docs/general/documentation.md).
+
 
 ## Commands
 ### Models

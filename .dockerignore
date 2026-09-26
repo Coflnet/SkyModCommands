@@ -3,3 +3,5 @@ obj
 Client
 .vscode
 .git
+.codegraph
+AGENTS.md

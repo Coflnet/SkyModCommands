@@ -6,3 +6,4 @@ obj
 !Client/generate.sh
 Client/out
 /Client/*nupkg
+.codegraph/
