@@ -14,28 +14,27 @@ namespace Coflnet.Sky.Commands.MC.Tasks;
     "Use /cofl taskclaim none to clear it.")]
 public class TaskClaimCommand : McCommand
 {
-    public override Task Execute(MinecraftSocket socket, string arguments)
+    public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var name = Convert<string>(arguments)?.Trim() ?? string.Empty;
         var playerId = socket.SessionInfo?.McName;
         if (string.IsNullOrWhiteSpace(playerId))
         {
             socket.SendMessage($"{MinecraftSocket.COFLNET}{McColorCodes.RED}Could not determine your account, try again in a moment.");
-            return Task.CompletedTask;
+            return;
         }
 
         string claimed = null;
         if (!string.IsNullOrWhiteSpace(name) && !name.Equals("none", StringComparison.OrdinalIgnoreCase))
         {
-            var task = socket.GetService<ModCommands.Services.TaskService>().Tasks
-                .FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-                ?? socket.GetService<ModCommands.Services.TaskService>().Tasks
-                    .FirstOrDefault(t => t.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+            var methods = await socket.GetService<ModCommands.Services.TaskService>().GetMethodMetadata();
+            var task = methods.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                ?? methods.FirstOrDefault(t => t.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
             if (task == null)
             {
                 socket.Dialog(db => db.MsgLine($"{McColorCodes.RED}Task {name} was not found.")
                     .CoflCommand<TaskCommand>("Open the task list", "", "See available tasks"));
-                return Task.CompletedTask;
+                return;
             }
             claimed = task.Name;
         }
@@ -53,6 +52,5 @@ public class TaskClaimCommand : McCommand
             socket.SendMessage($"{MinecraftSocket.COFLNET}{McColorCodes.GREEN}Cleared your claimed task.");
         else
             socket.SendMessage($"{MinecraftSocket.COFLNET}{McColorCodes.GREEN}Claimed {McColorCodes.AQUA}{claimed}{McColorCodes.GREEN}. Estimates will now prefer your data for it.");
-        return Task.CompletedTask;
     }
 }

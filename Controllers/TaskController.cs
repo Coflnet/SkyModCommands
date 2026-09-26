@@ -1,17 +1,11 @@
-using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using Coflnet.Sky.Bazaar.Client.Api;
-using Coflnet.Sky.Commands.MC;
-using Coflnet.Sky.Commands.MC.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
-using Coflnet.Sky.PlayerState.Client.Api;
+using Coflnet.Sky.PlayerState.Client.Model;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 
 namespace Coflnet.Sky.ModCommands.Controllers;
 
@@ -21,78 +15,32 @@ public class TaskController : ControllerBase
 {
     private readonly TaskService _taskService;
     private readonly ActivityTrackingService _activityService;
-    private readonly IPlayerStateApi _playerStateApi;
-    private readonly IBazaarApi _bazaarApi;
-    private readonly ISniperClient _sniperClient;
-    private readonly Items.Client.Api.IItemsApi _itemsApi;
-    private readonly IServiceProvider _serviceProvider;
 
-    public TaskController(
-        TaskService taskService,
-        ActivityTrackingService activityService,
-        IPlayerStateApi playerStateApi,
-        IBazaarApi bazaarApi,
-        ISniperClient sniperClient,
-        Items.Client.Api.IItemsApi itemsApi,
-        IServiceProvider serviceProvider)
+    public TaskController(TaskService taskService, ActivityTrackingService activityService)
     {
         _taskService = taskService;
         _activityService = activityService;
-        _playerStateApi = playerStateApi;
-        _bazaarApi = bazaarApi;
-        _sniperClient = sniperClient;
-        _itemsApi = itemsApi;
-        _serviceProvider = serviceProvider;
     }
 
     /// <summary>
-    /// Get all money-making task results for a player, sorted by profit/hour.
+    /// Get all money-making task results for a player, sorted by profit/hour. Forwards to
+    /// SkyPlayerState, which now computes every task result itself (registry, estimates,
+    /// MethodBreakdown/guidance) - this mod only renders them.
     /// </summary>
     [HttpGet("{playerId}")]
-    public async Task<List<TaskResult>> GetTaskResults(string playerId)
+    public async Task<List<TaskResult>> GetTaskResults(string playerId, CancellationToken cancellationToken)
     {
-        var cleanPrices = _sniperClient.GetCleanPrices();
-        var bazaarPrices = _bazaarApi.GetAllPricesAsync();
-        var locationProfitTask = _playerStateApi.PlayerStatePlayerIdProfitHistoryGetAsync(playerId, DateTime.UtcNow, 300);
-        var namesTask = _itemsApi.ItemNamesGetWithHttpInfoAsync();
-        var extractedState = await _playerStateApi.PlayerStatePlayerIdExtractedGetAsync(playerId);
-        var locationProfit = await locationProfitTask;
-        var names = JsonConvert.DeserializeObject<List<Items.Client.Model.ItemPreview>>((await namesTask).RawContent);
-        var nameLookup = names?.ToDictionary(i => i.Tag, i => i.Name) ?? [];
-
-        var parameters = new TaskParams
-        {
-            TestTime = DateTime.UtcNow,
-            ExtractedInfo = extractedState,
-            Formatter = new SimpleTaskFormatProvider(),
-            Cache = new ConcurrentDictionary<Type, TaskParams.CalculationCache>(),
-            CleanPrices = await cleanPrices,
-            BazaarPrices = await bazaarPrices,
-            Names = nameLookup,
-            LocationProfit = locationProfit
-                .Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1))
-                .GroupBy(l => l.Location)
-                .ToDictionary(l => l.Key, l => l.ToArray()),
-            MaxAvailableCoins = 1_000_000_000,
-            GlobalAverageDrops = _taskService.GetGlobalAverages(),
-            ServiceProvider = _serviceProvider,
-            PlayerUuid = playerId,
-            PlayerName = playerId
-        };
-
-        // Contribute this player's data to community averages
-        _taskService.UpdateGlobalAverages(parameters.LocationProfit);
-
-        return await _taskService.ExecuteAll(parameters);
+        return await _taskService.GetResults(playerId, cancellationToken);
     }
 
     /// <summary>
-    /// Get metadata for all registered money-making methods (no player data needed).
+    /// Get metadata for all registered money-making methods (no player data needed). Forwards to
+    /// SkyPlayerState.
     /// </summary>
     [HttpGet("methods")]
-    public List<MethodMetadata> GetMethods()
+    public async Task<List<MethodMetadata>> GetMethods(CancellationToken cancellationToken)
     {
-        return _taskService.GetMethodMetadata();
+        return await _taskService.GetMethodMetadata(cancellationToken);
     }
 
     // ── Activity tracking ──

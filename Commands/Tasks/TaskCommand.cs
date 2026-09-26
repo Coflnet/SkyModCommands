@@ -1,14 +1,10 @@
-using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Coflnet.Sky.Bazaar.Client.Api;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Services;
-using Coflnet.Sky.PlayerState.Client.Api;
-using Newtonsoft.Json;
+using Coflnet.Sky.PlayerState.Client.Model;
 
 namespace Coflnet.Sky.Commands.MC.Tasks;
 
@@ -20,11 +16,6 @@ namespace Coflnet.Sky.Commands.MC.Tasks;
     "Passive tasks include flips from other commands")]
 public class TaskCommand : ReadOnlyListCommand<TaskResult>
 {
-    private ConcurrentDictionary<Type, TaskParams.CalculationCache> Cache = CreateCalculationCache();
-
-    public TaskCommand()
-    {
-    }
     public override bool IsPublic => true;
 
     public override async Task Execute(MinecraftSocket socket, string args)
@@ -37,8 +28,8 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
     {
         var typeTag = elem.Type switch
         {
-            TaskType.Passive => $"{McColorCodes.DARK_AQUA}[Passive] ",
-            TaskType.Limited => $"{McColorCodes.GOLD}[Limited] ",
+            TaskType.NUMBER_1 => $"{McColorCodes.DARK_AQUA}[Passive] ",
+            TaskType.NUMBER_2 => $"{McColorCodes.GOLD}[Limited] ",
             _ => ""
         };
         var accessTag = !elem.IsAccessible ? $"{McColorCodes.DARK_GRAY}[Unavailable] " : "";
@@ -47,32 +38,11 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
 
     protected override async Task<IEnumerable<TaskResult>> GetElements(MinecraftSocket socket, string val)
     {
-        var parameters = await BuildParameters(socket, Cache);
-        var tasks = socket.GetService<TaskService>().Tasks;
-        var all = await Task.WhenAll(tasks.Select(async t =>
-        {
-            try
-            {
-                var result = await t.Execute(parameters);
-                result.Name ??= t.Name;
-                return PrepareTaskResult(result, t.Name);
-            }
-            catch (Exception e)
-            {
-                return PrepareTaskResult(new TaskResult
-                {
-                    ProfitPerHour = 0,
-                    Message = $"§cError while trying to calculate task {t.Name} {t.Description}",
-                    Details = e.ToString(),
-                    Name = t.Name
-                }, t.Name);
-            }
-        }).ToList());
-        // Sort: accessible tasks first by profit, inaccessible at the end
-        return all
-            .OrderBy(r => r.IsAccessible ? 0 : 1)
-            .ThenByDescending(r => r.ProfitPerHour)
-            .ToList();
+        // SkyPlayerState's player state (skills, HOTM, purse, claimed task, ...) is keyed by
+        // Minecraft NAME, not uuid - sending McUuid here used to silently return an empty state
+        // instead of the player's own (see SkyPlayerState's TaskExecutionService.BuildParameters).
+        var results = await socket.GetService<TaskService>().GetResults(socket.SessionInfo.McName);
+        return results.Select(r => PrepareTaskResult(r, r.Name)).ToList();
     }
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<TaskResult> elements, IEnumerable<TaskResult> toDisplay)
@@ -87,75 +57,10 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
         return elem.ProfitPerHour + elem.Message;
     }
 
-    internal static ConcurrentDictionary<Type, TaskParams.CalculationCache> CreateCalculationCache()
-    {
-        return new ConcurrentDictionary<Type, TaskParams.CalculationCache>();
-    }
-
-    internal static async Task<TaskParams> BuildParameters(MinecraftSocket socket, ConcurrentDictionary<Type, TaskParams.CalculationCache> cache)
-    {
-        var itemsApi = socket.GetService<Items.Client.Api.IItemsApi>();
-        var cleanPrices = socket.GetService<ISniperClient>().GetCleanPrices();
-        var bazaarPrices = socket.GetService<IBazaarApi>().GetAllPricesAsync();
-        var locationProfitTask = socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdProfitHistoryGetAsync(socket.SessionInfo.McUuid, DateTime.UtcNow, 300);
-        var namesTask = itemsApi.ItemNamesGetWithHttpInfoAsync();
-        var extractedState = await socket.GetService<IPlayerStateApi>().PlayerStatePlayerIdExtractedGetAsync(socket.SessionInfo.McName);
-        var locationProfit = await locationProfitTask;
-        var names = JsonConvert.DeserializeObject<List<Items.Client.Model.ItemPreview>>((await namesTask).RawContent);
-        var nameLookup = names?.ToDictionary(i => i.Tag, i => i.Name) ?? [];
-        if (nameLookup.Count == 0)
-        {
-            socket.SendMessage($"{MinecraftSocket.COFLNET}{McColorCodes.RED}Could not get item names, using tags instead");
-        }
-
-        var taskService = socket.GetService<TaskService>();
-        var locationProfitData = locationProfit.Where(d => d.EndTime - d.StartTime < TimeSpan.FromHours(1)).GroupBy(l => l.Location)?.ToDictionary(l => l.Key, l => l.ToArray()) ?? [];
-
-        taskService.UpdateGlobalAverages(locationProfitData);
-
-        // stat aware estimates from SkyUserState, this is the community tier going forward.
-        // Falls back to null (and thus formula) if the service is unavailable.
-        var serverEstimates = await FetchServerEstimates(socket);
-
-        return new TaskParams
-        {
-            TestTime = DateTime.UtcNow,
-            ExtractedInfo = extractedState,
-            Socket = socket,
-            Formatter = new MinecraftSocketFormatProvider(socket),
-            Cache = cache,
-            CleanPrices = await cleanPrices,
-            BazaarPrices = await bazaarPrices,
-            Names = nameLookup,
-            LocationProfit = locationProfitData,
-            MaxAvailableCoins = socket.SessionInfo.Purse > 0 ? socket.SessionInfo.Purse : 1000000000,
-            CurrentMayor = socket.GetService<FilterStateService>()?.State?.CurrentMayor?.ToLowerInvariant(),
-            GlobalAverageDrops = taskService.GetGlobalAverages(),
-            ServerEstimates = serverEstimates
-        };
-    }
-
-    private static async Task<Dictionary<string, PlayerState.Client.Model.TaskEstimate>> FetchServerEstimates(MinecraftSocket socket)
-    {
-        try
-        {
-            var api = socket.GetService<PlayerState.Client.Api.ITaskApi>();
-            if (api == null)
-                return null;
-            // Cap the wait: the server estimate is an optional enrichment tier, so if it is slow
-            // or unavailable we fall through to the formula tier rather than making the whole
-            // /cofl tasks command hang on the client's (~100s) default timeout.
-            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
-            var estimates = await api.TaskPlayerIdGetAsync(socket.SessionInfo.McUuid, cancellationToken: cts.Token);
-            return estimates?.GroupBy(e => e.TaskName).ToDictionary(g => g.Key, g => g.First());
-        }
-        catch (Exception e)
-        {
-            dev.Logger.Instance.Error(e, "fetching server task estimates");
-            return null;
-        }
-    }
-
+    /// <summary>
+    /// Rewrites a task result's OnClick to drill into <c>/cofl taskdetails</c> and preserves the
+    /// original click (e.g. a warp) as PrimaryAction so TaskDetailsCommand can still offer it.
+    /// </summary>
     internal static TaskResult PrepareTaskResult(TaskResult result, string commandTaskName = null)
     {
         result.Name ??= "Unknown Task";
@@ -173,12 +78,24 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
         {
             if (!string.IsNullOrWhiteSpace(elem.Breakdown.Category))
                 lines.Add($"{McColorCodes.YELLOW}Category: {McColorCodes.GRAY}{elem.Breakdown.Category}");
+            if (!string.IsNullOrWhiteSpace(elem.Breakdown.Where))
+            {
+                var islandPart = !string.IsNullOrWhiteSpace(elem.Breakdown.Island) && elem.Breakdown.Island != elem.Breakdown.Where
+                    ? $" ({elem.Breakdown.Island})" : "";
+                lines.Add($"{McColorCodes.YELLOW}Where: {McColorCodes.GRAY}{elem.Breakdown.Where}{islandPart}");
+            }
             if (!elem.IsAccessible && !string.IsNullOrWhiteSpace(elem.InaccessibleReason))
                 lines.Add($"{McColorCodes.RED}{elem.InaccessibleReason}");
             else if (elem.NextAvailableAt.HasValue)
-                lines.Add($"{McColorCodes.YELLOW}Next available: {McColorCodes.GRAY}{TaskDetailsCommand.FormatRelativeTime(elem.NextAvailableAt.Value - DateTime.UtcNow)}");
+                lines.Add($"{McColorCodes.YELLOW}Next available: {McColorCodes.GRAY}{TaskDetailsCommand.FormatRelativeTime(elem.NextAvailableAt.Value - System.DateTime.UtcNow)}");
+            if (elem.Breakdown.Steps?.Count > 0)
+            {
+                lines.Add($"{McColorCodes.AQUA}How:");
+                foreach (var step in elem.Breakdown.Steps.Take(3))
+                    lines.Add($"{McColorCodes.GRAY}{step.Number}. {step.Text}");
+            }
         }
-        lines.Add($"{McColorCodes.AQUA}Click for full task details");
+        lines.Add($"{McColorCodes.AQUA}Click for step-by-step guide");
         return string.Join("\n", lines);
     }
 }
