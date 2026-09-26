@@ -111,6 +111,7 @@ public class BuyConfigCommand : ArgumentsCommand
             }
         }
         var sellerUuid = toBebought.Value.OwnerMinecraftUuid;
+        var sellerName = await ResolveSellerName(socket, seller, sellerUuid);
         var creatorAgreement = await CurrentAgreement.GetCreator();
         var freePublisher = toBebought.Value.Price == 0
             && SellConfigCommand.IsFreePublisher(sellerUuid);
@@ -177,17 +178,21 @@ public class BuyConfigCommand : ArgumentsCommand
                     offer,
                     await GetTransactions(socket))
                 : Guid.Empty;
-            var summary = $"This config has {toBebought.Value.Settings.WhiteList.Count} whitelist entries and {toBebought.Value.Settings.BlackList.Count} blacklist entries.\n"
-                + $"It was last updated {McColorCodes.GREEN}{socket.formatProvider.FormatTime(DateTime.UtcNow - toBebought.Value.LastUpdated)} ago{McColorCodes.RESET}. It is version {McColorCodes.AQUA}{toBebought.Value.Version}{McColorCodes.RESET} and has the following change notes:\n{McColorCodes.GRAY}{toBebought.Value.ChangeNotes}";
+            var changeNotes = string.IsNullOrWhiteSpace(toBebought.Value.ChangeNotes)
+                ? ""
+                : $"\n{McColorCodes.GRAY}{toBebought.Value.ChangeNotes}";
+            var summary = $"{toBebought.Value.Settings.WhiteList.Count} whitelist / {toBebought.Value.Settings.BlackList.Count} blacklist entries, "
+                + $"version {McColorCodes.AQUA}{toBebought.Value.Version}{McColorCodes.RESET}, updated {McColorCodes.GREEN}{socket.formatProvider.FormatTime(DateTime.UtcNow - toBebought.Value.LastUpdated)} ago{McColorCodes.RESET}.{changeNotes}";
             var price = toBebought.Value.Price;
             socket.Dialog(db => db
-                .MsgLine($"Coflnet GmbH is the seller. {seller} is the Expert. Purchaser and Recipient: {socket.SessionInfo.McName}.")
-                .MsgLine($"You receive a personal, non-transferable licence to this Config version and a {UpdateTermYears}-year managed update facility. Coflnet may extend the update facility by {UpdateExtensionYears} years at no charge, but no extension is promised.")
-                .MsgLine("You receive later versions only if the Expert publishes them; the Expert does not promise updates or improvements. Permanent shutdown ends optional Expert updates and makes the latest version available to download for six months.")
-                .MsgLine("For paid orders, the Config licence and update facility are supplied immediately after the order confirmation email is delivered. Expert settings cannot otherwise be exported or redistributed; personal overrides can be exported separately.")
+                .MsgLine($"Seller: Coflnet GmbH. Expert: {McColorCodes.GOLD}{sellerName}{McColorCodes.RESET}. Buyer: {socket.SessionInfo.McName}.")
+                .MsgLine(
+                    $"{McColorCodes.GRAY}Personal licence to this version plus {UpdateTermYears} years of managed updates, supplied only if the Expert publishes any. {McColorCodes.AQUA}[Licence details]",
+                    null,
+                    LicenceDetails)
                 .MsgLine(summary)
                 .If(() => price > 0, paid => paid
-                    .MsgLine(rewards.Describe(quote, price))
+                    .MsgLine(rewards.Describe(quote))
                     .MsgLine(marketplace.Purchase.DeclarationText)
                     .MsgLine($"{McColorCodes.AQUA}[Withdrawal information]",
                         marketplace.Purchase.WithdrawalUrl,
@@ -229,7 +234,7 @@ public class BuyConfigCommand : ArgumentsCommand
                 var disclosure = marketplace.Purchase;
                 var orderDetails = BuildOrderDetails(
                     socket,
-                    seller,
+                    sellerName,
                     toBebought.Value,
                     quote,
                     marketplace.Agreement.Id,
@@ -304,7 +309,7 @@ public class BuyConfigCommand : ArgumentsCommand
                 creatorAgreement.Hash, quote);
         }
         await FinishPurchase(
-            socket, seller, name, sellerUserId, toBebought, purchase,
+            socket, sellerName, name, sellerUserId, toBebought, purchase,
             pendingId, quote, updateStartsAtUtc, updateUntilUtc);
 
     }
@@ -409,6 +414,37 @@ public class BuyConfigCommand : ArgumentsCommand
             acceptedAgreement = new { id = agreementId, hash = agreementHash },
             creatorAgreementHash
         });
+
+    /// <summary>
+    /// Full licence and update wording, shown as the hover of the short licence line.
+    /// The same facts are recorded in the order confirmation email.
+    /// </summary>
+    internal static readonly string LicenceDetails =
+        $"You receive a personal, non-transferable licence to this Config version and a {UpdateTermYears}-year managed update facility. "
+        + $"Coflnet may extend the update facility by {UpdateExtensionYears} years at no charge, but no extension is promised.\n"
+        + "You receive later versions only if the Expert publishes them; the Expert does not promise updates or improvements. "
+        + "Permanent shutdown ends optional Expert updates and makes the latest version available to download for six months.\n"
+        + "For paid orders, the Config licence and update facility are supplied immediately after the order confirmation email is delivered. "
+        + "Expert settings cannot otherwise be exported or redistributed; personal overrides can be exported separately.";
+
+    /// <summary>
+    /// Buy links from the config list pass the Expert's numeric user id. Chat and the
+    /// stored ownership must show the Minecraft name like everywhere else, so a numeric
+    /// argument is resolved through the config owner's Minecraft account.
+    /// </summary>
+    internal static async Task<string> ResolveSellerName(
+        IMinecraftSocket socket,
+        string sellerArgument,
+        string ownerMinecraftUuid)
+    {
+        if (!int.TryParse(sellerArgument, out _)
+            || string.IsNullOrEmpty(ownerMinecraftUuid))
+            return sellerArgument;
+        var name = await socket.GetPlayerName(ownerMinecraftUuid);
+        return string.IsNullOrEmpty(name) || name == "unknown"
+            ? sellerArgument
+            : name;
+    }
 
     internal static async Task<int> GetPurchaseUnitPrice(IMinecraftSocket socket)
     {

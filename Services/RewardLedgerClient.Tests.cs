@@ -33,6 +33,28 @@ public class RewardLedgerClientTests
     }
 
     [Test]
+    public void DescribeShowsTheBuyerOnlyTheCoinPriceIncludingTax()
+    {
+        var client = new RewardLedgerClient(null,
+            new ConfigurationBuilder().Build());
+        // 1800 listed coins (six 300-coin checkout units) booked at the fixed
+        // valuation: 1800 * 669 / 1802 = 668 cents gross, 107 cents of it DE VAT.
+        var quote = new ExpertConfigQuote(1800m, "DE", 1900, 668, 107, "EU");
+
+        var text = client.Describe(quote);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(text, Is.EqualTo("You pay 1800 CoflCoins incl. 19% VAT (DE)."));
+            // the booked EUR value is not what the buyer paid for the coins and
+            // the creator fee is a seller-side licence term: neither is shown here
+            Assert.That(text, Does.Not.Contain("EUR"));
+            Assert.That(text, Does.Not.Contain("creator").IgnoreCase);
+            Assert.That(text, Does.Not.Contain("promotion").IgnoreCase);
+        });
+    }
+
+    [Test]
     public void CreatorFeeEurCentsRoundsDownToTheCent()
     {
         var client = new RewardLedgerClient(null,

@@ -49,11 +49,18 @@ public sealed class RewardLedgerClient
             + $"gross. The fixed creator fee is EUR {CreatorFeeEurCents(coflCoins) / 100m:0.00} (EUR 0.70 per {CreatorFeeCoflCoins} listed CoflCoins, rounded down) before creator-side tax or withholding. Customer tax, payment costs and Coflnet-funded promotions do not reduce it.";
     }
 
-    public string Describe(ExpertConfigQuote quote, int listedCoflCoins) =>
-        $"You pay {quote.CoinAmount:0.##} CoflCoins, recorded as EUR {quote.GrossEurCents / 100m:0.00} "
-        + $"including EUR {quote.VatEurCents / 100m:0.00} transaction tax ({quote.TaxCountry}, "
-        + $"{quote.VatRateBasisPoints / 100m:0.##}%). The creator fee is EUR "
-        + $"{CreatorFeeEurCents(listedCoflCoins) / 100m:0.00} before creator-side tax or withholding, using the fixed EUR 0.70 per {CreatorFeeCoflCoins} listed CoflCoins schedule (rounded down); any lower charged amount is a Coflnet-funded promotion.";
+    /// <summary>
+    /// Buyer-facing price disclosure: the total price including tax, as required
+    /// before the order button. The price is the CoflCoin amount. The quote's EUR
+    /// figures are the value Coflnet books the sale at for VAT (Payments
+    /// CONVERSION_RATE, mirrored in EXPERT_CONFIG:VALUATION_*), not what the buyer
+    /// paid for those coins, so they belong on the order confirmation rather than
+    /// in chat. The creator fee is a Creator Licence term shown to the Expert on
+    /// publication (<see cref="DescribeValuation"/>) and recorded in the ledger.
+    /// </summary>
+    public string Describe(ExpertConfigQuote quote) =>
+        $"You pay {quote.CoinAmount:0.##} CoflCoins incl. "
+        + $"{quote.VatRateBasisPoints / 100m:0.##}% VAT ({quote.TaxCountry}).";
 
     public async Task EnsureReady()
     {
