@@ -11,7 +11,6 @@ using WebSocketSharp;
 using WebSocketSharp.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Coflnet.Sky.ModCommands.Dialogs;
-using Coflnet.Sky.ModCommands.Services.Donut;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Threading;
@@ -427,8 +426,7 @@ namespace Coflnet.Sky.Commands.MC
             (Id, var stringId) = GetService<IdConverter>().ComputeConnectionId(passedId, SessionInfo.clientSessionId);
             ConSpan.SetTag("conId", stringId);
 
-            if (!DonutServerContext.IsDonut(SessionInfo.GameServer))
-                GetService<FlipperService>().AddNonConnection(this, false);
+            GetService<FlipperService>().AddNonConnection(this, false);
             SetLifecycleVersion(Version);
             Task.Run(async () =>
             {
@@ -469,7 +467,6 @@ namespace Coflnet.Sky.Commands.MC
             }
             SessionInfo.clientSessionId = args["SId"].Truncate(60);
             SessionInfo.clientConId = args["cId"]?.Truncate(60);
-            SessionInfo.GameServer = NormalizeServerContext(args["server"]);
             if (args["version"] == null)
             {
                 Send(Response.Create("error", "the connection query string needs to include 'version' with client version"));
@@ -505,13 +502,6 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current?.SetTag("version", Version);
             Activity.Current?.SetTag("server", SessionInfo.GameServer);
             return args;
-        }
-
-        private static string NormalizeServerContext(string? requestedServer)
-        {
-            return DonutServerContext.IsDonut(requestedServer)
-                ? DonutServerContext.Name
-                : "skyblock";
         }
 
         public void SetLifecycleVersion(string version)
@@ -855,7 +845,6 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 GetService<FlipperService>().RemoveConnection(this);
-                GetService<IDonutFlipSubscriptionService>().RemoveConnection(this);
             }
             catch (Exception er)
             {
@@ -936,7 +925,6 @@ namespace Coflnet.Sky.Commands.MC
         {
             var span = CreateActivity("removing", ConSpan);
             GetService<FlipperService>().RemoveConnection(this);
-            GetService<IDonutFlipSubscriptionService>().RemoveConnection(this);
             sessionLifesycle?.Dispose();
             Task.Run(async () =>
             {

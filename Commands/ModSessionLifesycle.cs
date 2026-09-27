@@ -13,7 +13,6 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
-using Coflnet.Sky.ModCommands.Services.Donut;
 using Coflnet.Sky.ModCommands.Tutorials;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -882,11 +881,9 @@ namespace Coflnet.Sky.Commands.MC
                 sum += decoded[i];
             }
             var newid = Convert.ToBase64String(decoded.Append((byte)(sum % 256)).ToArray());
-            var authBaseUrl = DonutServerContext.IsDonut(SessionInfo.GameServer)
-                ? "https://donut.coflnet.com"
-                : socket.ConnectionHost?.ToLowerInvariant() is "sky-mod.coflnet.com" or "sky-commands.coflnet.com"
-                    ? "https://sky-commands.coflnet.com"
-                    : "https://sky.coflnet.com";
+            var authBaseUrl = socket.ConnectionHost?.ToLowerInvariant() is "sky-mod.coflnet.com" or "sky-commands.coflnet.com"
+                ? "https://sky-commands.coflnet.com"
+                : "https://sky.coflnet.com";
 
             return $"{authBaseUrl}/authmod?mcid={SessionInfo.McName}&conId={HttpUtility.UrlEncode(newid)}";
         }
@@ -895,28 +892,6 @@ namespace Coflnet.Sky.Commands.MC
         {
             ConSpan.SetTag("tier", tier.ToString());
             var flipperService = socket.GetService<FlipperService>();
-            var donutFlipService = socket.GetService<IDonutFlipSubscriptionService>();
-
-            if (DonutServerContext.IsDonut(SessionInfo.GameServer))
-            {
-                flipperService.RemoveConnection(socket);
-                if (socket.HasFlippingDisabled() || FlipSettings.Value == null)
-                {
-                    donutFlipService.RemoveConnection(socket);
-                    return;
-                }
-                if (FlipSettings.Value.DisableFlips)
-                {
-                    donutFlipService.RemoveConnection(socket);
-                    SendMessage(COFLNET + "you currently don't receive flips because you disabled them", "/cofl set disableflips false", "click to enable");
-                    return;
-                }
-
-                socket.TryAsyncTimes(() => donutFlipService.RefreshSubscriptionAsync(socket), "refresh donut flip subscription", 1);
-                return;
-            }
-
-            donutFlipService.RemoveConnection(socket);
             if (socket.HasFlippingDisabled() || FlipSettings.Value == null)
                 return;
             if (FlipSettings.Value.DisableFlips)

@@ -13,7 +13,6 @@ using AwesomeAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Coflnet.Sky.Filter;
 using Coflnet.Sky.ModCommands.Services;
-using Coflnet.Sky.ModCommands.Services.Donut;
 using Newtonsoft.Json;
 using System.Linq;
 
@@ -24,7 +23,6 @@ public class ModSessionLifesycleTests
     private ModSessionLifesycle lifesycle;
 
     private TestSocket socket;
-    private FakeDonutFlipSubscriptionService donutFlipSubscriptionService;
 
     [TestCase(null, true)]
     [TestCase("", true)]
@@ -89,18 +87,16 @@ public class ModSessionLifesycleTests
         Assert.That(action, Is.EqualTo(ModSessionLifesycle.RegionRoutingAction.ShowUnsupportedUsReconnect));
     }
 
-    [TestCase("sky-mod.coflnet.com", null, "sky-commands.coflnet.com")]
-    [TestCase("SKY-MOD.COFLNET.COM", null, "sky-commands.coflnet.com")]
-    [TestCase("sky-commands.coflnet.com", null, "sky-commands.coflnet.com")]
-    [TestCase("sky.coflnet.com", null, "sky.coflnet.com")]
-    [TestCase(null, null, "sky.coflnet.com")]
-    [TestCase("sky-mod.coflnet.com.attacker.invalid", null, "sky.coflnet.com")]
-    [TestCase("attacker.invalid", null, "sky.coflnet.com")]
-    [TestCase("sky-mod.coflnet.com", "donut", "donut.coflnet.com")]
-    public void AuthLinkUsesTrustedConnectionHost(string host, string gameServer, string expectedHost)
+    [TestCase("sky-mod.coflnet.com", "sky-commands.coflnet.com")]
+    [TestCase("SKY-MOD.COFLNET.COM", "sky-commands.coflnet.com")]
+    [TestCase("sky-commands.coflnet.com", "sky-commands.coflnet.com")]
+    [TestCase("sky.coflnet.com", "sky.coflnet.com")]
+    [TestCase(null, "sky.coflnet.com")]
+    [TestCase("sky-mod.coflnet.com.attacker.invalid", "sky.coflnet.com")]
+    [TestCase("attacker.invalid", "sky.coflnet.com")]
+    public void AuthLinkUsesTrustedConnectionHost(string host, string expectedHost)
     {
         socket.Host = host;
-        socket.SessionInfo.GameServer = gameServer;
         socket.SessionInfo.McName = "TestPlayer";
         var connectionId = Enumerable.Range(240, 16).Select(i => (byte)i).ToArray();
 
@@ -132,8 +128,6 @@ public class ModSessionLifesycleTests
         DiHandler.OverrideService<IFlipReceiveTracker, IFlipTrackingService>(flipTrackingMock.Object);
         DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine(mockNbt.Object));
         DiHandler.OverrideService<FlipperService, FlipperService>(new FlipperService(null, NullLogger<FlipperService>.Instance));
-        donutFlipSubscriptionService = new FakeDonutFlipSubscriptionService();
-        DiHandler.OverrideService<IDonutFlipSubscriptionService, FakeDonutFlipSubscriptionService>(donutFlipSubscriptionService);
         socket = new TestSocket();
         lifesycle = new ModSessionLifesycle(socket);
         socket.SetLifecycle(lifesycle);
@@ -141,25 +135,7 @@ public class ModSessionLifesycleTests
     }
 
     [Test]
-    public async Task UpdateConnectionTier_UsesDonutSubscriptionOutsideSkyblock()
-    {
-        lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings
-        {
-            Visibility = new(),
-            ModSettings = new(),
-            AllowedFinders = FinderType.FLIPPER_AND_SNIPERS
-        });
-        socket.SessionInfo.GameServer = DonutServerContext.Name;
-
-        lifesycle.UpdateConnectionTier(AccountTier.PREMIUM_PLUS);
-        await donutFlipSubscriptionService.RefreshCompletion.Task.ConfigureAwait(false);
-
-        donutFlipSubscriptionService.RefreshCalls.Should().Be(1);
-        DiHandler.GetService<FlipperService>().Connections.Should().BeEmpty();
-    }
-
-    [Test]
-    public void UpdateConnectionTier_UsesSkyblockFlipperOnSkyblock()
+    public void UpdateConnectionTier_AddsConnectionWithoutDonutService()
     {
         lifesycle.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings
         {
@@ -170,7 +146,6 @@ public class ModSessionLifesycleTests
 
         lifesycle.UpdateConnectionTier(AccountTier.PREMIUM);
 
-        donutFlipSubscriptionService.RefreshCalls.Should().Be(0);
         DiHandler.GetService<FlipperService>().Connections.Should().HaveCount(1);
     }
 
@@ -383,28 +358,6 @@ public class ModSessionLifesycleTests
         public TestSocket()
         {
             ConSpan = new Activity("test-connection");
-        }
-    }
-
-    private sealed class FakeDonutFlipSubscriptionService : IDonutFlipSubscriptionService
-    {
-        public int RefreshCalls { get; private set; }
-        public TaskCompletionSource<bool> RefreshCompletion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public Task RefreshSubscriptionAsync(IFlipConnection connection)
-        {
-            RefreshCalls++;
-            RefreshCompletion.TrySetResult(true);
-            return Task.CompletedTask;
-        }
-
-        public void RemoveConnection(IFlipConnection connection)
-        {
-        }
-
-        public Task DeliverAsync(LowPricedAuction flip)
-        {
-            return Task.CompletedTask;
         }
     }
 
