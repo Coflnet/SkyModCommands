@@ -31,6 +31,8 @@ namespace Coflnet.Sky.Commands.MC
                 descriptionCache[socket.UserId] = cache;
             }
             var settings = cache.Item1;
+            if (SettingsUpdater.CleanupJunkEntries(settings.DisableInfoIn))
+                await service.UpdateSetting(socket.UserId, "description", settings);
             if (arguments.StartsWith("\"{"))
             {
                 // assume this is a full json settings object
