@@ -11,9 +11,9 @@ public sealed class ExpertConfigCheckoutClient
 {
     public const string TaxQuoteUnavailableSlug = "expert_config_tax_quote_unavailable";
     public const string TaxQuoteUnavailableMessage =
-        "Paid Configs can currently only be bought from the EU, UK (excluding Northern Ireland) or US, "
-        + "and we need your billing country from a previous coin purchase. "
-        + "Buy coins once (or contact support) and try again.";
+        "Paid Configs can't be bought from your country, or we don't know your billing country yet "
+        + "(it comes from a previous coin purchase). "
+        + "Buy coins once or contact support if you think this is wrong.";
 
     private readonly IHttpClientFactory clients;
     private readonly IConfiguration configuration;
