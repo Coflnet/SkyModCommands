@@ -146,9 +146,18 @@ public class BuyConfigCommand : ArgumentsCommand
                 return;
             }
             await socket.GetService<RewardLedgerClient>().EnsureReady();
-            quote = await socket.GetService<ExpertConfigCheckoutClient>().GetQuote(
-                socket.UserId,
-                toBebought.Value.Price / unitPrice);
+            try
+            {
+                quote = await socket.GetService<ExpertConfigCheckoutClient>().GetQuote(
+                    socket.UserId,
+                    toBebought.Value.Price / unitPrice);
+            }
+            catch (CoflnetException e) when (e.Slug == ExpertConfigCheckoutClient.TaxQuoteUnavailableSlug)
+            {
+                // expected for buyers without a supported billing country, not an error worth tracing
+                socket.SendMessage(e.Message);
+                return;
+            }
         }
         var marketplace = await CurrentAgreement.RequireMarketplace(
             socket,

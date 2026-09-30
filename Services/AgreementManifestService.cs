@@ -182,38 +182,7 @@ public sealed class AgreementManifestService : BackgroundService
                 throw new InvalidOperationException(
                     "The Expert Marketplace purchase disclosure is incomplete.");
             await VerifyNoticeDocument(client, withdrawal, cancellationToken);
-            var regimes = new Dictionary<string, MarketplacePurchaseRegimeSnapshot>();
-            foreach (var definition in new Dictionary<string, string>
-            {
-                ["EU"] = "digitalContentEarlySupplyEu",
-                ["UK"] = "digitalContentEarlySupplyUk",
-                ["US"] = "digitalContentEarlySupplyUs"
-            })
-            {
-                if (!manifest.Declarations.TryGetValue(
-                        definition.Value, out var declaration)
-                    || declaration.Locales.Count != 2
-                    || !declaration.Locales.Keys.All(
-                        withdrawal.Locales.ContainsKey)
-                    || declaration.Locales.Any(item =>
-                        string.IsNullOrWhiteSpace(item.Value.Text)
-                        || !IsSha256(item.Value.Sha256)
-                        || !Sha256(Encoding.UTF8.GetBytes(item.Value.Text)).Equals(
-                            item.Value.Sha256,
-                            StringComparison.OrdinalIgnoreCase)))
-                    throw new InvalidOperationException(
-                        $"The {definition.Key} Expert Marketplace purchase disclosure is incomplete.");
-                regimes.Add(definition.Key, new(
-                    declaration.Version,
-                    declaration.Locales.ToDictionary(item => item.Key, item =>
-                        new MarketplacePurchaseLocaleSnapshot(
-                            item.Value.Text,
-                            item.Value.Sha256,
-                            withdrawal.Version,
-                            withdrawal.Locales[item.Key].Sha256,
-                            withdrawal.Locales[item.Key].Url))));
-            }
-            purchase = new(regimes);
+            purchase = BuildPurchase(manifest, withdrawal);
         }
 
         var ownTerms = root.Descriptor.Documents.SingleOrDefault()
@@ -227,6 +196,68 @@ public sealed class AgreementManifestService : BackgroundService
             documents.Max(document => document.EffectiveFromUtc),
             documents,
             purchase);
+    }
+
+    /// <summary>
+    /// Builds the per-regime purchase disclosures. EU, UK and US are required;
+    /// ROW (rest of world, English only) is optional so the manifest can be
+    /// published after this service is deployed without breaking the load.
+    /// </summary>
+    private static MarketplacePurchaseSnapshot BuildPurchase(
+        Manifest manifest,
+        Document withdrawal)
+    {
+        var regimes = new Dictionary<string, MarketplacePurchaseRegimeSnapshot>();
+        foreach (var (regime, declarationKey, required, localeCount) in new[]
+        {
+            ("EU", "digitalContentEarlySupplyEu", true, 2),
+            ("UK", "digitalContentEarlySupplyUk", true, 2),
+            ("US", "digitalContentEarlySupplyUs", true, 2),
+            ("ROW", "digitalContentEarlySupplyRow", false, 1)
+        })
+        {
+            var valid = manifest.Declarations.TryGetValue(
+                    declarationKey, out var declaration)
+                && declaration.Locales.Count == localeCount
+                && (regime != "ROW" || declaration.Locales.ContainsKey("en"))
+                && declaration.Locales.Keys.All(withdrawal.Locales.ContainsKey)
+                && declaration.Locales.All(item =>
+                    !string.IsNullOrWhiteSpace(item.Value.Text)
+                    && IsSha256(item.Value.Sha256)
+                    && Sha256(Encoding.UTF8.GetBytes(item.Value.Text)).Equals(
+                        item.Value.Sha256,
+                        StringComparison.OrdinalIgnoreCase));
+            if (!valid)
+            {
+                if (!required)
+                    continue; // absent or malformed optional regime: its buyers get purchase_unavailable
+                throw new InvalidOperationException(
+                    $"The {regime} Expert Marketplace purchase disclosure is incomplete.");
+            }
+            regimes.Add(regime, new(
+                declaration.Version,
+                declaration.Locales.ToDictionary(item => item.Key, item =>
+                    new MarketplacePurchaseLocaleSnapshot(
+                        item.Value.Text,
+                        item.Value.Sha256,
+                        withdrawal.Version,
+                        withdrawal.Locales[item.Key].Sha256,
+                        withdrawal.Locales[item.Key].Url))));
+        }
+        return new(regimes);
+    }
+
+    /// <summary>
+    /// Parses the purchase disclosures of a published legal manifest.
+    /// </summary>
+    internal static MarketplacePurchaseSnapshot ParsePurchase(byte[] manifestJson)
+    {
+        var manifest = Deserialize<Manifest>(
+            manifestJson, "The legal manifest is invalid.");
+        if (!manifest.Documents.TryGetValue("withdrawal", out var withdrawal))
+            throw new InvalidOperationException(
+                "The Expert Marketplace purchase disclosure is incomplete.");
+        return BuildPurchase(manifest, withdrawal);
     }
 
     private static async Task<LoadedAgreement> LoadAgreement(
