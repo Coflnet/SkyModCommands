@@ -2,12 +2,19 @@ using System;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Coflnet.Sky.Core;
 using Microsoft.Extensions.Configuration;
 
 namespace Coflnet.Sky.ModCommands.Services;
 
 public sealed class ExpertConfigCheckoutClient
 {
+    public const string TaxQuoteUnavailableSlug = "expert_config_tax_quote_unavailable";
+    public const string TaxQuoteUnavailableMessage =
+        "Paid Configs can currently only be bought from the EU, UK (excluding Northern Ireland) or US, "
+        + "and we need your billing country from a previous coin purchase. "
+        + "Buy coins once (or contact support) and try again.";
+
     private readonly IHttpClientFactory clients;
     private readonly IConfiguration configuration;
 
@@ -55,6 +62,8 @@ public sealed class ExpertConfigCheckoutClient
         if (response.IsSuccessStatusCode)
             return;
         var detail = await response.Content.ReadAsStringAsync();
+        if (detail != null && detail.Contains(TaxQuoteUnavailableSlug))
+            throw new CoflnetException(TaxQuoteUnavailableSlug, TaxQuoteUnavailableMessage);
         throw new HttpRequestException(
             string.IsNullOrWhiteSpace(detail)
                 ? $"Checkout failed with HTTP {(int)response.StatusCode}."
