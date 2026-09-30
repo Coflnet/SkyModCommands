@@ -138,15 +138,33 @@ internal static class CurrentAgreement
                 "Accept Expert Marketplace agreement");
             return null;
         }
-        var language = Language(socket);
+        return SelectPurchase(
+            agreement,
+            consumerRightsRegime,
+            Language(socket));
+    }
+
+    /// <summary>
+    /// Picks the regime disclosure and its locale. ROW (rest of world) texts
+    /// only exist in English, so ROW always resolves "en" regardless of the
+    /// player's language.
+    /// </summary>
+    internal static MarketplacePurchaseContext SelectPurchase(
+        AgreementSnapshot agreement,
+        string consumerRightsRegime,
+        string language)
+    {
         var regime = consumerRightsRegime ?? "EU";
-        if (!agreement.Purchase.Regimes.TryGetValue(regime, out var purchase))
+        if (regime == "ROW")
+            language = "en";
+        if (agreement.Purchase?.Regimes.TryGetValue(regime, out var purchase) != true
+            || !purchase.Locales.TryGetValue(language, out var localized))
             throw new CoflnetException(
                 "purchase_unavailable",
                 "Expert Config purchases are not supported for this country.");
         return new(
             agreement,
-            purchase.Locales[language],
+            localized,
             language,
             regime,
             purchase.DeclarationVersion);

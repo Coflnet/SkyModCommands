@@ -43,6 +43,10 @@ public class ExpertConfigCheckoutClientTests
         Assert.That(ex.Slug, Is.EqualTo("expert_config_tax_quote_unavailable"));
         Assert.That(ex.Message, Is.EqualTo(ExpertConfigCheckoutClient.TaxQuoteUnavailableMessage));
         Assert.That(ex.Message, Does.Not.Contain("{"));
+        Assert.That(ex.Message, Is.EqualTo(
+            "Paid Configs can't be bought from your country, or we don't know your billing country yet "
+            + "(it comes from a previous coin purchase). "
+            + "Buy coins once or contact support if you think this is wrong."));
     }
 
     [Test]
