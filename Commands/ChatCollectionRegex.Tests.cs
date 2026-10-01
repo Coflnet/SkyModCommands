@@ -51,6 +51,27 @@ namespace Coflnet.Sky.Commands.MC
         {
             Assert.That(!regex.IsMatch("There are blocks in the way!"));
         }
+        [TestCase("                The Catacombs - Floor VII")]
+        [TestCase("        Master Mode The Catacombs - Floor V")]
+        [TestCase("   The Catacombs - Entrance")]
+        [TestCase("            Team Score: 305 (S+)")]
+        [TestCase("            Team Score: 312 (S+) (NEW RECORD!)")]
+        [TestCase("  OBSIDIAN CHEST REWARDS")]
+        [TestCase("  WOOD CHEST REWARDS")]
+        public void MatchesDungeonRunLines(string message)
+        {
+            Assert.That(regex.IsMatch(message));
+        }
+
+        [TestCase("[MVP+] Someone entered The Catacombs, Floor VII!")]
+        [TestCase("Party Finder > Someone joined the dungeon group! (Floor VII)")]
+        [TestCase("Guild > Someone: anyone for The Catacombs - Floor VII carry?")]
+        [TestCase("    Wither Essence x21")]
+        public void DoesNotMatchOtherDungeonChat(string message)
+        {
+            Assert.That(!regex.IsMatch(message));
+        }
+
         [Test]
         public void TriggerReward()
         {
