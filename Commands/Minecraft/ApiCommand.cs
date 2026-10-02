@@ -95,7 +95,7 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
 
-            if (new Version(socket.Version) < new Version(1, 7, 3))
+            if (IsOutdated(socket.Version))
             {
                 socket.SendMessage($"{COFLNET}{McColorCodes.RED}This requires mod version 1.7.3 or higher. Please update your mod. {McColorCodes.YELLOW}[click to open page](https://sky.coflnet.com/mod)");
                 return;
@@ -141,6 +141,15 @@ namespace Coflnet.Sky.Commands.MC
                 socket.SendMessage($"{COFLNET}{McColorCodes.RED}Failed to generate API key. Please try again later.");
                 dev.Logger.Instance.Error(ex, "Failed to generate API key");
             }
+        }
+
+        /// <summary>
+        /// Versions carry suffixes like "2.0.0-pre1" or "1.5.6-Alpha" which <see cref="Version"/> can't parse
+        /// </summary>
+        private static bool IsOutdated(string version)
+        {
+            var numericPart = version.Split('-')[0];
+            return Version.TryParse(numericPart, out var clientVersion) && clientVersion < new Version(1, 7, 3);
         }
 
         private async Task ShowUserApiKeys(MinecraftSocket socket, ApiKeyService apiKeyService)
