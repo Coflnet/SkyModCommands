@@ -61,7 +61,8 @@ public sealed class DonutFlipSubscriptionService : IDonutFlipSubscriptionService
 
     public void RemoveConnection(IFlipConnection connection)
     {
-        subscribers.TryRemove(connection.Id, out _);
+        // A replacement connection reuses the same id, only remove the subscription this connection owns
+        subscribers.TryRemove(new(connection.Id, connection));
     }
 
     public async Task DeliverAsync(LowPricedAuction flip)
@@ -74,12 +75,12 @@ public sealed class DonutFlipSubscriptionService : IDonutFlipSubscriptionService
             try
             {
                 if (!await entry.Value.SendFlip(flip).ConfigureAwait(false))
-                    subscribers.TryRemove(entry.Key, out _);
+                    subscribers.TryRemove(entry);
             }
             catch (Exception e)
             {
                 logger.LogError(e, "Failed to send Donut flip to connection {ConnectionId}", entry.Key);
-                subscribers.TryRemove(entry.Key, out _);
+                subscribers.TryRemove(entry);
             }
         }
     }
