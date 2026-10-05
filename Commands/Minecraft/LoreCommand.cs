@@ -16,7 +16,11 @@ namespace Coflnet.Sky.Commands.MC
     public class LoreCommand : McCommand
     {
         public override bool IsPublic => true;
-        private ConcurrentDictionary<string, (DescriptionSetting, DateTime)> descriptionCache = new();
+        private static ConcurrentDictionary<string, (DescriptionSetting, DateTime)> descriptionCache = new();
+        /// <summary>
+        /// Drops the cached settings of an user so changes made elsewhere are not overwritten
+        /// </summary>
+        internal static void ForgetCachedSettings(string userId) => descriptionCache.TryRemove(userId, out _);
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
             var service = socket.GetService<SettingsService>();
