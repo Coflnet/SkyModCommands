@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands;
@@ -12,6 +16,10 @@ using Moq;
 using NUnit.Framework;
 using System.Collections.Concurrent;
 using Newtonsoft.Json;
+using Coflnet.Sky.Core;
+using WebSocketSharp;
+using WebSocketSharp.Net.WebSockets;
+using WebSocketSharp.Server;
 
 namespace Coflnet.Sky.ModCommands.Tests;
 
@@ -73,6 +81,83 @@ public class MinecraftSocketTests
         });
 
         Assert.That(registrations, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ReportsFailedCommandAsSingleErrorSpan()
+    {
+        var socket = new SpanRecordingSocket();
+
+        await socket.InvokeCommand(new Response("failing", "\"\""), new FailingCommand(new InvalidOperationException("broken")));
+
+        Assert.That(socket.ErrorSpans, Is.EqualTo(new[] { "error" }));
+    }
+
+    [Test]
+    public async Task ReportsRejectedCommandWithoutErrorSpan()
+    {
+        var socket = new SpanRecordingSocket();
+
+        await socket.InvokeCommand(new Response("failing", "\"\""), new FailingCommand(new CoflnetException("invalid_usage", "usage /cofl failing")));
+
+        Assert.That(socket.ErrorSpans, Is.Empty);
+        Assert.That(socket.Spans.Select(s => s.OperationName), Is.EqualTo(new[] { "rejected" }));
+    }
+
+    [Test]
+    public async Task KeepsErrorSpanForFailureWithUserMessage()
+    {
+        var socket = new SpanRecordingSocket();
+
+        await socket.InvokeCommand(new Response("failing", "\"\""), new FailingCommand(new CoflnetException("purchase_unavailable", "checkout is unavailable")));
+
+        Assert.That(socket.ErrorSpans, Is.EqualTo(new[] { "error" }));
+    }
+
+    private sealed class FailingCommand(Exception failure) : McCommand
+    {
+        public override Task Execute(MinecraftSocket socket, string arguments)
+        {
+            throw failure;
+        }
+    }
+
+    private sealed class SpanRecordingSocket : TestSocket
+    {
+        private readonly FlipperService flipperService = new(null, null);
+        public List<Activity> Spans { get; } = new();
+        public IEnumerable<string> ErrorSpans => Spans
+            .Where(s => s.Tags.Any(t => t.Key == "error" && t.Value == "true"))
+            .Select(s => s.OperationName);
+
+        public SpanRecordingSocket() : base(null)
+        {
+            var context = new Mock<WebSocketContext>();
+            context.Setup(c => c.QueryString).Returns(new NameValueCollection());
+            SetSessionField("_context", context.Object);
+            SetSessionField("_websocket", new WebSocket("ws://localhost"));
+        }
+
+        /// <summary>
+        /// Error reporting reads the query string and replies to the client, both need a started session
+        /// </summary>
+        private void SetSessionField(string name, object value)
+        {
+            typeof(WebSocketBehavior).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(this, value);
+        }
+
+        public override Activity CreateActivity(string name, Activity parent = null)
+        {
+            var span = new Activity(name);
+            if (name != "removing")
+                Spans.Add(span);
+            return span;
+        }
+
+        public override T GetService<T>()
+        {
+            return flipperService as T ?? base.GetService<T>();
+        }
     }
 
     private sealed class PremiumPlusTestCommand : McCommand
