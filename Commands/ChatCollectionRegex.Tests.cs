@@ -36,6 +36,20 @@ namespace Coflnet.Sky.Commands.MC
             Assert.That(regex.IsMatch("You purchased ◆ Hot Rune I for 1 coins!"));
         }
 
+        [TestCase("                               KUUDRA DOWN!")]
+        [TestCase("KUUDRA DOWN!")]
+        public void MatchesKuudraDownBanner(string message)
+        {
+            Assert.That(regex.IsMatch(message));
+        }
+
+        [TestCase("Party > Someone: KUUDRA DOWN! gg")]
+        [TestCase("[MVP+] Someone: kuudra down!")]
+        public void DoesNotMatchKuudraDownChat(string message)
+        {
+            Assert.That(!regex.IsMatch(message));
+        }
+
         [Test]
         public void BazaarCancel()
         {
