@@ -1,14 +1,14 @@
-using System;
 using System.Threading.Tasks;
 
 namespace Coflnet.Sky.Commands.MC
 {
     public class UpdatePurseCommand : McCommand
     {
-        public override async Task Execute(MinecraftSocket socket, string arguments)
+        public override Task Execute(MinecraftSocket socket, string arguments)
         {
-            var newVal = double.Parse(arguments.Trim('"'));
-            socket.SessionInfo.Purse = (long)newVal;
+            if (double.TryParse(arguments.Trim('"'), out var newVal))
+                socket.SessionInfo.Purse = (long)newVal;
+            return Task.CompletedTask;
         }
     }
 }
