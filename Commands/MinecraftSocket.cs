@@ -767,7 +767,10 @@ namespace Coflnet.Sky.Commands.MC
             }
             catch (CoflnetException e)
             {
-                Error(e, "mod command coflnet");
+                if (e.Slug == UsageRejectionSlug)
+                    LogRejection(e, "mod command coflnet");
+                else
+                    Error(e, "mod command coflnet");
                 SendMessage(COFLNET + $"{McColorCodes.RED}{e.Message}");
             }
             catch (Exception ex)
@@ -976,11 +979,28 @@ namespace Coflnet.Sky.Commands.MC
 
             error?.Log(exception.ToString());
             error?.Log(additionalLog?.Truncate(10_000) ?? "");
-            using var errorContext = CreateActivity("error", error)?.AddTag("message", message).AddTag("error", "true");
+            // session state of the error above, not an error of its own
+            using var errorContext = CreateActivity("errorContext", error)?.AddTag("message", message);
             errorContext.Log(JsonConvert.SerializeObject(sessionLifesycle?.AccountInfo?.Value));
             errorContext.Log($"session: {JsonConvert.SerializeObject(SessionInfo)}");
             errorContext.Log(JsonConvert.SerializeObject(Settings).Truncate(10_000));
             return error?.Context.TraceId.ToString() ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Slug of exceptions that only tell the user how a command has to be used
+        /// </summary>
+        private const string UsageRejectionSlug = "invalid_usage";
+
+        /// <summary>
+        /// Records a wrong command usage that was explained to the user, it is no service error
+        /// </summary>
+        /// <param name="rejection"></param>
+        /// <param name="message"></param>
+        private void LogRejection(CoflnetException rejection, string message)
+        {
+            using var span = CreateActivity("rejected", ConSpan)?.AddTag("message", message).AddTag("slug", rejection.Slug);
+            span.Log(rejection.Message);
         }
 
         /// <summary>
