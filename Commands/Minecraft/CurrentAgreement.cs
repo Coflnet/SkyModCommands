@@ -14,8 +14,25 @@ internal static class CurrentAgreement
     private const string MarketplaceAgreementId = "expertMarketplace";
     internal const string ExpertMarketplaceHash =
         "d477358662b81d464396331ff79511db1623d5ad5c77809e3b92a5f0ce50acfe";
-    internal const string CreatorMarketplaceHash =
-        "571ab277e36066ac89929fd72304096eb5b15dd324d8cb3718808a0454b76ddb";
+    /// <summary>
+    /// Creator Marketplace roots a seller may be bound by, newest first. The
+    /// manifest may publish any of them and an acceptance of any of them keeps
+    /// publishing and the seller's listings available, so a compatible
+    /// re-version neither pauses the marketplace nor forces a re-acceptance.
+    /// New acceptances are always recorded against the published root.
+    /// Remove an entry only when a later version is incompatible with it.
+    /// </summary>
+    internal static readonly string[] CreatorMarketplaceHashes =
+    [
+        // Creator License 2026-10-11: adds paid publication for individual
+        // Creators resident in New Caledonia or another country without a
+        // tax treaty with Germany that meets Annex A.6 (1.3, 7.1, A.6, A.7).
+        // Nothing changes for Creators of the 2026-09-04 version.
+        "56555b769bca24d8abb3e0617326e93f3b1484045ca2ebecceb28c69925efe4e",
+        // Creator License 2026-09-04: initial Creator Marketplace agreement.
+        "571ab277e36066ac89929fd72304096eb5b15dd324d8cb3718808a0454b76ddb",
+    ];
+    internal static string CreatorMarketplaceHash => CreatorMarketplaceHashes[0];
     private const string PreviewUserId = "7";
     private static volatile AgreementSnapshot current;
     private static volatile AgreementSnapshot marketplace;
@@ -40,7 +57,7 @@ internal static class CurrentAgreement
         if (marketplaceAgreement?.Id != MarketplaceAgreementId
             || marketplaceAgreement.Hash != ExpertMarketplaceHash
             || creatorAgreement?.Id != CreatorAgreementId
-            || creatorAgreement.Hash != CreatorMarketplaceHash)
+            || !CreatorMarketplaceHashes.Contains(creatorAgreement.Hash))
             throw new InvalidOperationException(
                 "The Expert Config rollout agreement roots do not match the pinned release.");
         marketplace = marketplaceAgreement;
@@ -53,12 +70,18 @@ internal static class CurrentAgreement
     {
         var marketplaceAgreement = marketplace;
         var creatorAgreement = creator;
+        // A published creator root that still has an accepted predecessor does
+        // not pause the marketplace: sellers continue under the predecessor.
+        var creatorEffectiveFrom = creatorAgreement == null
+            || creatorAgreement.Hash != CreatorMarketplaceHashes[^1]
+                ? marketplaceAgreement?.EffectiveFromUtc
+                : creatorAgreement.EffectiveFromUtc;
         var effectiveFrom = marketplaceAgreement?.EffectiveFromUtc
-            > creatorAgreement?.EffectiveFromUtc
+            > creatorEffectiveFrom
                 ? marketplaceAgreement.EffectiveFromUtc
-                : creatorAgreement?.EffectiveFromUtc;
+                : creatorEffectiveFrom;
         return marketplaceAgreement?.Hash == ExpertMarketplaceHash
-            && creatorAgreement?.Hash == CreatorMarketplaceHash
+            && CreatorMarketplaceHashes.Contains(creatorAgreement?.Hash)
             && (userId == PreviewUserId
                 || utcNow >= effectiveFrom);
     }
@@ -109,7 +132,7 @@ internal static class CurrentAgreement
     {
         RequireExpertConfigAvailable(socket.UserId);
         var agreement = await GetCreator();
-        if (await HasCreatorAcceptance(socket.UserId, agreement))
+        if (await HasCreatorAcceptance(socket.UserId))
             return true;
         Ask(socket, agreement,
             "Before publishing an Expert Config, review and expressly accept the Creator Marketplace agreement. Acceptance is required even if you sold configs before.",
@@ -118,8 +141,27 @@ internal static class CurrentAgreement
         return false;
     }
 
-    internal static async Task<bool> HasCreatorAcceptance(string userId) =>
-        await HasCreatorAcceptance(userId, await GetCreator());
+    internal static async Task<bool> HasCreatorAcceptance(string userId)
+    {
+        var agreement = await GetCreator();
+        return await AcceptedAnyCreatorRoot(agreement.Hash, hash =>
+            HasCreatorAcceptance(userId, agreement with { Hash = hash }));
+    }
+
+    /// <summary>
+    /// Checks the published root first, then every other accepted root.
+    /// </summary>
+    internal static async Task<bool> AcceptedAnyCreatorRoot(
+        string publishedHash,
+        Func<string, Task<bool>> accepted)
+    {
+        if (await accepted(publishedHash))
+            return true;
+        foreach (var hash in CreatorMarketplaceHashes)
+            if (hash != publishedHash && await accepted(hash))
+                return true;
+        return false;
+    }
 
     internal static async Task<bool> HasMarketplaceAcceptance(string userId) =>
         await HasCreatorAcceptance(userId, await GetMarketplace());

@@ -108,7 +108,7 @@ public class CurrentAgreementLoginTests
             7,
             "creatorMarketplace",
             It.Is<IndexerTermsAcceptance>(acceptance =>
-                acceptance.VarVersion == "2026-09-04"
+                acceptance.VarVersion == "2026-10-11"
                 && acceptance.Hash == CurrentAgreement.CreatorMarketplaceHash
                 && acceptance.Source == "minecraft-sellconfig-en"),
             0,
@@ -182,12 +182,69 @@ public class CurrentAgreementLoginTests
                 ExpertAgreement("creatorMarketplace", new string('b', 64), effective)));
     }
 
+    [Test]
+    public void Previous_creator_root_stays_a_valid_published_root()
+    {
+        var effective = new DateTime(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        Assert.That(CurrentAgreement.CreatorMarketplaceHashes, Has.Length.GreaterThan(1));
+        Assert.DoesNotThrow(() => CurrentAgreement.InitializeExpertConfig(
+            ExpertAgreement("expertMarketplace",
+                CurrentAgreement.ExpertMarketplaceHash, effective),
+            ExpertAgreement("creatorMarketplace",
+                CurrentAgreement.CreatorMarketplaceHashes[^1], effective)));
+        Assert.That(CurrentAgreement.ExpertConfigAvailable("42", effective), Is.True);
+    }
+
+    [Test]
+    public void Compatible_creator_reversion_does_not_pause_the_marketplace()
+    {
+        var effective = new DateTime(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        CurrentAgreement.InitializeExpertConfig(
+            ExpertAgreement("expertMarketplace",
+                CurrentAgreement.ExpertMarketplaceHash, effective),
+            ExpertAgreement("creatorMarketplace",
+                CurrentAgreement.CreatorMarketplaceHash, effective.AddDays(30)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(CurrentAgreement.ExpertConfigAvailable(
+                "42", effective), Is.True);
+            Assert.That(CurrentAgreement.ExpertConfigAvailable(
+                "42", effective.AddTicks(-1)), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task Acceptance_of_a_previous_creator_root_still_counts()
+    {
+        var previous = CurrentAgreement.CreatorMarketplaceHashes[^1];
+        var asked = new List<string>();
+
+        var accepted = await CurrentAgreement.AcceptedAnyCreatorRoot(
+            CurrentAgreement.CreatorMarketplaceHash,
+            hash =>
+            {
+                asked.Add(hash);
+                return Task.FromResult(hash == previous);
+            });
+        var unknown = await CurrentAgreement.AcceptedAnyCreatorRoot(
+            CurrentAgreement.CreatorMarketplaceHash,
+            hash => Task.FromResult(hash == new string('b', 64)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(accepted, Is.True);
+            Assert.That(asked[0], Is.EqualTo(CurrentAgreement.CreatorMarketplaceHash));
+            Assert.That(unknown, Is.False);
+        });
+    }
+
     private static AgreementSnapshot ExpertAgreement(
         string id,
         string hash,
         DateTime effective) => new(
             id,
-            "2026-09-04",
+            "2026-10-11",
             hash,
             $"https://coflnet.com/legal/agreements/{hash}.json",
             effective,
