@@ -156,3 +156,13 @@ Response to "get","tier" command returns the users current plan tier
     "expires":"2023-05-29T08:52:37"
 }
 ```
+
+## Cassandra query verification
+
+When a change touches the `blocked_reasons` schema, mapping or queries in `Services/BlockedService.cs`, run the opt-in final verification from the project directory:
+
+```sh
+scripts/cassandra-smoke.sh
+```
+
+The command starts a pinned disposable single-node Cassandra container (own network and volume, no production endpoint or credential), creates `blocked_reasons` in its legacy shape with one old row, and then runs the production `BlockedService`: the constructor adds `target_price` and `starting_bid`, a second construction swallows the "column already exists" error, `ArchiveBlockedFlipsUntil` writes more than one batch while skipping old and invalid-uuid auctions, both `GetBlockedReasons` overloads read legacy and new rows (legacy values read as 0), `limit` truncates, other users' partitions are not returned, and the row TTL is about 7 days. It applies readiness and total hang timeouts, prints only a bounded failure log tail and always removes its container, network and volume. The test is `[Explicit]` and environment gated, so it never runs in default `dotnet test`. Production runs Scylla, so the error matching in `IsColumnExistsError` is deliberately tolerant of the message text.

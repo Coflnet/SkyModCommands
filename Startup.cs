@@ -113,6 +113,8 @@ public class Startup
         services.AddSingleton<ConfigStatsService>();
         services.AddSingleton<NecImportService>();
         services.AddSingleton<IBlockedService, BlockedService>();
+        services.AddSingleton<IFlipDryRunDataSource, FlipDryRunDataSource>();
+        services.AddSingleton<FlipDryRunService>();
         services.AddSingleton<Sniper.Client.Api.IAuctionApi, Sniper.Client.Api.AuctionApi>(s => new Sniper.Client.Api.AuctionApi(Configuration["SNIPER_BASE_URL"]));
         services.AddSingleton<McConnect.Api.IConnectApi, McConnect.Api.ConnectApi>(s => new McConnect.Api.ConnectApi(Configuration["MCCONNECT_BASE_URL"]));
         services.AddSingleton<HypixelItemService>();
