@@ -349,13 +349,31 @@ public class PreApiService : BackgroundService, IPreApiService
         return flip;
     }
 
+    private static readonly System.Text.RegularExpressions.Regex PurchaseRegex
+        = new(@"^You purchased (.+?) for ([\d,]+(?:\.\d+)?) coins?\b");
+
+    /// <summary>
+    /// Parses a "You purchased X for N coins" line. Lines that only share the prefix
+    /// (eg "You purchased X!" or "You purchased X for 5 gems") are not auction purchases and are skipped.
+    /// </summary>
+    internal static bool TryParsePurchase(string message, out string itemName, out long price)
+    {
+        itemName = null;
+        price = 0;
+        var match = PurchaseRegex.Match(message ?? string.Empty);
+        if (!match.Success)
+            return false;
+        if (!double.TryParse(match.Groups[2].Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed))
+            return false;
+        itemName = match.Groups[1].Value;
+        price = (long)parsed;
+        return true;
+    }
+
     public void PurchaseMessage(IMinecraftSocket connection, string message)
     {
-        var regex = new System.Text.RegularExpressions.Regex(@"^You purchased (.*) for (.*) coins");
-        var match = regex.Match(message);
-        var itemName = match.Groups[1].Value;
-        var priceString = match.Groups[2].Value;
-        var price = (long)double.Parse(priceString, NumberStyles.Number, CultureInfo.InvariantCulture);
+        if (!TryParsePurchase(message, out var itemName, out var price))
+            return;
         var flips = connection.LastSent.OrderByDescending(s => s.Auction.Start)
             .Where(f => f.Auction.ItemName == itemName
                     && f.Auction.StartingBid == price

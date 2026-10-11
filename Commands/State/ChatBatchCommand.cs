@@ -44,15 +44,23 @@ namespace Coflnet.Sky.Commands.MC
                     Kind = UpdateMessage.UpdateKind.CHAT,
                     UserId = socket.UserId
                 });
-
-                foreach (var item in batch)
-                {
-                    await ProcessLine(socket, batch, item);
-                }
             }
             catch (Exception e)
             {
                 Console.WriteLine("chat produce failed " + e);
+                return;
+            }
+            // one failing line must not drop the remaining lines of the batch
+            foreach (var item in batch)
+            {
+                try
+                {
+                    await ProcessLine(socket, batch, item);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("chat line failed " + e);
+                }
             }
         }
 
@@ -156,14 +164,24 @@ namespace Coflnet.Sky.Commands.MC
 
 
 
+        internal static bool TryParseBid(string line, out int bid)
+        {
+            bid = 0;
+            var match = Regex.Match(line ?? string.Empty, @"Bid of ([\d,]+) coins");
+            return match.Success && int.TryParse(match.Groups[1].Value.Replace(",", ""), out bid);
+        }
+
         private async Task CheckBid(MinecraftSocket socket, string line)
         {
             var uuid = socket.SessionInfo.VerificationBidAuctioneer;
             Activity.Current?.Log("checking bid for player " + uuid);
-            if (uuid == null)
+            if (string.IsNullOrEmpty(uuid))
                 return;
-            var match = Regex.Match(line, @"Bid of (\d+) coins.*");
-            var bid = int.Parse(match.Groups[1].Value);
+            if (!TryParseBid(line, out var bid))
+            {
+                Activity.Current?.Log("no bid amount found in " + line);
+                return;
+            }
             if (bid != socket.SessionInfo.VerificationBidAmount)
             {
                 socket.Dialog(db => db.MsgLine($"You bid the wrong amount. Please bid the correct amount of {socket.SessionInfo.VerificationBidAmount} to verify your account."));
@@ -183,7 +201,12 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             Activity.Current?.Log("claiming " + name.Value);
-            var uuid = await socket.GetPlayerUuid(name.Value);
+            var uuid = await socket.GetPlayerUuid(name.Value, true);
+            if (string.IsNullOrEmpty(uuid))
+            {
+                Activity.Current?.Log("could not resolve uuid for " + name.Value);
+                return;
+            }
             var baseApi = socket.GetService<IBaseApi>();
             var info = await baseApi.BaseAhPlayerIdPostWithHttpInfoAsync(uuid);
             if (info.StatusCode != System.Net.HttpStatusCode.OK)

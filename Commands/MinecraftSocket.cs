@@ -56,7 +56,7 @@ namespace Coflnet.Sky.Commands.MC
         public FormatProvider formatProvider { get; private set; }
         public ModSessionLifesycle sessionLifesycle { get; protected set; } = null!;
 
-        public static bool IsDevMode { get; } = System.Net.Dns.GetHostName().Contains("ekwav");
+        public static bool IsDevMode { get; internal set; } = System.Net.Dns.GetHostName().Contains("ekwav");
         public string ClientIp => DetermineUserIp();
         public virtual string? ConnectionHost => Headers["Host"]?.Split(':')[0];
 
@@ -558,7 +558,7 @@ namespace Coflnet.Sky.Commands.MC
             return await DiHandler.GetService<PlayerName.PlayerNameService>()
                     .GetName(uuid) ?? "unknown";
         }
-        public async Task<string> GetPlayerUuid(string name, bool blockError = false)
+        public virtual async Task<string> GetPlayerUuid(string name, bool blockError = false)
         {
             for (int i = 0; i < 3; i++)
                 try

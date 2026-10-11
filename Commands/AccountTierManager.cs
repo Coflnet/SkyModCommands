@@ -363,10 +363,17 @@ public class AccountTierManager : IAccountTierManager
     public void Dispose()
     {
         Disposed = true;
-        loginNotification.OnLogin -= LoginNotification_OnLogin;
-        activeSessions?.Value.Sessions.RemoveAll(s => s.ConnectionId == socket.SessionInfo.ConnectionId);
+        if (loginNotification != null)
+            loginNotification.OnLogin -= LoginNotification_OnLogin;
         var oldActive = activeSessions;
-        activeSessions?.Update().ContinueWith(t => oldActive?.Dispose());
+        // the value is null when the socket was closed before the sessions finished loading
+        if (oldActive?.Value?.Sessions != null)
+        {
+            oldActive.Value.Sessions.RemoveAll(s => s.ConnectionId == socket.SessionInfo?.ConnectionId);
+            oldActive.Update().ContinueWith(t => oldActive.Dispose());
+        }
+        else
+            oldActive?.Dispose();
         activeSessions = null;
     }
 

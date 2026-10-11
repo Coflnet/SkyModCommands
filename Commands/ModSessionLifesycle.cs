@@ -1456,11 +1456,14 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine($"Failed to unregister from autotip service: {ex.Message}");
             }
 
-            // Unregister from proxy service
+            // Unregister from proxy service, sockets that never logged in were never registered
             try
             {
-                var proxyService = socket.GetService<ModCommands.Services.ProxyService>();
-                proxyService?.UnregisterSocket(socket);
+                if (HasUser())
+                {
+                    var proxyService = socket.GetService<ModCommands.Services.ProxyService>();
+                    proxyService?.UnregisterSocket(socket);
+                }
             }
             catch (Exception ex)
             {
@@ -1478,15 +1481,41 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine($"Failed to remove from pre-api: {ex.Message}");
             }
 
-            FlipSettings?.Dispose();
-            UserId?.Dispose();
-            AccountInfo?.Dispose();
-            SessionInfo?.Dispose();
-            AccountSettings?.Dispose();
-            PingTimer?.Dispose();
-            FilterState?.Dispose();
-            TierManager.OnTierChange -= TierChangedHandler;
-            TierManager?.Dispose();
+            foreach (var cleanup in new Action[]
+            {
+                () => FlipSettings?.Dispose(),
+                () => UserId?.Dispose(),
+                () => AccountInfo?.Dispose(),
+                () => SessionInfo?.Dispose(),
+                () => AccountSettings?.Dispose(),
+                () => PingTimer?.Dispose(),
+                () => FilterState?.Dispose(),
+                () => { if (TierManager != null) TierManager.OnTierChange -= TierChangedHandler; },
+                () => TierManager?.Dispose(),
+            })
+            {
+                try
+                {
+                    cleanup();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to dispose session part: {ex.Message}");
+                }
+            }
+        }
+
+        private bool HasUser()
+        {
+            try
+            {
+                _ = socket.UserId;
+                return true;
+            }
+            catch (NoLoginException)
+            {
+                return false;
+            }
         }
     }
 

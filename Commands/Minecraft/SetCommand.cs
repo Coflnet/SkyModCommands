@@ -81,6 +81,11 @@ public class SetCommand : McCommand
 
             socket.GetService<FlipperService>().UpdateFilterSumaries();
         }
+        catch (NoLoginException e)
+        {
+            // expected for sockets that have not logged in, tell the user how to fix it without logging an error
+            socket.SendMessage(new ChatPart(COFLNET + McColorCodes.RED + e.Message));
+        }
         catch (CoflnetException e)
         {
             socket.SendMessage(new ChatPart(COFLNET + McColorCodes.RED + e.Message));

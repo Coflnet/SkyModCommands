@@ -10,6 +10,19 @@ namespace Coflnet.Sky.Commands.MC;
 
 public class ReportCommandTests
 {
+    private bool devModeBefore;
+
+    // IsDevMode is derived from the hostname (contains "ekwav" on the dev machine) and makes UserId return "1"
+    [SetUp]
+    public void DisableDevMode()
+    {
+        devModeBefore = MinecraftSocket.IsDevMode;
+        MinecraftSocket.IsDevMode = false;
+    }
+
+    [TearDown]
+    public void RestoreDevMode() => MinecraftSocket.IsDevMode = devModeBefore;
+
     [TestCase(null, null, "unavailable: no login")]
     [TestCase("42", null, "42")]
     [TestCase(null, "43", "43")]
