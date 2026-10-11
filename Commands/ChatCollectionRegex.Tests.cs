@@ -103,6 +103,22 @@ namespace Coflnet.Sky.Commands.MC
             Assert.That(!regex.IsMatch(message));
         }
 
+        [TestCase("  EXCAVATION COMPLETE ")]
+        [TestCase("    Fossil Essence x40")]
+        [TestCase("    Fossil Essence x1,200")]
+        public void MatchesFossilExcavationSummary(string message)
+        {
+            Assert.That(regex.IsMatch(message));
+        }
+
+        [TestCase("    Enchanted Umber x4")]
+        [TestCase("    Tusk Fossil")]
+        [TestCase("[MVP+] Someone: Fossil Essence x40")]
+        public void DoesNotMatchOtherFossilRewardsOrChat(string message)
+        {
+            Assert.That(!regex.IsMatch(message));
+        }
+
         [Test]
         public void TriggerReward()
         {
