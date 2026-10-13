@@ -91,7 +91,7 @@ public class BazaarOrderDisplayTests
     }
 
     [TestCase("1.9.3")]
-    [TestCase("2.0.0-pre2")]
+    [TestCase("3.0.0")]
     [TestCase("af-2.0.0")]
     public async Task OtherVersionsReceiveNoDisplayOrTutorial(string version)
     {

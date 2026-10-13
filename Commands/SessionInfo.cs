@@ -39,6 +39,8 @@ namespace Coflnet.Sky.Commands.MC
         public ChannelMessageQueue? EventBrokerSub { get; internal set; }
         [JsonIgnore]
         public ChannelMessageQueue? EventBrokerUserSub { get; internal set; }
+        [JsonIgnore]
+        public ChannelMessageQueue? UserCommandSub { get; set; }
 
         /// <summary>
         /// Keeps track of which players a mute note message was already sent
@@ -146,6 +148,8 @@ namespace Coflnet.Sky.Commands.MC
             EventBrokerUserSub?.Unsubscribe();
             EventBrokerSub = null;
             EventBrokerUserSub = null;
+            UserCommandSub?.Unsubscribe();
+            UserCommandSub = null;
         }
     }
 
