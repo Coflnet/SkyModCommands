@@ -230,11 +230,13 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SetGuiCommand>();
             Commands.Add<FlipperEstimateCommand>();
             Commands.Add<BazaarCommand>("bz");
+            Commands.Add<BzOrderCommand>();
             Commands.Add<SwitchRegionCommand>();
             Commands.Add<CopySettingsCommand>();
             Commands.Add<ForgetUserCommand>();
             Commands.Add<CraftBreakDownCommand>();
             Commands.Add<CookieCommand>();
+            Commands.Add<GoalCommand>();
             Commands.Add<FlipSentOnProxy>();
             Commands.Add<SlowDownCommand>();
             Commands.Add<CheapAttribCommand>("ca");
@@ -919,7 +921,7 @@ namespace Coflnet.Sky.Commands.MC
         /// use with CAUTION
         /// </summary>
         /// <param name="command">The command to execute</param>
-        public void ExecuteCommand(string command)
+        public virtual void ExecuteCommand(string command)
         {
             Send(Response.Create("execute", command));
         }

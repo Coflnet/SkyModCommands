@@ -15,6 +15,7 @@ using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.ModCommands.Tutorials;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using RestSharp;
@@ -247,6 +248,7 @@ namespace Coflnet.Sky.Commands.MC
             socket.OnConClose += () =>
             {
                 commands?.Unsubscribe();
+                SessionInfo.UserCommandSub?.Unsubscribe();
             };
         }
 
@@ -292,6 +294,24 @@ namespace Coflnet.Sky.Commands.MC
             await SubToSettings(userId);
         }
 
+        private async Task SubToUserCommands(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+                return;
+            try
+            {
+                SessionInfo.UserCommandSub?.Unsubscribe();
+                SessionInfo.UserCommandSub = null;
+                var redis = DiHandler.ServiceProvider.GetRequiredKeyedService<StackExchange.Redis.IConnectionMultiplexer>("bazaar");
+                SessionInfo.UserCommandSub = await ModUserChannel.SubscribeAsync(redis, userId,
+                    msg => ModUserMessageHandler.HandleUserMessage(socket, msg));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"failed to subscribe to user command channel of {userId}: {e.Message}");
+            }
+        }
+
         protected virtual async Task SubToSettings(string userId)
         {
             using var span = socket.CreateActivity("subToSettings", ConSpan);
@@ -329,6 +349,7 @@ namespace Coflnet.Sky.Commands.MC
             AccountSettings = await accountSettingsTask;
             if (userId != null)
                 SubSessionToEventsFor(userId);
+            await SubToUserCommands(userId);
             Activity.Current.Log("subbed to events");
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
             Registerkeybinds(FlipSettings.Value, true);
