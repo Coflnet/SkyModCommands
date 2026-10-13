@@ -64,6 +64,9 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
+        /// <summary>Completes goal steps from confirming chat lines (tests replace it).</summary>
+        internal GoalChatHandler GoalHandler { get; set; } = new();
+
         private async Task ProcessLine(MinecraftSocket socket, List<string> batch, string item)
         {
             if (item.Contains("was filled!"))
@@ -80,6 +83,8 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.GetService<PreApiService>().PurchaseMessage(socket, item);
             }
+            if (GoalChatHandler.IsCandidate(item))
+                await GoalHandler.Handle(socket, item);
             if (item.StartsWith("BIN Auction started"))
                 await socket.GetService<PreApiService>().ListingMessage(socket, item);
             var secondLine = batch.Last();
