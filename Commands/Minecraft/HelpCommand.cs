@@ -62,6 +62,20 @@ public class HelpCommand : McCommand
                             .CoflCommand<HelpCommand>(McColorCodes.AQUA + "more about verifying", "verify", "prints more help"));
     }
 
+    internal static Dictionary<string, string> BuildCommandList(IEnumerable<McCommand> commands)
+    {
+        var result = new Dictionary<string, string>();
+        foreach (var command in commands.Where(c => c.IsPublic).Distinct())
+        {
+            var description = command.GetType().GetCustomAttributes(typeof(CommandDescriptionAttribute), true)
+                .FirstOrDefault() as CommandDescriptionAttribute;
+            result[command.Slug] = description?.Description ?? "no help yet";
+            foreach (var option in command.CompletionArguments)
+                result[$"{command.Slug} {option.Key}"] = option.Value;
+        }
+        return result;
+    }
+
     private static void PrintCommandHelp(MinecraftSocket socket, string arguments)
     {
         var pageSize = 10;
@@ -73,9 +87,7 @@ public class HelpCommand : McCommand
             var description = c.Value.GetType().GetCustomAttributes(typeof(CommandDescriptionAttribute), true).FirstOrDefault() as CommandDescriptionAttribute;
             return (c.Key, Command: c.Value, description: description?.Description ?? "no help yet");
         }).GroupBy(c => c.Command);
-        var allUpdate = Response.Create("commandUpdate", withDescription.ToDictionary(g => g.Key.Slug,
-            g => g.Select(i => i.description).First()
-        ));
+        var allUpdate = Response.Create("commandUpdate", BuildCommandList(withDescription.Select(g => g.Key)));
         allUpdate.type = "commandUpdate";
         if (socket.Version == "1.7.6" || socket.Version == "1.7.5")
         {

@@ -177,6 +177,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<LoserboardCommand>();
             Commands.Add<BuyspeedboardCommand>("bsb");
             Commands.Add<TradesCommand>();
+            Commands.Add<TradeGuiCommand>();
             Commands.Add<FlipsCommand>();
             Commands.Add<AhOpenCommand>();
             Commands.Add<ProfileOpenCommand>();
