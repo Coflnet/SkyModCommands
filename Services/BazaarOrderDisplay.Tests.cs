@@ -48,6 +48,28 @@ public class BazaarOrderDisplayTests
 
     private InfoDisplay Display => JsonConvert.DeserializeObject<InfoDisplay>(sent.Last().data);
 
+    [Test]
+    public async Task OrderHudIsSentBeforeGoalSettingsLoadCompletes()
+    {
+        var response = new TaskCompletionSource<Coflnet.Sky.Settings.Client.Client.ApiResponse<string>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var api = new Mock<Coflnet.Sky.Settings.Client.Api.ISettingsApi>();
+        api.Setup(a => a.GetSettingWithHttpInfoAsync("1", GoalCommand.SettingsKey, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(response.Task);
+        var settings = new SettingsService(new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build(), NullLogger<SettingsService>.Instance, api.Object);
+        socket.Setup(s => s.GetService<SettingsService>()).Returns(settings);
+        var applying = BazaarOrderDisplay.Apply(socket.Object, Snapshot());
+        try
+        {
+            Assert.That(applying.IsCompleted, Is.False);
+            Assert.That(sent, Has.Count.EqualTo(1), "Goal settings must not delay a valid order HUD.");
+        }
+        finally
+        {
+            response.SetResult(new(System.Net.HttpStatusCode.NoContent, null));
+            await applying;
+        }
+    }
+
     [TestCase(true, "Undercut")]
     [TestCase(false, "Outbid")]
     public async Task TopPricePushChangesLabelWithoutChangingFill(bool sell, string label)
@@ -138,6 +160,33 @@ public class BazaarOrderDisplayTests
         Assert.That(Display.Lines[0].hover.Split('\n'), Has.Length.EqualTo(3));
         Assert.That(Display.Lines[0].hover, Does.Contain(estimate == false ? "Confirmed" : "Estimated"));
         Assert.That(Display.Lines.Last().text, Is.EqualTo("§c[Disable display]"));
+    }
+
+    [TestCase(true, 64, 64)]
+    [TestCase(true, 0, 0)]
+    [TestCase(false, 64, 64)]
+    public async Task ClosedOrdersWithoutUnclaimedProceedsClearDisplay(bool expired, int filled, int claimed)
+    {
+        var state = Snapshot(1, filled);
+        state.Orders[0].IsExpired = expired;
+        state.Orders[0].Claimed = claimed;
+        await BazaarOrderDisplay.Apply(socket.Object, state);
+        Assert.That(Display.Clear, Is.True);
+        Assert.That(Display.Lines, Is.Empty);
+        Assert.That(socket.Object.SessionInfo.BazaarDisplayState.Orders, Has.Count.EqualTo(1),
+            "Filtering the ordinary HUD must preserve the authoritative snapshot used by goals.");
+    }
+
+    [TestCase(null)]
+    [TestCase(16)]
+    public async Task ExpiredOrdersWithKnownOrUnknownUnclaimedQuantityRemainVisible(int? claimed)
+    {
+        var state = Snapshot(1, 32);
+        state.Orders[0].IsExpired = true;
+        state.Orders[0].Claimed = claimed;
+        await BazaarOrderDisplay.Apply(socket.Object, state);
+        Assert.That(Display.Clear, Is.False);
+        Assert.That(Display.Lines[0].text, Does.Contain("Expired").And.Contain("32/64"));
     }
 
     [Test]

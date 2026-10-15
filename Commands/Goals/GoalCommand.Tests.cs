@@ -89,6 +89,44 @@ public class GoalCommandTests
         Assert.That(socket.Parts.Select(p => p.text), Has.Some.Contains("Tracking"));
     }
 
+    [Test]
+    public async Task BazaarCreatesFocusedFlipWithoutCallingCraftPlanner()
+    {
+        await command.Execute(socket, "\"bazaar coal 64\"");
+        var flip = stored.Goals.Single(g => g.BazaarFlip != null);
+        Assert.That(flip.RootItemTag, Is.EqualTo("COAL"));
+        Assert.That(flip.Quantity, Is.EqualTo(64));
+        Assert.That(stored.FocusId, Is.EqualTo(flip.Id));
+        Assert.That(flip.Root.Children, Is.Empty);
+        crafts.Verify(c => c.GetAcquisitionAsync(It.IsAny<string>(), It.IsAny<long?>(), It.IsAny<bool?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        await command.Execute(socket, "\"bazaar coal 64\"");
+        Assert.That(stored.Goals.Count(g => g.BazaarFlip != null), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ResetCannotReactivateASecondBazaarFlipForTheSameItem()
+    {
+        await command.Execute(socket, "\"bazaar coal 64\"");
+        var completed = stored.Goals.Single(g => g.BazaarFlip != null);
+        completed.BazaarFlip.Orders.Add(new() { Amount = 64, Filled = 64, Claimed = 64 });
+        completed.BazaarFlip.Orders.Add(new() { IsSell = true, Amount = 64, Filled = 64, Claimed = 64 });
+        await command.Execute(socket, "\"bazaar coal 64\"");
+        await command.Execute(socket, "\"reset " + completed.Id + "\"");
+        Assert.That(BazaarFlipProgress.Next(completed), Is.EqualTo(BazaarFlipAction.Done));
+        Assert.That(stored.Goals.Count(g => g.BazaarFlip != null && BazaarFlipProgress.Next(g) != BazaarFlipAction.Done), Is.EqualTo(1));
+        Assert.That(socket.Parts.Select(p => p.text), Has.Some.Contains("already have an active Bazaar flip"));
+    }
+
+    [TestCase("bazaar COAL 0")]
+    [TestCase("bazaar COAL -1")]
+    [TestCase("bazaar COAL 2147483648")]
+    [TestCase("bazaar INVALID 64")]
+    public async Task InvalidBazaarGoalDoesNotMutateSettings(string input)
+    {
+        await command.Execute(socket, "\"" + input + "\"");
+        Assert.That(stored.Goals, Has.Count.EqualTo(2));
+    }
+
     private class TestCommand(GoalCommandTests t) : GoalCommand
     {
         protected override Task<GoalList> LoadGoals(MinecraftSocket socket, string userId) => Task.FromResult(t.stored);
@@ -97,7 +135,7 @@ public class GoalCommandTests
             t.stored = list;
             return Task.CompletedTask;
         }
-        protected override Task<ISet<string>> GetBazaarTags(MinecraftSocket socket) => Task.FromResult<ISet<string>>(new HashSet<string>());
+        protected override Task<ISet<string>> GetBazaarTags(MinecraftSocket socket) => Task.FromResult<ISet<string>>(new HashSet<string> { "COAL" });
         protected override Task<Dictionary<string, string>> GetNames(MinecraftSocket socket) => Task.FromResult(new Dictionary<string, string>());
     }
 
