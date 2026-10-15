@@ -46,9 +46,9 @@ namespace Coflnet.Sky.Commands.MC
 
             var parts = input.Split(' ', System.StringSplitOptions.RemoveEmptyEntries);
             var toBuy = parts[0];
-            if (toBuy.StartsWith('c') && parts.Length == 1)
+            if ((toBuy.StartsWith('c') || toBuy.StartsWith('s')) && parts.Length == 1)
             {
-                ShowCoinGateCountrySelection(socket, toBuy);
+                ShowCountrySelection(socket, toBuy);
                 return;
             }
 
@@ -65,7 +65,7 @@ namespace Coflnet.Sky.Commands.MC
                 Locale = accountInfo.Locale,
                 UserEmail = UserService.Instance.GetUserById(int.Parse(accountInfo.UserId)).Email,
                 UserIp = clientIp,
-                Country = toBuy.StartsWith('c') ? parts.ElementAtOrDefault(1)?.ToUpperInvariant() : null
+                Country = toBuy.StartsWith('c') || toBuy.StartsWith('s') ? parts.ElementAtOrDefault(1)?.ToUpperInvariant() : null
             };
             TopUpIdResponse info;
             if (toBuy.StartsWith('s'))
@@ -82,19 +82,27 @@ namespace Coflnet.Sky.Commands.MC
             socket.SendMessage(new DialogBuilder().Msg($"{separationLines}{McColorCodes.GREEN}Click here to finish the payment\n{separationLines}", info.DirectLink, "open link"));
         }
 
-        private static void ShowCoinGateCountrySelection(MinecraftSocket socket, string productId)
+        private static void ShowCountrySelection(MinecraftSocket socket, string productId)
         {
+            var isCrypto = productId.StartsWith('c');
             var coinAmount = int.TryParse(productId.Split('_').LastOrDefault(), out var amount) ? amount : 0;
             var db = DialogBuilder.New
-                .MsgLine("Select your country for this crypto payment.")
+                .MsgLine($"Select your country for this {(isCrypto ? "crypto" : "Stripe")} payment.")
                 .MsgLine("Your selection must match the country of your current IP address.")
-                .If(() => coinAmount < MinimumUsCoinGateAmount, db => db.MsgLine(
+                .If(() => isCrypto && coinAmount < MinimumUsCoinGateAmount, db => db.MsgLine(
                     $"{McColorCodes.YELLOW}United States crypto payments require at least {socket.FormatPrice(MinimumUsCoinGateAmount)} CoflCoins."));
 
-            foreach (var code in CoinGateCountries.Where(code => code != "US" || coinAmount >= MinimumUsCoinGateAmount)
-                         .OrderBy(code => new RegionInfo(code).EnglishName))
+            var countries = isCrypto
+                ? CoinGateCountries.Where(code => code != "US" || coinAmount >= MinimumUsCoinGateAmount)
+                    .Select(code => new RegionInfo(code))
+                : CultureInfo.GetCultures(CultureTypes.SpecificCultures)
+                    .Select(culture => new RegionInfo(culture.Name))
+                    .Where(country => country.TwoLetterISORegionName.Length == 2)
+                    .DistinctBy(country => country.TwoLetterISORegionName);
+            foreach (var country in countries.OrderBy(country => country.EnglishName))
             {
-                var name = new RegionInfo(code).EnglishName;
+                var code = country.TwoLetterISORegionName;
+                var name = country.EnglishName;
                 db.CoflCommandButton<TopUpCommand>(name, $"{productId} {code}", $"Select {name} ({code})")
                     .Msg(" ");
             }
