@@ -30,4 +30,5 @@ public class BazaarDisplayOrder
     public bool IsSell { get; set; }
     public double PricePerUnit { get; set; }
     public DateTime Timestamp { get; set; }
+    public DateTime? ClosedAt { get; set; }
 }

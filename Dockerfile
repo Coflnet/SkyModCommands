@@ -5,6 +5,9 @@ RUN git clone --depth=1 https://github.com/Ekwav/websocket-sharp \
     && git clone --depth=1 https://github.com/Coflnet/HypixelSkyblock.git dev \
     && git clone --depth=1 https://github.com/Coflnet/SkyFilter.git \
     && git clone --depth=1 https://github.com/Coflnet/SkyBackendForFrontend.git
+ARG SHARED_GOALS_REVISION=03f81782596520396b2e21acec1ea77e6d9e6645
+RUN git -C /build/SkyBackendForFrontend fetch --depth=1 origin "$SHARED_GOALS_REVISION" \
+    && git -C /build/SkyBackendForFrontend checkout --detach FETCH_HEAD
 WORKDIR /build/sky
 COPY SkyModCommands.csproj SkyModCommands.csproj
 RUN dotnet restore

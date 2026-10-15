@@ -12,6 +12,7 @@ namespace Coflnet.Sky.Commands.MC;
 
 [CommandDescription("Track a goal like crafting or forging an item",
     "/cofl goal list - show your goals",
+    "/cofl goal bazaar <itemTag> <quantity> - guide a buy-order to sell-offer flip",
     "/cofl goal add <itemTag> [quantity] [sell] [forge] - track a new goal",
     "/cofl goal focus|remove|reset <id> - manage a goal",
     "/cofl goal clear - remove all goals")]
@@ -21,6 +22,13 @@ public class GoalCommand : McCommand
     public override bool IsPublic => true;
 
     public override async Task Execute(MinecraftSocket socket, string arguments)
+    {
+        await socket.SessionInfo.BazaarDisplayLock.WaitAsync();
+        try { await ExecuteLocked(socket, arguments); }
+        finally { socket.SessionInfo.BazaarDisplayLock.Release(); }
+    }
+
+    private async Task ExecuteLocked(MinecraftSocket socket, string arguments)
     {
         var userId = socket.UserId;
         if (userId == null)
@@ -61,6 +69,12 @@ public class GoalCommand : McCommand
                 var toReset = FindGoal(socket, list, id);
                 if (toReset == null)
                     return;
+                if (toReset.BazaarFlip != null && list.Goals.Any(g => g != toReset && g.RootItemTag == toReset.RootItemTag
+                    && g.BazaarFlip != null && BazaarFlipProgress.Next(g) != BazaarFlipAction.Done))
+                {
+                    socket.Dialog(db => db.MsgLine("You already have an active Bazaar flip for this item. Focus or remove it first."));
+                    return;
+                }
                 GoalProgressEvaluator.Reset(toReset);
                 await SaveGoals(socket, userId, list);
                 socket.Dialog(db => db.MsgLine($"Reset progress of {toReset.Title}"));
@@ -71,11 +85,38 @@ public class GoalCommand : McCommand
                 await SaveGoals(socket, userId, list);
                 socket.Dialog(db => db.MsgLine("Removed all goals"));
                 return;
+            case "bazaar":
+                if (parts.Length != 3 || !long.TryParse(parts[2], out var amount) || amount <= 0 || amount > int.MaxValue)
+                {
+                    socket.Dialog(db => db.MsgLine("Usage: /cofl goal bazaar <itemTag> <quantity>"));
+                    return;
+                }
+                var tag = parts[1].ToUpperInvariant();
+                if (!(await GetBazaarTags(socket)).Contains(tag))
+                {
+                    socket.Dialog(db => db.MsgLine("That item tag is not traded on the Bazaar."));
+                    return;
+                }
+                if (list.Goals.Any(g => g.RootItemTag == tag && g.BazaarFlip != null && BazaarFlipProgress.Next(g) != BazaarFlipAction.Done))
+                {
+                    socket.Dialog(db => db.MsgLine("You already have an active Bazaar flip for this item. Focus or remove it first."));
+                    return;
+                }
+                var names = await GetNames(socket);
+                var created = DateTime.UtcNow;
+                created = new DateTime(created.Ticks / TimeSpan.TicksPerMillisecond * TimeSpan.TicksPerMillisecond, DateTimeKind.Utc);
+                var flip = new Goal { CreatedAt = created, RootItemTag = tag, Quantity = amount, Title = $"Bazaar flip: {names.GetValueOrDefault(tag, tag)} ×{amount}",
+                    Source = "mod", BazaarFlip = new(), Root = new GoalStep { Kind = StepKind.Sell, ItemTag = tag, Quantity = amount } };
+                list.Goals.Add(flip);
+                list.FocusId = flip.Id;
+                await SaveGoals(socket, userId, list);
+                socket.Dialog(db => db.MsgLine($"Tracking {flip.Title}. Open your inventory to show the guide. New orders and final claims are tracked; existing holdings do not complete this flip."));
+                return;
             case "add":
                 await Add(socket, userId, list, parts.Skip(1).ToArray());
                 return;
             default:
-                socket.Dialog(db => db.MsgLine($"Unknown goal command `{sub}`, use list, add, focus, remove, reset or clear"));
+                socket.Dialog(db => db.MsgLine($"Unknown goal command `{sub}`, use list, add, bazaar, focus, remove, reset or clear"));
                 return;
         }
     }

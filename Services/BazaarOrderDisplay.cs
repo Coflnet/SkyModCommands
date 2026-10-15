@@ -28,7 +28,9 @@ public static class BazaarOrderDisplay
             return;
         var state = socket.SessionInfo.BazaarDisplayState;
         var orders = state?.Orders.Where(o => string.Equals(o.PlayerName, socket.SessionInfo.McName,
-            StringComparison.OrdinalIgnoreCase)).OrderByDescending(o => o.IsSell).ThenBy(o => o.Timestamp).ToList() ?? new();
+            StringComparison.OrdinalIgnoreCase))
+            .Where(o => (o.Claimed ?? 0) < o.Amount && (!o.IsExpired || o.Filled > (o.Claimed ?? 0)))
+            .OrderByDescending(o => o.IsSell).ThenBy(o => o.Timestamp).ToList() ?? new();
         var clear = socket.Settings?.ModSettings?.HideBazaarOrderDisplay == true || orders.Count == 0;
         logger.LogDebug("Sending Bazaar HUD for {UserId}, revision {Revision}, player {PlayerName}, matching orders {OrderCount}, hidden {Hidden}, clear {Clear}; TraceId {TraceId}",
             socket.UserId, state?.Revision, socket.SessionInfo.McName, orders.Count, socket.Settings?.ModSettings?.HideBazaarOrderDisplay == true, clear, Activity.Current?.TraceId.ToString());
@@ -85,6 +87,7 @@ public static class BazaarOrderDisplay
             }
             socket.SessionInfo.BazaarDisplayState = state;
             Send(socket, logger);
+            await new GoalChatHandler().HandleOrders(socket, state);
             Snapshots.WithLabels("applied").Inc();
             span?.SetTag("bazaar.result", "applied");
             tutorial = !restore && state.Created && string.Equals(state.PlayerName, socket.SessionInfo.McName,
