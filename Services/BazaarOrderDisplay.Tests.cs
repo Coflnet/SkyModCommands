@@ -226,7 +226,7 @@ public class BazaarOrderDisplayTests
     [TestCase(true, -1, 16, true)]
     [TestCase(true, 1, 16, false)]
     [TestCase(false, -1, 16, false)]
-    public async Task OrdersExpiredForMoreThanSevenDaysAreHidden(bool expired, int cutoffOffsetMinutes, int? claimed, bool hidden)
+    public async Task OrdersExpiredAreHidden(bool expired, int cutoffOffsetMinutes, int? claimed, bool hidden)
     {
         var state = Snapshot(1, 32);
         state.Orders[0].IsExpired = expired;
