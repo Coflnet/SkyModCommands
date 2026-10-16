@@ -27,9 +27,11 @@ public static class BazaarOrderDisplay
         if (!Supports(socket))
             return;
         var state = socket.SessionInfo.BazaarDisplayState;
+        var expiredOrderCutoff = DateTime.UtcNow.AddDays(-8);
         var orders = state?.Orders.Where(o => string.Equals(o.PlayerName, socket.SessionInfo.McName,
             StringComparison.OrdinalIgnoreCase))
             .Where(o => (o.Claimed ?? 0) < o.Amount && (!o.IsExpired || o.Filled > (o.Claimed ?? 0)))
+            .Where(o => !o.ClosedAt.HasValue && (!o.IsExpired || o.Timestamp >= expiredOrderCutoff))
             .OrderByDescending(o => o.IsSell).ThenBy(o => o.Timestamp).ToList() ?? new();
         var clear = socket.Settings?.ModSettings?.HideBazaarOrderDisplay == true || orders.Count == 0;
         logger.LogDebug("Sending Bazaar HUD for {UserId}, revision {Revision}, player {PlayerName}, matching orders {OrderCount}, hidden {Hidden}, clear {Clear}; TraceId {TraceId}",

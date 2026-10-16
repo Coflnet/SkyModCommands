@@ -179,6 +179,26 @@ public class BazaarOrderDisplayTests
 
     [TestCase(null)]
     [TestCase(16)]
+    public async Task MenuRemovalClearsDisplayEvenWithoutCompleteClaimEvidence(int? claimed)
+    {
+        var state = Snapshot(1, 32);
+        state.Orders[0].Claimed = claimed;
+        await BazaarOrderDisplay.Apply(socket.Object, state);
+        Assert.That(Display.Clear, Is.False);
+
+        var closed = Snapshot(2, 32);
+        closed.Orders[0].Claimed = claimed;
+        closed.Orders[0].IsExpired = true;
+        closed.Orders[0].ClosedAt = DateTime.UtcNow;
+        await BazaarOrderDisplay.Apply(socket.Object, closed);
+        Assert.That(Display.Clear, Is.True);
+        Assert.That(Display.Lines, Is.Empty);
+        Assert.That(socket.Object.SessionInfo.BazaarDisplayState.Orders, Has.Count.EqualTo(1),
+            "Closed orders must remain available to goals after disappearing from the HUD.");
+    }
+
+    [TestCase(null)]
+    [TestCase(16)]
     public async Task ExpiredOrdersWithKnownOrUnknownUnclaimedQuantityRemainVisible(int? claimed)
     {
         var state = Snapshot(1, 32);
@@ -200,6 +220,23 @@ public class BazaarOrderDisplayTests
         await BazaarOrderDisplay.Apply(socket.Object, state);
         Assert.That(Display.Lines[0].text, Does.Contain("Expired").And.Contain("512 to claim").And.Not.Contain("Filled!"));
         Assert.That(Display.Lines[0].hover, Does.Contain("Claimed: 512").And.Contain("Expired: no further fills."));
+    }
+
+    [TestCase(true, -1, null, true)]
+    [TestCase(true, -1, 16, true)]
+    [TestCase(true, 1, 16, false)]
+    [TestCase(false, -1, 16, false)]
+    public async Task OrdersExpiredAreHidden(bool expired, int cutoffOffsetMinutes, int? claimed, bool hidden)
+    {
+        var state = Snapshot(1, 32);
+        state.Orders[0].IsExpired = expired;
+        state.Orders[0].Claimed = claimed;
+        state.Orders[0].Timestamp = DateTime.UtcNow.AddDays(-8).AddMinutes(cutoffOffsetMinutes);
+        await BazaarOrderDisplay.Apply(socket.Object, state);
+        Assert.That(Display.Clear, Is.EqualTo(hidden));
+        Assert.That(Display.Lines.Length, Is.EqualTo(hidden ? 0 : 2));
+        Assert.That(socket.Object.SessionInfo.BazaarDisplayState.Orders, Has.Count.EqualTo(1),
+            "Hiding old orders must preserve the authoritative snapshot used by goals.");
     }
 
     [Test]
