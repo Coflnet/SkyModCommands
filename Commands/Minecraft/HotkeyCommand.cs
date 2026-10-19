@@ -9,11 +9,18 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using Coflnet.Sky.PlayerState.Client.Api;
 using System;
+using System.Collections.Generic;
+using IBazaarApi = Coflnet.Sky.Bazaar.Client.Api.IBazaarApi;
 
 namespace Coflnet.Sky.Commands.MC;
 
 public class HotkeyCommand : McCommand
 {
+    /// <summary>
+    /// Enchantments worth less than this (or without any bazaar price, eg. from the enchantment table) are left out of the item link
+    /// </summary>
+    public const int MinEnchantValueForLink = 50_000;
+
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var parts = Convert<string>(arguments).Split('|');
@@ -137,13 +144,13 @@ public class HotkeyCommand : McCommand
         return JsonConvert.DeserializeObject<SaveAuction>(auction.RawContent);
     }
 
-    private static Task<System.Collections.Generic.Dictionary<string, string>> RequestFilters(MinecraftSocket socket, SaveAuction auction)
+    private static async Task<System.Collections.Generic.Dictionary<string, string>> RequestFilters(MinecraftSocket socket, SaveAuction auction)
     {
         var priceApi = socket.GetService<IPricesApi>();
         var represent = new Api.Client.Model.ItemRepresent();
         represent.ItemName = auction.ItemName;
         represent.ExtraAttributes = auction.NbtData.Data;
-        represent.Enchantments = auction.Enchantments.GroupBy(t => t.Type).Select(g => g.First()).ToDictionary(e => e.Type.ToString(), e => (int)e.Level);
+        represent.Enchantments = (await GetValuableEnchantments(socket, auction)).ToDictionary(e => e.Type.ToString(), e => (int)e.Level);
         represent.Count = auction.Count;
         represent.Description = auction.Context["lore"];
         represent.Tag = auction.Tag;
@@ -151,8 +158,42 @@ public class HotkeyCommand : McCommand
         represent.ExtraAttributes["modifier"] = auction.Reforge.ToString();
         represent.ExtraAttributes["tier"] = auction.Tier.ToString();
         Activity.Current.Log(JsonConvert.SerializeObject(represent));
-        var filterTask = priceApi.ApiItemFiltersPostAsync(represent);
-        return filterTask;
+        return await priceApi.ApiItemFiltersPostAsync(represent);
+    }
+
+    private static async Task<List<Enchantment>> GetValuableEnchantments(MinecraftSocket socket, SaveAuction auction)
+    {
+        var enchantments = auction.Enchantments.GroupBy(t => t.Type).Select(g => g.First()).ToList();
+        if (enchantments.Count == 0 || auction.Tag == "ENCHANTED_BOOK")
+            return enchantments; // the enchantment is the item itself on books
+        try
+        {
+            var bazaarPrices = await socket.GetService<IBazaarApi>().GetAllPricesAsync();
+            var enchantPrices = bazaarPrices.Where(p => p.ProductId.StartsWith("ENCHANTMENT_"))
+                .GroupBy(p => p.ProductId).ToDictionary(g => g.Key, g => g.First().BuyPrice);
+            return enchantments.Where(e => GetEnchantPrice(enchantPrices, e) >= MinEnchantValueForLink).ToList();
+        }
+        catch (Exception e)
+        {
+            socket.Error(e, "Failed to load enchantment prices for item link");
+            return enchantments;
+        }
+    }
+
+    /// <summary>
+    /// Tiered enchantments (eg. expertise, compact, champion) level up through use and only sell at level 1,
+    /// so higher levels without their own listing are valued at least at the level 1 price
+    /// </summary>
+    private static double GetEnchantPrice(Dictionary<string, double> enchantPrices, Enchantment enchantment)
+    {
+        if (enchantPrices.TryGetValue(GetBazaarTag(enchantment.Type, enchantment.Level), out var price))
+            return price;
+        return enchantPrices.GetValueOrDefault(GetBazaarTag(enchantment.Type, 1));
+    }
+
+    private static string GetBazaarTag(Enchantment.EnchantmentType type, int level)
+    {
+        return $"ENCHANTMENT_{type.ToString().ToUpper()}_{level}";
     }
 
     private static async Task<string> GetLinkFromFilters(SaveAuction auction, Task<System.Collections.Generic.Dictionary<string, string>> filterTask)
