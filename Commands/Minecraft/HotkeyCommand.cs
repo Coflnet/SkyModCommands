@@ -171,7 +171,7 @@ public class HotkeyCommand : McCommand
             var bazaarPrices = await socket.GetService<IBazaarApi>().GetAllPricesAsync();
             var enchantPrices = bazaarPrices.Where(p => p.ProductId.StartsWith("ENCHANTMENT_"))
                 .GroupBy(p => p.ProductId).ToDictionary(g => g.Key, g => g.First().BuyPrice);
-            return enchantments.Where(e => enchantPrices.GetValueOrDefault(GetBazaarTag(e)) >= MinEnchantValueForLink).ToList();
+            return enchantments.Where(e => GetEnchantPrice(enchantPrices, e) >= MinEnchantValueForLink).ToList();
         }
         catch (Exception e)
         {
@@ -180,9 +180,20 @@ public class HotkeyCommand : McCommand
         }
     }
 
-    private static string GetBazaarTag(Enchantment enchantment)
+    /// <summary>
+    /// Tiered enchantments (eg. expertise, compact, champion) level up through use and only sell at level 1,
+    /// so higher levels without their own listing are valued at least at the level 1 price
+    /// </summary>
+    private static double GetEnchantPrice(Dictionary<string, double> enchantPrices, Enchantment enchantment)
     {
-        return $"ENCHANTMENT_{enchantment.Type.ToString().ToUpper()}_{enchantment.Level}";
+        if (enchantPrices.TryGetValue(GetBazaarTag(enchantment.Type, enchantment.Level), out var price))
+            return price;
+        return enchantPrices.GetValueOrDefault(GetBazaarTag(enchantment.Type, 1));
+    }
+
+    private static string GetBazaarTag(Enchantment.EnchantmentType type, int level)
+    {
+        return $"ENCHANTMENT_{type.ToString().ToUpper()}_{level}";
     }
 
     private static async Task<string> GetLinkFromFilters(SaveAuction auction, Task<System.Collections.Generic.Dictionary<string, string>> filterTask)
