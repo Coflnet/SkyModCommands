@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Coflnet.OpenApi;
 using Microsoft.OpenApi;
 using Coflnet.Sky.Proxy.Client.Api;
 using Prometheus;
@@ -45,6 +46,9 @@ public class Startup
         services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "SkyModCommands", Version = "v1" });
+            // Dictionary<string, object> values otherwise become a null-only schema (enum: [null]) that
+            // openapi-generator turns into C# that does not compile.
+            c.DocumentFilter<NullOnlySchemaDocumentFilter>();
             // Set the comments path for the Swagger JSON and UI.
             var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);

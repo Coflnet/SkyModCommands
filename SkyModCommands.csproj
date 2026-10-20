@@ -16,7 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CassandraCSharpDriver" Version="3.22.1" />
+    <PackageReference Include="CassandraCSharpDriver" Version="3.23.0" />
+    <PackageReference Include="Coflnet.Core" Version="0.7.4" />
     <PackageReference Include="Coflnet.DiscordBot.Client" Version="0.0.1" />
     <PackageReference Include="Coflnet.Leaderboard.Client" Version="0.3.3" />
     <PackageReference Include="Coflnet.Payments.Client" Version="0.28.0" />
