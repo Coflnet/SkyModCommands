@@ -4,7 +4,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 # Single source of truth for the published client version. Bump this (and merge to main) to
 # cut a release: the Package GitHub Actions workflow triggers on changes to this file.
-VERSION=0.10.1
+VERSION=0.11.0
 PACKAGE_NAME=Coflnet.Sky.ModCommands.Client
 
 # Where to read the OpenAPI document from. Defaults to a locally running API (the historical
