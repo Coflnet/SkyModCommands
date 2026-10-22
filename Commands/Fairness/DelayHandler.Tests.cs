@@ -132,5 +132,42 @@ public class DelayHandlerTests
         Assert.That(delayTask.IsCompleted);
 
     }
+
+    private void SetupLongFlipping(long boughtWorth, double penalty)
+    {
+        result.Times = new();
+        for (int hour = 1; hour <= 4; hour++)
+            result.Times.Add(new() { TotalSeconds = 2, Age = $"0{hour}:00:00" });
+        result.BoughtWorth = boughtWorth;
+        result.Penalty = penalty;
+        sessionInfo.VerifiedMc = true;
+    }
+
+    [TestCase(3.5, false)]
+    [TestCase(4.5, false)]
+    [TestCase(5.5, false)]
+    [TestCase(6.5, true)]
+    public async Task AntiAfkDelayAfterLongCaptchaAge(double hoursSinceCaptcha, bool expectDelay)
+    {
+        SetupLongFlipping(100_000_000, 0.1);
+        var summary = await delayHandler.Update(ids, timeProvider.Now - TimeSpan.FromHours(hoursSinceCaptcha));
+        Assert.That(summary.AntiAfk, Is.EqualTo(hoursSinceCaptcha > 4.8));
+        Assert.That(summary.Penalty == TimeSpan.FromSeconds(12), Is.EqualTo(expectDelay));
+    }
+
+    [TestCase(235, false, false)]
+    [TestCase(238, true, false)]
+    [TestCase(241, true, true)]
+    public async Task AntiAfkPenaltyBranchBoundaries(int minutesSinceCaptcha, bool expectAfk, bool expectDelay)
+    {
+        // too few hours for the first branch
+        result.Times = new();
+        result.BoughtWorth = 50_000_000;
+        result.Penalty = 0.9;
+        sessionInfo.VerifiedMc = true;
+        var summary = await delayHandler.Update(ids, timeProvider.Now - TimeSpan.FromMinutes(minutesSinceCaptcha));
+        Assert.That(summary.AntiAfk, Is.EqualTo(expectAfk));
+        Assert.That(summary.Penalty == TimeSpan.FromSeconds(12), Is.EqualTo(expectDelay));
+    }
 }
 

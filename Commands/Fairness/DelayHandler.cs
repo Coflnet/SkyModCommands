@@ -30,6 +30,18 @@ public class DelayHandler : IDelayHandler
     public static readonly TimeSpan MaxSuperPremiumDelay = TimeSpan.FromMilliseconds(700);
     private static readonly TimeSpan PreApiDelayExempt = TimeSpan.FromMilliseconds(-1234);
     public static readonly double DelayReduction = 0.3;
+    /// <summary>Flipping time without a captcha solve before anti afk applies (hourCount based)</summary>
+    public static readonly TimeSpan AntiAfkFlipDuration = TimeSpan.FromHours(4.8);
+    /// <summary>Captcha age after which the anti afk delay is applied (high bought worth)</summary>
+    public static readonly TimeSpan AntiAfkLongCaptchaAge = TimeSpan.FromHours(6);
+    /// <summary>Captcha age after which anti afk is flagged (penalty branch)</summary>
+    public static readonly TimeSpan AntiAfkPenaltyCaptchaAge = TimeSpan.FromMinutes(236);
+    /// <summary>Captcha age after which the anti afk delay is applied (penalty branch)</summary>
+    public static readonly TimeSpan AntiAfkPenaltyDelayCaptchaAge = TimeSpan.FromMinutes(240);
+    /// <summary>Session captcha age before a recently switched macro user gets a captcha</summary>
+    public static readonly TimeSpan MacroSwitchSessionCaptchaAge = TimeSpan.FromMinutes(240);
+    /// <summary>Account captcha age before a recently switched macro user gets a captcha</summary>
+    public static readonly TimeSpan MacroSwitchAccountCaptchaAge = TimeSpan.FromMinutes(120);
 
 
     private readonly ITimeProvider timeProvider;
@@ -183,13 +195,13 @@ public class DelayHandler : IDelayHandler
         if (HasFlippedForLong(lastCaptchaSolveTime, hourCount) && breakdown.BoughtWorth > 80_000_000)
         {
             summary.AntiAfk = true;
-            if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(3))
+            if (lastCaptchaSolveTime < timeProvider.Now - AntiAfkLongCaptchaAge)
                 currentDelay = AntiAfkDelay;
         }
-        else if (recommendedPenalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(118) && breakdown?.BoughtWorth > 40_000_000)
+        else if (recommendedPenalty > 0.8 && lastCaptchaSolveTime < timeProvider.Now - AntiAfkPenaltyCaptchaAge && breakdown?.BoughtWorth > 40_000_000)
         {
             summary.AntiAfk = true;
-            if (lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromMinutes(120))
+            if (lastCaptchaSolveTime < timeProvider.Now - AntiAfkPenaltyDelayCaptchaAge)
                 currentDelay = AntiAfkDelay;
         }
         var macroed = breakdown?.MacroedFlips?.Where(m => m.BuyTime > DateTime.UtcNow - TimeSpan.FromHours(6)).Count() ?? 0;
@@ -271,7 +283,7 @@ public class DelayHandler : IDelayHandler
 
     private bool HasFlippedForLong(DateTime lastCaptchaSolveTime, int hourCount)
     {
-        return hourCount > 3 && lastCaptchaSolveTime < timeProvider.Now - TimeSpan.FromHours(2.4);
+        return hourCount > 3 && lastCaptchaSolveTime < timeProvider.Now - AntiAfkFlipDuration;
     }
 
     public class Summary

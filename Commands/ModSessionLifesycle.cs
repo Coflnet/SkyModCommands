@@ -1415,9 +1415,9 @@ namespace Coflnet.Sky.Commands.MC
             if (socket.HasFlippingDisabled() || socket.CurrentRegion != "eu")
                 return;
             var recentlySwitchedFromMarco = AccountInfo?.Value?.LastMacroConnect > DateTime.UtcNow.AddDays(-2);
-            if (recentlySwitchedFromMarco && !sumary.AntiAfk && SessionInfo.captchaInfo.LastSolve < DateTime.UtcNow.AddMinutes(-120)
+            if (recentlySwitchedFromMarco && !sumary.AntiAfk && SessionInfo.captchaInfo.LastSolve < DateTime.UtcNow - Coflnet.Sky.Commands.MC.DelayHandler.MacroSwitchSessionCaptchaAge
                 && SessionInfo.captchaInfo.LastGenerated < DateTime.UtcNow.AddMinutes(-20)
-                && AccountInfo?.Value?.LastCaptchaSolve < DateTime.UtcNow.AddMinutes(-60)
+                && AccountInfo?.Value?.LastCaptchaSolve < DateTime.UtcNow - Coflnet.Sky.Commands.MC.DelayHandler.MacroSwitchAccountCaptchaAge
                 )
             {
                 SessionInfo.IsMacroBot = true;
