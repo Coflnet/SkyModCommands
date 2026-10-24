@@ -149,6 +149,9 @@ public static class BazaarOrderStateHelper
     /// went from unconfirmed to confirmed just now - so callers can record the "user acted" compliance
     /// signal (see BazaarRecommendationTelemetry) exactly once per recommendation.
     /// </summary>
+    /// <summary>How long an unconfirmed BUY intent is kept although an upload does not show it (the upload may precede placement).</summary>
+    public static readonly TimeSpan UnconfirmedIntentGrace = TimeSpan.FromSeconds(90);
+
     public static List<SentBazaarOrderInfo> SyncSentOrdersWithUpload(List<SentBazaarOrderInfo> sentOrders, IEnumerable<BazaarOrderInfo> uploadedOrders)
     {
         var newlyConfirmed = new List<SentBazaarOrderInfo>();
@@ -182,8 +185,12 @@ public static class BazaarOrderStateHelper
                 order.PricePerUnit = other.PricePerUnit;
         }
 
+        // An upload may have been taken before the recommended order was actually placed, so an unconfirmed BUY
+        // intent survives for UnconfirmedIntentGrace after it was sent even when the upload does not list it yet.
+        var now = DateTime.UtcNow;
         sentOrders.RemoveAll(order => !uploadedKeys.Contains(GetTrackingKey(order))
-            && !(order.Side == BazaarOrderSide.Buy && uploadedBuys.ContainsKey(order.ItemTag)));
+            && !(order.Side == BazaarOrderSide.Buy && uploadedBuys.ContainsKey(order.ItemTag))
+            && !(order.Side == BazaarOrderSide.Buy && order.ConfirmedAt == null && now - order.SentAt < UnconfirmedIntentGrace));
         return newlyConfirmed;
     }
 

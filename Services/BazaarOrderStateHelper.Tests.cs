@@ -225,7 +225,7 @@ public class BazaarOrderStateHelperTests
     {
         var sentOrders = new List<SentBazaarOrderInfo>
         {
-            new() { ItemTag = "WHEAT", ItemName = "Wheat", Side = BazaarOrderSide.Buy, PricePerUnit = 25130.6, Amount = 400 },
+            new() { ItemTag = "WHEAT", ItemName = "Wheat", Side = BazaarOrderSide.Buy, PricePerUnit = 25130.6, Amount = 400, SentAt = System.DateTime.UtcNow.AddMinutes(-5) },
             new() { ItemTag = "VOLCANIC_ROCK", ItemName = "Volcanic Rock", Side = BazaarOrderSide.Sell, PricePerUnit = 2999999.7, Amount = 3 }
         };
         var uploadedOrders = new List<BazaarOrderInfo>
@@ -250,7 +250,7 @@ public class BazaarOrderStateHelperTests
             // already confirmed by an earlier upload -> must not be reported again
             new() { ItemTag = "VOLCANIC_ROCK", ItemName = "Volcanic Rock", Side = BazaarOrderSide.Sell, PricePerUnit = 2999999.7, Amount = 3, ConfirmedAt = System.DateTime.UtcNow.AddMinutes(-5) },
             // never shows up in the overview -> ignored, not confirmed, dropped
-            new() { ItemTag = "ENCHANTED_COOKIE", ItemName = "Enchanted Cookie", Side = BazaarOrderSide.Buy, PricePerUnit = 5, Amount = 1 }
+            new() { ItemTag = "ENCHANTED_COOKIE", ItemName = "Enchanted Cookie", Side = BazaarOrderSide.Buy, PricePerUnit = 5, Amount = 1, SentAt = System.DateTime.UtcNow.AddMinutes(-5) }
         };
         var uploadedOrders = new List<BazaarOrderInfo>
         {
@@ -317,6 +317,7 @@ public class BazaarOrderStateHelperTests
         var sent = new List<SentBazaarOrderInfo>();
         BazaarOrderStateHelper.TryTrackSentOrder(sent, "WHEAT", "Wheat", BazaarOrderSide.Buy, 100, 10);
         BazaarOrderStateHelper.TryTrackSentOrder(sent, "COAL", "Coal", BazaarOrderSide.Buy, 5, 10);
+        sent.Single(o => o.ItemTag == "COAL").SentAt = System.DateTime.UtcNow.AddMinutes(-5);
 
         BazaarOrderStateHelper.SyncSentOrdersWithUpload(sent, new[] { Uploaded("WHEAT", BazaarOrderSide.Buy, 120) });
 
@@ -350,5 +351,21 @@ public class BazaarOrderStateHelperTests
         var tracked = sent.Single();
         Assert.That((tracked.Mode, tracked.QuoteId, tracked.OriginalQuantity, tracked.HorizonHours, tracked.ExitPrice),
             Is.EqualTo(("Investing", "quote-1", (int?)640, (double?)24, (double?)1500)));
+    }
+
+    [Test]
+    public void SyncKeepsUnconfirmedIntentWithinGraceWindow()
+    {
+        var sent = new List<SentBazaarOrderInfo>();
+        BazaarOrderStateHelper.TryTrackSentOrder(sent, "WHEAT", "Wheat", BazaarOrderSide.Buy, 100, 10);
+        BazaarOrderStateHelper.TryTrackSentOrder(sent, "COAL", "Coal", BazaarOrderSide.Buy, 5, 10);
+        sent.Single(o => o.ItemTag == "COAL").SentAt = System.DateTime.UtcNow - BazaarOrderStateHelper.UnconfirmedIntentGrace - System.TimeSpan.FromSeconds(5);
+
+        // an upload that was taken before the orders were placed does not list either of them
+        BazaarOrderStateHelper.SyncSentOrdersWithUpload(sent, new[] { Uploaded("SEEDS", BazaarOrderSide.Sell, 3) });
+
+        Assert.That(sent.Select(o => o.ItemTag), Is.EqualTo(new[] { "WHEAT" }), "fresh intent kept, intent older than the grace window dropped");
+        Assert.That(sent[0].ConfirmedAt, Is.Null);
+        Assert.That(BazaarOrderStateHelper.UnconfirmedIntentGrace, Is.EqualTo(System.TimeSpan.FromSeconds(90)));
     }
 }

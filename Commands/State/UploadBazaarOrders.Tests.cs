@@ -40,7 +40,7 @@ public class UploadBazaarOrdersTests
         socket.SessionInfo.SentBazaarOrders = new List<SentBazaarOrderInfo>
         {
             new() { ItemTag = "VOLCANIC_ROCK", ItemName = "Volcanic Rock", Side = BazaarOrderSide.Sell, PricePerUnit = 2999999.7, Amount = 3 },
-            new() { ItemTag = "WHEAT", ItemName = "Wheat", Side = BazaarOrderSide.Buy, PricePerUnit = 25130.6, Amount = 400 }
+            new() { ItemTag = "WHEAT", ItemName = "Wheat", Side = BazaarOrderSide.Buy, PricePerUnit = 25130.6, Amount = 400, SentAt = System.DateTime.UtcNow.AddMinutes(-5) }
         };
 
         var command = new UploadBazaarOrders();
