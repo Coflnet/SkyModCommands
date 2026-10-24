@@ -231,13 +231,50 @@ public class BazaarCommandTests
             .ReturnsAsync(new List<BazaarFlip> { new() { ItemTag = "TAG_1", BuyPrice = 100, SellPrice = 120, MedianBuyPrice = 100, Volume = 1000, ProfitPerHour = 50 } });
         socket.Services[typeof(IBazaarFlipperApi)] = flipper.Object;
 
-        await Run("investing 24");
+        await Run("active");
 
         var texts = socket.Parts.Select(p => p.text).ToList();
         Assert.That(texts, Has.Some.EqualTo("§cplanner unavailable, showing market spread"));
         Assert.That(texts.Any(t => t.Contains("Top Bazaar Flips")), Is.True);
         Assert.That(texts.Any(t => t.Contains("Item 1")), Is.True);
         Assert.That(socket.SessionInfo.LastBazaarPlan, Is.Null);
+    }
+
+    [Test]
+    public async Task InvestingOnlyPlannerFailureShowsUnavailableNotSpreadList()
+    {
+        fleet.Setup(f => f.FleetAllocatePostAsync(It.IsAny<FleetAllocateRequest>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("engine down"));
+        var flipper = new Mock<IBazaarFlipperApi>();
+        flipper.Setup(f => f.FlipsGetAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<BazaarFlip> { new() { ItemTag = "TAG_1", BuyPrice = 100, SellPrice = 120, MedianBuyPrice = 100, Volume = 1000, ProfitPerHour = 50 } });
+        socket.Services[typeof(IBazaarFlipperApi)] = flipper.Object;
+
+        await Run("investing 24");
+
+        var texts = socket.Parts.Select(p => p.text).ToList();
+        var unavailable = Line("Investing plan unavailable right now (planner error); inputs kept");
+        Assert.That(unavailable.onClick, Is.EqualTo("/cofl bz investing 24"), "retry click repeats the inputs");
+        Assert.That(texts.Any(t => t.Contains("Top Bazaar Flips") || t.Contains("market spread")), Is.False);
+        flipper.Verify(f => f.FlipsGetAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task FreeTierTrackOnHiddenTagIsRejected()
+    {
+        tier.Setup(t => t.HasAtLeast(It.IsAny<AccountTier>())).Returns(false);
+        respond = () => Response(Enumerable.Range(0, 10).Select(i => Order(i)).ToArray());
+        await Run("");
+        var shown = socket.Parts.Where(p => p.onClick?.StartsWith("/cofl bz track") == true).Select(p => p.onClick).ToList();
+        var hiddenTag = Enumerable.Range(0, 10).Select(i => $"TAG_{i}").First(t => !shown.Contains($"/cofl bz track q1 {t}"));
+        socket.Parts.Clear();
+        socket.Sent.Clear();
+
+        await Run($"track q1 {hiddenTag}");
+
+        Assert.That(goals.Goals, Is.Empty);
+        Assert.That(socket.Parts.Select(p => p.text), Has.Some.Contain("not part of your latest plan"));
+        Assert.That(socket.Sent, Is.Empty);
     }
 
     [Test]
@@ -388,13 +425,26 @@ public class BazaarCommandTests
     public async Task NeverSendsPlaceOrder()
     {
         respond = () => Response(Order(0), Order(1, "Investing"));
+        // the history sub command needs an account and a profit api; provide them so the path really runs
+        socket.SessionInfo.MinecraftUuids.Add(Guid.NewGuid().ToString());
+        socket.Lifecycle.AccountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(new AccountInfo { UserId = "5", McIds = new() });
+        var profit = new Mock<IBazaarProfitApi>();
+        profit.Setup(p => p.BazaarProfitSummaryPlayerUuidGetAsync(It.IsAny<Guid>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<int?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BazaarProfitSummary { TotalProfit = 1000, FlipCount = 3, OutstandingValue = 5 });
+        profit.Setup(p => p.BazaarProfitFlipsPlayerUuidGetAsync(It.IsAny<Guid>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<int?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CompletedBazaarFlip>());
+        socket.Services[typeof(IBazaarProfitApi)] = profit.Object;
+        var flipper = new Mock<IBazaarFlipperApi>();
+        flipper.Setup(f => f.FlipsGetAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<BazaarFlip> { new() { ItemTag = "TAG_1", BuyPrice = 100, SellPrice = 120, MedianBuyPrice = 100, Volume = 1000, ProfitPerHour = 50 } });
+        socket.Services[typeof(IBazaarFlipperApi)] = flipper.Object;
         foreach (var args in new[] { "", "both 12", "investing 0", "track q1 TAG_0", "track q1 TAG_1", "track q1 TAG_0", "track nope TAG_1", "h" })
         {
-            try { await Run(args); } catch (Exception) { /* paths needing services this test does not provide */ }
+            await Run(args); // any exception fails the test: every path must actually run to completion
         }
         fleet.Setup(f => f.FleetAllocatePostAsync(It.IsAny<FleetAllocateRequest>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("down"));
-        try { await Run(""); } catch (Exception) { }
+        await Run("");
 
         Assert.That(socket.Sent.Select(r => r.type), Has.None.EqualTo("placeOrder"));
         Assert.That(socket.Executed, Is.Empty);

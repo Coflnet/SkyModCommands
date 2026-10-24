@@ -203,6 +203,13 @@ public partial class BazaarCommand
         {
             socket.SessionInfo.LastBazaarPlan = null;
             Console.WriteLine($"bazaar planner failed {e.GetType().Name}: {e.Message}");
+            if (args.Mode == BazaarPlanMode.Investing)
+            {
+                // an investing-only request has no meaningful legacy equivalent: the spread list is Active-only quick flips
+                var retry = Command(args.Mode, args.Hours, args.Budget);
+                socket.Dialog(db => db.MsgLine("§cInvesting plan unavailable right now (planner error); inputs kept. §e[retry]", retry, "Click to ask the planner again"));
+                return null;
+            }
             socket.Dialog(db => db.MsgLine("§cplanner unavailable, showing market spread"));
             await base.Execute(socket, "\"\"");
             return null;
