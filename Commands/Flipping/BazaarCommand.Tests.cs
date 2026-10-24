@@ -186,6 +186,34 @@ public class BazaarCommandTests
     }
 
     [Test]
+    public void QualifiedLabelShowsThresholdAndSimulatedEvidence()
+    {
+        FillConfidenceDto Conf(double? threshold, string source) => new(eventId: "e", probability: 0.93, lowerBound: 0.91, qualifyThreshold: threshold,
+            evidenceSource: source, status: "Qualified");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(BazaarCommand.ConfidenceLabel(Conf(0.9, "simulation")), Is.EqualTo("§a>90% full buy+sell cycle §7(simulated) §a(p 93.0%, lower bound 91.0%)"));
+            Assert.That(BazaarCommand.ConfidenceLabel(Conf(0.9, "prospective")), Is.EqualTo("§a>90% full buy+sell cycle (p 93.0%, lower bound 91.0%)"));
+            Assert.That(BazaarCommand.ConfidenceLabel(Conf(null, null)), Is.EqualTo("§a>95% full buy+sell cycle (p 93.0%, lower bound 91.0%)"));
+        });
+    }
+
+    [Test]
+    public async Task TrackCarriesQualifyThresholdAndEvidenceSourceIntoPlan()
+    {
+        var order = Order(0, "Investing", "Qualified", 0.93, 0.91);
+        order.Confidence.QualifyThreshold = 0.9;
+        order.Confidence.EvidenceSource = "simulation";
+        respond = () => Response(order);
+        await Run("investing 24");
+
+        await Run("track q1 tag_0");
+
+        Assert.That(goals.Goals.Single().Plan, Has.Property("QualifyThreshold").EqualTo(0.9).And.Property("EvidenceSource").EqualTo("simulation"));
+    }
+
+    [Test]
     public async Task EmptyQualifiedDiffersFromUnavailable()
     {
         respond = () => Response("EmptyQualified", ["NoQualifiedCandidates"]);

@@ -350,7 +350,9 @@ public partial class BazaarCommand
         string P(double? v) => v is { } x ? (x).ToString("0.0%", CultureInfo.InvariantCulture) : "unknown";
         return c.Status switch
         {
-            "Qualified" => $"§a>95% full buy+sell cycle (p {P(c.Probability)}, lower bound {P(c.LowerBound)})",
+            "Qualified" => $"§a>{((c.QualifyThreshold ?? 0.95) * 100).ToString("0.#", CultureInfo.InvariantCulture)}% full buy+sell cycle"
+                + (c.EvidenceSource == "simulation" ? " §7(simulated) §a" : " ")
+                + $"(p {P(c.Probability)}, lower bound {P(c.LowerBound)})",
             "InsufficientEvidence" or "Unavailable" => "§7confidence unknown: insufficient evidence",
             "SimulationOnly" => "§7simulation-only estimate",
             "StaleInputs" => "§estale inputs",
@@ -444,6 +446,8 @@ public partial class BazaarCommand
                     ConfidenceStatus = order.Confidence?.Status,
                     Probability = order.Confidence?.Probability,
                     LowerBound = order.Confidence?.LowerBound,
+                    QualifyThreshold = order.Confidence?.QualifyThreshold,
+                    EvidenceSource = order.Confidence?.EvidenceSource,
                     ReasonCodes = order.Confidence?.ReasonCodes,
                 }
             };
