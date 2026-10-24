@@ -341,7 +341,9 @@ public class BazaarFlipService : BackgroundService
         try
         {
             var goals = await socket.GetService<SettingsService>().GetCurrentValue(socket.UserId, GoalCommand.SettingsKey, () => new Coflnet.Sky.Commands.Shared.Goals.GoalList());
-            return BazaarPlanRequestBuilder.ActivePlanGoalTags(goals);
+            var tags = BazaarPlanRequestBuilder.ActivePlanGoalTags(goals);
+            socket.SessionInfo.ActivePlanGoalTags = tags.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return tags;
         }
         catch (Exception e)
         {
@@ -422,9 +424,12 @@ public class BazaarFlipService : BackgroundService
     private async Task<IReadOnlySet<string>> ActivePlanGoalTagSet(MinecraftSocket socket)
         => (await ActivePlanGoalTags(socket)).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-    private static HashSet<string> HeldItemTags(SessionInfo sessionInfo)
+    internal static HashSet<string> HeldItemTags(SessionInfo sessionInfo)
     {
         var held = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (sessionInfo != null)
+            foreach (var tag in InventoryTags(sessionInfo))
+                held.Add(tag);
         var orders = sessionInfo?.BazaarOrders;
         if (orders == null)
             return held;
@@ -577,7 +582,10 @@ public class BazaarFlipService : BackgroundService
             // there is nothing to sell is a single buy order attempted, which enforces the slot cap
             // and records a blocked reason when it declines, keeping room for fast-track buys.
             if (await SellThenQualifyForBuy(socket))
+            {
+                await ActivePlanGoalTags(socket); // refreshes the goal cache read by the buy choke point
                 await TryRecommendBuy(socket, buyOrderSlotCap, prefetchedBooks: null, assignedTags: null);
+            }
         }
         catch (Exception e)
         {

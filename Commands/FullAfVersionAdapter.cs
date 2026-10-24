@@ -679,6 +679,14 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         socket.sessionLifesycle.FlipSettings.Value.ModSettings.AutoStartFlipper = true;
         socket.sessionLifesycle.FlipSettings.Value.Visibility.Seller = false;
     }
+    private bool HasExistingBuyExposure(string itemTag)
+    {
+        var info = socket.SessionInfo;
+        return BazaarOrderStateHelper.HasOpenBuyIntent(info.SentBazaarOrders, info.BazaarOrders, itemTag)
+            || BazaarFlipService.HeldItemTags(info).Contains(itemTag ?? string.Empty)
+            || (info.ActivePlanGoalTags?.Contains(itemTag ?? string.Empty) ?? false);
+    }
+
     public bool SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount, ItemCategory? itemCategory = null, BazaarOrderPlanIntent plan = null)
     {
         var cappedAmount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount, itemCategory);
@@ -693,6 +701,15 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         }
 
         var side = isSell ? BazaarOrderSide.Sell : BazaarOrderSide.Buy;
+        if (!isSell && HasExistingBuyExposure(itemTag))
+        {
+            // Single choke point for every buy path (fleet assignment and upload-triggered refill): never stack a
+            // second buy on an item the user already has an open/sent buy, held stock, escrow or a flip goal for.
+            Activity.Current?.Log($"Skipping bazaar buy for {itemTag}: the user already has an open buy, held stock or an active flip goal");
+            socket.GetService<ILogger<FullAfVersionAdapter>>()?
+                .LogDebug("Refused second bazaar buy for {Tag}: existing exposure", itemTag);
+            return false;
+        }
         if (BazaarOrderStateHelper.HasTrackedSentOrder(socket.SessionInfo.SentBazaarOrders, itemTag, itemName, side, price))
         {
             Activity.Current?.Log($"Skipping duplicate bazaar order recommendation for {itemTag} at {price}");

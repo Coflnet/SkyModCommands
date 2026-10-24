@@ -142,7 +142,11 @@ namespace Coflnet.Sky.Commands.MC
 
         /// <summary>Planned exit price per item tag, remembered after the buy intent itself is gone from <see cref="SentBazaarOrders"/>.</summary>
         [JsonIgnore]
-        public Dictionary<string, (double ExitPrice, DateTime SetAt)> PlannedExitPrices { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public System.Collections.Concurrent.ConcurrentDictionary<string, (double ExitPrice, DateTime SetAt)> PlannedExitPrices { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Tags of unfinished bazaar flip goals as last loaded by the bazaar services; read synchronously by the buy choke point.</summary>
+        [JsonIgnore]
+        public volatile IReadOnlySet<string> ActivePlanGoalTags;
 
         public double? GetPlannedExitPrice(string itemTag)
         {
