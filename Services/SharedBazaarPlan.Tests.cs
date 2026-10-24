@@ -21,7 +21,7 @@ public class SharedBazaarPlanTests
 
     private static BazaarPlanInfo PlanInfo(double horizon = 24, DateTime? deadline = null) => new()
     {
-        Mode = "Investing", EntryPrice = 1230, ExitPrice = 1500, SellTaxRate = 0.0125, TaxSource = "bazaar",
+        Mode = "Investing", OriginalQuantity = 64, EntryPrice = 1230, ExitPrice = 1500, SellTaxRate = 0.0125, TaxSource = "bazaar",
         EstimatedNetProfit = 4200, HorizonHours = horizon, Deadline = deadline, ConfidenceStatus = "Qualified", Probability = 0.97, LowerBound = 0.96
     };
 
@@ -70,6 +70,21 @@ public class SharedBazaarPlanTests
         var ex = Assert.Throws<CoflnetException>(() => new SettingsUpdater().Update(s, "modbazaarHorizonHours", value));
         Assert.That(ex.Slug, Is.EqualTo("invalid_horizon"));
         Assert.That(s.ModSettings.BazaarInvestingHorizonHours, Is.EqualTo(12), "previous value restored");
+    }
+
+    [Test]
+    [TestCase("0.4")]
+    [TestCase("48.4")]
+    public void BazaarHorizonRejectsFractionalInput(string value) => AssertHorizonRejected(value);
+
+    [Test]
+    public void BazaarModeRejectsUndefinedNumber()
+    {
+        var s = Settings();
+        s.ModSettings.BazaarMode = BazaarPlanMode.Investing;
+        var ex = Assert.Throws<CoflnetException>(() => new SettingsUpdater().Update(s, "bzmode", "7"));
+        Assert.That(ex.Slug, Is.EqualTo("invalid_mode"));
+        Assert.That(s.ModSettings.BazaarMode, Is.EqualTo(BazaarPlanMode.Investing));
     }
 
     [Test]
@@ -128,6 +143,18 @@ public class SharedBazaarPlanTests
         var replacement = T0.AddHours(3);
         BazaarFlipProgress.Observe(goal, new[] { Buy(first, active: false), Buy(replacement) }, 3);
         Assert.That(goal.Plan.Deadline, Is.EqualTo(first.AddHours(24)));
+    }
+
+    [Test]
+    public void PlanDeadlineIgnoresBuyThatDoesNotMatchQuantityOrPrice()
+    {
+        var goal = PlanGoal(PlanInfo(horizon: 24));
+        // stored orders carry no price, so a different quantity is what can be told apart
+        BazaarFlipProgress.Observe(goal, new[] { Buy(T0.AddMinutes(1), amount: 10) }, 1);
+        Assert.That(goal.Plan.Deadline, Is.Null);
+        var match = T0.AddMinutes(9);
+        BazaarFlipProgress.Observe(goal, new[] { Buy(T0.AddMinutes(1), amount: 10), Buy(match) }, 2);
+        Assert.That(goal.Plan.Deadline, Is.EqualTo(match.AddHours(24)));
     }
 
     [Test]
