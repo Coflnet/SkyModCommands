@@ -38,7 +38,7 @@ public class BazaarPlanRequestBuilderTests
         Assert.That(trader.MaxItems, Is.EqualTo(5));
         Assert.That(trader.AccountState.ReserveOwner, Is.EqualTo("Caller"));
         Assert.That(trader.AccountState.FreeOrderSlots, Is.EqualTo(5));
-        Assert.That(trader.AccountState.Revision, Is.EqualTo("rev-7"));
+        Assert.That(trader.AccountState.Revision, Is.EqualTo(Uploaded.ToString("O")));
         Assert.That(BazaarPlanRequestBuilder.Build(State(freeSlots: 30)).MaxItems, Is.EqualTo(10));
         Assert.That(BazaarPlanRequestBuilder.Build(State(freeSlots: 0)), Is.Null);
     }
@@ -51,7 +51,7 @@ public class BazaarPlanRequestBuilderTests
     }
 
     [Test]
-    public void BudgetSubtractsOpenAndPendingBuyCommitmentsOnce()
+    public void BudgetSubtractsOnlyUnplacedIntentsFromPurse()
     {
         var open = new List<BazaarOrderInfo>
         {
@@ -67,7 +67,8 @@ public class BazaarPlanRequestBuilderTests
 
         var trader = BazaarPlanRequestBuilder.Build(State(purse: 9_000_000, open: open, sent: sent));
 
-        Assert.That(trader.BudgetCoins, Is.EqualTo(6_000_000 - 60_000 - 200_000).Within(0.001));
+        // open commitment (60k) is already out of the purse: it only shrinks the 2/3 cap of (purse + commitment)
+        Assert.That(trader.BudgetCoins, Is.EqualTo(2.0 / 3.0 * (9_000_000 + 60_000) - 60_000 - 200_000).Within(0.001));
     }
 
     [Test]
@@ -128,12 +129,48 @@ public class BazaarPlanRequestBuilderTests
     }
 
     [Test]
-    public void NoUploadYet_OmitsAccountState()
+    public void NoLiveStateAtAll_OmitsAccountState()
     {
         var trader = BazaarPlanRequestBuilder.Build(State(withUpload: false));
 
         Assert.That(trader, Is.Not.Null);
         Assert.That(trader.AccountState, Is.Null);
+    }
+
+    [Test]
+    public void AccountStateSentWithoutUpload_IncludesInventoryAndGoals()
+    {
+        var before = DateTime.UtcNow;
+        var sent = new List<SentBazaarOrderInfo> { Sent("PENDING", BazaarOrderSide.Buy, 10, 100) };
+
+        var state = BazaarPlanRequestBuilder.Build(State(withUpload: false, inventory: ["IN_INV"], goalTags: ["IN_GOAL"], sent: sent)).AccountState;
+
+        Assert.That(state, Is.Not.Null);
+        Assert.That(state.StateAsOf, Is.GreaterThanOrEqualTo(before).And.LessThanOrEqualTo(DateTime.UtcNow), "request freshness, not GUI cadence");
+        Assert.That(state.Revision, Is.EqualTo(BazaarPlanRequestBuilder.NoUploadRevision));
+        Assert.That(state.HeldExposure.Select(h => h.ItemTag), Is.EquivalentTo(new[] { "IN_INV", "IN_GOAL" }));
+        Assert.That(state.UnresolvedIntentItemTags, Is.EqualTo(new[] { "PENDING" }));
+    }
+
+    [Test]
+    public void StateAsOfIsRequestTimeEvenWithOldUpload()
+    {
+        var state = BazaarPlanRequestBuilder.Build(State(updatedAt: DateTime.UtcNow.AddHours(-2))).AccountState;
+
+        Assert.That(DateTime.UtcNow - state.StateAsOf!.Value, Is.LessThan(TimeSpan.FromSeconds(5)));
+    }
+
+    [Test]
+    public void BudgetDoesNotSubtractPlacedBuyOrdersTwice()
+    {
+        var open = new List<BazaarOrderInfo> { Order("A", BazaarOrderSide.Buy, 20_000, 1000) }; // 20M committed, already out of the purse
+
+        // purse 10M, cap 50M: min(50M - 20M, 10M) = 10M
+        Assert.That(BazaarPlanRequestBuilder.Build(State(cap: 50_000_000, purse: 10_000_000, open: open)).BudgetCoins, Is.EqualTo(10_000_000));
+        // default cap is 2/3 of (10M + 20M) = 20M, minus the 20M commitment = nothing left
+        Assert.That(BazaarPlanRequestBuilder.Build(State(purse: 10_000_000, open: open)), Is.Null);
+        // no open orders: 2/3 of the 30M purse
+        Assert.That(BazaarPlanRequestBuilder.Build(State(purse: 30_000_000)).BudgetCoins, Is.EqualTo(20_000_000).Within(0.001));
     }
 
     [Test]

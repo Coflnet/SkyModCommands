@@ -28,10 +28,16 @@ public record BazaarTraderState(
 /// Pure adapter from a trader's live session state to a <see cref="FleetTraderRequest"/>. The caller
 /// (this builder) is the single owner of the open/pending-order subtraction from the budget: the engine
 /// receives an already net budget and <c>ReserveOwner="Caller"</c>.
+/// <para>
+/// Freshness: <c>AccountState.StateAsOf</c> is the moment this request is built (the backend's current knowledge
+/// of inventory, sent intents and goals), so the engine's 120 s staleness rule judges request freshness and not
+/// how often the user opens the orders GUI. <c>Revision</c> is the orders upload time when one is known.
+/// </para>
 /// </summary>
 internal static class BazaarPlanRequestBuilder
 {
     public const double ActiveHorizonHours = 1;
+    public const string NoUploadRevision = "no-upload";
     public const string TaxSourceAssumption = "Assumption";
 
     /// <summary>The trader request, or null when there is no free slot or no budget left to contend with.</summary>
@@ -44,9 +50,14 @@ internal static class BazaarPlanRequestBuilder
         var sent = s.SentOrders ?? Array.Empty<SentBazaarOrderInfo>();
         var openBuys = open.Where(o => o != null && o.Side == BazaarOrderSide.Buy).ToList();
 
-        var budget = s.BudgetCapCoins > 0 ? Math.Min(s.BudgetCapCoins, s.Purse) : 2.0 / 3.0 * s.Purse;
-        budget -= openBuys.Sum(o => o.RemainingAmount * o.PricePerUnit);
-        // a sent-but-unconfirmed buy that already shows up as an open order (repriced) is counted via the open order
+        // Hypixel removes the coins of a placed buy order from the purse right away, so the open commitment is
+        // already missing from s.Purse. It only shrinks the cap (the cap is a total-exposure limit); it is never
+        // subtracted from the purse a second time. The default cap is 2/3 of everything the user owns in coins.
+        var openCommitment = openBuys.Sum(o => o.RemainingAmount * o.PricePerUnit);
+        var cap = s.BudgetCapCoins > 0 ? s.BudgetCapCoins : 2.0 / 3.0 * (s.Purse + openCommitment);
+        var budget = Math.Min(cap - openCommitment, s.Purse);
+        // a sent-but-unconfirmed buy that already shows up as an open order (repriced) is counted via the open order;
+        // intents not placed yet have not left the purse, so they are subtracted
         var openBuyTags = openBuys.Select(o => o.ItemTag).ToHashSet(StringComparer.OrdinalIgnoreCase);
         budget -= sent.Where(o => o != null && o.Side == BazaarOrderSide.Buy && o.ConfirmedAt == null && !openBuyTags.Contains(o.ItemTag))
             .Sum(o => o.Amount * o.PricePerUnit);
@@ -67,10 +78,14 @@ internal static class BazaarPlanRequestBuilder
             SellTaxRate = null,
             SellTaxSource = TaxSourceAssumption,
         };
-        if (s.OrdersUpdatedAt != null)
+        if (HasLiveState(s, open, sent))
             trader.AccountState = BuildAccountState(s, open, sent);
         return trader;
     }
+
+    private static bool HasLiveState(BazaarTraderState s, IReadOnlyList<BazaarOrderInfo> open, IReadOnlyList<SentBazaarOrderInfo> sent)
+        => s.OrdersUpdatedAt != null || open.Any(o => o != null) || sent.Any(o => o != null)
+            || (s.InventoryBazaarTags?.Count ?? 0) > 0 || (s.ActivePlanGoalTags?.Count ?? 0) > 0;
 
     private static FleetAccountStateDto BuildAccountState(BazaarTraderState s, IReadOnlyList<BazaarOrderInfo> open, IReadOnlyList<SentBazaarOrderInfo> sent)
     {
@@ -106,8 +121,8 @@ internal static class BazaarPlanRequestBuilder
 
         return new FleetAccountStateDto
         {
-            StateAsOf = s.OrdersUpdatedAt,
-            Revision = s.OrdersRevision,
+            StateAsOf = DateTime.UtcNow,
+            Revision = s.OrdersUpdatedAt?.ToString("O") ?? NoUploadRevision,
             OpenBuyItemTags = openBuyTags.ToList(),
             UnresolvedIntentItemTags = unresolved,
             HeldExposure = held.Values.ToList(),
