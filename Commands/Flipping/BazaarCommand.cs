@@ -17,10 +17,12 @@ namespace Coflnet.Sky.Commands.MC;
     "Allows you to see the most profitable",
     "bazaar flips currently available",
     "It assumes that you make buy and sellers",
-    "and includes the §b1.25% bazaar fee",
-    "from the free bazaar community upgrade",
-    "Usage: /bz [days] - default is 7 days")]
-public class BazaarCommand : ReadOnlyListCommand<Element>
+    "and includes the §b1.125% sell-side fee",
+    "(as used by the planner)",
+    "/bz [active|investing|both] [hours] [budget] - personal plan",
+    "/bz track <quoteId> <itemTag> - follow a recommendation",
+    "/bz history [days] - default is 7 days")]
+public partial class BazaarCommand : ReadOnlyListCommand<Element>
 {
     public override bool IsPublic => true;
     protected override string Title => "Top Bazaar Flips";
@@ -151,19 +153,27 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
                 ItemName = names[f.ItemTag],
                 IsManipulated = isManipulated
             };
-        }).Where(f => !f.IsManipulated || !socket.Settings.Visibility.HideManipulated)
+        }).Where(f => !f.IsManipulated || !(socket.Settings?.Visibility?.HideManipulated ?? false))
             .OrderByDescending(e => (int)e.Flip.ProfitPerHour - e.Flip.BuyPrice * 0.0125 * (int)e.Flip.Volume / 168)
             .ToList();
-        if (await socket.UserAccountTier() == Shared.AccountTier.NONE)
-            foreach (var item in all.Take(2))
-            {
-                item.ItemName = $"{McColorCodes.RED}requires at least starter premium";
-            }
+        if (!IsStarterPremium(socket))
+        {
+            var shown = FreeTierPlanSampler.SampleIndices(all.Count, socket.UserId, DateTime.UtcNow).Select(i => all[i]).ToList();
+            if (all.Count > shown.Count)
+                shown.Add(new Element { UpsellHidden = all.Count - shown.Count });
+            return shown;
+        }
         return all;
     }
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element elem)
     {
+        if (elem.UpsellHidden > 0)
+        {
+            // deliberately no hover or click: nothing about the hidden entries may leak
+            db.MsgLine($"{McColorCodes.GRAY}{elem.UpsellHidden} more recommendations with starter premium");
+            return;
+        }
         var hourlyVolume = (double)elem.Flip.Volume / 168;
         // its assumed the user has the free bazaar upgrade, maybe load this in the future to be exact
         var fees = elem.Flip.EstimatedFees;
@@ -180,7 +190,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
 
     protected override string GetId(Element elem)
     {
-        return elem.Flip.ItemTag + elem.ItemName;
+        return elem.Flip == null ? "" : elem.Flip.ItemTag + elem.ItemName;
     }
 
     public class Element
@@ -188,5 +198,7 @@ public class BazaarCommand : ReadOnlyListCommand<Element>
         public BazaarFlip Flip { get; set; }
         public string ItemName { get; set; }
         public bool IsManipulated { get; internal set; }
+        /// <summary>Set on the single placeholder entry that tells free users how many entries are hidden.</summary>
+        public int UpsellHidden { get; set; }
     }
 }

@@ -1019,7 +1019,7 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current.Log(message);
         }
 
-        public void Send(Response response)
+        public virtual void Send(Response response)
         {
             if (ReadyState == WebSocketState.Closed)
             {

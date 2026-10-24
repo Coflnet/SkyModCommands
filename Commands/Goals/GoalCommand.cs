@@ -97,7 +97,7 @@ public class GoalCommand : McCommand
                     socket.Dialog(db => db.MsgLine("That item tag is not traded on the Bazaar."));
                     return;
                 }
-                if (list.Goals.Any(g => g.RootItemTag == tag && g.BazaarFlip != null && BazaarFlipProgress.Next(g) != BazaarFlipAction.Done))
+                if (HasActiveBazaarFlip(list, tag))
                 {
                     socket.Dialog(db => db.MsgLine("You already have an active Bazaar flip for this item. Focus or remove it first."));
                     return;
@@ -120,6 +120,10 @@ public class GoalCommand : McCommand
                 return;
         }
     }
+
+    /// <summary>True when the list holds an unfinished bazaar flip goal for the item; only one may exist per item.</summary>
+    public static bool HasActiveBazaarFlip(GoalList list, string tag)
+        => list?.Goals?.Any(g => g.RootItemTag == tag && g.BazaarFlip != null && BazaarFlipProgress.Next(g) != BazaarFlipAction.Done) ?? false;
 
     private async Task Add(MinecraftSocket socket, string userId, GoalList list, string[] args)
     {
