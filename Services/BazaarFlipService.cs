@@ -11,6 +11,7 @@ using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.Items.Client.Api;
+using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.Items.Client.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -62,7 +63,7 @@ public class BazaarFlipService : BackgroundService
     private volatile Dictionary<string, string> latestNames;
 
     /// <summary>Default number of coordinated SkyModCommands instances if FLEET_INSTANCE_COUNT is unset.</summary>
-    private const int DefaultFleetInstanceCount = 3;
+    internal const int DefaultFleetInstanceCount = 3;
 
     public BazaarFlipService(
         FlipperService flipperService,
@@ -89,12 +90,19 @@ public class BazaarFlipService : BackgroundService
     /// Each instance must claim only its fair share (1/N) when calling IFleetApi.FleetAllocatePostAsync,
     /// or the fleet across instances would over-allocate market capacity.
     /// </summary>
-    private int FleetInstanceCount
+    private int FleetInstanceCount => InstanceCountFrom(configuration);
+
+    /// <summary>Configured FLEET_INSTANCE_COUNT, or the default when unset or unreadable.</summary>
+    internal static int InstanceCountFrom(IConfiguration configuration)
     {
-        get
+        try
         {
             var configured = configuration?.GetValue<int?>("FLEET_INSTANCE_COUNT");
             return configured is > 0 ? configured.Value : DefaultFleetInstanceCount;
+        }
+        catch (Exception)
+        {
+            return DefaultFleetInstanceCount;
         }
     }
 
@@ -232,6 +240,18 @@ public class BazaarFlipService : BackgroundService
         if (pools == null)
             return;
 
+        // The legacy tier slice only knows quick flips: investing-only traders have no equivalent and must not
+        // be handed Active orders they did not ask for.
+        var legacyBuyers = new List<MinecraftSocket>();
+        foreach (var buyer in buyers)
+        {
+            if (AllowsLegacyFallback(StrategiesOf(buyer)))
+                legacyBuyers.Add(buyer);
+            else
+                buyer.sessionLifesycle.FlipProcessor.BlockedFlip(CreatePlanBlockedFlip(), "investing plan unavailable; no legacy fallback");
+        }
+        buyers = legacyBuyers;
+
         var prepared = new List<(MinecraftSocket Socket, bool UseFallback, IReadOnlyList<DemandFlip> Candidates)>();
         foreach (var socket in buyers)
         {
@@ -266,69 +286,85 @@ public class BazaarFlipService : BackgroundService
     /// </summary>
     private async Task RunFleetAllocationBuyDistribution(List<MinecraftSocket> buyers, Dictionary<string, string> names, CancellationToken ct)
     {
-        var roster = BuildFleetRoster(buyers);
+        var roster = await BuildFleetRoster(buyers);
         if (roster.Count == 0)
             return;
 
-        var request = new FleetAllocateRequest
-        {
-            Mode = "Fast",
-            CapacityShare = 1.0 / FleetInstanceCount,
-            TargetHoldTimeHours = 1,
-            MaxCoinExposurePerItem = 0,
-            Traders = roster,
-            InstanceId = System.Environment.MachineName,
-        };
+        var request = BazaarPlanRequestBuilder.BuildRequest(roster, 1.0 / FleetInstanceCount, System.Environment.MachineName, preview: false);
 
         var response = await fleetApi.FleetAllocatePostAsync(request, cancellationToken: ct);
         if (response == null)
             return;
 
-        await ApplyFleetAssignments(response.Assignments, buyers, names, ct);
+        await ApplyFleetAssignments(response.Assignments, response.Quote?.QuoteId, buyers, names, ct);
     }
 
     /// <summary>
     /// Builds the fleet roster from the same active-buyer set <see cref="RunBuyDistribution"/> already
-    /// computed (no separate gate), skipping anyone <see cref="BuildFleetTraderRequest"/> declines
-    /// (no free slot or no budget).
+    /// computed (no separate gate), skipping anyone <see cref="BazaarPlanRequestBuilder"/> declines
+    /// (no free slot or no budget left after open and pending buys).
     /// </summary>
-    private static List<FleetTraderRequest> BuildFleetRoster(List<MinecraftSocket> buyers)
+    private async Task<List<FleetTraderRequest>> BuildFleetRoster(List<MinecraftSocket> buyers)
     {
         var roster = new List<FleetTraderRequest>();
         foreach (var socket in buyers)
         {
             var info = socket.SessionInfo;
-            var freeSlots = BazaarOrderStateHelper.MaxTotalOrders - info.ActiveBazaarOrderCount;
-            var trader = BuildFleetTraderRequest(info.McUuid, info.SessionTier, info.IsMacroBot, info.Purse, freeSlots);
+            var prefs = BazaarPlanPreferences.Resolve(socket.Settings?.ModSettings);
+            var state = new BazaarTraderState(info.McUuid, info.SessionTier, info.IsMacroBot, info.Purse,
+                BazaarOrderStateHelper.MaxTotalOrders - info.ActiveBazaarOrderCount,
+                prefs.Strategies, prefs.InvestingHorizonHours, prefs.BudgetCapCoins,
+                info.BazaarOrders, info.SentBazaarOrders, InventoryTags(info), await ActivePlanGoalTags(socket),
+                info.BazaarOrdersUpdatedAt, info.BazaarOrdersRevision.ToString());
+            var trader = BazaarPlanRequestBuilder.Build(state);
             if (trader != null)
                 roster.Add(trader);
         }
         return roster;
     }
 
+    private static string[] StrategiesOf(MinecraftSocket socket)
+        => BazaarPlanPreferences.Resolve(socket.Settings?.ModSettings).Strategies;
+
     /// <summary>
-    /// Pure adapter from a connected buyer's live session fields into a <see cref="FleetTraderRequest"/>,
-    /// or null when the trader has no free buy slot or no budget to contend with this cycle. Priority
-    /// encodes tier as the dominant factor and real-user-over-bot as the tiebreak within a tier.
+    /// The tier-slice fallback only produces quick flips, so only traders that asked for the Active strategy
+    /// may use it; investing-only traders get nothing rather than an unrequested Active order.
     /// </summary>
-    internal static FleetTraderRequest BuildFleetTraderRequest(string uuid, AccountTier tier, bool isBot, long purse, int freeSlots)
+    internal static bool AllowsLegacyFallback(IEnumerable<string> strategies)
+        => strategies == null || strategies.Contains("Active");
+
+    private static List<string> InventoryTags(SessionInfo info)
+        => (info.Inventory ?? new()).Where(i => !string.IsNullOrEmpty(i?.Tag)).Select(i => i.Tag).Distinct().ToList();
+
+    private async Task<List<string>> ActivePlanGoalTags(MinecraftSocket socket)
     {
-        if (freeSlots <= 0)
-            return null;
-
-        // TODO subtract outstanding open-order value
-        var budgetCoins = 2.0 / 3.0 * purse;
-        if (budgetCoins <= 0)
-            return null;
-
-        return new FleetTraderRequest
+        try
         {
-            Id = uuid,
-            Priority = (int)tier * 2 + (isBot ? 0 : 1),
-            BudgetCoins = budgetCoins,
-            MaxItems = Math.Min(10, freeSlots),
-            IsBot = isBot
+            var goals = await socket.GetService<SettingsService>().GetCurrentValue(socket.UserId, GoalCommand.SettingsKey, () => new Coflnet.Sky.Commands.Shared.Goals.GoalList());
+            return BazaarPlanRequestBuilder.ActivePlanGoalTags(goals);
+        }
+        catch (Exception e)
+        {
+            logger.LogDebug(e, "Could not load goals for bazaar plan request");
+            return new List<string>();
+        }
+    }
+
+    private static LowPricedAuction CreatePlanBlockedFlip()
+    {
+        return new LowPricedAuction
+        {
+            Finder = LowPricedAuction.FinderType.Bazaar,
+            Auction = new SaveAuction { ItemName = "Bazaar plan", Tag = "BAZAAR_PLAN", Uuid = "BAZAAR_PLAN", Enchantments = [], FlatenedNBT = [] }
         };
+    }
+
+    /// <summary>Blocked-flip reason for an assignment whose investing pool could not be served, else null.</summary>
+    internal static string UnavailableReason(TraderAllocationDto assignment)
+    {
+        if (assignment?.InvestingStatus != "Unavailable")
+            return null;
+        return "bazaar plan unavailable: " + string.Join(", ", assignment.InvestingReasonCodes ?? new List<string>());
     }
 
     /// <summary>
@@ -337,7 +373,7 @@ public class BazaarFlipService : BackgroundService
     /// path, preserving today's one-per-cycle cadence. The allocator re-runs every cycle so a user's full
     /// basket builds iteratively. // v2: send the full basket in one shot instead.
     /// </summary>
-    private async Task ApplyFleetAssignments(List<TraderAllocationDto> assignments, List<MinecraftSocket> buyers, Dictionary<string, string> names, CancellationToken ct)
+    private async Task ApplyFleetAssignments(List<TraderAllocationDto> assignments, string quoteId, List<MinecraftSocket> buyers, Dictionary<string, string> names, CancellationToken ct)
     {
         if (assignments == null || assignments.Count == 0)
             return;
@@ -356,14 +392,25 @@ public class BazaarFlipService : BackgroundService
             if (assignment?.TraderId == null || !byUuid.TryGetValue(assignment.TraderId, out var socket))
                 continue;
 
-            var held = HeldItemTags(socket.SessionInfo);
-            var order = SelectOrderToSend(assignment, held);
-            if (order == null)
-                continue;
+            var unavailable = UnavailableReason(assignment);
+            if (unavailable != null)
+                socket.sessionLifesycle.FlipProcessor.BlockedFlip(CreatePlanBlockedFlip(), unavailable);
 
             try
             {
-                await SendFleetOrderRecommendation(socket, order, names);
+                var categories = new Dictionary<string, ItemCategory?>();
+                foreach (var o in assignment.Orders ?? new())
+                {
+                    if (o?.ItemTag != null && !categories.ContainsKey(o.ItemTag))
+                        categories[o.ItemTag] = await BazaarOrderAmountHelper.GetKnownItemCategory(o.ItemTag, filterStateService);
+                }
+                var info = socket.SessionInfo;
+                var order = SelectOrderToSend(assignment, HeldItemTags(info), info.SentBazaarOrders, info.BazaarOrders,
+                    await ActivePlanGoalTagSet(socket), o => IsExecutableAsIs(o, categories.GetValueOrDefault(o.ItemTag), socket.UserId));
+                if (order == null)
+                    continue;
+
+                await SendFleetOrderRecommendation(socket, order, names, categories.GetValueOrDefault(order.ItemTag), quoteId);
             }
             catch (Exception e)
             {
@@ -371,6 +418,9 @@ public class BazaarFlipService : BackgroundService
             }
         }
     }
+
+    private async Task<IReadOnlySet<string>> ActivePlanGoalTagSet(MinecraftSocket socket)
+        => (await ActivePlanGoalTags(socket)).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private static HashSet<string> HeldItemTags(SessionInfo sessionInfo)
     {
@@ -386,13 +436,42 @@ public class BazaarFlipService : BackgroundService
         return held;
     }
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> loggedUnexecutable = new();
+
+    /// <summary>
+    /// True when the engine quantity can be placed exactly as drafted. The planner's quantity is never resized
+    /// locally (a smaller order would no longer be what the quote's economics and confidence describe).
+    /// </summary>
+    internal static bool IsExecutableAsIs(string itemTag, double engineAmount, ItemCategory? category)
+    {
+        var qty = (int)Math.Round(engineAmount);
+        return qty > 0 && BazaarOrderAmountHelper.ClampOrderAmount(itemTag, qty, category) == qty;
+    }
+
+    private bool IsExecutableAsIs(OrderRecommendationDto order, ItemCategory? category, string userId)
+    {
+        if (IsExecutableAsIs(order.ItemTag, order.Amount, category))
+            return true;
+        if (loggedUnexecutable.TryAdd(userId + order.ItemTag, 0))
+            logger.LogInformation("Not sending {Tag} x{Amount} to {User}: quantity cannot be placed unchanged and planner quantities are never resized",
+                order.ItemTag, order.Amount, userId);
+        return false;
+    }
+
     /// <summary>
     /// Picks the single order to act on from one trader's fleet allocation: the first order for an
-    /// item the trader does not already hold an open order on (the endpoint returns orders
-    /// richest-first, so "first eligible" is also "best eligible"). Null when every offered item is
-    /// already held.
+    /// item the trader neither holds nor already has a buy intent on at any price (the endpoint returns
+    /// orders richest-first, so "first eligible" is also "best eligible"). Investing orders are only
+    /// ever sent when their confidence is Qualified (the engine does not draft others; this is a guard).
+    /// Null when nothing is eligible.
     /// </summary>
-    internal static OrderRecommendationDto SelectOrderToSend(TraderAllocationDto allocation, IReadOnlySet<string> heldItemTags)
+    internal static OrderRecommendationDto SelectOrderToSend(
+        TraderAllocationDto allocation,
+        IReadOnlySet<string> heldItemTags,
+        IEnumerable<SentBazaarOrderInfo> sentOrders = null,
+        IEnumerable<BazaarOrderInfo> uploadedOrders = null,
+        IReadOnlySet<string> activePlanTags = null,
+        Func<OrderRecommendationDto, bool> isExecutable = null)
     {
         if (allocation?.Orders == null)
             return null;
@@ -403,22 +482,50 @@ public class BazaarFlipService : BackgroundService
                 continue;
             if (heldItemTags != null && heldItemTags.Contains(order.ItemTag))
                 continue;
+            if (BazaarOrderStateHelper.HasOpenBuyIntent(sentOrders, uploadedOrders, order.ItemTag))
+                continue;
+            if (activePlanTags != null && activePlanTags.Contains(order.ItemTag))
+                continue;
+            if (order.Mode == "Investing" && order.Confidence?.Status != "Qualified")
+                continue;
+            if (isExecutable != null && !isExecutable(order))
+                continue;
             return order;
         }
         return null;
     }
 
-    private async Task SendFleetOrderRecommendation(MinecraftSocket socket, OrderRecommendationDto order, Dictionary<string, string> names)
+    private async Task SendFleetOrderRecommendation(MinecraftSocket socket, OrderRecommendationDto order, Dictionary<string, string> names, ItemCategory? category, string quoteId)
     {
         if (socket.ModAdapter is not FullAfVersionAdapter fullAf || order.Amount <= 0)
             return;
 
         var itemName = BazaarUtils.GetSearchValue(order.ItemTag,
             names.TryGetValue(order.ItemTag, out var dn) ? dn : order.ItemTag);
-        var category = await BazaarOrderAmountHelper.GetKnownItemCategory(order.ItemTag, filterStateService);
-        if (fullAf.SendBazaarOrderRecommendation(order.ItemTag, itemName, order.IsSell, order.PricePerUnit,
-            (int)Math.Round(order.Amount), category))
-            bazaarFlipsSent.Inc();
+        var quantity = (int)Math.Round(order.Amount);
+        var plan = new BazaarOrderPlanIntent(order.Mode, quoteId, order.OriginalQuantity, order.CapitalLockHorizonHours, order.ExitPrice);
+        if (!fullAf.SendBazaarOrderRecommendation(order.ItemTag, itemName, order.IsSell, order.PricePerUnit, quantity, category, plan))
+            return;
+        bazaarFlipsSent.Inc();
+        ReportIntent(socket, order, quoteId, quantity);
+    }
+
+    /// <summary>Best-effort report so the engine's residual capacity estimate reflects what was really sent.</summary>
+    private void ReportIntent(MinecraftSocket socket, OrderRecommendationDto order, string quoteId, int quantity)
+    {
+        if (string.IsNullOrEmpty(quoteId))
+            return;
+        var report = new FleetIntentReport
+        {
+            InstanceId = System.Environment.MachineName,
+            QuoteId = quoteId,
+            Accepted = [new FleetAcceptedOrderDto { TraderId = socket.SessionInfo.McUuid, ItemTag = order.ItemTag, Units = quantity, Mode = order.Mode }]
+        };
+        _ = Task.Run(async () =>
+        {
+            try { await fleetApi.FleetIntentsPostAsync(report); }
+            catch (Exception e) { logger.LogDebug(e, "Reporting bazaar fleet intent failed (residual estimate only)"); }
+        });
     }
 
     private async Task<IReadOnlyDictionary<string, OrderBook>> FetchOrderBooks(IEnumerable<string> tags)
@@ -488,6 +595,8 @@ public class BazaarFlipService : BackgroundService
         var names = latestNames;
         if (pools == null || names == null)
             return;
+        if (!AllowsLegacyFallback(StrategiesOf(socket)))
+            return; // investing-only users get no quick-flip buys
 
         var useFallback = ShouldUseFullListFallback(socket.SessionInfo, DateTime.UtcNow);
         var candidates = pools.GetCandidatesFor(socket.SessionInfo, useFallback);

@@ -307,4 +307,48 @@ public class BazaarOrderStateHelperTests
             }
         };
     }
+
+    private static BazaarOrderInfo Uploaded(string tag, BazaarOrderSide side, double price)
+        => new() { ItemTag = tag, ItemName = tag, Side = side, PricePerUnit = price, Amount = 10 };
+
+    [Test]
+    public void SyncKeepsBuyIntentWhenUploadedPriceDiffers()
+    {
+        var sent = new List<SentBazaarOrderInfo>();
+        BazaarOrderStateHelper.TryTrackSentOrder(sent, "WHEAT", "Wheat", BazaarOrderSide.Buy, 100, 10);
+        BazaarOrderStateHelper.TryTrackSentOrder(sent, "COAL", "Coal", BazaarOrderSide.Buy, 5, 10);
+
+        BazaarOrderStateHelper.SyncSentOrdersWithUpload(sent, new[] { Uploaded("WHEAT", BazaarOrderSide.Buy, 120) });
+
+        Assert.That(sent.Select(o => o.ItemTag), Is.EqualTo(new[] { "WHEAT" }), "the item without any BUY left is dropped");
+        Assert.That(sent[0].PricePerUnit, Is.EqualTo(120), "the changed price is adopted");
+    }
+
+    [Test]
+    public void HasOpenBuyIntentAcrossPriceChanges()
+    {
+        var sent = new List<SentBazaarOrderInfo>();
+        BazaarOrderStateHelper.TryTrackSentOrder(sent, "WHEAT", "Wheat", BazaarOrderSide.Buy, 100, 10);
+        var uploaded = new[] { Uploaded("COAL", BazaarOrderSide.Buy, 3), Uploaded("SEEDS", BazaarOrderSide.Sell, 3) };
+
+        Assert.That(BazaarOrderStateHelper.HasOpenBuyIntent(sent, uploaded, "wheat"), Is.True);
+        Assert.That(BazaarOrderStateHelper.HasOpenBuyIntent(sent, uploaded, "COAL"), Is.True);
+        Assert.That(BazaarOrderStateHelper.HasOpenBuyIntent(sent, uploaded, "SEEDS"), Is.False, "a sell is not a buy intent");
+        Assert.That(BazaarOrderStateHelper.HasOpenBuyIntent(null, null, "WHEAT"), Is.False);
+    }
+
+    [Test]
+    public void TrackedOrderKeepsPlanFields()
+    {
+        var sent = new List<SentBazaarOrderInfo>();
+        var plan = new BazaarOrderPlanIntent("Investing", "quote-1", 640, 24, 1500);
+        BazaarOrderStateHelper.TryTrackSentOrder(sent, "WHEAT", "Wheat", BazaarOrderSide.Buy, 100, 640, plan);
+
+        BazaarOrderStateHelper.SyncSentOrdersWithUpload(sent, new[] { Uploaded("WHEAT", BazaarOrderSide.Buy, 100) });
+        BazaarOrderStateHelper.SyncSentOrdersWithUpload(sent, new[] { Uploaded("WHEAT", BazaarOrderSide.Buy, 130) });
+
+        var tracked = sent.Single();
+        Assert.That((tracked.Mode, tracked.QuoteId, tracked.OriginalQuantity, tracked.HorizonHours, tracked.ExitPrice),
+            Is.EqualTo(("Investing", "quote-1", (int?)640, (double?)24, (double?)1500)));
+    }
 }

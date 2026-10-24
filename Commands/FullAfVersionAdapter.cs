@@ -679,7 +679,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
         socket.sessionLifesycle.FlipSettings.Value.ModSettings.AutoStartFlipper = true;
         socket.sessionLifesycle.FlipSettings.Value.Visibility.Seller = false;
     }
-    public bool SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount, ItemCategory? itemCategory = null)
+    public bool SendBazaarOrderRecommendation(string itemTag, string itemName, bool isSell, double price, int amount, ItemCategory? itemCategory = null, BazaarOrderPlanIntent plan = null)
     {
         var cappedAmount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount, itemCategory);
         if (cappedAmount != amount)
@@ -711,7 +711,9 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             // only buy recommendations should reset the buy-side full-list fallback timer;
             // otherwise an actively-selling user never expands past their top tier bracket
             socket.SessionInfo.LastBazaarRecommendationAt = DateTime.UtcNow;
-        BazaarOrderStateHelper.TryTrackSentOrder(socket.SessionInfo.SentBazaarOrders, itemTag, itemName, side, price, cappedAmount);
+        BazaarOrderStateHelper.TryTrackSentOrder(socket.SessionInfo.SentBazaarOrders, itemTag, itemName, side, price, cappedAmount, plan);
+        if (plan?.ExitPrice is > 0 && !isSell)
+            socket.SessionInfo.PlannedExitPrices[itemTag] = (plan.ExitPrice.Value, DateTime.UtcNow);
         BazaarRecommendationTelemetry.RecordSent(socket.SessionInfo.SessionTier, socket.SessionInfo.IsMacroBot);
         return true;
     }
@@ -745,6 +747,7 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             // Use sell price (what buyers pay) for sell orders
             if (sellPrice < 0)
                 sellPrice = latestPrice.Sell;
+            sellPrice = ApplyExitFloor(sellPrice, socket.SessionInfo.GetPlannedExitPrice(itemTag));
             var itemCategory = await GetBazaarItemCategory(itemTag);
             amount = BazaarOrderAmountHelper.ClampOrderAmount(itemTag, amount, itemCategory);
             span.Log($"For {itemName} x {amount} recommending sell at {sellPrice}");
@@ -763,6 +766,10 @@ public partial class FullAfVersionAdapter : AfVersionAdapter
             return false;
         }
     }
+
+    /// <summary>A planned item is never listed below the exit price the plan was sized on.</summary>
+    internal static double ApplyExitFloor(double sellPrice, double? plannedExit)
+        => plannedExit is > 0 ? Math.Max(sellPrice, plannedExit.Value) : sellPrice;
 
     private async Task<bool> ShouldSkip(Activity span, IPlayerApi apiService, SaveAuction item)
     {

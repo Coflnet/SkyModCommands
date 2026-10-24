@@ -5,6 +5,7 @@ using Coflnet.Sky.Bazaar.Client.Model;
 using Coflnet.Sky.Bazaar.Flipper.Client.Model;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.ModCommands.Models;
 using NUnit.Framework;
 
 namespace Coflnet.Sky.ModCommands.Services;
@@ -141,84 +142,6 @@ public class BazaarFlipServiceTests
     }
 
     [Test]
-    public void BuildFleetTraderRequestReturnsNullWhenNoFreeSlots()
-    {
-        var result = BazaarFlipService.BuildFleetTraderRequest("uuid-1", AccountTier.PREMIUM, isBot: false, purse: 1_000_000, freeSlots: 0);
-
-        Assert.That(result, Is.Null);
-    }
-
-    [Test]
-    public void BuildFleetTraderRequestReturnsNullWhenNoBudget()
-    {
-        var result = BazaarFlipService.BuildFleetTraderRequest("uuid-1", AccountTier.PREMIUM, isBot: false, purse: 0, freeSlots: 5);
-
-        Assert.That(result, Is.Null);
-    }
-
-    [Test]
-    public void BuildFleetTraderRequestReturnsNullWhenPurseIsNegative()
-    {
-        // a purse of -1 signals "not flipable" (see SessionInfo.IsNotFlipable) - must never yield a budget
-        var result = BazaarFlipService.BuildFleetTraderRequest("uuid-1", AccountTier.PREMIUM, isBot: false, purse: -1, freeSlots: 5);
-
-        Assert.That(result, Is.Null);
-    }
-
-    [TestCase(AccountTier.NONE, false, 1)]
-    [TestCase(AccountTier.NONE, true, 0)]
-    [TestCase(AccountTier.STARTER_PREMIUM, false, 3)]
-    [TestCase(AccountTier.PREMIUM, false, 5)]
-    [TestCase(AccountTier.PREMIUM, true, 4)]
-    [TestCase(AccountTier.PREMIUM_PLUS, false, 7)]
-    [TestCase(AccountTier.SUPER_PREMIUM, false, 9)]
-    [TestCase(AccountTier.SUPER_PREMIUM, true, 8)]
-    public void BuildFleetTraderRequestEncodesPriorityAsTierDominantThenRealUserOverBot(AccountTier tier, bool isBot, int expectedPriority)
-    {
-        var result = BazaarFlipService.BuildFleetTraderRequest("uuid-1", tier, isBot, purse: 900_000, freeSlots: 5);
-
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Priority, Is.EqualTo(expectedPriority));
-    }
-
-    [Test]
-    public void BuildFleetTraderRequestUsesTwoThirdsOfPurseAsBudget()
-    {
-        var result = BazaarFlipService.BuildFleetTraderRequest("uuid-1", AccountTier.PREMIUM, isBot: false, purse: 900_000, freeSlots: 5);
-
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.BudgetCoins, Is.EqualTo(600_000).Within(0.001));
-    }
-
-    [Test]
-    public void BuildFleetTraderRequestCapsMaxItemsAtTen()
-    {
-        var result = BazaarFlipService.BuildFleetTraderRequest("uuid-1", AccountTier.PREMIUM, isBot: false, purse: 900_000, freeSlots: 21);
-
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.MaxItems, Is.EqualTo(10));
-    }
-
-    [Test]
-    public void BuildFleetTraderRequestKeepsMaxItemsBelowTenWhenFreeSlotsAreFewer()
-    {
-        var result = BazaarFlipService.BuildFleetTraderRequest("uuid-1", AccountTier.PREMIUM, isBot: false, purse: 900_000, freeSlots: 4);
-
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.MaxItems, Is.EqualTo(4));
-    }
-
-    [Test]
-    public void BuildFleetTraderRequestSetsIdAndIsBot()
-    {
-        var result = BazaarFlipService.BuildFleetTraderRequest("uuid-42", AccountTier.STARTER_PREMIUM, isBot: true, purse: 900_000, freeSlots: 5);
-
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Id, Is.EqualTo("uuid-42"));
-        Assert.That(result.IsBot, Is.True);
-    }
-
-    [Test]
     public void SelectOrderToSendExcludesHeldItems()
     {
         var allocation = new TraderAllocationDto
@@ -283,5 +206,78 @@ public class BazaarFlipServiceTests
 
         Assert.That(BazaarFlipService.SelectOrderToSend(allocation, new HashSet<string>()), Is.Null);
         Assert.That(BazaarFlipService.SelectOrderToSend(null, new HashSet<string>()), Is.Null);
+    }
+
+    private static TraderAllocationDto Allocation(params OrderRecommendationDto[] orders)
+        => new() { TraderId = "uuid-1", Orders = orders.ToList() };
+
+    private static OrderRecommendationDto Plan(string tag, string mode = "Active", string confidence = "Qualified", double amount = 10)
+        => new() { ItemTag = tag, Mode = mode, Amount = amount, OriginalQuantity = (int)amount, PricePerUnit = 10, Confidence = new FillConfidenceDto { Status = confidence } };
+
+    [Test]
+    public void SelectOrderToSendSkipsItemWithOpenBuyAtDifferentPrice()
+    {
+        var uploaded = new List<BazaarOrderInfo> { new() { ItemTag = "COAL", ItemName = "Coal", Side = BazaarOrderSide.Buy, Amount = 10, PricePerUnit = 99 } };
+        var sent = new List<SentBazaarOrderInfo> { new() { ItemTag = "WHEAT", Side = BazaarOrderSide.Buy, PricePerUnit = 1234 } };
+
+        var result = BazaarFlipService.SelectOrderToSend(Allocation(Plan("COAL"), Plan("WHEAT"), Plan("SEEDS")),
+            new HashSet<string>(), sent, uploaded);
+
+        Assert.That(result?.ItemTag, Is.EqualTo("SEEDS"));
+    }
+
+    [Test]
+    public void SelectOrderToSendSkipsUnqualifiedInvestingOrder()
+    {
+        var allocation = Allocation(Plan("A", "Investing", "InsufficientEvidence"), Plan("B", "Investing", "SimulationOnly"),
+            Plan("C", "Investing", "Qualified"), Plan("D", "Active", "NotApplicable"));
+
+        Assert.That(BazaarFlipService.SelectOrderToSend(allocation, new HashSet<string>())?.ItemTag, Is.EqualTo("C"));
+        Assert.That(BazaarFlipService.SelectOrderToSend(Allocation(Plan("A", "Investing", "InsufficientEvidence")), new HashSet<string>()), Is.Null);
+    }
+
+    [Test]
+    public void SelectOrderToSendSkipsActivePlanGoalTag()
+    {
+        var result = BazaarFlipService.SelectOrderToSend(Allocation(Plan("TRACKED"), Plan("OTHER")), new HashSet<string>(),
+            activePlanTags: new HashSet<string> { "TRACKED" });
+
+        Assert.That(result?.ItemTag, Is.EqualTo("OTHER"));
+    }
+
+    [Test]
+    public void InvestingOnlyTraderDoesNotFallBackToTierSlice()
+    {
+        Assert.That(BazaarFlipService.AllowsLegacyFallback(new[] { "Investing" }), Is.False);
+    }
+
+    [Test]
+    public void ActiveTraderMayFallBackToTierSlice()
+    {
+        Assert.That(BazaarFlipService.AllowsLegacyFallback(new[] { "Active" }), Is.True);
+        Assert.That(BazaarFlipService.AllowsLegacyFallback(new[] { "Active", "Investing" }), Is.True);
+    }
+
+    [Test]
+    public void UnavailableAssignmentRecordsBlockedReason()
+    {
+        var unavailable = new TraderAllocationDto { InvestingStatus = "Unavailable", InvestingReasonCodes = new() { "InvestingCandidatesNotReady", "X" } };
+
+        Assert.That(BazaarFlipService.UnavailableReason(unavailable), Is.EqualTo("bazaar plan unavailable: InvestingCandidatesNotReady, X"));
+        Assert.That(BazaarFlipService.UnavailableReason(new TraderAllocationDto { InvestingStatus = "EmptyQualified" }), Is.Null);
+    }
+
+    [Test]
+    public void LocallyUnexecutableQuantityIsNotResized()
+    {
+        // books are capped to 4 per order locally; an engine quantity of 10 must be skipped, not shrunk
+        Assert.That(BazaarFlipService.IsExecutableAsIs("ENCHANTMENT_SHARPNESS_5", 10, null), Is.False);
+        Assert.That(BazaarFlipService.IsExecutableAsIs("ENCHANTMENT_SHARPNESS_5", 4, null), Is.True);
+        Assert.That(BazaarFlipService.IsExecutableAsIs("ENCHANTED_COAL", 640, null), Is.True);
+
+        var result = BazaarFlipService.SelectOrderToSend(
+            Allocation(Plan("ENCHANTMENT_SHARPNESS_5", amount: 10), Plan("ENCHANTED_COAL", amount: 640)), new HashSet<string>(),
+            isExecutable: o => BazaarFlipService.IsExecutableAsIs(o.ItemTag, o.Amount, null));
+        Assert.That(result?.ItemTag, Is.EqualTo("ENCHANTED_COAL"));
     }
 }

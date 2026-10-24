@@ -132,6 +132,37 @@ namespace Coflnet.Sky.Commands.MC
         [JsonIgnore]
         public DateTime LastBazaarRefillAttempt { get; set; }
 
+        /// <summary>When the open bazaar order overview was last uploaded; null when never (planner then runs without account state).</summary>
+        [JsonIgnore]
+        public DateTime? BazaarOrdersUpdatedAt { get; set; }
+
+        /// <summary>Monotonic counter of order overview uploads, sent to the planner as account state revision.</summary>
+        [JsonIgnore]
+        public long BazaarOrdersRevision { get; set; }
+
+        /// <summary>Planned exit price per item tag, remembered after the buy intent itself is gone from <see cref="SentBazaarOrders"/>.</summary>
+        [JsonIgnore]
+        public Dictionary<string, (double ExitPrice, DateTime SetAt)> PlannedExitPrices { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public double? GetPlannedExitPrice(string itemTag)
+        {
+            if (itemTag != null && PlannedExitPrices.TryGetValue(itemTag, out var planned) && DateTime.UtcNow - planned.SetAt < TimeSpan.FromHours(72))
+                return planned.ExitPrice;
+            return null;
+        }
+
+        /// <summary>Last time <c>/cofl bz</c> asked the planner (10 s per-user throttle).</summary>
+        [JsonIgnore]
+        public DateTime LastBazaarPlanAt { get; set; }
+
+        /// <summary>Arguments of the last rendered plan, reused when <c>/cofl bz track</c> has to re-plan an expired quote.</summary>
+        [JsonIgnore]
+        public BazaarPlanArgs LastBazaarPlanArgs { get; set; }
+
+        /// <summary>Last rendered personal bazaar plan; <c>/cofl bz track</c> only acts on this while its quote is unexpired.</summary>
+        [JsonIgnore]
+        public Coflnet.Sky.Bazaar.Flipper.Client.Model.FleetAllocateResponse LastBazaarPlan { get; set; }
+
         [JsonIgnore]
         public int ActiveBazaarOrderCount => BazaarOrders?.Count(order => order != null) ?? 0;
 

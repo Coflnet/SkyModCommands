@@ -31,6 +31,8 @@ public class UploadBazaarOrders : McCommand
         }
 
         socket.SessionInfo.BazaarOrders = BazaarOrderStateHelper.ParseOpenOrders(arguments, parser);
+        socket.SessionInfo.BazaarOrdersUpdatedAt = System.DateTime.UtcNow;
+        socket.SessionInfo.BazaarOrdersRevision++;
         var newlyConfirmed = BazaarOrderStateHelper.SyncSentOrdersWithUpload(socket.SessionInfo.SentBazaarOrders, socket.SessionInfo.BazaarOrders);
         RecordActedRecommendations(socket, newlyConfirmed);
         Activity.Current?.Log(JsonConvert.SerializeObject(socket.SessionInfo.BazaarOrders));

@@ -35,7 +35,18 @@ public class SentBazaarOrderInfo
     public long Amount { get; set; }
     public DateTime SentAt { get; set; } = DateTime.UtcNow;
     public DateTime? ConfirmedAt { get; set; }
+
+    /// <summary>Plan intent this order was sent for (null for legacy tier-slice recommendations).</summary>
+    public string Mode { get; set; }
+    public string QuoteId { get; set; }
+    public int? OriginalQuantity { get; set; }
+    public double? HorizonHours { get; set; }
+    /// <summary>Planned exit price; sells of this tag are never recommended below it.</summary>
+    public double? ExitPrice { get; set; }
 }
+
+/// <summary>Planner metadata attached to a sent BUY recommendation.</summary>
+public record BazaarOrderPlanIntent(string Mode, string QuoteId, int OriginalQuantity, double HorizonHours, double? ExitPrice);
 
 public class BazaarOrderPlayerInfo
 {

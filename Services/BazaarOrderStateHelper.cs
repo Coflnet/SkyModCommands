@@ -102,7 +102,21 @@ public static class BazaarOrderStateHelper
         return sentOrders.Any(order => GetTrackingKey(order) == key);
     }
 
-    public static bool TryTrackSentOrder(List<SentBazaarOrderInfo> sentOrders, string itemTag, string itemName, BazaarOrderSide side, double pricePerUnit, long amount)
+    /// <summary>
+    /// True when the user already has a BUY for the tag at any price: either an uploaded open BUY order or a
+    /// sent (confirmed or not) BUY recommendation. Used to never stack a second buy on the same item.
+    /// </summary>
+    public static bool HasOpenBuyIntent(IEnumerable<SentBazaarOrderInfo> sentOrders, IEnumerable<BazaarOrderInfo> uploadedOrders, string itemTag)
+    {
+        if (string.IsNullOrEmpty(itemTag))
+            return false;
+        return (sentOrders?.Any(o => o != null && o.Side == BazaarOrderSide.Buy
+                    && string.Equals(o.ItemTag, itemTag, StringComparison.OrdinalIgnoreCase)) ?? false)
+            || (uploadedOrders?.Any(o => o != null && o.Side == BazaarOrderSide.Buy
+                    && string.Equals(o.ItemTag, itemTag, StringComparison.OrdinalIgnoreCase)) ?? false);
+    }
+
+    public static bool TryTrackSentOrder(List<SentBazaarOrderInfo> sentOrders, string itemTag, string itemName, BazaarOrderSide side, double pricePerUnit, long amount, BazaarOrderPlanIntent plan = null)
     {
         if (sentOrders == null)
             return false;
@@ -117,7 +131,12 @@ public static class BazaarOrderStateHelper
             Side = side,
             PricePerUnit = pricePerUnit,
             Amount = amount,
-            SentAt = DateTime.UtcNow
+            SentAt = DateTime.UtcNow,
+            Mode = plan?.Mode,
+            QuoteId = plan?.QuoteId,
+            OriginalQuantity = plan?.OriginalQuantity,
+            HorizonHours = plan?.HorizonHours,
+            ExitPrice = plan?.ExitPrice
         });
         return true;
     }
@@ -149,7 +168,22 @@ public static class BazaarOrderStateHelper
             newlyConfirmed.Add(tracked);
         }
 
-        sentOrders.RemoveAll(order => !uploadedKeys.Contains(GetTrackingKey(order)));
+        // A BUY intent whose tag is still open at another price (outbid/repriced by the user) is kept so the
+        // item stays suppressed; adopt the price. Only when no BUY for the tag remains is the intent dropped.
+        var uploadedBuys = (uploadedOrders ?? Enumerable.Empty<BazaarOrderInfo>())
+            .Where(o => IsTrackedOrder(o) && o.Side == BazaarOrderSide.Buy && !string.IsNullOrEmpty(o.ItemTag))
+            .GroupBy(o => o.ItemTag, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        foreach (var order in sentOrders)
+        {
+            if (uploadedKeys.Contains(GetTrackingKey(order)) || order.Side != BazaarOrderSide.Buy)
+                continue;
+            if (uploadedBuys.TryGetValue(order.ItemTag, out var other))
+                order.PricePerUnit = other.PricePerUnit;
+        }
+
+        sentOrders.RemoveAll(order => !uploadedKeys.Contains(GetTrackingKey(order))
+            && !(order.Side == BazaarOrderSide.Buy && uploadedBuys.ContainsKey(order.ItemTag)));
         return newlyConfirmed;
     }
 
