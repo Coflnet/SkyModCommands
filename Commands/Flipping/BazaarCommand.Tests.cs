@@ -278,6 +278,30 @@ public class BazaarCommandTests
     }
 
     [Test]
+    public async Task FreeTierSearchStillCoversAllEntriesWithTopTwoHidden()
+    {
+        tier.Setup(t => t.HasAtLeast(It.IsAny<AccountTier>())).Returns(false);
+        fleet.Setup(f => f.FleetAllocatePostAsync(It.IsAny<FleetAllocateRequest>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("down"));
+        var flipper = new Mock<IBazaarFlipperApi>();
+        flipper.Setup(f => f.FlipsGetAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Range(0, 6).Select(i => new BazaarFlip { ItemTag = $"TAG_{i}", BuyPrice = 100, SellPrice = 120, MedianBuyPrice = 100, Volume = 1000, ProfitPerHour = 1000 - i }).ToList());
+        socket.Services[typeof(IBazaarFlipperApi)] = flipper.Object;
+        socket.SessionInfo.Purse = 1_000_000;
+        socket.SessionInfo.LastBazaarPlanAt = default;
+
+        // search term on the legacy list ("item" matches every row)
+        await command.Execute(socket, "\"item\"");
+        var rows = socket.Parts.Where(p => p.text != null && (p.text.Contains("Item ") || p.text.Contains("requires at least starter premium"))).ToList();
+
+        Assert.That(rows.Count(r => r.text.Contains("Item ")), Is.EqualTo(4), "all but the top 2 stay visible");
+        var hiddenRows = rows.Where(r => r.text.Contains("requires at least starter premium")).ToList();
+        Assert.That(hiddenRows, Has.Count.EqualTo(2));
+        Assert.That(hiddenRows.Select(r => r.hover), Has.All.Null);
+        Assert.That(hiddenRows.Select(r => r.onClick), Has.All.Null);
+    }
+
+    [Test]
     public async Task HistoryAndListSubcommandsUnchanged()
     {
         var uuid = Guid.NewGuid();

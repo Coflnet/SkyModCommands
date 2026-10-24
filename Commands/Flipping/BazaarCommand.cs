@@ -156,7 +156,14 @@ public partial class BazaarCommand : ReadOnlyListCommand<Element>
         }).Where(f => !f.IsManipulated || !(socket.Settings?.Visibility?.HideManipulated ?? false))
             .OrderByDescending(e => (int)e.Flip.ProfitPerHour - e.Flip.BuyPrice * 0.0125 * (int)e.Flip.Volume / 168)
             .ToList();
-        if (!IsStarterPremium(socket))
+        if (!IsStarterPremium(socket) && val.Length > 2 && !int.TryParse(val, out _))
+        {
+            // searching for a specific item: everything stays findable, the top 2 spread entries stay hidden
+            // behind a placeholder row without hover or click
+            foreach (var hidden in all.Take(2))
+                hidden.IsHidden = true;
+        }
+        else if (!IsStarterPremium(socket))
         {
             var shown = FreeTierPlanSampler.SampleIndices(all.Count, socket.UserId, DateTime.UtcNow).Select(i => all[i]).ToList();
             if (all.Count > shown.Count)
@@ -168,6 +175,11 @@ public partial class BazaarCommand : ReadOnlyListCommand<Element>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, Element elem)
     {
+        if (elem.IsHidden)
+        {
+            db.MsgLine($"{McColorCodes.RED}requires at least starter premium");
+            return;
+        }
         if (elem.UpsellHidden > 0)
         {
             // deliberately no hover or click: nothing about the hidden entries may leak
@@ -200,5 +212,7 @@ public partial class BazaarCommand : ReadOnlyListCommand<Element>
         public bool IsManipulated { get; internal set; }
         /// <summary>Set on the single placeholder entry that tells free users how many entries are hidden.</summary>
         public int UpsellHidden { get; set; }
+        /// <summary>Row is shown as a plain placeholder (no hover, no click) because the tier may not see it.</summary>
+        public bool IsHidden { get; set; }
     }
 }
