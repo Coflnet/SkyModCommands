@@ -122,6 +122,22 @@ public class MinecraftSocketTests
         }
     }
 
+    [TestCase("2.0.0", typeof(BinGuiVersionAdapter))]
+    [TestCase("2.0.0-pre1", typeof(BinGuiVersionAdapter))]
+    [TestCase("2.0.1", typeof(BinGuiVersionAdapter))]
+    [TestCase("2.1.0", typeof(BinGuiVersionAdapter))]
+    [TestCase("2.3.12", typeof(BinGuiVersionAdapter))]
+    [TestCase("2.1.0-pre1", typeof(BinGuiVersionAdapter))]
+    [TestCase("af-2.0.1", typeof(FullAfVersionAdapter))]
+    [TestCase("3.0.0", typeof(FirstModVersionAdapter))]
+    [TestCase("unknown", typeof(FirstModVersionAdapter))]
+    public void ModVersionSelectsAdapter(string version, Type expected)
+    {
+        // the default adapter sends an update hint on creation, which needs a session
+        var socket = new SpanRecordingSocket(new() { { "player", "test" }, { "SId", "test" }, { "version", version } });
+        Assert.That(socket.SetupModAdapterForTest(), Is.TypeOf(expected));
+    }
+
     private sealed class SpanRecordingSocket : TestSocket
     {
         private readonly FlipperService flipperService = new(null, null);
@@ -130,10 +146,10 @@ public class MinecraftSocketTests
             .Where(s => s.Tags.Any(t => t.Key == "error" && t.Value == "true"))
             .Select(s => s.OperationName);
 
-        public SpanRecordingSocket() : base(null)
+        public SpanRecordingSocket(NameValueCollection query = null) : base(null)
         {
             var context = new Mock<WebSocketContext>();
-            context.Setup(c => c.QueryString).Returns(new NameValueCollection());
+            context.Setup(c => c.QueryString).Returns(query ?? new NameValueCollection());
             SetSessionField("_context", context.Object);
             SetSessionField("_websocket", new WebSocket("ws://localhost"));
         }
@@ -157,6 +173,12 @@ public class MinecraftSocketTests
         public override T GetService<T>()
         {
             return flipperService as T ?? base.GetService<T>();
+        }
+
+        public IModVersionAdapter SetupModAdapterForTest()
+        {
+            SetupModAdapter();
+            return ModAdapter;
         }
     }
 
