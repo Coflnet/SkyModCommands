@@ -18,20 +18,27 @@ public class GetMcNameForCommand : McCommand
         socket.Dialog(db => db.Msg("The minecraft name is " + McColorCodes.AQUA + name, "copy:" + name, "Click to copy the name to your clipboard").MsgLine(" _", "suggest: " + name, "Click to suggest the name in chat"));
     }
 
-    // waitForCurrentName false returns a known stored name right away and only checks it against mojang in the background
-    public static async Task<string> GetName(MinecraftSocket socket, string arguments, bool waitForCurrentName = true)
+    // with onRenamed set a known stored name is returned right away, it is checked against mojang in the background and onRenamed gets the current name if it differs
+    public static async Task<string> GetName(MinecraftSocket socket, string arguments, Func<string, Task> onRenamed = null)
     {
         var uuid = Newtonsoft.Json.JsonConvert.DeserializeObject<string>(arguments);
         var name = await socket.GetPlayerName(uuid);
-        if (!waitForCurrentName && name != null && name != "unknown")
+        if (onRenamed != null && name != null && name != "unknown")
         {
-            _ = socket.TryAsyncTimes(() => VerifyStoredName(socket, uuid, name), "checking stored player name", 1);
+            _ = socket.TryAsyncTimes(() => NotifyIfRenamed(socket, uuid, name, onRenamed), "checking stored player name", 1);
             return name;
         }
         name = await VerifyStoredName(socket, uuid, name);
         if (name == null)
             throw new Core.CoflnetException("name_not_found", "Could not retrieve the account name :(");
         return name;
+    }
+
+    private static async Task NotifyIfRenamed(MinecraftSocket socket, string uuid, string storedName, Func<string, Task> onRenamed)
+    {
+        var currentName = await VerifyStoredName(socket, uuid, storedName);
+        if (currentName != storedName)
+            await onRenamed(currentName);
     }
 
     /// <summary>
