@@ -215,7 +215,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
     {
         socket.Dialog(db => db
             .MsgLine($"usage of {McColorCodes.AQUA}/cofl {Slug}{DEFAULT_COLOR}")
-            .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} add <userName>{DEFAULT_COLOR} request a new license")
+            .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} add <userName>{DEFAULT_COLOR} buy or extend a tier slot for an account")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} use <id> <userName>{DEFAULT_COLOR} switch the user of a license")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} useconfig <id> <config>{DEFAULT_COLOR} use a certain config", null, "with backup:name you can select configs from your backup")
             .MsgLine($"{McColorCodes.AQUA}/cofl {Slug} list{DEFAULT_COLOR} lists all licenses")
@@ -233,110 +233,132 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
         if (string.IsNullOrWhiteSpace(name))
         {
             var uuids = await socket.sessionLifesycle.GetMinecraftAccountUuids();
-            await PrintLicenseOptions(socket, uuids, "Select the account you want to purchase a license for");
+            await PrintLicenseOptions(socket, uuids, "Select the account you want to purchase a tier slot for");
             return;
         }
-        
-        LicenseSetting settings = await GetCurrentLicenses(socket);
-        if (name.Length <= 3 && int.TryParse(name, out var id))
-        {
-            var license = settings.Licenses.FirstOrDefault(l => l.VirtualId == id);
-            if (license != null)
-            {
-                var names = await GetNames(socket, new[] { license.UseOnAccount });
-                name = names.GetValueOrDefault(license.UseOnAccount) ?? name;
-            }
-        }
 
-        if (subargs.Length == 3 && subargs[2] == socket.SessionInfo.ConnectionId)
+        if (name.Length <= 3 && int.TryParse(name, out var id))
+            name = await GetLegacyLicenseAccountName(socket, id) ?? name;
+
+        var products = await socket.GetService<ITierSlotsApi>().ApiTierSlotsProductsGetAsync();
+        var product = subargs.Length >= 2 ? products.FirstOrDefault(p => p.Slug == subargs[1]) : null;
+        if (product != null && subargs.Length == 3 && subargs[2] == socket.SessionInfo.ConnectionId)
         {
-            var uuid = await socket.GetPlayerUuid(name);
-            var licenseApi = socket.GetService<ILicenseApi>();
-            var userApi = socket.GetService<IUserApi>();
-            var productApi = socket.GetService<IProductsApi>();
-            var usedLicense = settings.Licenses.FirstOrDefault(l => l.UseOnAccount == uuid);
-            if (usedLicense != null)
+            await PurchaseSlot(socket, name, product);
+            return;
+        }
+        if (product != null)
+        {
+            socket.Dialog(db => db.MsgLine($"Click to confirm purchase/extend a tier slot for {McColorCodes.AQUA}{name}", null, "click on the package below")
+                .CoflCommand<LicensesCommand>(FormatProduct(socket, product), $"add {name} {product.Slug} {socket.SessionInfo.ConnectionId}", ProductHover(product)));
+            return;
+        }
+        socket.Dialog(db => db.MsgLine($"Which tier slot do you want to purchase/extend for {McColorCodes.AQUA}{name}")
+            .ForEach(products, (db, p) => db.CoflCommand<LicensesCommand>(FormatProduct(socket, p), $"add {name} {p.Slug} {socket.SessionInfo.ConnectionId}", ProductHover(p))));
+    }
+
+    private static async Task<string> GetLegacyLicenseAccountName(MinecraftSocket socket, int virtualId)
+    {
+        var settings = await GetCurrentLicenses(socket);
+        var license = settings.Licenses.FirstOrDefault(l => l.VirtualId == virtualId);
+        if (license == null)
+            return null;
+        var names = await GetNames(socket, new[] { license.UseOnAccount });
+        return names.GetValueOrDefault(license.UseOnAccount);
+    }
+
+    /// <summary>
+    /// Buys a slot package for the account owner and makes it usable on the named Minecraft account.
+    /// A single-slot package extends the owner's slot of the same tier already assigned to that account.
+    /// </summary>
+    private static async Task PurchaseSlot(MinecraftSocket socket, string name, PurchaseableProduct product)
+    {
+        var uuid = await socket.GetPlayerUuid(name);
+        if (string.IsNullOrEmpty(uuid))
+            throw new CoflnetException("unknown_player", "Minecraft account not found");
+        var slotsApi = socket.GetService<ITierSlotsApi>();
+        var userApi = socket.GetService<IUserApi>();
+        var owned = await slotsApi.ApiTierSlotsOwnerOwnerIdGetAsync(socket.UserId);
+        var reference = $"slot-{uuid.Truncate(8)}-{product.Slug}-{socket.SessionInfo.ConnectionId.Truncate(4)}";
+        var existing = product.SlotCount == 1
+            ? owned.Where(s => s.Tier == product.SlotTier && IsSameAccount(s.MinecraftUuid, uuid)).MaxBy(s => s.Expires)
+            : null;
+        try
+        {
+            if (existing != null)
             {
-                socket.Dialog(db => db.MsgLine($"Extending license for {name} {McColorCodes.GRAY}({uuid})"));
+                socket.Dialog(db => db.MsgLine($"Extending tier slot {existing.Id} for {name} {McColorCodes.GRAY}({uuid})"));
+                var request = new ServicePurchaseRequest(reference: reference, count: 1, slotIds: [existing.Id],
+                    locale: "en", requestId: Guid.NewGuid().ToString());
+                await DoOrRetryPurchase(() => userApi.UserUserIdServicePurchaseDeclaredProductSlugPostAsync(socket.UserId, product.Slug, request));
             }
             else
             {
-                socket.Dialog(db => db.MsgLine($"Adding license for {name}"));
-                usedLicense = new LicenseInfo
-                {
-                    UseOnAccount = uuid,
-                    VirtualId = settings.Licenses.Count + 1
-                };
-                settings.Licenses.Add(usedLicense);
-
-                await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", settings);
+                socket.Dialog(db => db.MsgLine($"Adding tier slot for {name}"));
+                await DoOrRetryPurchase(() => userApi.UserUserIdServicePurchaseProductSlugPostAsync(socket.UserId, product.Slug, reference, 1));
+                await AssignNewSlot(socket, slotsApi, owned, product, uuid);
             }
-            var product = await productApi.ProductsPProductSlugGetAsync(subargs[1]);
-            try
-            {
-                var virtualuser = $"{socket.UserId}#{usedLicense.VirtualId}";
-                var reference = $"license-{usedLicense.VirtualId}-{subargs[1]}-{socket.SessionInfo.ConnectionId.Truncate(4)}";
-                await userApi.UserUserIdTransferPostAsync(socket.UserId, new TransferRequest
-                {
-                    Amount = product.Cost,
-                    Reference = reference,
-                    TargetUser = virtualuser
-                });
-                var previousExpire = await socket.GetService<PremiumService>().GetCurrentTier(virtualuser);
-                await DoOrRetryPurchase(subargs, userApi, virtualuser, reference);
-                for (int i = 0; i < 10; i++)
-                {
-                    if (usedLicense.Expires > previousExpire.Item2)
-                        break;
-                    await Task.Delay(2000); // wait for transaction to be processed
-                    var userTier = await socket.GetService<PremiumService>().GetCurrentTier(virtualuser);
-                    usedLicense.Tier = userTier.Item1 ?? AccountTier.PREMIUM;
-                    usedLicense.Expires = userTier.Item2;
-                }
-                await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "licenses", settings);
-            }
-            catch (Payments.Client.Client.ApiException e)
-            {
-                var message = e.Message.Substring(68).Trim('}', '"');
-                socket.Dialog(db => db.MsgLine(McColorCodes.RED + "An error occured").Msg(message)
-                    .If(() => e.Message.Contains("insuficcient balance"), db => db.CoflCommand<TopUpCommand>(McColorCodes.AQUA + "Click here to top up coins", "", "Click here to buy coins"))
-                    .If(() => e.Message.Contains("same reference found"), db =>
-                        db.MsgLine(
-                            McColorCodes.AQUA + "To prevent accidental loss of coins you can only purchase once per connection.", null,
-                            "You can buy licenses for different accounts tho")));
-            }
-            socket.Dialog(db => db.MsgLine($"Successfully requested a license for {name}"));
-            if (name == socket.SessionInfo.McName)
-            {
-                await Task.Delay(5000); // cache refresh
-                await socket.sessionLifesycle.TierManager.RefreshTier();
-                var tiername = await socket.sessionLifesycle.TierManager.GetCurrentCached();
-                socket.Dialog(db => db.MsgLine($"This connection is now {McColorCodes.AQUA}{tiername} {McColorCodes.RESET} until {usedLicense.Expires}"));
-            }
-
-            return;
         }
-        if (subargs.Length == 2 && subargs[1].StartsWith("prem"))
+        catch (Payments.Client.Client.ApiException e)
         {
-            socket.Dialog(db => db.MsgLine($"Click to confirm purchase/extend a license for {McColorCodes.AQUA}{name}", null, "click on the tier name below")
-                .If(() => !subargs[1].Contains("plus"), db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}Premium  ", $"add {name} premium {socket.SessionInfo.ConnectionId}", "Purchase premium license"))
-                .If(() => subargs[1] == "premium_plus-week", db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ {McColorCodes.GRAY}1week ", $"add {name} premium_plus-week {socket.SessionInfo.ConnectionId}", "Purchase premium+ license"))
-                .If(() => subargs[1] == "premium_plus-weeks", db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 4 weeks ", $"add {name} premium_plus-weeks {socket.SessionInfo.ConnectionId}", "Purchase premium+ license for 4 weeks"))
-                .If(() => subargs[1] == "premium_plus-months", db => db.CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 11 weeks ", $"add {name} premium_plus-months {socket.SessionInfo.ConnectionId}", "Purchase premium+ license for 11 weeks")));
+            ShowPurchaseError(socket, e);
             return;
         }
-        socket.Dialog(db => db.MsgLine("Which tier do you want to purchase/extend")
-            .CoflCommand<LicensesCommand>($"  {McColorCodes.GREEN}Premium  ", $"add {name} premium {socket.SessionInfo.ConnectionId}", "Purchase/extend premium license")
-            .CoflCommand<LicensesCommand>($"  {McColorCodes.GOLD}Premium+ 1 ", $"add {name} premium_plus-week {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 1 week")
-            .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}/ 4 weeks  ", $"add {name} premium_plus-weeks {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 4 weeks")
-            .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}/ 11 weeks  ", $"add {name} premium_plus-months {socket.SessionInfo.ConnectionId}", "Purchase/extend premium+ license\nfor 11 weeks"));
+        socket.Dialog(db => db.MsgLine($"Successfully purchased a {product.SlotTier} slot for {name}"));
+        if (IsSameAccount(socket.SessionInfo.McUuid, uuid))
+        {
+            await socket.sessionLifesycle.TierManager.RefreshTier();
+            var tiername = await socket.sessionLifesycle.TierManager.GetCurrentCached();
+            socket.Dialog(db => db.MsgLine($"This connection is now {McColorCodes.AQUA}{tiername}"));
+        }
     }
 
-    private static async Task DoOrRetryPurchase(string[] subargs, IUserApi userApi, string virtualuser, string reference)
+    private static async Task AssignNewSlot(MinecraftSocket socket, ITierSlotsApi slotsApi, List<TierSlotAccess> before, PurchaseableProduct product, string uuid)
+    {
+        var after = await slotsApi.ApiTierSlotsOwnerOwnerIdGetAsync(socket.UserId);
+        var created = after.FirstOrDefault(s => s.Tier == product.SlotTier && s.MinecraftUuid == null && s.AssignedUserId == null
+            && !before.Any(b => b.Id == s.Id));
+        if (created == null)
+        {
+            socket.Dialog(db => db.MsgLine($"Assign your new slot with {McColorCodes.AQUA}/cofl licenses slots"));
+            return;
+        }
+        await slotsApi.ApiTierSlotsOwnerOwnerIdIdAssignmentPutAsync(socket.UserId, created.Id,
+            new TierSlotAssignment(minecraftUuid: uuid, varVersion: created.VarVersion));
+    }
+
+    private static bool IsSameAccount(string a, string b)
+    {
+        return a != null && b != null && a.Replace("-", "").Equals(b.Replace("-", ""), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ShowPurchaseError(MinecraftSocket socket, Payments.Client.Client.ApiException e)
+    {
+        var message = e.Message.Substring(Math.Min(68, e.Message.Length)).Trim('}', '"');
+        socket.Dialog(db => db.MsgLine(McColorCodes.RED + "An error occured").Msg(message)
+            .If(() => e.Message.Contains("insuficcient balance"), db => db.CoflCommand<TopUpCommand>(McColorCodes.AQUA + "Click here to top up coins", "", "Click here to buy coins"))
+            .If(() => e.Message.Contains("same reference found"), db =>
+                db.MsgLine(
+                    McColorCodes.AQUA + "To prevent accidental loss of coins you can only purchase once per connection.", null,
+                    "You can buy slots for different accounts tho")));
+    }
+
+    private static string FormatProduct(MinecraftSocket socket, PurchaseableProduct product)
+    {
+        return $" {McColorCodes.GOLD}{product.Title} {McColorCodes.GRAY}{socket.FormatPrice(product.Cost)} ";
+    }
+
+    private static string ProductHover(PurchaseableProduct product)
+    {
+        var slots = product.SlotCount == 1 ? "1 slot" : $"{product.SlotCount} slots";
+        return $"Purchase/extend {product.SlotTier} for {FormatProvider.FormatTimeGlobal(TimeSpan.FromSeconds(product.OwnershipSeconds))}\n{slots}, {product.Description}";
+    }
+
+    private static async Task DoOrRetryPurchase(Func<Task> purchase)
     {
         try
         {
-            await userApi.UserUserIdServicePurchaseProductSlugPostAsync(virtualuser, subargs[1], reference);
+            await purchase();
         }
         catch (Payments.Client.Client.ApiException e)
         {
@@ -345,7 +367,7 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
                 await Task.Delay(5000);
                 try
                 {
-                    await userApi.UserUserIdServicePurchaseProductSlugPostAsync(virtualuser, subargs[1], reference);
+                    await purchase();
                 }
                 catch (Exception ei)
                 {
@@ -375,12 +397,10 @@ public class LicensesCommand : ListCommand<PublicLicenseWithName, List<PublicLic
     private static async Task PrintLicenseOptions(MinecraftSocket socket, IEnumerable<string> uuids, string heading)
     {
         var allnames = await GetNames(socket, uuids);
+        var products = await socket.GetService<ITierSlotsApi>().ApiTierSlotsProductsGetAsync();
         socket.Dialog(db => db.MsgLine(heading)
             .ForEach(uuids, (db, id) => db.Msg($"{McColorCodes.GRAY}> {McColorCodes.AQUA}{allnames.GetValueOrDefault(id) ?? id}")
-                .CoflCommand<LicensesCommand>($" {McColorCodes.GREEN}premium ", $"add {allnames.GetValueOrDefault(id) ?? id} premium", $"Purchase/extend premium license for {allnames.GetValueOrDefault(id) ?? id}")
-                .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}Premium+ ", $"add {allnames.GetValueOrDefault(id) ?? id} premium_plus-week", $"Purchase/extend premium+ license for {allnames.GetValueOrDefault(id) ?? id}")
-                .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.ITALIC}4 weeks ", $"add {allnames.GetValueOrDefault(id) ?? id} premium_plus-weeks", $"Purchase/extend premium+ license for {allnames.GetValueOrDefault(id) ?? id}\nfor 4 weeks (16% discount)")
-                .CoflCommand<LicensesCommand>($" {McColorCodes.GOLD}{McColorCodes.BOLD}11 weeks ", $"add {allnames.GetValueOrDefault(id) ?? id} premium_plus-months", $"Purchase/extend premium+ license for {allnames.GetValueOrDefault(id) ?? id}\nfor 11 weeks (27% discount)")
+                .ForEach(products, (db, p) => db.CoflCommand<LicensesCommand>(FormatProduct(socket, p), $"add {allnames.GetValueOrDefault(id) ?? id} {p.Slug}", ProductHover(p)))
                 .LineBreak()));
     }
 
