@@ -8,7 +8,7 @@ public class AhOpenCommand : McCommand
     {
         await socket.TryAsyncTimes(async () =>
         {
-            var name = await GetMcNameForCommand.GetName(socket, arguments);
+            var name = await GetMcNameForCommand.GetName(socket, arguments, false);
             using var span = socket.CreateActivity("ahopen", socket.ConSpan);
             span.SetTag("name", name);
             socket.ExecuteCommand($"/ah {name}");
