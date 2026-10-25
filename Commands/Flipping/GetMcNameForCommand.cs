@@ -18,20 +18,39 @@ public class GetMcNameForCommand : McCommand
         socket.Dialog(db => db.Msg("The minecraft name is " + McColorCodes.AQUA + name, "copy:" + name, "Click to copy the name to your clipboard").MsgLine(" _", "suggest: " + name, "Click to suggest the name in chat"));
     }
 
-    public static async Task<string> GetName(MinecraftSocket socket, string arguments)
+    // with onRenamed set a known stored name is returned right away, it is checked against mojang in the background and onRenamed gets the current name if it differs
+    public static async Task<string> GetName(MinecraftSocket socket, string arguments, Func<string, Task> onRenamed = null)
     {
         var uuid = Newtonsoft.Json.JsonConvert.DeserializeObject<string>(arguments);
         var name = await socket.GetPlayerName(uuid);
-        // the stored name can be outdated if the player renamed, double check with mojang
-        var currentName = await GetCurrentName(socket, uuid);
-        if (currentName != null && !string.Equals(currentName, name, StringComparison.OrdinalIgnoreCase))
+        if (onRenamed != null && name != null && name != "unknown")
         {
-            _ = socket.TryAsyncTimes(() => IndexerClient.TriggerNameUpdate(uuid), "updating outdated player name", 1);
-            name = currentName;
+            _ = socket.TryAsyncTimes(() => NotifyIfRenamed(socket, uuid, name, onRenamed), "checking stored player name", 1);
+            return name;
         }
+        name = await VerifyStoredName(socket, uuid, name);
         if (name == null)
             throw new Core.CoflnetException("name_not_found", "Could not retrieve the account name :(");
         return name;
+    }
+
+    private static async Task NotifyIfRenamed(MinecraftSocket socket, string uuid, string storedName, Func<string, Task> onRenamed)
+    {
+        var currentName = await VerifyStoredName(socket, uuid, storedName);
+        if (currentName != storedName)
+            await onRenamed(currentName);
+    }
+
+    /// <summary>
+    /// The stored name can be outdated if the player renamed, double check with mojang and trigger an update when it differs
+    /// </summary>
+    private static async Task<string> VerifyStoredName(MinecraftSocket socket, string uuid, string name)
+    {
+        var currentName = await GetCurrentName(socket, uuid);
+        if (currentName == null || string.Equals(currentName, name, StringComparison.OrdinalIgnoreCase))
+            return name;
+        _ = socket.TryAsyncTimes(() => IndexerClient.TriggerNameUpdate(uuid), "updating outdated player name", 1);
+        return currentName;
     }
 
     private static async Task<string> GetCurrentName(MinecraftSocket socket, string uuid)
