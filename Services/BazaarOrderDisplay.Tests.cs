@@ -126,6 +126,7 @@ public class BazaarOrderDisplayTests
 
     [TestCase("2.0.0")]
     [TestCase("2.0.0-pre1")]
+    [TestCase("2.0.1")]
     public async Task SupportedVersionsReceiveDisplayAndTutorial(string version)
     {
         socket.SetupGet(s => s.Version).Returns(version);

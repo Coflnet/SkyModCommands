@@ -482,8 +482,6 @@ namespace Coflnet.Sky.Commands.MC
 
             ModAdapter = Version switch
             {
-                "2.0.0" => new BinGuiVersionAdapter(this),
-                "2.0.0-pre1" => new BinGuiVersionAdapter(this),
                 "1.3.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.3-Alpha" => new ThirdVersionAdapter(this),
                 "1.2-Alpha" => new SecondVersionAdapter(this),
@@ -493,6 +491,7 @@ namespace Coflnet.Sky.Commands.MC
                 "af-2.0.0" => new FullAfVersionAdapter(this),
                 "af-2.0.1" => new FullAfVersionAdapter(this),
                 "1.5.0-afclient" => new AfVersionAdapter(this),
+                string v when v.StartsWith("2.") => new BinGuiVersionAdapter(this),
                 string v when v.StartsWith("1.9.") => new BinGuiVersionAdapter(this),
                 string v when v.StartsWith("1.8.") => new BinGuiVersionAdapter(this),
                 string v when v.StartsWith("1.7.") => new BinGuiVersionAdapter(this),
