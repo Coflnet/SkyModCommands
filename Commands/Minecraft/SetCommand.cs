@@ -58,7 +58,7 @@ public class SetCommand : McCommand
                 return;
             }
             if (string.IsNullOrEmpty(socket.sessionLifesycle.UserId))
-                socket.SendMessage(new ChatPart($"{COFLNET}You are not logged in, setting will reset when you stop the connection"));
+                await socket.sessionLifesycle.SaveSettingsForInstance();
             else
             {
                 var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();

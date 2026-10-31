@@ -159,8 +159,7 @@ namespace Coflnet.Sky.Commands.MC
                 using var waitLogin = socket.CreateActivity("waitLogin", ConSpan);
                 waitLogin.Log(GetAuthLink(stringId));
                 UserId.OnChange += (newset) => Task.Run(async () => await SubToSettings(newset));
-                FlipSettings = await SelfUpdatingValue<FlipSettings>.CreateNoUpdate(() => DefaultSettings);
-                InitializeCurrentFlipSettings();
+                await SetupSignedOutSettings(stringId);
             }
             else
             {
@@ -294,6 +293,90 @@ namespace Coflnet.Sky.Commands.MC
             await SubToSettings(userId);
         }
 
+        /// <summary>
+        /// True when the user opted into keeping settings for this mod instance without an account
+        /// </summary>
+        public bool SavesSettingsForInstance { get; private set; }
+
+        /// <summary>
+        /// Uses the settings the mod instance opted to keep for a signed-out session, or the defaults
+        /// </summary>
+        internal async Task SetupSignedOutSettings(string sessionId)
+        {
+            var stored = await LoadInstanceSettings(sessionId);
+            SavesSettingsForInstance = stored != null;
+            FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(stored ?? DefaultSettings);
+            InitializeCurrentFlipSettings();
+            if (stored == null)
+                return;
+            ConSpan.Log("loaded instance settings");
+            await ApplyFlipSettings(FlipSettings.Value, ConSpan);
+            Registerkeybinds(FlipSettings.Value, true);
+        }
+
+        /// <summary>
+        /// Settings stored for the mod instance, null when there are none
+        /// </summary>
+        private async Task<FlipSettings> LoadInstanceSettings(string sessionId)
+        {
+            try
+            {
+                return await socket.GetService<IInstanceSettingsService>().Get(sessionId);
+            }
+            catch (Exception e)
+            {
+                dev.Logger.Instance.Error(e, "loading instance settings");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Keeps a settings change of a signed-out session for this mod instance,
+        /// or asks the user to opt into that when they have not yet
+        /// </summary>
+        public async Task SaveSettingsForInstance()
+        {
+            if (UserId?.Value != null)
+                return; // stored with the account
+            if (!SavesSettingsForInstance)
+            {
+                socket.Dialog(db => db.CoflCommand<InstanceSettingsCommand>(
+                    $"You are not logged in, setting will reset when you stop the connection. {McColorCodes.AQUA}[Click to keep settings for this mod instance]",
+                    "enable",
+                    $"Keeps your settings for this mod install for a year without an account\nSame as {McColorCodes.AQUA}/cofl instancesettings enable"));
+                return;
+            }
+            await socket.GetService<IInstanceSettingsService>().Save(SessionInfo.SessionId, FlipSettings.Value);
+        }
+
+        public async Task EnableInstanceSettings()
+        {
+            SavesSettingsForInstance = true;
+            await socket.GetService<IInstanceSettingsService>().Save(SessionInfo.SessionId, FlipSettings.Value);
+        }
+
+        public async Task DisableInstanceSettings()
+        {
+            SavesSettingsForInstance = false;
+            await socket.GetService<IInstanceSettingsService>().Delete(SessionInfo.SessionId);
+        }
+
+        /// <summary>
+        /// After sign-in: offers to copy settings kept for this mod instance to the account.
+        /// A session signed in at connect never loaded them, so look them up then.
+        /// </summary>
+        internal async Task OfferInstanceSettingsCopy()
+        {
+            if (!SavesSettingsForInstance)
+                SavesSettingsForInstance = await LoadInstanceSettings(SessionInfo.SessionId) != null;
+            if (!SavesSettingsForInstance)
+                return;
+            socket.Dialog(db => db.CoflCommand<InstanceSettingsCommand>(
+                $"You kept settings for this mod instance before signing in. {McColorCodes.AQUA}[Click to copy them to your account]",
+                "copy",
+                $"Replaces the settings of your account with the ones of this mod instance\nSame as {McColorCodes.AQUA}/cofl instancesettings copy"));
+        }
+
         private async Task SubToUserCommands(string userId)
         {
             if (string.IsNullOrEmpty(userId))
@@ -354,6 +437,7 @@ namespace Coflnet.Sky.Commands.MC
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
             Registerkeybinds(FlipSettings.Value, true);
             Activity.Current.Log("applied flip settings");
+            await OfferInstanceSettingsCopy();
             await socket.TryAsyncTimes(FilterState.SubToConfigChanges, "config subscribe");
 
             // Register with autotip service

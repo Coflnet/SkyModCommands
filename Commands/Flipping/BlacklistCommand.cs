@@ -76,7 +76,16 @@ namespace Coflnet.Sky.Commands.MC
             list.Value.RecompileMatchers();
             list.Value.LastChanged = "preventUpdateMsg";
             list.Value.Changer = socket.SessionInfo.ConnectionId;
-            await list.Update(list.Value);
+            await SaveSettings(socket, list);
+        }
+
+        /// <summary>
+        /// Applies the changed settings and keeps them for the mod instance when the user is not signed in
+        /// </summary>
+        protected static async Task SaveSettings(MinecraftSocket socket, SelfUpdatingValue<FlipSettings> settings)
+        {
+            await settings.Update(settings.Value);
+            await socket.sessionLifesycle.SaveSettingsForInstance();
         }
 
         protected override async Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)

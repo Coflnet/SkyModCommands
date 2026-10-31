@@ -20,7 +20,7 @@ namespace Coflnet.Sky.Commands.MC
             list.Value.RecompileMatchers();
             list.Value.LastChanged = "preventUpdateMsg";
             list.Value.LastChanged = null;
-            await list.Update(list.Value);
+            await SaveSettings(socket, list);
         }
 
         protected override Task<List<ListEntry>> GetList(MinecraftSocket socket)
