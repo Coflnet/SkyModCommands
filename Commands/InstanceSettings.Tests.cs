@@ -46,17 +46,59 @@ public class InstanceSettingsTests
             "copy offer is sent, got: " + string.Join("|", socket.Sent));
     }
 
-    private static InstanceSocket CreateSocket(FlipSettings stored)
+    [Test]
+    public async Task FlipNeverIsKeptForInstance()
     {
         var service = new Mock<IInstanceSettingsService>();
+        var socket = CreateSocket(ModSessionLifesycle.DefaultSettings, service);
+        await socket.sessionLifesycle.SetupSignedOutSettings(SessionId);
+
+        await new FlipCommand().Execute(socket, "\"never\"");
+
+        service.Verify(s => s.Save(SessionId, It.Is<FlipSettings>(f => f.DisableFlips)), Times.Once,
+            "disabling flips of an opted-in signed-out session is stored for the mod instance");
+    }
+
+    [Test]
+    public async Task ChatToggleIsKeptForInstance()
+    {
+        var service = new Mock<IInstanceSettingsService>();
+        var socket = CreateSocket(ModSessionLifesycle.DefaultSettings, service);
+        await socket.sessionLifesycle.SetupSignedOutSettings(SessionId);
+        var chatWasOn = socket.Settings.ModSettings.Chat;
+
+        try
+        {
+            await new ChatCommand().Execute(socket, "\"toggle\"");
+        }
+        catch (InvalidOperationException)
+        {
+            // the plain text confirmation after saving needs an open websocket
+        }
+
+        service.Verify(s => s.Save(SessionId, It.Is<FlipSettings>(f => f.ModSettings.Chat != chatWasOn)), Times.Once,
+            "toggling the chat popups of an opted-in signed-out session is stored for the mod instance");
+    }
+
+    private static InstanceSocket CreateSocket(FlipSettings stored, Mock<IInstanceSettingsService> service = null)
+    {
+        service ??= new Mock<IInstanceSettingsService>();
         service.Setup(s => s.Get(SessionId)).ReturnsAsync(stored);
         var socket = new InstanceSocket(service.Object);
         socket.SessionInfo.SessionId = SessionId;
-        socket.SetLifecycle(new ModSessionLifesycle(socket)
+        socket.SetLifecycle(new QuietLifecycle(socket)
         {
             UserId = SelfUpdatingValue<string>.CreateNoUpdate((string)null)
         });
         return socket;
+    }
+
+    /// <summary>
+    /// Skips applying updates, which writes to the not opened websocket
+    /// </summary>
+    private sealed class QuietLifecycle(MinecraftSocket socket) : ModSessionLifesycle(socket)
+    {
+        protected override void UpdateSettings(FlipSettings settings) { }
     }
 
     private sealed class InstanceSocket : MinecraftSocket

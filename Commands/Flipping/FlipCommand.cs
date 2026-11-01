@@ -21,6 +21,7 @@ public class FlipCommand : McCommand
                 flipSettings.Value.ModSettings.AutoStartFlipper = false;
                 flipSettings.Value.LastChanged = "flip disabled";
                 await flipSettings.Update();
+                await socket.sessionLifesycle.SaveSettingsForInstance();
                 socket.SessionInfo.FlipsEnabled = false;
                 break;
             case "always":
@@ -29,6 +30,7 @@ public class FlipCommand : McCommand
                 flipSettings.Value.ModSettings.AhDataOnlyMode = false;
                 flipSettings.Value.LastChanged = "flips enabled";
                 await flipSettings.Update();
+                await socket.sessionLifesycle.SaveSettingsForInstance();
                 socket.SessionInfo.FlipsEnabled = true;
                 WriteCurrentState(socket);
                 socket.Dialog(db => db.CoflCommand<SetCommand>(

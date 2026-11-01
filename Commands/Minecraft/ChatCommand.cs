@@ -121,6 +121,7 @@ namespace Coflnet.Sky.Commands.MC
             settings.Value.LastChanged = "chat";
             settings.Value.ModSettings.Chat = !settings.Value.ModSettings.Chat;
             await settings.Update(settings.Value);
+            await socket.sessionLifesycle.SaveSettingsForInstance();
             socket.SendMessage(CHAT_PREFIX + $"Toggled the chat {(settings.Value.ModSettings.Chat ? "on" : "off")}");
             if (!settings.Value.ModSettings.Chat)
                 await socket.TriggerTutorial<ModCommands.Tutorials.ChatToggleTutorial>();

@@ -30,7 +30,14 @@ public class InstanceSettingsService : IInstanceSettingsService
 
     public InstanceSettingsService(ISession session, ILogger<InstanceSettingsService> logger)
     {
-        table = new Table<InstanceSettings>(session, new MappingConfiguration().Define(
+        table = CreateTable(session);
+        table.CreateIfNotExists();
+        this.logger = logger;
+    }
+
+    internal static Table<InstanceSettings> CreateTable(ISession session)
+    {
+        return new Table<InstanceSettings>(session, new MappingConfiguration().Define(
             new Map<InstanceSettings>()
                 .PartitionKey(x => x.SessionId)
                 .Column(x => x.SessionId, cm => cm.WithName("session_id"))
@@ -38,9 +45,20 @@ public class InstanceSettingsService : IInstanceSettingsService
                 .Column(x => x.DisableFlips, cm => cm.WithName("disable_flips"))
                 .Column(x => x.UpdatedAt, cm => cm.WithName("updated_at"))
         ), "mod_instance_settings");
-        table.CreateIfNotExists();
-        this.logger = logger;
     }
+
+    internal static CqlQuerySingleElement<InstanceSettings> SelectQuery(Table<InstanceSettings> table, string sessionId)
+        => table.Where(x => x.SessionId == sessionId).FirstOrDefault();
+
+    internal static CqlInsert<InstanceSettings> InsertQuery(Table<InstanceSettings> table, InstanceSettings row)
+    {
+        var insert = table.Insert(row);
+        insert.SetTTL(TtlSeconds);
+        return insert;
+    }
+
+    internal static CqlDelete DeleteQuery(Table<InstanceSettings> table, string sessionId)
+        => table.Where(x => x.SessionId == sessionId).Delete();
 
     public async Task<FlipSettings> Get(string sessionId)
     {
@@ -48,7 +66,7 @@ public class InstanceSettingsService : IInstanceSettingsService
             return null;
         try
         {
-            var row = await table.Where(x => x.SessionId == sessionId).FirstOrDefault().ExecuteAsync();
+            var row = await SelectQuery(table, sessionId).ExecuteAsync();
             return FromRow(row);
         }
         catch (Exception e)
@@ -62,7 +80,7 @@ public class InstanceSettingsService : IInstanceSettingsService
     {
         if (string.IsNullOrEmpty(sessionId) || settings == null)
             return;
-        await table.Insert(ToRow(sessionId, settings)).SetTTL(TtlSeconds).ExecuteAsync();
+        await InsertQuery(table, ToRow(sessionId, settings)).ExecuteAsync();
     }
 
     /// <summary>
@@ -93,7 +111,7 @@ public class InstanceSettingsService : IInstanceSettingsService
     {
         if (string.IsNullOrEmpty(sessionId))
             return;
-        await table.Where(x => x.SessionId == sessionId).Delete().ExecuteAsync();
+        await DeleteQuery(table, sessionId).ExecuteAsync();
     }
 
     public class InstanceSettings
