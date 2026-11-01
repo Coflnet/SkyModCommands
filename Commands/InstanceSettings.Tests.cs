@@ -80,6 +80,20 @@ public class InstanceSettingsTests
             "toggling the chat popups of an opted-in signed-out session is stored for the mod instance");
     }
 
+    [Test]
+    public async Task SignedInChangeIsNotKeptForInstance()
+    {
+        var service = new Mock<IInstanceSettingsService>();
+        var socket = CreateSocket(ModSessionLifesycle.DefaultSettings, service);
+        await socket.sessionLifesycle.SetupSignedOutSettings(SessionId);
+        socket.sessionLifesycle.UserId = SelfUpdatingValue<string>.CreateNoUpdate("5");
+
+        await new FlipCommand().Execute(socket, "\"never\"");
+
+        service.Verify(s => s.Save(It.IsAny<string>(), It.IsAny<FlipSettings>()), Times.Never,
+            "a signed-in change is saved with the account only, not also for the mod instance");
+    }
+
     private static InstanceSocket CreateSocket(FlipSettings stored, Mock<IInstanceSettingsService> service = null)
     {
         service ??= new Mock<IInstanceSettingsService>();

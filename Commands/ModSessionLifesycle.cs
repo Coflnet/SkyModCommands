@@ -331,13 +331,28 @@ namespace Coflnet.Sky.Commands.MC
         }
 
         /// <summary>
+        /// Saves the changed flip settings to exactly one place:
+        /// the account when signed in, otherwise this mod instance
+        /// </summary>
+        public async Task SaveFlipSettings()
+        {
+            if (UserId?.Value != null)
+            {
+                await FlipSettings.Update(FlipSettings.Value);
+                return;
+            }
+            // signed-out settings are not bound to an account, this only applies the change to the session
+            await FlipSettings.Update(FlipSettings.Value);
+            await SaveSettingsForInstance();
+        }
+
+        /// <summary>
         /// Keeps a settings change of a signed-out session for this mod instance,
-        /// or asks the user to opt into that when they have not yet
+        /// or asks the user to opt into that when they have not yet.
+        /// Never called for signed-in sessions, their settings are saved with the account
         /// </summary>
         public async Task SaveSettingsForInstance()
         {
-            if (UserId?.Value != null)
-                return; // stored with the account
             if (!SavesSettingsForInstance)
             {
                 socket.Dialog(db => db.CoflCommand<InstanceSettingsCommand>(
