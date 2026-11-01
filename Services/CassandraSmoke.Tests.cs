@@ -10,9 +10,11 @@ using CassandraCluster = global::Cassandra.Cluster;
 using SocketOptions = global::Cassandra.SocketOptions;
 using SimpleStatement = global::Cassandra.SimpleStatement;
 using InvalidQueryException = global::Cassandra.InvalidQueryException;
+using ISession = global::Cassandra.ISession;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Core;
 using Microsoft.Extensions.Logging.Abstractions;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 class CassandraSmokeTests
@@ -47,23 +49,14 @@ class CassandraSmokeTests
     }
 
     [Test]
-    [Explicit("Run through scripts/cassandra-smoke.sh; it requires a disposable Cassandra container.")]
+    [Explicit("Run through scripts/cassandra-smoke.sh; it requires a disposable Cassandra container or a leased keyspace.")]
     public async Task BlockedReasonsServerRoundTrip()
     {
-        var host = Environment.GetEnvironmentVariable("CASSANDRA_SMOKE_HOST")
-            ?? throw new InvalidOperationException("CASSANDRA_SMOKE_HOST is required.");
-        var port = int.Parse(Environment.GetEnvironmentVariable("CASSANDRA_SMOKE_PORT")
-            ?? throw new InvalidOperationException("CASSANDRA_SMOKE_PORT is required."));
-        using var cluster = CassandraCluster.Builder()
-            .AddContactPoint(host)
-            .WithPort(port)
-            .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30_000).SetReadTimeoutMillis(30_000))
-            .Build();
-        using var bootstrap = cluster.Connect();
-        bootstrap.Execute("CREATE KEYSPACE smoke WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
-        using var session = cluster.Connect("smoke");
+        using var cluster = BuildCluster();
+        using var session = ConnectToSmokeKeyspace(cluster);
 
         // 1. legacy table shape and one legacy row
+        session.Execute("DROP TABLE IF EXISTS blocked_reasons");
         session.Execute("CREATE TABLE blocked_reasons (userid text, auctionuuid uuid, finder_type int, blocked_at timestamp, reason text, PRIMARY KEY ((userid), auctionuuid, finder_type))");
         var user = "5";
         var legacyUuid = Guid.NewGuid();
@@ -132,6 +125,76 @@ class CassandraSmokeTests
         Assert.That(ttls, Has.Count.EqualTo(30));
         Assert.That(ttls, Has.All.InRange(7 * 24 * 3600 - 300, 7 * 24 * 3600));
     }
+
+    [Test]
+    [Explicit("Run through scripts/cassandra-smoke.sh; it requires a disposable Cassandra container or a leased keyspace.")]
+    public async Task InstanceSettingsServerRoundTrip()
+    {
+        using var cluster = BuildCluster();
+        using var session = ConnectToSmokeKeyspace(cluster);
+        session.Execute("DROP TABLE IF EXISTS mod_instance_settings");
+
+        var service = new InstanceSettingsService(session, NullLogger<InstanceSettingsService>.Instance);
+        var tables = session.Execute(new SimpleStatement(
+            "SELECT table_name FROM system_schema.tables WHERE keyspace_name = ?", session.Keyspace)).Select(r => r.GetValue<string>("table_name"));
+        Assert.That(tables, Does.Contain("mod_instance_settings"), "the service creates its own table");
+
+        var sessionId = Guid.NewGuid().ToString("N");
+        var settings = ModSessionLifesycle.DefaultSettings;
+        settings.DisableFlips = true;
+        settings.MinProfit = 4242;
+        settings.ModSettings.Chat = false;
+        await service.Save(sessionId, settings);
+
+        var loaded = await service.Get(sessionId);
+        Assert.That(loaded, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(loaded.DisableFlips, Is.True);
+            Assert.That(JsonConvert.SerializeObject(loaded), Is.EqualTo(JsonConvert.SerializeObject(settings)));
+        });
+        var ttl = session.Execute(new SimpleStatement(
+            "SELECT TTL(settings) AS ttl FROM mod_instance_settings WHERE session_id = ?", sessionId)).Single().GetValue<int>("ttl");
+        TestContext.Progress.WriteLine("Instance settings TTL seconds: " + ttl);
+        Assert.That(ttl, Is.InRange(365 * 24 * 3600 - 300, 365 * 24 * 3600));
+
+        await service.Delete(sessionId);
+        Assert.That(await service.Get(sessionId), Is.Null);
+        Assert.That(session.Execute(new SimpleStatement(
+            "SELECT session_id FROM mod_instance_settings WHERE session_id = ?", sessionId)).Count(), Is.Zero);
+    }
+
+    private static CassandraCluster BuildCluster()
+    {
+        var host = Environment.GetEnvironmentVariable("CASSANDRA_SMOKE_HOST")
+            ?? throw new InvalidOperationException("CASSANDRA_SMOKE_HOST is required.");
+        var port = int.Parse(Environment.GetEnvironmentVariable("CASSANDRA_SMOKE_PORT")
+            ?? throw new InvalidOperationException("CASSANDRA_SMOKE_PORT is required."));
+        var builder = CassandraCluster.Builder()
+            .AddContactPoint(host)
+            .WithPort(port)
+            .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30_000).SetReadTimeoutMillis(30_000));
+        if (LeasedKeyspace != null)
+            builder = builder.WithCredentials(RequiredVariable("CASSANDRA_SMOKE_USER"), RequiredVariable("CASSANDRA_SMOKE_PASSWORD"));
+        return builder.Build();
+    }
+
+    /// <summary>
+    /// Leased-host mode uses the given keyspace as is; the container mode creates a fresh one
+    /// </summary>
+    private static ISession ConnectToSmokeKeyspace(CassandraCluster cluster)
+    {
+        if (LeasedKeyspace != null)
+            return cluster.Connect(LeasedKeyspace);
+        using (var bootstrap = cluster.Connect())
+            bootstrap.Execute("CREATE KEYSPACE IF NOT EXISTS smoke WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
+        return cluster.Connect("smoke");
+    }
+
+    private static string LeasedKeyspace => Environment.GetEnvironmentVariable("CASSANDRA_SMOKE_KEYSPACE") is { Length: > 0 } keyspace ? keyspace : null;
+
+    private static string RequiredVariable(string name)
+        => Environment.GetEnvironmentVariable(name) ?? throw new InvalidOperationException(name + " is required with CASSANDRA_SMOKE_KEYSPACE.");
 
     private static MinecraftSocket.BlockedElement Element(string uuid, DateTime start, long target, long startingBid, string reason) => new()
     {
