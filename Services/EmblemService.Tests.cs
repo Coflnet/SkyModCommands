@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.Commands.MC;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Models;
 using Microsoft.Extensions.Configuration;
@@ -208,6 +209,103 @@ public class EmblemServiceTests
         Assert.That(result.premium, Is.EqualTo(TimeSpan.FromSeconds(expectedSeconds)));
         var isPremiumPlus = productSlug.StartsWith("premium_plus") || productSlug.StartsWith("l_prem_plus");
         Assert.That(result.premiumPlus, Is.EqualTo(isPremiumPlus ? TimeSpan.FromSeconds(expectedSeconds) : TimeSpan.Zero));
+    }
+
+    [Test]
+    public async Task TierSlotPurchasesCountTowardsTierEmblemsBySlotCountAndDuration()
+    {
+        var transactionApi = new Mock<ITransactionApi>();
+        transactionApi.Setup(api => api.TransactionUUserIdGetAsync("47", 0, 2000, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExternalTransaction>
+            {
+                new(productId: "premium_plus-slot"),
+                new(productId: "premium-slots-3"),
+                new(productId: "pre_api-slots-2")
+            });
+        var slotsApi = new Mock<ITierSlotsApi>();
+        slotsApi.Setup(api => api.ApiTierSlotsProductsGetAsync(0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PurchaseableProduct>
+            {
+                new(slug: "premium_plus-slot", slotTier: "premium_plus", slotCount: 1, ownershipSeconds: 30 * 86400),
+                new(slug: "premium-slots-3", slotTier: "premium", slotCount: 3, ownershipSeconds: 30 * 86400),
+                new(slug: "pre_api-slots-2", slotTier: "pre_api", slotCount: 2, ownershipSeconds: 7 * 86400)
+            });
+        var socket = new Mock<MinecraftSocket>();
+        socket.Setup(s => s.GetService<ITransactionApi>()).Returns(transactionApi.Object);
+        socket.Setup(s => s.GetService<ITierSlotsApi>()).Returns(slotsApi.Object);
+
+        var result = await CreateService().GetPurchaseStats(socket.Object, new GoogleUser { Id = 47 });
+
+        Assert.That(result.premium, Is.EqualTo(TimeSpan.FromDays(120)), "one 30 day premium+ slot and three 30 day premium slots");
+        Assert.That(result.premiumPlus, Is.EqualTo(TimeSpan.FromDays(30)));
+        Assert.That(result.preApiPurchases, Is.EqualTo(2), "a bundle of two pre api slots");
+    }
+
+    [Test]
+    public async Task TierSlotBundlePurchaseUnlocksBundleEmblem()
+    {
+        var transactionApi = new Mock<ITransactionApi>();
+        transactionApi.Setup(api => api.TransactionUUserIdGetAsync("48", 0, 2000, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExternalTransaction> { new(productId: "premium_plus-slots-2") });
+        var slotsApi = new Mock<ITierSlotsApi>();
+        slotsApi.Setup(api => api.ApiTierSlotsProductsGetAsync(0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PurchaseableProduct> { new(slug: "premium_plus-slots-2", slotTier: "premium_plus", slotCount: 2, ownershipSeconds: 7 * 86400) });
+        var socket = new TierSlotSocket("48", transactionApi.Object, slotsApi.Object);
+
+        var unlocked = await CreateService().GetUnlockedForSocket(socket);
+
+        Assert.That(unlocked, Does.Contain("SlotBundle"));
+        Assert.That(unlocked, Does.Not.Contain("SlotSharer"));
+    }
+
+    [TestCase("c0b5a2d1e4f94b3c8a7d6e5f4a3b2c1d", true)]
+    [TestCase(OwnUuid, false)]
+    public async Task TierSlotAssignedToAnotherPlayerUnlocksSharerEmblem(string assignedUuid, bool expected)
+    {
+        var slotsApi = new Mock<ITierSlotsApi>();
+        slotsApi.Setup(api => api.ApiTierSlotsOwnerOwnerIdGetAsync("49", 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TierSlotAccess>
+            {
+                new(id: 3, ownerId: "49", tier: "premium_plus", expires: DateTime.UtcNow.AddDays(7), minecraftUuid: assignedUuid, varVersion: 1, canManage: true)
+            });
+        var transactionApi = new Mock<ITransactionApi>();
+        transactionApi.Setup(api => api.TransactionUUserIdGetAsync("49", 0, 2000, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExternalTransaction>());
+        var socket = new TierSlotSocket("49", transactionApi.Object, slotsApi.Object);
+
+        var unlocked = await CreateService().GetUnlockedForSocket(socket);
+
+        Assert.That(unlocked.Contains("SlotSharer"), Is.EqualTo(expected));
+    }
+
+    private const string OwnUuid = "384a029294fc445e863f2c42fe9709cb";
+
+    /// <summary>
+    /// A logged in socket without a database backed account, so only the payments user id is known.
+    /// </summary>
+    private sealed class TierSlotSocket : MinecraftSocket
+    {
+        private readonly ITransactionApi transactions;
+        private readonly ITierSlotsApi slots;
+
+        public TierSlotSocket(string userId, ITransactionApi transactions, ITierSlotsApi slots)
+        {
+            this.transactions = transactions;
+            this.slots = slots;
+            SessionInfo.McUuid = OwnUuid;
+            sessionLifesycle = new ModSessionLifesycle(this) { UserId = SelfUpdatingValue<string>.CreateNoUpdate(userId) };
+        }
+
+        public override T GetService<T>()
+        {
+            if (typeof(T) == typeof(ITransactionApi))
+                return (T)transactions;
+            if (typeof(T) == typeof(ITierSlotsApi))
+                return (T)slots;
+            if (typeof(T) == typeof(ModeratorService))
+                return (T)(object)new ModeratorService();
+            return Mock.Of<T>();
+        }
     }
 
     private static EmblemService CreateService()

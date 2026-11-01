@@ -54,9 +54,9 @@ public class Emblem
 /// <summary>
 /// The catalog of all emblems. The id constants of the achievement backed emblems mirror the authoritative
 /// <c>Achievement</c> enum names from SkyUserState - keep them in sync (see <see cref="Emblem.Id"/>).
-/// The account-age, purchase-based, and moderator emblems are exceptions: they are not achievements at all.
-/// Whether a player has one is derived on read from the account creation date, purchase history, or moderator
-/// role in <see cref="Services.EmblemService.GetUnlockedForSocket"/>, so their ids don't appear in that enum.
+/// The account-age, purchase-based, tier slot, and moderator emblems are exceptions: they are not achievements at all.
+/// Whether a player has one is derived on read from the account creation date, purchase history, tier slots, or
+/// moderator role in <see cref="Services.EmblemService.GetUnlockedForSocket"/>, so their ids don't appear in that enum.
 /// </summary>
 public static class Emblems
 {
@@ -65,6 +65,7 @@ public static class Emblems
     public const string PremiumCategory = "Premium Time";
     public const string PremiumPlusCategory = "Premium+ Time";
     public const string PreApiCategory = "Pre API Purchases";
+    public const string TierSlotCategory = "Tier Slots";
     public const string AccountAgeCategory = "Account Age";
     public const string MysteryCategory = "Mysteries";
 
@@ -95,6 +96,9 @@ public static class Emblems
     public const string PreApiFivePurchases = "PreApiFivePurchases";
     public const string PreApiTenPurchases = "PreApiTenPurchases";
     public const string PreApiTwentyPurchases = "PreApiTwentyPurchases";
+    // tier slot emblems - derived from slot purchases and slot assignments in the payments service
+    public const string SlotBundle = "SlotBundle";
+    public const string SlotSharer = "SlotSharer";
 
     /// <summary>
     /// All emblems in display order. Colors are baked into the symbol so it keeps its color when
@@ -142,6 +146,11 @@ public static class Emblems
             "Pre API x10", "Purchased Pre API access at least 10 times.", PreApiCategory),
         new Emblem(PreApiTwentyPurchases, McColorCodes.GOLD + "♛",
             "Pre API x20", "Purchased Pre API access at least 20 times.", PreApiCategory),
+        // --- tier slots (slot time and Pre API slots also count towards the emblems above) ---
+        new Emblem(SlotBundle, McColorCodes.GOLD + "▣",
+            "Bundle Buyer", "Purchased a tier slot bundle.", TierSlotCategory),
+        new Emblem(SlotSharer, McColorCodes.AQUA + "♥",
+            "Slot Sharer", "Assigned one of your tier slots to another player.", TierSlotCategory),
         // --- account age (granted automatically once the account is old enough) ---
         new Emblem(OneYearVeteran, McColorCodes.GREEN + "✦",
             "One Year Veteran", "Your Coflnet account is at least 1 year old. Thanks for flipping with us!", AccountAgeCategory),
