@@ -16,7 +16,7 @@ namespace Coflnet.Sky.Commands.MC;
 
 public class FlipProcesserMatchReportTests
 {
-    private TestSocket socket;
+    private ErrorRecordingSocket socket;
     private ModSessionLifesycle lifesycle;
     private Mock<IFlipMatchTracker> tracker;
 
@@ -35,7 +35,7 @@ public class FlipProcesserMatchReportTests
         DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine(new Mock<INBT>().Object));
         DiHandler.OverrideService<FlipperService, FlipperService>(new FlipperService(null, NullLogger<FlipperService>.Instance));
         DiHandler.OverrideService<IFlipMatchTracker, IFlipMatchTracker>(tracker.Object);
-        socket = new TestSocket();
+        socket = new ErrorRecordingSocket();
         lifesycle = new ModSessionLifesycle(socket);
         socket.SetLifecycle(lifesycle);
         socket.SessionInfo.FlipsEnabled = true;
@@ -151,6 +151,7 @@ public class FlipProcesserMatchReportTests
         await CreateProcessor().ProcessBatch([broken, good]);
 
         socket.Flips.Should().ContainSingle();
+        socket.Errors.Should().ContainSingle();
     }
 
     [Test]
@@ -204,5 +205,18 @@ public class FlipProcesserMatchReportTests
 
         FlipProcesser.ApiRelativeSeconds(flip, new ApiUpdateClock(), DateTime.UtcNow).Should().BeNull();
         FlipProcesser.ApiRelativeSeconds(flip, null, DateTime.UtcNow).Should().BeNull();
+    }
+
+    /// <summary>
+    /// The test socket has no websocket session, so the base error logging cannot read the query string
+    /// </summary>
+    private sealed class ErrorRecordingSocket : TestSocket
+    {
+        public List<Exception> Errors = [];
+        public override string Error(Exception exception, string message = null, string additionalLog = null)
+        {
+            Errors.Add(exception);
+            return string.Empty;
+        }
     }
 }
