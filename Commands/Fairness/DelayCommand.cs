@@ -31,7 +31,7 @@ namespace Coflnet.Sky.Commands.MC
             if (await socket.UserAccountTier() == 0 && socket.SessionInfo.SessionTier == AccountTier.NONE)
             {
                 Activity.Current?.AddTag("freeVersion", true);
-                socket.Dialog(db => db.MsgLine($"You are using the {McColorCodes.YELLOW}free version{DEFAULT_COLOR} receive flips ~40seconds late.", "https://sky.coflnet.com/premium", "Opens the premium page")
+                socket.Dialog(db => db.MsgLine($"You are using the {McColorCodes.YELLOW}free version{DEFAULT_COLOR} receive flips a few seconds late.", "https://sky.coflnet.com/premium", "Opens the premium page")
                             .MsgLine($"Purchase premium to remove delay. {McColorCodes.AQUA}/cofl buy", "/cofl buy", "Shows the premium options"));
                 return;
             }
@@ -64,7 +64,7 @@ namespace Coflnet.Sky.Commands.MC
                     + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
                     null, "Enjoy flipping at high speed☻");
             else if (socket.SessionInfo.SessionTier == AccountTier.PREMIUM)
-                socket.SendMessage($"Note that because you are not on the prem+ tier flips with {McColorCodes.DARK_GRAY}! {McColorCodes.RESET}or {McColorCodes.DARK_GRAY}.{McColorCodes.RESET} behind the item name are sent to you 1000 milliseconds later. If they are more than 1m profit you may not get them anymore because a prem+ user already purchased them.");
+                socket.SendMessage($"Note that because you are not on the prem+ tier flips with {McColorCodes.DARK_GRAY}! {McColorCodes.RESET}or {McColorCodes.DARK_GRAY}.{McColorCodes.RESET} behind the item name are sent to you about half a second later, or 3-5 seconds later when a prem+ user's filter matched them. If they are more than 1m profit you may not get them anymore because a prem+ user already purchased them.");
             if ((socket.Settings?.Visibility?.LowestBin ?? false) && socket.Settings.AllowedFinders != Core.LowPricedAuction.FinderType.SNIPER)
                 ShowWarning(socket, "show lowest bin", "showlbin");
             if ((socket.Settings?.BasedOnLBin ?? false) && socket.Settings.AllowedFinders != Core.LowPricedAuction.FinderType.SNIPER)

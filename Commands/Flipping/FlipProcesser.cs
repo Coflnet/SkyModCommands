@@ -9,6 +9,7 @@ using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 using Coflnet.Sky.ModCommands.Tutorials;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Commands.MC
@@ -20,6 +21,13 @@ namespace Coflnet.Sky.Commands.MC
         private static Prometheus.Counter sentFlipValue = Prometheus.Metrics.CreateCounter("sky_mod_flip_value", "Adds up the estimated value of flips sent");
         private static Prometheus.Histogram flipSendTiming = Prometheus.Metrics.CreateHistogram("sky_mod_send_time", "Full run through time of flips");
         private static Prometheus.Histogram processingTiming = Prometheus.Metrics.CreateHistogram("sky_mod_process_time", "Processing time of flips");
+        private static readonly Prometheus.Histogram sendRelativeApi = Prometheus.Metrics.CreateHistogram(
+            "sky_mod_flip_send_relative_api_seconds", "Seconds a flip was sent relative to the api update (negative = before)",
+            new Prometheus.HistogramConfiguration
+            {
+                LabelNames = new[] { "tier", "source" },
+                Buckets = new double[] { -40, -30, -20, -15, -10, -5, -3, -2, -1, -0.5, 0, 0.5, 1, 1.5, 2, 3, 5, 10, 20, 40 }
+            });
         private static Prometheus.Counter preApiFlipSent = Prometheus.Metrics.CreateCounter("sky_mod_flips_sent_preapi", "Flips sent to a preapi user");
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
@@ -28,6 +36,8 @@ namespace Coflnet.Sky.Commands.MC
         private ISpamController spamController;
         private IDelayHandler delayHandler;
         private IDelayExemptList delayExemptList;
+        private IFlipMatchTracker matchTracker;
+        private ApiUpdateClock apiClock;
         private int waitingBedFlips = 0;
         private int _blockedFlipCounter = 0;
         public int BlockedFlipCount => _blockedFlipCounter;
@@ -42,25 +52,71 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task ProcessFlip(LowPricedAuction flip)
         {
-            if (Settings == null || socket.HasFlippingDisabled())
+            var match = await TryFilter(flip).ConfigureAwait(false);
+            if (match == null)
                 return;
+            await SendMatched(match.Value).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Filters the whole batch and reports all matches before the first (fairness) wait happens
+        /// </summary>
+        public async Task ProcessBatch(IEnumerable<LowPricedAuction> flips)
+        {
+            var matches = new List<(LowPricedAuction f, FlipInstance instance)>();
+            foreach (var flip in flips.DistinctBy(f => f.Auction?.Uuid))
+            {
+                var match = await TryFilterSafe(flip).ConfigureAwait(false);
+                if (match != null)
+                    matches.Add(match.Value);
+            }
+            foreach (var match in matches)
+            {
+                try
+                {
+                    await SendMatched(match).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    socket.Error(e, "processing flip batch");
+                }
+            }
+        }
+
+        private async Task<(LowPricedAuction f, FlipInstance instance)?> TryFilterSafe(LowPricedAuction flip)
+        {
+            try
+            {
+                return await TryFilter(flip).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                socket.Error(e, "processing flip batch");
+                return null;
+            }
+        }
+
+        private async Task<(LowPricedAuction f, FlipInstance instance)?> TryFilter(LowPricedAuction flip)
+        {
+            if (Settings == null || socket.HasFlippingDisabled())
+                return null;
 
             if (!Settings.IsCompiled)
             {
                 BlockedFlip(flip, "loading settings");
-                return;
+                return null;
             }
 
             var start = DateTime.UtcNow;
 
             // Early exit conditions
             if (SentFlips.ContainsKey(flip.UId) || !FinderEnabled(flip) || !NotSold(flip) || socket.ModAdapter is not AfVersionAdapter && !CheckHighCompetition(flip))
-                return;
+                return null;
             long maxCostFromPurse = GetMaxCostFromPurse();
             if (flip.Auction.StartingBid >= maxCostFromPurse && socket.SessionInfo.Purse > 0 && flip.Finder != LowPricedAuction.FinderType.USER)
             {
                 BlockedFlip(flip, "purse check");
-                return;
+                return null;
             }
 
             var instance = FlipperService.LowPriceToFlip(flip);
@@ -71,13 +127,36 @@ namespace Coflnet.Sky.Commands.MC
             }
 
             if (!IsNoDupplicate(flip) || !FlipMatchesSetting(flip, instance) || !NotBlockedForSpam(instance, flip))
-                return;
+                return null;
+
+            ReportMatch(flip);
 
             // Add timing info
             var timeToSend = DateTime.UtcNow - flip.Auction.FindTime;
             flip.AdditionalProps["dl"] = timeToSend.ToString();
             flip.AdditionalProps["ft"] = (DateTime.UtcNow - start).ToString();
+            return (flip, instance);
+        }
 
+        private void ReportMatch(LowPricedAuction flip)
+        {
+            if (socket.SessionInfo.SessionTier <= AccountTier.NONE)
+                return;
+            try
+            {
+                matchTracker ??= DiHandler.ServiceProvider.GetService<IFlipMatchTracker>();
+                matchTracker?.ReportMatch(flip.UId, socket.SessionInfo.SessionTier);
+            }
+            catch (Exception)
+            {
+                // reporting is best effort and must never block sending
+            }
+        }
+
+        private async Task SendMatched((LowPricedAuction f, FlipInstance instance) match)
+        {
+            var flip = match.f;
+            var instance = match.instance;
             using (var span = socket.CreateActivity("Flip", socket.ConSpan)
             ?.AddTag("uuid", flip.Auction.Uuid)
             .AddTag("batchSize", 1))
@@ -378,6 +457,7 @@ namespace Coflnet.Sky.Commands.MC
             Activity.Current?.Log("Initiating send");
             await socket.ModAdapter.SendFlip(item).ConfigureAwait(false);
             Activity.Current?.Log("Sent flip");
+            ObserveApiRelative(flip);
             if (flip.AdditionalProps.ContainsKey("isRR") && socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.SUPER_PREMIUM))
                 await socket.TriggerTutorial<RoundRobinTutorial>().ConfigureAwait(false);
             if (flip.Finder == LowPricedAuction.FinderType.SNIPER_MEDIAN && flip.Auction.FlatenedNBT.Count >= 3)
@@ -428,6 +508,35 @@ namespace Coflnet.Sky.Commands.MC
                 if (flip.TargetPrice - flip.Auction.StartingBid > 6_000_000 && socket.CurrentRegion == Region.EU)
                     socket.GetService<PreApiService>().CheckHighProfitpurchaser(socket, flip);
             }, "tracking flip");
+        }
+
+        private void ObserveApiRelative(LowPricedAuction flip)
+        {
+            try
+            {
+                apiClock ??= DiHandler.ServiceProvider.GetService<ApiUpdateClock>();
+                var result = ApiRelativeSeconds(flip, apiClock, DateTime.UtcNow);
+                if (result == null)
+                    return;
+                sendRelativeApi.WithLabels(socket.SessionInfo.SessionTier.ToString(), result.Value.source).Observe(result.Value.seconds);
+            }
+            catch (Exception)
+            {
+                // metrics are best effort
+            }
+        }
+
+        /// <summary>
+        /// Seconds between the api update that made the auction public and now. Negative if sent before.
+        /// </summary>
+        internal static (string source, double seconds)? ApiRelativeSeconds(LowPricedAuction flip, ApiUpdateClock clock, DateTime now)
+        {
+            if (!flip.IsPreApi())
+                return ("api", (now - flip.Auction.FindTime).TotalSeconds);
+            var reference = clock?.FirstUpdateAfter(flip.Auction.Start);
+            if (reference == null)
+                return null;
+            return ("preapi", (now - reference.Value).TotalSeconds);
         }
 
         public bool BlockedFlip(LowPricedAuction flip, string reason)

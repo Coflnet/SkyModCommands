@@ -1257,10 +1257,7 @@ namespace Coflnet.Sky.Commands.MC
 
         public async Task SendBatch(IEnumerable<LowPricedAuction> flips)
         {
-            foreach (var item in flips)
-            {
-                await sessionLifesycle.SendFlipBatch(item);
-            }
+            await sessionLifesycle.SendFlipBatch(flips);
         }
 
         public override bool Equals(object? obj)

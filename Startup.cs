@@ -146,6 +146,8 @@ public class Startup
         services.AddSingleton<ActivityTrackingService>();
         services.AddSingleton<PlayerState.Client.Api.ITaskApi>(s =>
             new PlayerState.Client.Api.TaskApi(Configuration["PLAYERSTATE_BASE_URL"]));
+        services.AddSingleton<RedisFlipMatchTracker>();
+        services.AddSingleton<IFlipMatchTracker>(s => s.GetRequiredService<RedisFlipMatchTracker>());
         services.AddCoflService();
         services.AddHostedService(s => s.GetRequiredService<FilterStateService>());
 
