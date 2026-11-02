@@ -37,6 +37,7 @@ public class ModBackgroundService : BackgroundService
     HypixelItemService hypixelItemService;
     DateTime lastFastest = DateTime.UtcNow;
     ItemDetails itemDetails;
+    private RedisFlipMatchTracker? matchTracker;
     object compareLock = new object();
     private ConcurrentDictionary<(string, LowPricedAuction.FinderType, long), DateTime> alreadyProcessed = new();
 
@@ -59,8 +60,10 @@ public class ModBackgroundService : BackgroundService
         IDelayExemptList iDelayExemptList,
         FilterStateService filterStateService,
         HypixelItemService hypixelItemService,
-        ItemDetails itemDetails)
+        ItemDetails itemDetails,
+        RedisFlipMatchTracker? matchTracker = null)
     {
+        this.matchTracker = matchTracker;
         this.scopeFactory = scopeFactory;
         this.config = config;
         this.logger = logger;
@@ -185,6 +188,7 @@ public class ModBackgroundService : BackgroundService
     private void SubscribeConnection(ConnectionMultiplexer multiplexer, CancellationToken stoppingToken)
     {
         var hostName = System.Net.Dns.GetHostName();
+        matchTracker?.SubscribeRemote(multiplexer.GetSubscriber());
         multiplexer.GetSubscriber().Subscribe(RedisChannel.Literal("snipes"), (chan, val) =>
         {
             _ = RunRedisFlipTask(async () =>
@@ -307,7 +311,7 @@ public class ModBackgroundService : BackgroundService
     }
 
     protected virtual Task DistributeFlipOnServer(LowPricedAuction flip)
-        => flipperService.DeliverLowPricedAuction(flip, AccountTier.PREMIUM_PLUS);
+        => flipperService.DeliverLowPricedAuction(flip);
 
     private static void FixTfmMetadata(LowPricedAuction flip)
     {
