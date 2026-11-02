@@ -201,7 +201,9 @@ public class Startup
             var certificatePaths = Configuration["CASSANDRA:X509Certificate_PATHS"];
             Console.WriteLine("Using certificate paths " + certificatePaths);
             Console.WriteLine("Using certificate password " + Configuration["CASSANDRA:X509Certificate_PASSWORD"].Truncate(2) + "...");
-            CassandraTlsConfiguration.Apply(builder, Configuration.GetSection("CASSANDRA"));
+            var cassandraConfig = Configuration.GetSection("CASSANDRA");
+            Console.WriteLine("Using Cassandra TLS mode " + CassandraTlsConfiguration.SelectMode(cassandraConfig));
+            CassandraTlsConfiguration.Apply(builder, cassandraConfig);
             var cluster = builder.Build();
             var session = cluster.Connect(null);
             var defaultKeyspace = cluster.Configuration.ClientOptions.DefaultKeyspace;
