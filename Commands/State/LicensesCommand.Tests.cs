@@ -16,8 +16,24 @@ using NUnit.Framework;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[NonParallelizable]
 public class LicensesCommandTests
 {
+    private bool devModeBefore;
+
+    /// <summary>
+    /// Dev mode (hostname contains ekwav) forces socket.UserId to "1", which skips the mocked user "42"
+    /// </summary>
+    [SetUp]
+    public void DisableDevMode()
+    {
+        devModeBefore = MinecraftSocket.IsDevMode;
+        MinecraftSocket.IsDevMode = false;
+    }
+
+    [TearDown]
+    public void RestoreDevMode() => MinecraftSocket.IsDevMode = devModeBefore;
+
     private const string UserId = "42";
     private const string AltUuid = "0123456789abcdef0123456789abcdef";
     private static readonly PurchaseableProduct SlotPackage = new(id: 5, title: "Premium+ slot", slug: "premium_plus-slot",
