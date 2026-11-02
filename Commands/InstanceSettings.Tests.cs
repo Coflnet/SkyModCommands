@@ -60,6 +60,19 @@ public class InstanceSettingsTests
     }
 
     [Test]
+    public async Task KeybindIsKeptForInstance()
+    {
+        var service = new Mock<IInstanceSettingsService>();
+        var socket = CreateSocket(ModSessionLifesycle.DefaultSettings, service);
+        await socket.sessionLifesycle.SetupSignedOutSettings(SessionId);
+
+        await new KeyBindCommand().Execute(socket, "\"add k /cofl flip\"");
+
+        service.Verify(s => s.Save(SessionId, It.Is<FlipSettings>(f => f.ModSettings.Hotkeys.ContainsKey("k"))), Times.Once,
+            "a hotkey of an opted-in signed-out session is stored for the mod instance, errors: " + string.Join("|", socket.Errors));
+    }
+
+    [Test]
     public async Task ChatToggleIsKeptForInstance()
     {
         var service = new Mock<IInstanceSettingsService>();
@@ -92,6 +105,24 @@ public class InstanceSettingsTests
 
         service.Verify(s => s.Save(It.IsAny<string>(), It.IsAny<FlipSettings>()), Times.Never,
             "a signed-in change is saved with the account only, not also for the mod instance");
+    }
+
+    [Test]
+    public async Task CopyReplacesAccountSettingsWithoutKeepingThemForInstance()
+    {
+        var stored = ModSessionLifesycle.DefaultSettings;
+        stored.MinProfit = 777;
+        var service = new Mock<IInstanceSettingsService>();
+        var socket = CreateSocket(stored, service);
+        await socket.sessionLifesycle.SetupSignedOutSettings(SessionId);
+        socket.sessionLifesycle.UserId = SelfUpdatingValue<string>.CreateNoUpdate("5");
+
+        await new InstanceSettingsCommand().Execute(socket, "\"copy\"");
+
+        Assert.That(socket.Settings.MinProfit, Is.EqualTo(777), "stored settings replace the account settings");
+        service.Verify(s => s.Save(It.IsAny<string>(), It.IsAny<FlipSettings>()), Times.Never,
+            "the copy is saved with the account only, errors: " + string.Join("|", socket.Errors));
+        service.Verify(s => s.Delete(SessionId), Times.Once);
     }
 
     private static InstanceSocket CreateSocket(FlipSettings stored, Mock<IInstanceSettingsService> service = null)

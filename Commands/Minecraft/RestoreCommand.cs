@@ -24,7 +24,7 @@ namespace Coflnet.Sky.Commands.MC
             if (socket.sessionLifesycle.AccountSettings.Value.LoadedConfig != null)
                 await ConfigsCommand.Unloadconfig(socket);
             FlipFilter.CopyRelevantToNew(toLoad, socket.sessionLifesycle.FlipSettings);
-            await socket.sessionLifesycle.FlipSettings.Update(toLoad);
+            await socket.sessionLifesycle.SaveFlipSettings(toLoad);
         }
     }
 }

@@ -55,6 +55,6 @@ public class KeyBindCommand : ListCommand<KeyValuePair<string, string>, Dictiona
         socket.Settings.ModSettings.Hotkeys = newCol;
         var converted = newCol.Select(kv => new KeybindRegister() { Name = kv.Value.StartsWith("/") ? kv.Key : kv.Value, DefaultKey = kv.Key }).ToArray();
         socket.Send(Response.Create("registerKeybind", converted));
-        await socket.sessionLifesycle.FlipSettings.Update();
+        await socket.sessionLifesycle.SaveFlipSettings();
     }
 }

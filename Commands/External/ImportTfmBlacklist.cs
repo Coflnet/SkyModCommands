@@ -58,7 +58,7 @@ namespace Coflnet.Sky.Commands.MC
             });
 
             socket.sessionLifesycle.FlipSettings.Value.BlackList.AddRange((await Task.WhenAll(elements)).Where(e => e != null));
-            await socket.sessionLifesycle.FlipSettings.Update();
+            await socket.sessionLifesycle.SaveFlipSettings();
             socket.SendMessage($"{COFLNET}{McColorCodes.GREEN}Imported {type} blacklist from {userName}");
         }
 

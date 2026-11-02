@@ -54,7 +54,7 @@ public class InstanceSettingsCommand : McCommand
             throw new CoflnetException("no_instance_settings", "There are no settings stored for this mod instance");
         stored.Changer = null;
         stored.LastChanged = "Settings of this mod instance";
-        await socket.sessionLifesycle.FlipSettings.Update(stored);
+        await socket.sessionLifesycle.SaveFlipSettings(stored);
         // the account holds them now, do not offer the copy on every reconnect
         await socket.sessionLifesycle.DisableInstanceSettings();
         socket.Dialog(db => db.MsgLine("Copied the settings of this mod instance to your account"));

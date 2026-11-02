@@ -334,10 +334,11 @@ namespace Coflnet.Sky.Commands.MC
         /// Saves the changed flip settings to exactly one place:
         /// the account when signed in, otherwise this mod instance
         /// </summary>
-        public async Task SaveFlipSettings()
+        /// <param name="newValue">replaces the current settings, null saves the changed current ones</param>
+        public async Task SaveFlipSettings(FlipSettings newValue = null)
         {
             // signed-out settings are not bound to an account, there this only applies the change to the session
-            await FlipSettings.Update(FlipSettings.Value);
+            await FlipSettings.Update(newValue ?? FlipSettings.Value);
             if (UserId?.Value == null)
                 await SaveSettingsForInstance();
         }
@@ -1214,7 +1215,7 @@ namespace Coflnet.Sky.Commands.MC
                             $"rm {item.First().Auction.Tag} Seller={item.First().Auction.AuctioneerId}",
                             "click to remove again"));
                 }
-                await FlipSettings.Update();
+                await SaveFlipSettings();
                 FlipSettings.Value.RecompileMatchers();
             }
 
@@ -1252,7 +1253,7 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (playersToBlock.Count > 0 || blacklistChanged)
             {
-                await FlipSettings.Update();
+                await SaveFlipSettings();
                 FlipSettings.Value.RecompileMatchers();
             }
         }
@@ -1371,7 +1372,7 @@ namespace Coflnet.Sky.Commands.MC
             RemoveFilterFromList(FlipSettings.Value.BlackList);
             if (update)
             {
-                await FlipSettings.Update();
+                await SaveFlipSettings();
                 FlipSettings.Value.RecompileMatchers();
             }
             void RemoveFilterFromList(List<ListEntry> list)
