@@ -336,14 +336,10 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public async Task SaveFlipSettings()
         {
-            if (UserId?.Value != null)
-            {
-                await FlipSettings.Update(FlipSettings.Value);
-                return;
-            }
-            // signed-out settings are not bound to an account, this only applies the change to the session
+            // signed-out settings are not bound to an account, there this only applies the change to the session
             await FlipSettings.Update(FlipSettings.Value);
-            await SaveSettingsForInstance();
+            if (UserId?.Value == null)
+                await SaveSettingsForInstance();
         }
 
         /// <summary>

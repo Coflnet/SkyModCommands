@@ -71,7 +71,7 @@ public class InstanceSettingsService : IInstanceSettingsService
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Error loading instance settings of {sessionId}", sessionId);
+            logger.LogError(e, "Error loading instance settings");
             return null;
         }
     }
