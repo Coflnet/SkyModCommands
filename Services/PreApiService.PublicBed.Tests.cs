@@ -30,11 +30,12 @@ public class PreApiPublicBedTests
     }
 
     [Test]
-    public void PublicBedIsNotHeldBack()
+    public void BedIsHeldBackEvenWhenApiUpdateLandsInsideIt()
     {
-        // updates at :45 each minute, the next is 12:00:45 which is within Start(12:00:30)+20s+margin
+        // regression: the next update 12:00:45 lands inside the bed (Start 12:00:30 + 20s), the hold was skipped,
+        // but the public api never contains auctions still in their bed
         var (service, flip) = Create(new DateTime(2026, 1, 1, 11, 59, 45, DateTimeKind.Utc));
-        service.ShouldHoldBack(flip).Should().BeFalse();
+        service.ShouldHoldBack(flip).Should().BeTrue();
     }
 
     [Test]
