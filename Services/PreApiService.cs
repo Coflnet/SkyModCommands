@@ -271,13 +271,11 @@ public class PreApiService : BackgroundService, IPreApiService
 
     /// <summary>
     /// Whether the flip should be held back after becoming purchasable because a pre-api user received it.
-    /// Not needed when the auction is already public via an api update.
+    /// Also for beds an api update lands in: the public api never contains auctions still in their bed.
     /// </summary>
     internal bool ShouldHoldBack(LowPricedAuction e)
     {
-        if (e.Auction != null && !sent.ContainsKey(e.Auction.Uuid))
-            return false;
-        return e.Auction == null || !apiClock.IsPublicBed(e.Auction, FlipperService.PublicBedMargin);
+        return e.Auction == null || sent.ContainsKey(e.Auction.Uuid);
     }
 
     /// <summary>
