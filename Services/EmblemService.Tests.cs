@@ -258,15 +258,18 @@ public class EmblemServiceTests
         Assert.That(unlocked, Does.Not.Contain("SlotSharer"));
     }
 
-    [TestCase("c0b5a2d1e4f94b3c8a7d6e5f4a3b2c1d", true)]
-    [TestCase(OwnUuid, false)]
-    public async Task TierSlotAssignedToAnotherPlayerUnlocksSharerEmblem(string assignedUuid, bool expected)
+    [TestCase("c0b5a2d1e4f94b3c8a7d6e5f4a3b2c1d", null, true)]
+    [TestCase("c0b5a2d1e4f94b3c8a7d6e5f4a3b2c1d", "50", true)]
+    [TestCase(OwnUuid, null, false)]
+    [TestCase(AlternateUuid, null, false)]
+    [TestCase("c0b5a2d1e4f94b3c8a7d6e5f4a3b2c1d", "49", false)]
+    public async Task TierSlotAssignedToAnotherPlayerUnlocksSharerEmblem(string assignedUuid, string assignedUserId, bool expected)
     {
         var slotsApi = new Mock<ITierSlotsApi>();
         slotsApi.Setup(api => api.ApiTierSlotsOwnerOwnerIdGetAsync("49", 0, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TierSlotAccess>
             {
-                new(id: 3, ownerId: "49", tier: "premium_plus", expires: DateTime.UtcNow.AddDays(7), minecraftUuid: assignedUuid, varVersion: 1, canManage: true)
+                new(id: 3, ownerId: "49", tier: "premium_plus", expires: DateTime.UtcNow.AddDays(7), minecraftUuid: assignedUuid, assignedUserId: assignedUserId, varVersion: 1, canManage: true)
             });
         var transactionApi = new Mock<ITransactionApi>();
         transactionApi.Setup(api => api.TransactionUUserIdGetAsync("49", 0, 2000, 0, It.IsAny<CancellationToken>()))
@@ -279,6 +282,8 @@ public class EmblemServiceTests
     }
 
     private const string OwnUuid = "384a029294fc445e863f2c42fe9709cb";
+    // a verified alternate account of the session, not part of the account info
+    private const string AlternateUuid = "9d1e8c7b6a5f4e3d2c1b0a9f8e7d6c5b";
 
     /// <summary>
     /// A logged in socket without a database backed account, so only the payments user id is known.
@@ -293,7 +298,12 @@ public class EmblemServiceTests
             this.transactions = transactions;
             this.slots = slots;
             SessionInfo.McUuid = OwnUuid;
-            sessionLifesycle = new ModSessionLifesycle(this) { UserId = SelfUpdatingValue<string>.CreateNoUpdate(userId) };
+            SessionInfo.MinecraftUuids = [OwnUuid, AlternateUuid];
+            sessionLifesycle = new ModSessionLifesycle(this)
+            {
+                UserId = SelfUpdatingValue<string>.CreateNoUpdate(userId),
+                AccountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(new AccountInfo { McIds = [] })
+            };
         }
 
         public override T GetService<T>()

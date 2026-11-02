@@ -341,19 +341,31 @@ public class EmblemService
         try
         {
             var owned = await socket.GetService<ITierSlotsApi>().ApiTierSlotsOwnerOwnerIdGetAsync(userId);
-            var ownAccounts = (socket.AccountInfo?.McIds ?? Enumerable.Empty<string>())
-                .Append(socket.SessionInfo.McUuid)
-                .Where(uuid => uuid != null)
-                .Select(NormalizeUuid)
-                .ToHashSet();
-            return owned.Any(slot => slot.AssignedUserId != null && slot.AssignedUserId != userId
-                || slot.MinecraftUuid != null && !ownAccounts.Contains(NormalizeUuid(slot.MinecraftUuid)));
+            var ownAccounts = await GetOwnAccounts(socket);
+            // a slot assigned to a user is decided by that user, an unassigned one by the minecraft account it is bound to
+            return owned.Any(slot => slot.AssignedUserId != null
+                ? slot.AssignedUserId != userId
+                : slot.MinecraftUuid != null && !ownAccounts.Contains(NormalizeUuid(slot.MinecraftUuid)));
         }
         catch (Exception e)
         {
             logger.LogWarning(e, "Could not load tier slots for emblems of {user}", userId);
             return false;
         }
+    }
+
+    /// <summary>
+    /// The normalized minecraft accounts of the player, resolved like the session does (verified alternates included).
+    /// </summary>
+    private static async Task<HashSet<string>> GetOwnAccounts(MinecraftSocket socket)
+    {
+        var accounts = socket.sessionLifesycle == null
+            ? socket.AccountInfo?.McIds ?? Enumerable.Empty<string>()
+            : await socket.sessionLifesycle.GetMinecraftAccountUuids();
+        return accounts.Append(socket.SessionInfo.McUuid)
+            .Where(uuid => uuid != null)
+            .Select(NormalizeUuid)
+            .ToHashSet();
     }
 
     private static string NormalizeUuid(string uuid)

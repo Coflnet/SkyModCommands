@@ -14,15 +14,23 @@ using static Coflnet.Sky.ModCommands.Tests.ModSessionLifesycleTests;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[NonParallelizable]
 public class FlipProcesserMatchReportTests
 {
-    private ErrorRecordingSocket socket;
+    private bool devModeBefore;
+    private TestSocket socket;
     private ModSessionLifesycle lifesycle;
     private Mock<IFlipMatchTracker> tracker;
+
+    [TearDown]
+    public void RestoreDevMode() => MinecraftSocket.IsDevMode = devModeBefore;
 
     [SetUp]
     public async Task Setup()
     {
+        // CI hosts are not in dev mode, test the same way everywhere
+        devModeBefore = MinecraftSocket.IsDevMode;
+        MinecraftSocket.IsDevMode = false;
         DiHandler.ResetProvider();
         var isSold = new Mock<IIsSold>();
         isSold.Setup(s => s.IsSold(It.IsAny<string>())).Returns(false);
@@ -35,7 +43,7 @@ public class FlipProcesserMatchReportTests
         DiHandler.OverrideService<FilterEngine, FilterEngine>(new FilterEngine(new Mock<INBT>().Object));
         DiHandler.OverrideService<FlipperService, FlipperService>(new FlipperService(null, NullLogger<FlipperService>.Instance));
         DiHandler.OverrideService<IFlipMatchTracker, IFlipMatchTracker>(tracker.Object);
-        socket = new ErrorRecordingSocket();
+        socket = new TestSocket();
         lifesycle = new ModSessionLifesycle(socket);
         socket.SetLifecycle(lifesycle);
         socket.SessionInfo.FlipsEnabled = true;
@@ -205,18 +213,5 @@ public class FlipProcesserMatchReportTests
 
         FlipProcesser.ApiRelativeSeconds(flip, new ApiUpdateClock(), DateTime.UtcNow).Should().BeNull();
         FlipProcesser.ApiRelativeSeconds(flip, null, DateTime.UtcNow).Should().BeNull();
-    }
-
-    /// <summary>
-    /// The test socket has no websocket session, so the base error logging cannot read the query string
-    /// </summary>
-    private sealed class ErrorRecordingSocket : TestSocket
-    {
-        public List<Exception> Errors = [];
-        public override string Error(Exception exception, string message = null, string additionalLog = null)
-        {
-            Errors.Add(exception);
-            return string.Empty;
-        }
     }
 }

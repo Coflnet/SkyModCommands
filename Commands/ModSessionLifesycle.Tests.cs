@@ -350,6 +350,13 @@ public class ModSessionLifesycleTests
             Messages.Add(parts);
             return true;
         }
+        public List<Exception> Errors = new();
+        /// <summary>The base reads the websocket QueryString, which throws without a real session</summary>
+        public override string Error(Exception exception, string message = null, string additionalLog = null)
+        {
+            Errors.Add(exception);
+            return "test-error";
+        }
         public void SetLifecycle(ModSessionLifesycle lifesycle)
         {
             this.sessionLifesycle = lifesycle;
