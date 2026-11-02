@@ -14,15 +14,23 @@ using static Coflnet.Sky.ModCommands.Tests.ModSessionLifesycleTests;
 
 namespace Coflnet.Sky.Commands.MC;
 
+[NonParallelizable]
 public class FlipProcesserMatchReportTests
 {
+    private bool devModeBefore;
     private TestSocket socket;
     private ModSessionLifesycle lifesycle;
     private Mock<IFlipMatchTracker> tracker;
 
+    [TearDown]
+    public void RestoreDevMode() => MinecraftSocket.IsDevMode = devModeBefore;
+
     [SetUp]
     public async Task Setup()
     {
+        // CI hosts are not in dev mode, test the same way everywhere
+        devModeBefore = MinecraftSocket.IsDevMode;
+        MinecraftSocket.IsDevMode = false;
         DiHandler.ResetProvider();
         var isSold = new Mock<IIsSold>();
         isSold.Setup(s => s.IsSold(It.IsAny<string>())).Returns(false);
@@ -151,6 +159,7 @@ public class FlipProcesserMatchReportTests
         await CreateProcessor().ProcessBatch([broken, good]);
 
         socket.Flips.Should().ContainSingle();
+        socket.Errors.Should().ContainSingle();
     }
 
     [Test]
