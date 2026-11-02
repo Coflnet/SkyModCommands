@@ -18,8 +18,6 @@ using Coflnet.Sky.Api.Client.Api;
 using StackExchange.Redis;
 using Coflnet.Sky.Commands;
 using Cassandra;
-using System.Security.Cryptography.X509Certificates;
-using System.Security.Authentication;
 using System.Linq;
 using System.Collections.Generic;
 using Coflnet.Sky.Bazaar.Flipper.Client.Api;
@@ -203,23 +201,7 @@ public class Startup
             var certificatePaths = Configuration["CASSANDRA:X509Certificate_PATHS"];
             Console.WriteLine("Using certificate paths " + certificatePaths);
             Console.WriteLine("Using certificate password " + Configuration["CASSANDRA:X509Certificate_PASSWORD"].Truncate(2) + "...");
-            var validationCertificatePath = Configuration["CASSANDRA:X509Certificate_VALIDATION_PATH"];
-            if (!string.IsNullOrEmpty(certificatePaths))
-            {
-                var password = Configuration["CASSANDRA:X509Certificate_PASSWORD"] ?? throw new InvalidOperationException("CASSANDRA:X509Certificate_PASSWORD must be set if CASSANDRA:X509Certificate_PATHS is set.");
-                CustomRootCaCertificateValidator certificateValidator = null;
-                if (!string.IsNullOrEmpty(validationCertificatePath))
-                    certificateValidator = new CustomRootCaCertificateValidator(X509CertificateLoader.LoadPkcs12FromFile(validationCertificatePath, password, X509KeyStorageFlags.DefaultKeySet, Pkcs12LoaderLimits.Defaults));
-                var sslOptions = new SSLOptions(
-                    // TLSv1.2 is required as of October 9, 2019.
-                    // See: https://www.instaclustr.com/removing-support-for-outdated-encryption-mechanisms/
-                    SslProtocols.Tls12,
-                    false,
-                    // Custom validator avoids need to trust the CA system-wide.
-                    (sender, certificate, chain, errors) => certificateValidator?.Validate(certificate, chain, errors) ?? true
-                ).SetCertificateCollection(new(certificatePaths.Split(',').Select(p => X509CertificateLoader.LoadPkcs12FromFile(p, password, X509KeyStorageFlags.DefaultKeySet, Pkcs12LoaderLimits.Defaults)).ToArray()));
-                builder.WithSSL(sslOptions);
-            }
+            CassandraTlsConfiguration.Apply(builder, Configuration.GetSection("CASSANDRA"));
             var cluster = builder.Build();
             var session = cluster.Connect(null);
             var defaultKeyspace = cluster.Configuration.ClientOptions.DefaultKeyspace;
