@@ -1459,6 +1459,8 @@ namespace Coflnet.Sky.Commands.MC
         private DateTime LastCaptchaSolveTime => socket.ModAdapter is AfVersionAdapter ? DateTime.Now :
             (AccountInfo?.Value?.LastCaptchaSolve > SessionInfo.LastCaptchaSolve ? AccountInfo.Value.LastCaptchaSolve : SessionInfo.LastCaptchaSolve);
 
+        internal Task SendFlipBatch(IEnumerable<LowPricedAuction> flips) => FlipProcessor.ProcessBatch(flips);
+
         internal async Task SendFlipBatch(LowPricedAuction flip)
         {
             await FlipProcessor.ProcessFlip(flip);

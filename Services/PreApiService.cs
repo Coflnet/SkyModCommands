@@ -62,9 +62,11 @@ public class PreApiService : BackgroundService, IPreApiService
     private static readonly Prometheus.Gauge slotNotificationWaiters = Prometheus.Metrics.CreateGauge(
         "sky_mod_preapi_slot_notification_waiters", "Connections retained while waiting for a pre-api slot");
     private IConfiguration config;
+    private ApiUpdateClock apiClock;
     public int PreApiUserCount => preApiUsers.Count;
-    public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi, IBaseApi baseApi, IConfiguration config)
+    public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi, IBaseApi baseApi, IConfiguration config, ApiUpdateClock apiClock = null)
     {
+        this.apiClock = apiClock ?? new ApiUpdateClock();
         this.redis = redis;
         this.logger = logger;
 
@@ -260,11 +262,22 @@ public class PreApiService : BackgroundService, IPreApiService
         else
             await Task.Delay(TimeSpan.FromSeconds(0.3)).ConfigureAwait(false);
         // check if flip was sent to anyone 
-        if (e.Auction != null && !sent.ContainsKey(e.Auction.Uuid))
+        if (!ShouldHoldBack(e))
             return;
 
         // send out after delay
         await Task.Delay(4_000).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Whether the flip should be held back after becoming purchasable because a pre-api user received it.
+    /// Not needed when the auction is already public via an api update.
+    /// </summary>
+    internal bool ShouldHoldBack(LowPricedAuction e)
+    {
+        if (e.Auction != null && !sent.ContainsKey(e.Auction.Uuid))
+            return false;
+        return e.Auction == null || !apiClock.IsPublicBed(e.Auction, FlipperService.PublicBedMargin);
     }
 
     /// <summary>
