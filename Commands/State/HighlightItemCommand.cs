@@ -11,13 +11,10 @@ public class HighlightItemCommand : McCommand
 {
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
-        var service = socket.GetService<Shared.SettingsService>();
-        var currentSettings = await service.GetCurrentValue<Coflnet.Sky.Api.Models.Mod.DescriptionSetting>(socket.UserId, "description", () =>
-                {
-                    return Coflnet.Sky.Api.Models.Mod.DescriptionSetting.Default;
-                });
+        if (socket.sessionLifesycle == null)
+            throw new NoLoginException();
         var itemResult = Convert<SearchCommand.ItemLocation>(arguments);
-        currentSettings.HighlightInfo = new Coflnet.Sky.Api.Models.Mod.HighlightInfo()
+        var highlight = new Coflnet.Sky.Api.Models.Mod.HighlightInfo()
         {
             Chestname = itemResult.Chestname,
             Position = itemResult.Position == null ? null : new Core.BlockPos()
@@ -29,8 +26,12 @@ public class HighlightItemCommand : McCommand
             HexColor = "00FF00",
             SlotId= itemResult.SlotId
         };
-        await service.UpdateSetting(socket.UserId, "description", currentSettings);
-        Console.WriteLine(JsonConvert.SerializeObject(currentSettings.HighlightInfo));
+        await socket.sessionLifesycle.UpdateDescriptionSetting(settings =>
+        {
+            settings.HighlightInfo = highlight;
+            return settings;
+        });
+        Console.WriteLine(JsonConvert.SerializeObject(highlight));
 
         if (itemResult.CommandToOpen != null)
         {

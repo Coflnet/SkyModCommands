@@ -6,6 +6,8 @@ using Newtonsoft.Json;
 using System.Linq;
 using static Coflnet.Sky.Commands.Shared.SettingsUpdater;
 using Coflnet.Sky.ModCommands.Dialogs;
+using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.Api.Models.Mod;
 using System.Collections.Generic;
 using static Coflnet.Sky.Core.LowPricedAuction;
 
@@ -20,7 +22,7 @@ namespace Coflnet.Sky.Commands.MC;
 public class SetCommand : McCommand
 {
     public override bool IsPublic => true;
-    private static SettingsUpdater updater = new SettingsUpdater();
+    internal static readonly SettingsUpdater updater = new SettingsUpdater();
     public static IEnumerable<string> Options => updater.Options();
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
@@ -44,6 +46,16 @@ public class SetCommand : McCommand
             var name = arguments.Split(' ')[0];
             var newValue = arguments.Substring(name.Length).Trim();
             object finalValue;
+            if (updater.IsLoreKey(name))
+            {
+                await UpdateLore(socket, name, newValue, page);
+                return;
+            }
+            if (IsSignedOutPrivacyKey(socket, name))
+            {
+                SendPrivacyNeedsAccount(socket);
+                return;
+            }
             try
             {
                 finalValue = await updater.Update(socket, name, newValue);
@@ -92,6 +104,34 @@ public class SetCommand : McCommand
         }
     }
 
+    private static bool IsSignedOutPrivacyKey(MinecraftSocket socket, string name)
+    {
+        return socket.sessionLifesycle?.IsSignedOut == true && updater.IsPrivacyKey(name);
+    }
+
+    private void SendPrivacyNeedsAccount(MinecraftSocket socket)
+    {
+        socket.SendMessage(new ChatPart($"{COFLNET}{McColorCodes.RED}Privacy settings are bound to an account. "
+            + $"Log in with {McColorCodes.AQUA}/cofl login{McColorCodes.RED} to change them", "/cofl login", "Click to log in"));
+    }
+
+    /// <summary>
+    /// Lore settings go through the session so they share its lock: saved to the account when signed in, otherwise kept for the mod instance
+    /// </summary>
+    private async Task UpdateLore(MinecraftSocket socket, string name, string newValue, int page)
+    {
+        var lifecycle = socket.sessionLifesycle ?? throw new NoLoginException();
+        var (saved, value) = await lifecycle.UpdateLoreSetting(name, newValue);
+        if (!saved)
+            return;
+        if (!lifecycle.IsSignedOut)
+            LoreCommand.ForgetCachedSettings(socket.UserId);
+        var doc = updater.GetDocFor(name);
+        socket.SendMessage(new ChatPart($"{COFLNET}Set {McColorCodes.AQUA}{doc.RealName}{DEFAULT_COLOR} to {McColorCodes.WHITE}{value}", null, doc.Info));
+        if (page > 0)
+            await PrintSettingsPage(socket, page);
+    }
+
     private static void ProducePrivacyChangeForState(MinecraftSocket socket)
     {
         socket.GetService<IStateUpdateService>().Produce(socket.SessionInfo?.McName, new UpdateMessage()
@@ -112,12 +152,13 @@ public class SetCommand : McCommand
         var pageSize = 10;
         Console.WriteLine("page" + page);
         Func<string, string> formatSh = v => McColorCodes.GRAY + " (" + McColorCodes.GREEN + v + McColorCodes.GRAY + ")";
-        var options = await Task.WhenAll(updater.ModOptions.Where(o => !o.Value.Hide).Select(async o =>
+        var pageEntries = updater.ModOptions.Where(o => !o.Value.Hide).Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var instanceDescription = await LoadInstanceDescription(socket, pageEntries.Any(o => updater.IsLoreKey(o.Key)));
+        var options = await Task.WhenAll(pageEntries.Select(async o =>
         {
-            var shortHandAddition = !string.IsNullOrEmpty(o.Value.ShortHand) ? formatSh(o.Value.ShortHand) : "";
-            var current = await updater.GetCurrentValue(socket, o.Key);
-            return (o, current);//$"{MC.McColorCodes.AQUA}{o.Key}{shortHandAddition}: {McColorCodes.GREEN}{current} {MC.McColorCodes.GRAY}{o.Value.Info}";
-        }).Skip((page - 1) * pageSize).Take(pageSize));
+            var current = await updater.GetCurrentValue(socket, o.Key, instanceDescription);
+            return (o, current);
+        }));
 
         socket.Dialog(db => db.MsgLine($"Available settings are (page {page}):",
             "/cofl set " + (page + 1),
@@ -175,6 +216,13 @@ public class SetCommand : McCommand
             $"{page} {setting.o.Key} {lbin}",
             $"Click to set {McColorCodes.AQUA}{setting.o.Key}{McColorCodes.GRAY} to {McColorCodes.GREEN}{lbin}");
         }
+    }
+
+    private static async Task<DescriptionSetting> LoadInstanceDescription(MinecraftSocket socket, bool pageHasLoreKeys)
+    {
+        if (!pageHasLoreKeys || !socket.sessionLifesycle.IsSignedOut || !socket.sessionLifesycle.SavesSettingsForInstance)
+            return null;
+        return await socket.GetService<IInstanceSettingsService>().GetDescription(socket.SessionInfo.SessionId);
     }
 
     private static object GetCurrent((KeyValuePair<string, SettingDoc> o, object current) setting)

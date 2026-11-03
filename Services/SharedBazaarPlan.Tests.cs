@@ -162,7 +162,7 @@ public class SharedBazaarPlanTests
     {
         var goal = PlanGoal();
         var line = BazaarFlipProgress.Line(goal, true, "Enchanted Diamond", "ench diamond", T0);
-        Assert.That(line.Text, Is.EqualTo("§aPlace buy order: 64x Enchanted Diamond §7@ §61.23k"));
+        Assert.That(line.Text, Is.EqualTo("§aPlace buy order: 64x Enchanted Diamond §7@ §61,230"));
         Assert.That(line.OnClick, Is.EqualTo("/cofl bzorder 64 ench diamond"));
         Assert.That(line.Hover, Does.Contain("net est. +4.2k after 1.25% tax (bazaar)"));
         Assert.That(line.Hover, Does.Contain("deadline starts with your first buy"));

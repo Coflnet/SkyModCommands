@@ -1,8 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System;
 using Cassandra;
+using Coflnet.Sky.Api.Models.Mod;
+using Newtonsoft.Json;
 using Coflnet.Sky.Commands.MC;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NUnit.Framework;
 
@@ -36,15 +40,103 @@ public class InstanceSettingsServiceTests
 
         Assert.That(executed.Select(e => e.Cql), Is.EqualTo(new[]
         {
-            "SELECT disable_flips, session_id, settings, updated_at FROM mod_instance_settings WHERE session_id = ? LIMIT ?",
+            "SELECT description, disable_flips, session_id, settings, updated_at FROM mod_instance_settings WHERE session_id = ? LIMIT ?",
             "INSERT INTO mod_instance_settings (disable_flips, session_id, settings, updated_at) VALUES (?, ?, ?, ?) USING TTL ?",
             "DELETE FROM mod_instance_settings WHERE session_id = ?"
         }));
         Assert.That(executed.Select(e => e.Cql), Has.None.Contains("ALLOW FILTERING"));
         Assert.That(executed[0].Values, Is.EqualTo(new object[] { "session", 1 }), "session key bound as string, single row");
         Assert.That(executed[1].Values[1], Is.TypeOf<string>().And.EqualTo("session"));
-        Assert.That(executed[1].Values[4], Is.EqualTo(365 * 24 * 3600), "rows expire after a year");
+        Assert.That(executed[1].Values[4], Is.EqualTo(30 * 24 * 3600), "rows expire after 30 days");
         Assert.That(executed[2].Values, Is.EqualTo(new object[] { "session" }));
+    }
+
+    [Test]
+    public void DescriptionRowRoundTrips()
+    {
+        var description = DescriptionSetting.Default;
+        description.DisableInfoIn = new HashSet<string> { "bazaar" };
+        var row = InstanceSettingsService.ToRow("session", ModSessionLifesycle.DefaultSettings, JsonConvert.SerializeObject(description));
+
+        var restored = InstanceSettingsService.DescriptionFromRow(row);
+
+        Assert.That(restored.DisableInfoIn, Is.EquivalentTo(new[] { "bazaar" }));
+        Assert.That(InstanceSettingsService.DescriptionFromRow(new InstanceSettingsService.InstanceSettings()), Is.Null);
+        Assert.That(InstanceSettingsService.DescriptionFromRow(null), Is.Null);
+    }
+
+    [Test]
+    public void DescriptionOnlyRowReadsAsNotOptedIn()
+    {
+        var row = new InstanceSettingsService.InstanceSettings { SessionId = "s", Description = JsonConvert.SerializeObject(DescriptionSetting.Default) };
+
+        Assert.That(InstanceSettingsService.DescriptionFromRow(row), Is.Null, "without a settings column the instance is not opted in");
+    }
+
+    [Test]
+    public async Task InsertCarriesAllColumnsAndTtl()
+    {
+        var executed = new List<(string Cql, object[] Values)>();
+        var table = InstanceSettingsService.CreateTable(RecordingSession(executed));
+        var row = InstanceSettingsService.ToRow("session", ModSessionLifesycle.DefaultSettings, "{}");
+
+        await InstanceSettingsService.InsertQuery(table, row).ExecuteAsync();
+
+        var query = executed.Single();
+        Assert.That(query.Cql, Is.EqualTo("INSERT INTO mod_instance_settings (description, disable_flips, session_id, settings, updated_at) VALUES (?, ?, ?, ?, ?) USING TTL ?"));
+        Assert.That(query.Values.Last(), Is.EqualTo(30 * 24 * 3600), "all cells get the same fresh ttl");
+    }
+
+    [Test]
+    public void FlipRowKeepsTheExistingDescription()
+    {
+        var row = InstanceSettingsService.ToRow("session", ModSessionLifesycle.DefaultSettings, "{\"kept\":true}");
+
+        Assert.That(row.Description, Is.EqualTo("{\"kept\":true}"));
+    }
+
+    [Test]
+    public async Task SaveDescriptionWithoutRowWritesNothing()
+    {
+        var executed = new List<(string Cql, object[] Values)>();
+        var service = new InstanceSettingsService(InstanceSettingsService.CreateTable(RecordingSession(executed)), NullLogger<InstanceSettingsService>.Instance);
+
+        var saved = await service.SaveDescription("session", DescriptionSetting.Default);
+
+        Assert.That(saved, Is.False, "callers must not report success when nothing was stored");
+        Assert.That(executed.Select(e => e.Cql), Has.None.StartsWith("INSERT").And.None.StartsWith("UPDATE"),
+            "a missing row means not opted in or disabled, nothing may recreate it");
+    }
+
+    [Test]
+    public async Task RefreshTtlWithoutRowWritesNothing()
+    {
+        var executed = new List<(string Cql, object[] Values)>();
+        var service = new InstanceSettingsService(InstanceSettingsService.CreateTable(RecordingSession(executed)), NullLogger<InstanceSettingsService>.Instance);
+
+        await service.RefreshTtl("session");
+
+        Assert.That(executed.Select(e => e.Cql), Has.None.StartsWith("INSERT"));
+    }
+
+    [TestCase(30, true)]
+    [TestCase(1, false)]
+    public void OnlyRowsNotWrittenForADayAreRefreshed(int hoursSinceWrite, bool expected)
+    {
+        var now = DateTime.UtcNow;
+        var row = InstanceSettingsService.ToRow("session", ModSessionLifesycle.DefaultSettings);
+        row.UpdatedAt = now.AddHours(-hoursSinceWrite);
+
+        Assert.That(InstanceSettingsService.NeedsRefresh(row, now), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void RowsWithoutSettingsAreNeverRefreshed()
+    {
+        var row = new InstanceSettingsService.InstanceSettings { SessionId = "s", UpdatedAt = DateTime.UtcNow.AddDays(-20) };
+
+        Assert.That(InstanceSettingsService.NeedsRefresh(row, DateTime.UtcNow), Is.False, "no ghost rows for ids that never opted in");
+        Assert.That(InstanceSettingsService.NeedsRefresh(null, DateTime.UtcNow), Is.False);
     }
 
     /// <summary>

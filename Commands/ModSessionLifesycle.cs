@@ -9,6 +9,7 @@ using System.Web;
 using Cassandra;
 using Coflnet.DiscordBot.Client.Api;
 using Coflnet.Sky.Commands.Shared;
+using Coflnet.Sky.Api.Models.Mod;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Models;
@@ -60,6 +61,12 @@ namespace Coflnet.Sky.Commands.MC
         public event Action OwnSettingsEchoed;
 
         private readonly CancellationTokenSource sessionCts = new();
+        private const int MaxPendingLoreChanges = 20;
+        /// <summary>
+        /// Guards the instance settings writes, the description read-modify-write steps and <see cref="pendingLoreChanges"/>
+        /// </summary>
+        private readonly SemaphoreSlim instanceLock = new(1, 1);
+        private readonly List<(string Key, string Value)> pendingLoreChanges = new();
         private volatile bool disposed;
         internal bool IsDisposed => disposed;
         /// <summary>
@@ -434,6 +441,13 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public bool SavesSettingsForInstance { get; private set; }
 
+        private string AccountUserId => UserId?.Value ?? AccountInfo?.Value?.UserId;
+
+        /// <summary>
+        /// True when no account is attached to this session, the same condition under which <see cref="MinecraftSocket.UserId"/> throws
+        /// </summary>
+        public bool IsSignedOut => AccountUserId == null;
+
         /// <summary>
         /// Uses the settings the mod instance opted to keep for a signed-out session, or the defaults
         /// </summary>
@@ -448,6 +462,40 @@ namespace Coflnet.Sky.Commands.MC
             if (stored == null)
                 return;
             ConSpan.Log("loaded instance settings");
+            await ApplyFlipSettings(settings.Value, ConSpan);
+            Registerkeybinds(settings.Value, true);
+            RefreshInstanceTtl(sessionId);
+        }
+
+        /// <summary>
+        /// Settings are deleted after a period of not being used, so a connect counts as use.
+        /// Fire and forget, a failed refresh must not hurt the session
+        /// </summary>
+        private void RefreshInstanceTtl(string sessionId)
+        {
+            var service = socket.GetService<IInstanceSettingsService>();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await service.RefreshTtl(sessionId);
+                }
+                catch (Exception e)
+                {
+                    dev.Logger.Instance.Error(e, "refreshing instance settings ttl");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Makes the settings the instance already stored the ones of this session
+        /// </summary>
+        private async Task AdoptStoredInstanceSettings(FlipSettings stored)
+        {
+            var settings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(stored);
+            if (!TryInstallSignedOutSettings(FlipSettings, settings))
+                return;
+            ConSpan.Log("adopted stored instance settings");
             await ApplyFlipSettings(settings.Value, ConSpan);
             Registerkeybinds(settings.Value, true);
         }
@@ -500,7 +548,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             // signed-out settings are not bound to an account, there this only applies the change to the session
             await FlipSettings.Update(newValue ?? FlipSettings.Value);
-            if (UserId?.Value == null)
+            if (IsSignedOut)
                 await SaveSettingsForInstance();
         }
 
@@ -513,25 +561,264 @@ namespace Coflnet.Sky.Commands.MC
         {
             if (!SavesSettingsForInstance)
             {
-                socket.Dialog(db => db.CoflCommand<InstanceSettingsCommand>(
-                    $"You are not logged in, setting will reset when you stop the connection. {McColorCodes.AQUA}[Click to keep settings for this mod instance]",
-                    "enable",
-                    $"Keeps your settings for this mod install for a year without an account\nSame as {McColorCodes.AQUA}/cofl instancesettings enable"));
+                SendInstanceOptInDialog();
                 return;
             }
-            await socket.GetService<IInstanceSettingsService>().Save(SessionInfo.SessionId, FlipSettings.Value);
+            await instanceLock.WaitAsync();
+            try
+            {
+                await socket.GetService<IInstanceSettingsService>().Save(SessionInfo.SessionId, FlipSettings.Value);
+            }
+            finally
+            {
+                instanceLock.Release();
+            }
+        }
+
+        private void SendInstanceOptInDialog()
+        {
+            socket.Dialog(db => db.CoflCommand<InstanceSettingsCommand>(
+                $"You are not logged in, setting will reset when you stop the connection. {McColorCodes.AQUA}[Click to keep settings for this mod instance]",
+                "enable",
+                $"Keeps your settings for this mod install for 30 days after your last use, without an account\nSame as {McColorCodes.AQUA}/cofl instancesettings enable"));
+        }
+
+        private void SendLoreOptInDialog(bool applyAfterwards)
+        {
+            var followUp = applyAfterwards
+                ? "Your change is applied after you click this, nothing is active yet."
+                : "Nothing was changed yet, run the command again after clicking this.";
+            socket.Dialog(db => db.CoflCommand<InstanceSettingsCommand>(
+                $"You are not logged in, item description settings are only kept for this mod instance after you opt in. {followUp} {McColorCodes.AQUA}[Click to keep settings for this mod instance]",
+                "enable",
+                $"Keeps your settings for this mod install for 30 days after your last use, without an account\nSame as {McColorCodes.AQUA}/cofl instancesettings enable"));
+        }
+
+        /// <summary>
+        /// The item description (lore) settings: of the account when signed in, otherwise the ones kept for this mod instance
+        /// </summary>
+        /// <exception cref="CoflnetException">when the stored settings could not be loaded</exception>
+        public async Task<DescriptionSetting> GetDescriptionSetting()
+        {
+            if (!IsSignedOut)
+                return await GetAccountDescription(AccountUserId);
+            return await LoadInstanceDescription();
+        }
+
+        private Task<DescriptionSetting> GetAccountDescription(string userId)
+        {
+            return socket.GetService<SettingsService>().GetCurrentValue<DescriptionSetting>(userId, "description", () => DescriptionSetting.Default);
+        }
+
+        /// <summary>
+        /// Reads the settings with a read that throws, so a failed read never turns into saving defaults over them
+        /// </summary>
+        private async Task<DescriptionSetting> LoadInstanceDescription()
+        {
+            if (!SavesSettingsForInstance)
+                return DescriptionSetting.Default;
+            try
+            {
+                return await socket.GetService<IInstanceSettingsService>().GetDescriptionStrict(SessionInfo.SessionId) ?? DescriptionSetting.Default;
+            }
+            catch (Exception e)
+            {
+                dev.Logger.Instance.Error(e, "loading instance description");
+                throw new CoflnetException("settings_unavailable", "We could not load your settings, please try again");
+            }
+        }
+
+        /// <summary>
+        /// Changes the item description settings in one locked read-modify-write step.
+        /// Signed-out sessions that did not opt in get the opt-in dialog (when <paramref name="promptOptIn"/>) and nothing is saved.
+        /// </summary>
+        /// <param name="change">receives the current settings, returns what to save or null to save nothing</param>
+        /// <returns>The saved settings or null when nothing was saved</returns>
+        public async Task<DescriptionSetting> UpdateDescriptionSetting(Func<DescriptionSetting, DescriptionSetting> change, bool promptOptIn = true)
+        {
+            await instanceLock.WaitAsync();
+            try
+            {
+                if (!IsSignedOut)
+                    return await UpdateAccountDescription(change);
+                return await UpdateInstanceDescriptionLocked(change, promptOptIn);
+            }
+            finally
+            {
+                instanceLock.Release();
+            }
+        }
+
+        private async Task<DescriptionSetting> UpdateAccountDescription(Func<DescriptionSetting, DescriptionSetting> change)
+        {
+            var userId = AccountUserId;
+            var updated = change(await GetAccountDescription(userId));
+            if (updated == null)
+                return null;
+            await socket.GetService<SettingsService>().UpdateSetting(userId, "description", updated);
+            return updated;
+        }
+
+        private async Task<DescriptionSetting> UpdateInstanceDescriptionLocked(Func<DescriptionSetting, DescriptionSetting> change, bool promptOptIn)
+        {
+            if (!SavesSettingsForInstance)
+            {
+                if (promptOptIn)
+                    SendLoreOptInDialog(false);
+                return null;
+            }
+            var updated = change(await LoadInstanceDescription());
+            if (updated == null)
+                return null;
+            if (await socket.GetService<IInstanceSettingsService>().SaveDescription(SessionInfo.SessionId, updated))
+                return updated;
+            // the row is gone (expired or deleted elsewhere), nothing was stored so the opt-in is void
+            SavesSettingsForInstance = false;
+            if (promptOptIn)
+                SendLoreOptInDialog(false);
+            return null;
+        }
+
+        /// <summary>
+        /// Changes an item lore setting. Signed-in sessions save it to the account. Signed-out ones keep it for the mod instance
+        /// when the user opted in, otherwise the opt-in dialog is shown and the change is applied once the user accepts it.
+        /// </summary>
+        /// <returns>Whether the change was saved and the new value of the setting</returns>
+        public async Task<(bool Saved, object Value)> UpdateLoreSetting(string key, string value)
+        {
+            await instanceLock.WaitAsync();
+            try
+            {
+                if (!IsSignedOut)
+                    return await UpdateAccountLore(key, value);
+                return await UpdateInstanceLoreLocked(key, value);
+            }
+            finally
+            {
+                instanceLock.Release();
+            }
+        }
+
+        private async Task<(bool Saved, object Value)> UpdateAccountLore(string key, string value)
+        {
+            object result = null;
+            var saved = await UpdateAccountDescription(d =>
+            {
+                result = SetCommand.updater.ApplyLoreUpdate(d, key, value);
+                return d;
+            });
+            return (saved != null, result);
+        }
+
+        private async Task<(bool Saved, object Value)> UpdateInstanceLoreLocked(string key, string value)
+        {
+            object result = null;
+            var saved = SavesSettingsForInstance
+                ? await UpdateInstanceDescriptionLocked(d =>
+                {
+                    result = SetCommand.updater.ApplyLoreUpdate(d, key, value);
+                    return d;
+                }, false)
+                : null;
+            if (saved != null)
+                return (true, result);
+            // not opted in, or the row vanished: keep the change for when the user opts in
+            RememberPendingLoreChange(key, value);
+            SendLoreOptInDialog(true);
+            return (false, null);
+        }
+
+        private void RememberPendingLoreChange(string key, string value)
+        {
+            // fails now with the parse error instead of after the user opted in
+            SetCommand.updater.ApplyLoreUpdate(DescriptionSetting.Default, key, value);
+            if (pendingLoreChanges.Count >= MaxPendingLoreChanges)
+                pendingLoreChanges.RemoveAt(0);
+            pendingLoreChanges.Add((key, value));
+        }
+
+        /// <summary>
+        /// Applies the lore changes the user made before opting in, expects <see cref="instanceLock"/> to be held
+        /// </summary>
+        private async Task ApplyPendingLoreChanges()
+        {
+            var pending = pendingLoreChanges.ToList();
+            pendingLoreChanges.Clear();
+            var applied = 0;
+            foreach (var (key, value) in pending)
+            {
+                if (await TryApplyPendingLoreChange(key, value))
+                    applied++;
+            }
+            if (applied > 0)
+                socket.Dialog(db => db.MsgLine($"Applied {applied} item description change(s) you made before"));
+        }
+
+        private async Task<bool> TryApplyPendingLoreChange(string key, string value)
+        {
+            try
+            {
+                var saved = await UpdateInstanceDescriptionLocked(d =>
+                {
+                    SetCommand.updater.ApplyLoreUpdate(d, key, value);
+                    return d;
+                }, false);
+                return saved != null;
+            }
+            catch (Exception e)
+            {
+                dev.Logger.Instance.Error(e, "applying pending lore change");
+                return false;
+            }
         }
 
         public async Task EnableInstanceSettings()
         {
+            await instanceLock.WaitAsync();
+            try
+            {
+                await StartKeepingInstanceSettings();
+                await ApplyPendingLoreChanges();
+            }
+            finally
+            {
+                instanceLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Opts in. The flag is only set once the settings are stored, so a failed write leaves no phantom opt-in.
+        /// Settings the instance already stored win over the session ones, a failed connect read must not overwrite them.
+        /// Expects <see cref="instanceLock"/> to be held
+        /// </summary>
+        private async Task StartKeepingInstanceSettings()
+        {
+            var service = socket.GetService<IInstanceSettingsService>();
+            var stored = await service.GetStrict(SessionInfo.SessionId);
+            if (stored != null)
+            {
+                SavesSettingsForInstance = true;
+                await AdoptStoredInstanceSettings(stored);
+                RefreshInstanceTtl(SessionInfo.SessionId);
+                return;
+            }
+            await service.Save(SessionInfo.SessionId, FlipSettings.Value);
             SavesSettingsForInstance = true;
-            await socket.GetService<IInstanceSettingsService>().Save(SessionInfo.SessionId, FlipSettings.Value);
         }
 
         public async Task DisableInstanceSettings()
         {
-            SavesSettingsForInstance = false;
-            await socket.GetService<IInstanceSettingsService>().Delete(SessionInfo.SessionId);
+            await instanceLock.WaitAsync();
+            try
+            {
+                SavesSettingsForInstance = false;
+                pendingLoreChanges.Clear();
+                await socket.GetService<IInstanceSettingsService>().Delete(SessionInfo.SessionId);
+            }
+            finally
+            {
+                instanceLock.Release();
+            }
         }
 
         /// <summary>

@@ -28,11 +28,9 @@ public class ShareLoreCommand : McCommand
 
     protected async Task SendTo(MinecraftSocket socket, string targetPlayer)
     {
-        var service = socket.GetService<SettingsService>();
-        var loreSettings = await service.GetCurrentValue<DescriptionSetting>(socket.UserId, "description", () =>
-                {
-                    return DescriptionSetting.Default;
-                });
+        if (socket.sessionLifesycle == null)
+            throw new NoLoginException();
+        var loreSettings = await socket.sessionLifesycle.GetDescriptionSetting();
         await socket.GetService<ChatService>().SendToChannel("dm-" + targetPlayer.ToLower(), new()
         {
             Prefix = "§7[§6§lDM§7]§r",

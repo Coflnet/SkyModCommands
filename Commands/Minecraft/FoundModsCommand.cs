@@ -40,16 +40,20 @@ public class FoundModsCommand : McCommand
 
     private static async Task DisableAuctionStartedTime(MinecraftSocket socket)
     {
-        var userId = socket.sessionLifesycle?.UserId?.Value ?? socket.AccountInfo?.UserId;
-        if (userId == null)
-            return; // not logged in, no lore settings to adjust
-        var service = socket.GetService<SettingsService>();
-        var settings = await service.GetCurrentValue(userId, "description", () => DescriptionSetting.Default);
-        if (settings == null || settings.DisableAuctionStartedTime)
+        if (socket.sessionLifesycle == null)
             return;
-        settings.DisableAuctionStartedTime = true;
-        await service.UpdateSetting(userId, "description", settings);
-        LoreCommand.ForgetCachedSettings(userId);
+        var userId = socket.sessionLifesycle.IsSignedOut ? null : socket.UserId;
+        var updated = await socket.sessionLifesycle.UpdateDescriptionSetting(settings =>
+        {
+            if (settings == null || settings.DisableAuctionStartedTime)
+                return null;
+            settings.DisableAuctionStartedTime = true;
+            return settings;
+        }, promptOptIn: false);
+        if (updated == null)
+            return;
+        if (userId != null)
+            LoreCommand.ForgetCachedSettings(userId);
         Activity.Current.Log("Disabled auction started time because of incompatible mod");
         socket.Dialog(db => db.MsgLine($"{McColorCodes.YELLOW}Disabled the auction started time in lore because one of your mods also modifies auction lore")
             .CoflCommand<SetCommand>("[Click here to enable it again]", "loreDisableAuctionStartedTime false", "Enable auction started time again"));

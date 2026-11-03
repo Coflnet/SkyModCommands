@@ -23,26 +23,18 @@ namespace Coflnet.Sky.Commands.MC
         internal static void ForgetCachedSettings(string userId) => descriptionCache.TryRemove(userId, out _);
         public override async Task Execute(MinecraftSocket socket, string arguments)
         {
-            var service = socket.GetService<SettingsService>();
-            if (!descriptionCache.TryGetValue(socket.UserId, out var cache) || cache.Item2.AddMinutes(1) < DateTime.UtcNow
-                || arguments.Trim('"') == "json")
-            {
-                cache.Item1 = await service.GetCurrentValue<DescriptionSetting>(socket.UserId, "description", () =>
-                {
-                    return DescriptionSetting.Default;
-                });
-                cache.Item2 = DateTime.UtcNow;
-                descriptionCache[socket.UserId] = cache;
-            }
-            var settings = cache.Item1;
+            if (socket.sessionLifesycle == null)
+                throw new NoLoginException();
+            var settings = await LoadSettings(socket, arguments.Trim('"') == "json");
             if (SettingsUpdater.CleanupJunkEntries(settings.DisableInfoIn))
-                await service.UpdateSetting(socket.UserId, "description", settings);
+                settings = await Save(socket, s => { SettingsUpdater.CleanupJunkEntries(s.DisableInfoIn); return s; }) ?? settings;
             if (arguments.StartsWith("\"{"))
             {
                 // assume this is a full json settings object
-                settings = Convert<DescriptionSetting>(arguments);
-                await service.UpdateSetting(socket.UserId, "description", settings);
-                descriptionCache[socket.UserId] = (settings, DateTime.UtcNow);
+                var imported = Convert<DescriptionSetting>(arguments);
+                settings = await Save(socket, _ => imported);
+                if (settings == null)
+                    return;
                 socket.Send(Response.Create("loreSettings", Newtonsoft.Json.JsonConvert.SerializeObject(settings)));
                 SendCurrentState(socket, settings);
                 socket.Dialog(db => db.MsgLine("Imported settings (check above)"));
@@ -59,16 +51,14 @@ namespace Coflnet.Sky.Commands.MC
             {
                 if (args[0] == "enable" || args[0] == "true")
                 {
-                    settings.Disabled = false;
-                    await service.UpdateSetting(socket.UserId, "description", settings);
-                    socket.SendMessage("Enabled data in lore");
+                    if (await Save(socket, s => { s.Disabled = false; return s; }) != null)
+                        socket.SendMessage("Enabled data in lore");
                     return;
                 }
                 if (args[0] == "disable" || args[0] == "false")
                 {
-                    settings.Disabled = true;
-                    await service.UpdateSetting(socket.UserId, "description", settings);
-                    socket.SendMessage("Disabled data in lore");
+                    if (await Save(socket, s => { s.Disabled = true; return s; }) != null)
+                        socket.SendMessage("Disabled data in lore");
                     return;
                 }
             }
@@ -108,7 +98,42 @@ namespace Coflnet.Sky.Commands.MC
                 return;
             }
             Console.WriteLine("applying " + arguments);
-            switch (args[0])
+            var updated = await Save(socket, s => ApplyLineEdit(socket, s, args[0], line, field) ? s : null);
+            if (updated != null)
+                SendCurrentState(socket, updated);
+        }
+
+        /// <summary>
+        /// Loads the settings, signed-in users get a cached copy that is at most a minute old
+        /// </summary>
+        private static async Task<DescriptionSetting> LoadSettings(MinecraftSocket socket, bool forceFresh)
+        {
+            var lifecycle = socket.sessionLifesycle;
+            if (lifecycle.IsSignedOut)
+                return await lifecycle.GetDescriptionSetting();
+            var userId = socket.UserId;
+            if (!forceFresh && descriptionCache.TryGetValue(userId, out var cache) && cache.Item2.AddMinutes(1) >= DateTime.UtcNow)
+                return cache.Item1;
+            var settings = await lifecycle.GetDescriptionSetting();
+            descriptionCache[userId] = (settings, DateTime.UtcNow);
+            return settings;
+        }
+
+        /// <summary>
+        /// Saves a change through the session, null when nothing was saved (opt-in missing or change rejected)
+        /// </summary>
+        private static async Task<DescriptionSetting> Save(MinecraftSocket socket, Func<DescriptionSetting, DescriptionSetting> change)
+        {
+            var saved = await socket.sessionLifesycle.UpdateDescriptionSetting(change);
+            if (saved != null && !socket.sessionLifesycle.IsSignedOut)
+                descriptionCache[socket.UserId] = (saved, DateTime.UtcNow);
+            return saved;
+        }
+
+        /// <returns>false when the edit was rejected and the user has been told</returns>
+        private static bool ApplyLineEdit(MinecraftSocket socket, DescriptionSetting settings, string action, int line, DescriptionField field)
+        {
+            switch (action)
             {
                 case "add":
                     while (line >= settings.Fields.Count)
@@ -119,7 +144,7 @@ namespace Coflnet.Sky.Commands.MC
                     if (line >= settings.Fields.Count)
                     {
                         socket.SendMessage(McColorCodes.RED + "Not possible to remove field from line " + line + " as it doesn't exist");
-                        return;
+                        return false;
                     }
                     settings.Fields[line].Remove(field);
                     if (settings.Fields[line].Count == 0)
@@ -148,8 +173,7 @@ namespace Coflnet.Sky.Commands.MC
                     settings.Fields[line].Insert(0, field);
                     break;
             }
-            await service.UpdateSetting(socket.UserId, "description", settings);
-            SendCurrentState(socket, settings);
+            return true;
         }
 
         private static void SendCurrentState(MinecraftSocket socket, DescriptionSetting settings)

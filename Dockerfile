@@ -5,7 +5,7 @@ RUN git clone --depth=1 https://github.com/Ekwav/websocket-sharp \
     && git clone --depth=1 https://github.com/Coflnet/HypixelSkyblock.git dev \
     && git clone --depth=1 https://github.com/Coflnet/SkyFilter.git \
     && git clone --depth=1 https://github.com/Coflnet/SkyBackendForFrontend.git
-ARG SHARED_GOALS_REVISION=a5df5daa62ed2e4b5673695d682122b78bc2d422
+ARG SHARED_GOALS_REVISION=06406c1e994c40514521bbbff4e5ab41a362a9b7
 RUN git -C /build/SkyBackendForFrontend fetch --depth=1 origin "$SHARED_GOALS_REVISION" \
     && git -C /build/SkyBackendForFrontend checkout --detach FETCH_HEAD
 WORKDIR /build/sky

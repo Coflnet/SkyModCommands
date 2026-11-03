@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Services;
 
@@ -6,7 +7,7 @@ namespace Coflnet.Sky.Commands.MC;
 
 [CommandDescription("Keep settings for this mod instance without an account",
     "Usage: /cl instancesettings <enable|disable|copy>",
-    "enable: keeps your settings for a year (even while not logged in)",
+    "enable: keeps your settings for 30 days after your last use (even while not logged in)",
     "disable: forgets the stored settings",
     "copy: copies the stored settings to your account after login")]
 public class InstanceSettingsCommand : McCommand
@@ -42,7 +43,7 @@ public class InstanceSettingsCommand : McCommand
             return;
         }
         await socket.sessionLifesycle.EnableInstanceSettings();
-        socket.Dialog(db => db.MsgLine($"Your settings are now kept for this mod instance for a year. "
+        socket.Dialog(db => db.MsgLine($"Your settings are now kept for this mod instance for 30 days after your last use. "
             + $"Use {McColorCodes.AQUA}/cofl instancesettings disable{McColorCodes.RESET} to stop that"));
     }
 
@@ -52,6 +53,7 @@ public class InstanceSettingsCommand : McCommand
         var stored = await socket.GetService<IInstanceSettingsService>().Get(socket.SessionInfo.SessionId);
         if (stored == null)
             throw new CoflnetException("no_instance_settings", "There are no settings stored for this mod instance");
+        await CopyDescription(socket);
         stored.Changer = null;
         stored.LastChanged = "Settings of this mod instance";
         await socket.sessionLifesycle.SaveFlipSettings(stored);
@@ -60,11 +62,19 @@ public class InstanceSettingsCommand : McCommand
         socket.Dialog(db => db.MsgLine("Copied the settings of this mod instance to your account"));
     }
 
+    private static async Task CopyDescription(MinecraftSocket socket)
+    {
+        var description = await socket.GetService<IInstanceSettingsService>().GetDescriptionStrict(socket.SessionInfo.SessionId);
+        if (description == null)
+            return;
+        await socket.GetService<SettingsService>().UpdateSetting(socket.UserId, "description", description);
+    }
+
     private static void PrintStatus(MinecraftSocket socket)
     {
         var enabled = socket.sessionLifesycle.SavesSettingsForInstance;
         socket.Dialog(db => db.MsgLine($"Settings are {(enabled ? McColorCodes.GREEN + "kept" : McColorCodes.RED + "not kept")}{McColorCodes.RESET} for this mod instance")
-            .CoflCommand<InstanceSettingsCommand>($"{McColorCodes.AQUA}[Enable]", "enable", "Keep settings for this mod instance for a year without an account")
+            .CoflCommand<InstanceSettingsCommand>($"{McColorCodes.AQUA}[Enable]", "enable", "Keep settings for this mod instance for 30 days after your last use, without an account")
             .CoflCommand<InstanceSettingsCommand>($" {McColorCodes.AQUA}[Disable]", "disable", "Forget the settings stored for this mod instance")
             .CoflCommand<InstanceSettingsCommand>($" {McColorCodes.AQUA}[Copy to account]", "copy", "Copy the stored settings to your account (requires login)"));
     }
