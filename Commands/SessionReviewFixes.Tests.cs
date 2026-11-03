@@ -288,6 +288,71 @@ public class SessionReviewFixesTests
         await prompt.Should().NotThrowAsync();
     }
 
+    [Test]
+    public void TryAdoptSwapsInTheCreatedValue()
+    {
+        var session = new NoSetupSession(socket);
+        socket.SetLifecycle(session);
+        var old = SelfUpdatingValue<string>.CreateNoUpdate("old");
+        var field = old;
+        var created = SelfUpdatingValue<string>.CreateNoUpdate("new");
+
+        session.TryAdopt(ref field, created).Should().BeTrue();
+
+        field.Should().BeSameAs(created);
+        created.Value.Should().Be("new");
+        old.Value.Should().BeNull("the replaced value is disposed");
+    }
+
+    [Test]
+    public void TryAdoptDisposesTheValueWhenReleasedBeforeTheSwap()
+    {
+        var closing = new HookedSocket { Closed = () => true };
+        var session = new NoSetupSession(closing);
+        closing.SetLifecycle(session);
+        var old = SelfUpdatingValue<string>.CreateNoUpdate("old");
+        var field = old;
+        var created = SelfUpdatingValue<string>.CreateNoUpdate("new");
+
+        session.TryAdopt(ref field, created).Should().BeFalse();
+
+        field.Should().BeSameAs(old, "a released session keeps its values for the final cleanup");
+        old.Value.Should().Be("old");
+        created.Value.Should().BeNull("nobody would release the created value");
+    }
+
+    [Test]
+    public void TryAdoptDisposesTheValueWhenDisposedDuringTheSwap()
+    {
+        var hooked = new HookedSocket();
+        var session = new NoSetupSession(hooked);
+        hooked.SetLifecycle(session);
+        // IsReleased reads the disposed flag before the socket, disposing here lands between the check and the swap
+        var disposedOnce = false;
+        hooked.Closed = () =>
+        {
+            if (!disposedOnce)
+            {
+                disposedOnce = true;
+                session.Dispose();
+            }
+            return false;
+        };
+        var field = SelfUpdatingValue<string>.CreateNoUpdate("old");
+        var created = SelfUpdatingValue<string>.CreateNoUpdate("new");
+
+        session.TryAdopt(ref field, created).Should().BeFalse();
+
+        disposedOnce.Should().BeTrue();
+        created.Value.Should().BeNull("ReleaseResources ran before the swap and missed the created value");
+    }
+
+    private class HookedSocket : TestSocket
+    {
+        public Func<bool> Closed = () => false;
+        public override bool IsClosed => Closed();
+    }
+
     private class ExposedInventorySession : InventoryModSession
     {
         public ExposedInventorySession(MinecraftSocket socket) : base(socket) { }

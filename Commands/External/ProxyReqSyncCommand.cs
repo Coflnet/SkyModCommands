@@ -46,11 +46,22 @@ public class ProxyReqSyncCommand : McCommand
         SendGlobalState(socket);
         await Task.Delay(200);
         SendState(socket);
-        var lifesycle = socket.sessionLifesycle;
-        if (socket.IsClosed || lifesycle == null || !socket.TryRegisterProxySync())
+        var lifesycle = LiveSession(socket);
+        if (lifesycle == null || !socket.TryRegisterProxySync())
             return;
         var sync = WireStateSync(socket, lifesycle, () => SendState(socket));
         socket.OnConClose += sync.Stop;
+    }
+
+    /// <summary>
+    /// The session to sync, null once the connection closed or the session was released
+    /// </summary>
+    private static ModSessionLifesycle LiveSession(MinecraftSocket socket)
+    {
+        var lifesycle = socket.sessionLifesycle;
+        if (lifesycle == null || lifesycle.IsReleased)
+            return null;
+        return lifesycle;
     }
 
     internal static StateSyncHandlers WireStateSync(MinecraftSocket socket, ModSessionLifesycle lifesycle, Action send)
@@ -142,8 +153,8 @@ public class ProxyReqSyncCommand : McCommand
 
     private static void SendState(MinecraftSocket socket)
     {
-        var lifesycle = socket.sessionLifesycle;
-        if (socket.IsClosed || lifesycle == null)
+        var lifesycle = LiveSession(socket);
+        if (lifesycle == null)
             return;
         var settings = lifesycle.FlipSettings?.Value;
         var accountInfo = lifesycle.AccountInfo?.Value;

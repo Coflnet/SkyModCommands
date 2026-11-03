@@ -57,6 +57,10 @@ namespace Coflnet.Sky.Commands.MC
         private readonly CancellationTokenSource sessionCts = new();
         private volatile bool disposed;
         internal bool IsDisposed => disposed;
+        /// <summary>
+        /// True once the connection closed or the session was disposed, setup steps that are still running stop then
+        /// </summary>
+        internal bool IsReleased => disposed || socket.IsClosed;
         private StackExchange.Redis.ChannelMessageQueue commandSub;
         /// <summary>
         /// Cancelled when the session is disposed, use it for every per session loop or delay
@@ -304,6 +308,26 @@ namespace Coflnet.Sky.Commands.MC
         internal static void ReplaceValue<T>(ref SelfUpdatingValue<T> field, SelfUpdatingValue<T> created)
         {
             Interlocked.Exchange(ref field, created)?.Dispose();
+        }
+
+        /// <summary>
+        /// Swaps a freshly created value into <paramref name="field"/> and disposes the previous one.
+        /// Returns false and disposes <paramref name="created"/> when the session was released before the swap (field unchanged)
+        /// or disposed during it (ReleaseResources may have run before the swap and missed the new value)
+        /// </summary>
+        internal bool TryAdopt<T>(ref SelfUpdatingValue<T> field, SelfUpdatingValue<T> created)
+        {
+            if (IsReleased)
+            {
+                created?.Dispose();
+                return false;
+            }
+            ReplaceValue(ref field, created);
+            // only disposal counts here: a closing socket still disposes the session, which releases the field itself
+            if (!disposed)
+                return true;
+            created?.Dispose();
+            return false;
         }
 
         private static void DisposeWhenDone<T>(Task<SelfUpdatingValue<T>> pending)
