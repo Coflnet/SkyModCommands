@@ -30,9 +30,13 @@ public static class ApiRelativeSendMetric
             LabelNames = new[] { "tier", "source", "bed" },
             Buckets = ApiUpdateClock.RelativeBuckets
         });
+    private static readonly RelativeSecondsCounters sums = new("sky_mod_flip_send_relative_api");
     private static readonly Prometheus.Counter outliers = Prometheus.Metrics.CreateCounter(
         "sky_mod_flip_send_relative_api_outliers_total", "Sends more than 120s away from the api arrival, not part of the histogram",
         new Prometheus.CounterConfiguration { LabelNames = new[] { "tier", "source", "direction" } });
+
+    public static double EarlySum(string tier, string source) => sums.Early(tier, source);
+    public static double LateSum(string tier, string source) => sums.Late(tier, source);
 
     public static double OutlierCount(string tier, string source, string direction)
         => outliers.WithLabels(tier, source, direction).Value;
@@ -51,6 +55,7 @@ public static class ApiRelativeSendMetric
         if (ApiUpdateClock.Plausible(r.Seconds))
         {
             sendRelativeApi.WithLabels(tier, r.Source, r.InBed ? "true" : "false").Observe(r.Seconds);
+            sums.Add(tier, r.Source, r.Seconds);
             return ApiRelativeOutcome.Observed;
         }
         outliers.WithLabels(tier, r.Source, r.Seconds < 0 ? "early" : "late").Inc();

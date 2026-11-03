@@ -40,6 +40,32 @@ public class ApiRelativeSendMetricTests
     }
 
     [Test]
+    public void NegativeObservationOnlyIncreasesEarlyCounterAndPositiveOnlyLate()
+    {
+        var (early, late) = (ApiRelativeSendMetric.EarlySum("T8", "api"), ApiRelativeSendMetric.LateSum("T8", "api"));
+
+        Record("T8", ApiFlip(LastUpdated), LastUpdated.AddSeconds(4)); // arrival is +7
+        ApiRelativeSendMetric.EarlySum("T8", "api").Should().BeApproximately(early + 3, 0.001);
+        ApiRelativeSendMetric.LateSum("T8", "api").Should().Be(late);
+
+        Record("T8", ApiFlip(LastUpdated), LastUpdated.AddSeconds(9));
+        ApiRelativeSendMetric.EarlySum("T8", "api").Should().BeApproximately(early + 3, 0.001);
+        ApiRelativeSendMetric.LateSum("T8", "api").Should().BeApproximately(late + 2, 0.001);
+    }
+
+    [Test]
+    public void SkippedAndOutlierSendsDoNotTouchTheCounters()
+    {
+        var (early, late) = (ApiRelativeSendMetric.EarlySum("T9", "api"), ApiRelativeSendMetric.LateSum("T9", "api"));
+        var replay = ApiFlip(LastUpdated, new() { { ApiRelativeSendMetric.ReplayProp, "" } });
+
+        Record("T9", replay, LastUpdated.AddSeconds(9));
+        Record("T9", ApiFlip(LastUpdated), LastUpdated.AddHours(2));
+
+        (ApiRelativeSendMetric.EarlySum("T9", "api"), ApiRelativeSendMetric.LateSum("T9", "api")).Should().Be((early, late));
+    }
+
+    [Test]
     public void SendHoursLateIsCountedAsLateOutlierAndNotObserved()
     {
         var before = ApiRelativeSendMetric.OutlierCount("T2", "api", "late");
