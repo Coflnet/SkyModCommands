@@ -10,10 +10,10 @@ RUN git -C /build/SkyBackendForFrontend fetch --depth=1 origin "$SHARED_GOALS_RE
     && git -C /build/SkyBackendForFrontend checkout --detach FETCH_HEAD
 WORKDIR /build/sky
 COPY SkyModCommands.csproj SkyModCommands.csproj
-RUN dotnet restore
+RUN dotnet restore --disable-build-servers
 COPY . .
-RUN rm -f SkyModCommands.sln && dotnet test
-RUN dotnet publish -c release -o /app
+RUN rm -f SkyModCommands.sln && dotnet test --disable-build-servers
+RUN dotnet publish -c release -o /app --disable-build-servers
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra
 WORKDIR /app
