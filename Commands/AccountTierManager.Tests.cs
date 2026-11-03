@@ -13,6 +13,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Newtonsoft.Json;
 using NUnit.Framework;
+using AwesomeAssertions;
+using Coflnet.Sky.Core;
+using Coflnet.Sky.Commands.MC;
 
 namespace Coflnet.Sky.Commands.MC;
 
@@ -71,5 +74,87 @@ public class AccountTierManagerSlotTests
         tier = await manager.GetCurrentTierWithExpire(true);
         Assert.That(manager.IsLicense, Is.False, "Revoked slot access must not retain license delay separation.");
         Assert.That(tier.tier, Is.EqualTo(AccountTier.NONE));
+    }
+
+    [Test]
+    public async Task DisposeWhileLoadingActiveSessionsDoesNotKeepTheSubscription()
+    {
+        var gate = new TaskCompletionSource<Coflnet.Sky.Settings.Client.Client.ApiResponse<string>>();
+        var settingsApi = new Mock<ISettingsApi>();
+        settingsApi.Setup(api => api.GetSettingWithHttpInfoAsync("42", "activeSessions", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(gate.Task);
+        DiHandler.OverrideService<SettingsService, SettingsService>(
+            new SettingsService(Mock.Of<IConfiguration>(), NullLogger<SettingsService>.Instance, settingsApi.Object));
+        var socket = new Mock<IMinecraftSocket>();
+        socket.SetupGet(s => s.SessionInfo).Returns(new SessionInfo { ConnectionId = "c" });
+        Task running = Task.CompletedTask;
+        socket.Setup(s => s.TryAsyncTimes(It.IsAny<Func<Task>>(), It.IsAny<string>(), It.IsAny<int>()))
+            .Returns((Func<Task> action, string _, int _) =>
+            {
+                running = action();
+                return Task.CompletedTask.ConfigureAwait(false);
+            });
+        var auth = new Mock<IAuthUpdate>();
+        var manager = new AccountTierManager(socket.Object, auth.Object);
+        auth.Raise(a => a.OnLogin += null, this, "42");
+
+        manager.Dispose();
+        gate.SetResult(new(HttpStatusCode.OK, JsonConvert.SerializeObject(new ActiveSessions())));
+        await running.WaitAsync(TimeSpan.FromSeconds(5));
+
+        typeof(AccountTierManager).GetField("activeSessions", BindingFlags.NonPublic | BindingFlags.Instance)
+            .GetValue(manager).Should().BeNull();
+    }
+
+    [Test]
+    public async Task InvalidateCacheKeepsTheLastCalculatedExpiry()
+    {
+        var socket = new Mock<IMinecraftSocket>();
+        socket.SetupGet(s => s.SessionInfo).Returns(new SessionInfo { ConnectionId = "c" });
+        var manager = new AccountTierManager(socket.Object, Mock.Of<IAuthUpdate>());
+        var (_, expiresAt) = await manager.GetCurrentTierWithExpire(true);
+
+        manager.InvalidateCache();
+
+        manager.ExpiresAt.Should().BeBefore(expiresAt);
+        manager.LastCalculatedExpiresAt.Should().Be(expiresAt);
+    }
+
+    [Test]
+    public async Task ConcurrentLoginsLeaveOnlyTheLatestActiveSessionsSubscribed()
+    {
+        var gates = new[] { new TaskCompletionSource<Coflnet.Sky.Settings.Client.Client.ApiResponse<string>>(),
+            new TaskCompletionSource<Coflnet.Sky.Settings.Client.Client.ApiResponse<string>>() };
+        var settingsApi = new Mock<ISettingsApi>();
+        settingsApi.SetupSequence(api => api.GetSettingWithHttpInfoAsync("42", "activeSessions", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(gates[0].Task).Returns(gates[1].Task);
+        DiHandler.OverrideService<SettingsService, SettingsService>(
+            new SettingsService(Mock.Of<IConfiguration>(), NullLogger<SettingsService>.Instance, settingsApi.Object));
+        var socket = new Mock<IMinecraftSocket>();
+        socket.SetupGet(s => s.SessionInfo).Returns(new SessionInfo { ConnectionId = "c" });
+        var running = new List<Task>();
+        socket.Setup(s => s.TryAsyncTimes(It.IsAny<Func<Task>>(), It.IsAny<string>(), It.IsAny<int>()))
+            .Returns((Func<Task> action, string _, int _) =>
+            {
+                running.Add(action());
+                return Task.CompletedTask.ConfigureAwait(false);
+            });
+        var auth = new Mock<IAuthUpdate>();
+        var manager = new AccountTierManager(socket.Object, auth.Object);
+        auth.Raise(a => a.OnLogin += null, this, "42");
+        auth.Raise(a => a.OnLogin += null, this, "42");
+        var field = typeof(AccountTierManager).GetField("activeSessions", BindingFlags.NonPublic | BindingFlags.Instance);
+        var body = JsonConvert.SerializeObject(new ActiveSessions());
+
+        gates[0].SetResult(new(HttpStatusCode.OK, body));
+        await running[0].WaitAsync(TimeSpan.FromSeconds(5));
+        var first = (SelfUpdatingValue<ActiveSessions>)field.GetValue(manager);
+        gates[1].SetResult(new(HttpStatusCode.OK, body));
+        await running[1].WaitAsync(TimeSpan.FromSeconds(5));
+
+        var latest = (SelfUpdatingValue<ActiveSessions>)field.GetValue(manager);
+        latest.Should().NotBeSameAs(first);
+        latest.Value.Should().NotBeNull();
+        first.Value.Should().BeNull("the replaced value has to be disposed");
     }
 }

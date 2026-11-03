@@ -13,20 +13,27 @@ namespace Coflnet.Sky.Commands.MC
 
         protected override async Task SubToSettings(string val)
         {
-            if (socket.IsClosed)
+            if (socket.IsClosed || IsDisposed)
                 return;
             await base.SubToSettings(val);
+            if (socket.IsClosed || IsDisposed)
+                return;
             var settings = await SelfUpdatingValue<PrivacySettings>.Create(val, "privacySettings", () =>
             {
                 return Shared.PrivacySettings.Default;
             });
-            if (socket.IsClosed)
+            if (socket.IsClosed || IsDisposed)
             {
                 settings.Dispose();
                 return;
             }
-            socket.sessionLifesycle.PrivacySettings?.Dispose();
-            socket.sessionLifesycle.PrivacySettings = settings;
+            ReplaceValue(ref PrivacySettings, settings);
+            if (IsDisposed)
+            {
+                // released while swapping in, ReleaseResources may have run before the swap
+                settings.Dispose();
+                return;
+            }
             socket.sessionLifesycle.PrivacySettings.AfterChange -= UpdatePrivacySettings;
             socket.sessionLifesycle.PrivacySettings.AfterChange += UpdatePrivacySettings;
             var pSettings = socket.sessionLifesycle.PrivacySettings.Value;

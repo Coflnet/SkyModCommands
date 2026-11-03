@@ -24,6 +24,7 @@ using Coflnet.Sky.Bazaar.Flipper.Client.Api;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Core.Services;
 using Coflnet.Sky.ModCommands.Services.Vps;
+using Coflnet.Sky.ModCommands.Services.RealizedProfit;
 
 namespace Coflnet.Sky.ModCommands;
 
@@ -69,6 +70,7 @@ public class Startup
         services.AddHostedService(service =>
             service.GetRequiredService<AgreementManifestService>());
         services.AddHostedService<ModBackgroundService>();
+        AddRealizedProfit(services);
         services.AddHostedService<ExpertConfigRefundService>();
         services.AddHostedService<MemoryDiagnosticsService>();
         services.AddHostedService<MuseumDonationCleanupService>();
@@ -181,6 +183,18 @@ public class Startup
             endpoints.MapHealthChecks("/health/ready");
             endpoints.MapControllers();
         });
+    }
+
+    private void AddRealizedProfit(IServiceCollection services)
+    {
+        services.AddSingleton(System.TimeProvider.System);
+        services.AddSingleton<RealizedProfitQueue>();
+        services.AddSingleton<IRealizedProfitStore, RealizedProfitStore>();
+        services.AddSingleton<IRealizedProfitSources, RealizedProfitSources>();
+        services.AddSingleton<RealizedProfitCollector>();
+        services.AddSingleton<RealizedProfitTierService>();
+        services.AddHostedService<RealizedProfitBackgroundService>();
+        services.AddHttpClient(RealizedProfitSources.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10));
     }
 
     private void RegisterScyllaSession(IServiceCollection services)

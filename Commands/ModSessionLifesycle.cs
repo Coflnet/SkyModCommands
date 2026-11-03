@@ -13,6 +13,7 @@ using Coflnet.Sky.Core;
 using Coflnet.Sky.ModCommands.Dialogs;
 using Coflnet.Sky.ModCommands.Models;
 using Coflnet.Sky.ModCommands.Services;
+using Coflnet.Sky.ModCommands.Services.RealizedProfit;
 using Coflnet.Sky.ModCommands.Tutorials;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,6 +47,26 @@ namespace Coflnet.Sky.Commands.MC
         public FlipProcesser FlipProcessor;
 
         public event EventHandler<string> OnLogin;
+        /// <summary>
+        /// Raised after <see cref="AccountInfo"/> or <see cref="FlipSettings"/> was replaced (and the old one disposed),
+        /// listeners that attached handlers to the old instance have to attach them to the current one
+        /// </summary>
+        public event Action ValuesReplaced;
+        internal void RaiseValuesReplaced() => ValuesReplaced?.Invoke();
+
+        private readonly CancellationTokenSource sessionCts = new();
+        private volatile bool disposed;
+        internal bool IsDisposed => disposed;
+        private StackExchange.Redis.ChannelMessageQueue commandSub;
+        /// <summary>
+        /// Cancelled when the session is disposed, use it for every per session loop or delay
+        /// </summary>
+        public CancellationToken SessionToken => sessionCts.Token;
+        /// <summary>
+        /// The login prompt is only repeated for this long
+        /// </summary>
+        internal static readonly TimeSpan LoginPromptMaxDuration = TimeSpan.FromHours(1);
+        internal Func<TimeSpan, CancellationToken, Task> LoginPromptDelay { get; set; } = (delay, token) => Task.Delay(delay, token);
 
         public TimeSpan CurrentDelay => DelayHandler?.CurrentDelay ?? MC.DelayHandler.DefaultDelay;
         public TimeSpan MacroDelay => DelayHandler?.MacroDelay ?? default;
@@ -77,14 +98,14 @@ namespace Coflnet.Sky.Commands.MC
         {
             this.socket = socket;
             FilterState = new(this);
-            var info = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(socket.AccountInfo);
-            SetupFlipProcessor(info);
+            SetupFlipProcessor();
             VerificationHandler = new VerificationHandler(socket);
         }
 
-        private void SetupFlipProcessor(SelfUpdatingValue<AccountInfo> info)
+        private void SetupFlipProcessor()
         {
-            DelayHandler = new DelayHandler(Shared.TimeProvider.Instance, socket.GetService<IFlipTrackingService>(), SessionInfo, info);
+            // reads the current account info, SubToSettings replaces and disposes the instance
+            DelayHandler = new DelayHandler(Shared.TimeProvider.Instance, socket.GetService<IFlipTrackingService>(), SessionInfo, () => AccountInfo?.Value);
 
             FlipProcessor = new FlipProcesser(socket, spamController, DelayHandler);
         }
@@ -102,22 +123,24 @@ namespace Coflnet.Sky.Commands.MC
                 settings.CopyListMatchers(previousSettings);
         }
 
-        private void InitializeCurrentFlipSettings(SelfUpdatingValue<FlipSettings> previousSettings = null)
+        /// <param name="current">the instance this call created, not the field: overlapping setups may have replaced the field already</param>
+        internal void InitializeCurrentFlipSettings(SelfUpdatingValue<FlipSettings> current, SelfUpdatingValue<FlipSettings> previousSettings = null)
         {
-            if (FlipSettings?.Value == null)
+            if (current?.Value == null)
                 throw new Exception("flipSettings.Value is null");
 
-            EnsureSessionContextOnFlipSettings(FlipSettings.Value, previousSettings?.Value);
-            FlipSettings.OnChange += UpdateSettings;
-            FlipSettings.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
+            EnsureSessionContextOnFlipSettings(current.Value, previousSettings?.Value);
+            current.OnChange += UpdateSettings;
+            current.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
         }
 
         public async Task ReplaceFlipSettings(SelfUpdatingValue<FlipSettings> flipSettings)
         {
             var previousSettings = FlipSettings;
             FlipSettings = flipSettings ?? throw new Exception("flipSettings is null");
-            InitializeCurrentFlipSettings(previousSettings);
+            InitializeCurrentFlipSettings(FlipSettings, previousSettings);
             previousSettings?.Dispose();
+            RaiseValuesReplaced();
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
             Registerkeybinds(FlipSettings.Value, true);
         }
@@ -133,6 +156,8 @@ namespace Coflnet.Sky.Commands.MC
     @"      |__,'`-..--|__|--''"));
 
     */
+            if (disposed)
+                return;
             using var loadSpan = socket.CreateActivity("loadSession", ConSpan);
             SessionInfo.SessionId = stringId;
 
@@ -141,7 +166,9 @@ namespace Coflnet.Sky.Commands.MC
                 SendPing();
             }, null, TimeSpan.FromSeconds(59), TimeSpan.FromSeconds(59));
             this.TierManager = new AccountTierManager(socket, this);
-            UserId = await SelfUpdatingValue<string>.Create(stringId, "userId");
+            ReplaceValue(ref UserId, await SelfUpdatingValue<string>.Create(stringId, "userId"));
+            if (AbortIfDisposed())
+                return;
             _ = socket.TryAsyncTimes(() => SendLoginPromptMessage(stringId), "login prompt");
             if (MinecraftSocket.IsDevMode)
             {
@@ -150,7 +177,9 @@ namespace Coflnet.Sky.Commands.MC
             }
             if (UserId.Value == default)
             {
-                UserId = await SelfUpdatingValue<string>.Create(stringId, "userId");
+                ReplaceValue(ref UserId, await SelfUpdatingValue<string>.Create(stringId, "userId"));
+                if (AbortIfDisposed())
+                    return;
                 if (UserId.Value != default)
                     Console.WriteLine("UserId was recovered");
             }
@@ -166,12 +195,20 @@ namespace Coflnet.Sky.Commands.MC
                 using var sub2SettingsSpan = socket.CreateActivity("sub2Settings", ConSpan);
                 await SubToSettings(UserId);
             }
+            if (AbortIfDisposed())
+                return;
             SubSessionToEventsFor(SessionInfo.McUuid);
+            if (AbortIfDisposed())
+                return;
 
             loadSpan?.Dispose();
             UpdateExtraDelay();
             TierManager.OnTierChange += TierChangedHandler;
+            if (AbortIfDisposed())
+                return;
             await SubscribetoCommands();
+            if (disposed)
+                return;
             if (!(socket.sessionLifesycle.AccountSettings?.Value?.BlockLowballs ?? false) && socket.ModAdapter is not AfVersionAdapter)
                 socket.GetService<LowballSerivce>().Enable(socket);
             await socket.TryAsyncTimes(SendLastChangeInfo, "latest change message");
@@ -244,11 +281,38 @@ namespace Coflnet.Sky.Commands.MC
                 socket.ExecuteCommand(h);
                 return true;
             });
-            socket.OnConClose += () =>
+            commandSub = commands;
+            // when the session was disposed while subscribing nobody would unsubscribe later
+            AbortIfDisposed();
+        }
+
+        /// <summary>
+        /// Releases everything created so far when the session was disposed while still being set up.
+        /// Returns true if the caller should stop setting up.
+        /// </summary>
+        private bool AbortIfDisposed()
+        {
+            if (!disposed)
+                return false;
+            ReleaseResources();
+            return true;
+        }
+
+        /// <summary>
+        /// Stores the new value and disposes the previous one, so a repeated setup leaves only the latest value subscribed
+        /// </summary>
+        internal static void ReplaceValue<T>(ref SelfUpdatingValue<T> field, SelfUpdatingValue<T> created)
+        {
+            Interlocked.Exchange(ref field, created)?.Dispose();
+        }
+
+        private static void DisposeWhenDone<T>(Task<SelfUpdatingValue<T>> pending)
+        {
+            pending.ContinueWith(t =>
             {
-                commands?.Unsubscribe();
-                SessionInfo.UserCommandSub?.Unsubscribe();
-            };
+                if (t.IsCompletedSuccessfully)
+                    t.Result?.Dispose();
+            }, TaskScheduler.Default);
         }
 
         private void TierChangedHandler(object sender, AccountTier Newtier)
@@ -273,19 +337,46 @@ namespace Coflnet.Sky.Commands.MC
 
         private async Task SendLoginPromptMessage(string stringId)
         {
-            var index = 1;
             var ignore = await socket.GetService<StayLoggedOutService>().WantsToBeLoggedout(stringId);
             if (ignore)
                 return;
-            while (UserId.Value == null)
+            await RunLoginPromptLoop(stringId);
+        }
+
+        internal async Task RunLoginPromptLoop(string stringId)
+        {
+            var index = 1;
+            var waited = TimeSpan.Zero;
+            while (!IsLoggedIn() && !disposed && waited < LoginPromptMaxDuration)
             {
                 socket.ModAdapter.SendLoginPrompt(GetAuthLink(stringId));
-                await Task.Delay(TimeSpan.FromSeconds(300 * index++)).ConfigureAwait(false);
-
-                if (UserId.Value != default)
+                var delay = TimeSpan.FromSeconds(300 * index++);
+                var remaining = LoginPromptMaxDuration - waited;
+                if (delay > remaining)
+                    delay = remaining;
+                if (!await WaitForNextLoginPrompt(delay))
+                    return;
+                waited += delay;
+                if (IsLoggedIn())
                     return;
                 socket.Dialog(d => d.MsgLine($"do {McColorCodes.AQUA}/cofl nologin{McColorCodes.RESET} to stop receiving this (or click this message)", "/cofl nologin"));
             }
+        }
+
+        private bool IsLoggedIn() => UserId?.Value != null;
+
+        /// <returns>false if the session ended while waiting</returns>
+        private async Task<bool> WaitForNextLoginPrompt(TimeSpan delay)
+        {
+            try
+            {
+                await LoginPromptDelay(delay, sessionCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+            return !disposed;
         }
 
         public async Task LoggedIn(string userId)
@@ -305,13 +396,14 @@ namespace Coflnet.Sky.Commands.MC
         {
             var stored = await LoadInstanceSettings(sessionId);
             SavesSettingsForInstance = stored != null;
-            FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(stored ?? DefaultSettings);
-            InitializeCurrentFlipSettings();
+            var settings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(stored ?? DefaultSettings);
+            FlipSettings = settings;
+            InitializeCurrentFlipSettings(settings);
             if (stored == null)
                 return;
             ConSpan.Log("loaded instance settings");
-            await ApplyFlipSettings(FlipSettings.Value, ConSpan);
-            Registerkeybinds(FlipSettings.Value, true);
+            await ApplyFlipSettings(settings.Value, ConSpan);
+            Registerkeybinds(settings.Value, true);
         }
 
         /// <summary>
@@ -400,6 +492,11 @@ namespace Coflnet.Sky.Commands.MC
                 var redis = DiHandler.ServiceProvider.GetRequiredKeyedService<StackExchange.Redis.IConnectionMultiplexer>("bazaar");
                 SessionInfo.UserCommandSub = await ModUserChannel.SubscribeAsync(redis, userId,
                     msg => ModUserMessageHandler.HandleUserMessage(socket, msg));
+                if (disposed)
+                {
+                    SessionInfo.UserCommandSub?.Unsubscribe();
+                    SessionInfo.UserCommandSub = null;
+                }
             }
             catch (Exception e)
             {
@@ -413,20 +510,39 @@ namespace Coflnet.Sky.Commands.MC
             ConSpan.Log("subbing to settings of " + userId);
             var flipSettingsTask = SelfUpdatingValue<FlipSettings>.Create(userId, "flipSettings", () => DefaultSettings);
             var accountSettingsTask = SelfUpdatingValue<AccountSettings>.Create(userId, "accountSettings", () => new());
+            bool AbortSubToSettings()
+            {
+                if (!AbortIfDisposed())
+                    return false;
+                // the values that are still being created have to be released as soon as they arrive
+                DisposeWhenDone(flipSettingsTask);
+                DisposeWhenDone(accountSettingsTask);
+                return true;
+            }
             Activity.Current.Log("got settings");
-            AccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
+            var createdAccountInfo = await SelfUpdatingValue<AccountInfo>.Create(userId, "accountInfo", () => new AccountInfo() { UserId = userId });
+            ReplaceValue(ref AccountInfo, createdAccountInfo);
+            if (AbortSubToSettings())
+                return;
             OnLogin?.Invoke(this, userId);
+            RaiseValuesReplaced();
             Activity.Current.Log("got accountInfo");
-            var oldSettings = FlipSettings;
-            FlipSettings = await flipSettingsTask ??
+            var createdSettings = await flipSettingsTask ??
                 throw new Exception("flipSettings is null");
+            var oldSettings = Interlocked.Exchange(ref FlipSettings, createdSettings);
+            if (AbortSubToSettings())
+            {
+                oldSettings?.Dispose();
+                return;
+            }
             Activity.Current.Log("got flipSettings");
-            InitializeCurrentFlipSettings(oldSettings);
+            InitializeCurrentFlipSettings(createdSettings, oldSettings);
             oldSettings?.Dispose();
+            RaiseValuesReplaced();
 
             SetActiveConIdToCurrent();
             Activity.Current.Log("single connection check");
-            AccountInfo.OnChange += (ai) =>
+            createdAccountInfo.OnChange += (ai) =>
             {
                 TierManager.InvalidateCache();
                 Task.Run(async () => await UpdateAccountInfo(ai), new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token);
@@ -440,23 +556,32 @@ namespace Coflnet.Sky.Commands.MC
                 "agreement acceptance prompt",
                 1);
             Activity.Current.Log("updated accountInfo");
-            SetupFlipProcessor(AccountInfo);
-            AccountSettings = await accountSettingsTask;
+            ReplaceValue(ref AccountSettings, await accountSettingsTask);
+            if (AbortSubToSettings())
+                return;
             if (userId != null)
                 SubSessionToEventsFor(userId);
             await SubToUserCommands(userId);
+            if (AbortSubToSettings())
+                return;
             Activity.Current.Log("subbed to events");
             await ApplyFlipSettings(FlipSettings.Value, ConSpan);
             Registerkeybinds(FlipSettings.Value, true);
             Activity.Current.Log("applied flip settings");
+            if (disposed)
+                return;
             await OfferInstanceSettingsCopy();
             await socket.TryAsyncTimes(FilterState.SubToConfigChanges, "config subscribe");
+            if (AbortSubToSettings())
+                return;
 
             // Register with autotip service
             try
             {
                 var autotipService = socket.GetService<AutotipService>();
                 autotipService?.RegisterConnection(socket);
+                if (disposed)
+                    autotipService?.UnregisterConnection(userId);
                 Activity.Current.Log("registered with autotip service");
             }
             catch (Exception e)
@@ -1564,6 +1689,9 @@ namespace Coflnet.Sky.Commands.MC
 
         public void Dispose()
         {
+            QueueRealizedProfit();
+            disposed = true;
+            sessionCts.Cancel();
             // Unregister from autotip service
             try
             {
@@ -1600,13 +1728,57 @@ namespace Coflnet.Sky.Commands.MC
                 Console.WriteLine($"Failed to remove from pre-api: {ex.Message}");
             }
 
+            try
+            {
+                socket.GetService<ITutorialService>()?.Release(socket);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to release tutorial state: {ex.Message}");
+            }
+            ReleaseResources();
+        }
+
+        /// <summary>
+        /// Hands the cached user, tier and accounts to the realized profit stats before the session values are
+        /// released. Reads only cached values, never blocks and never throws.
+        /// </summary>
+        private void QueueRealizedProfit()
+        {
+            try
+            {
+                // optional: not every host (e.g. the proxy backend) runs the realized profit stats
+                var queue = DiHandler.ServiceProvider.GetService<RealizedProfitQueue>();
+                if (queue == null)
+                    return;
+                // InvalidateCache zeroes ExpiresAt when another connection takes over, the last calculated expiry survives that
+                var snapshot = RealizedProfitSnapshot.Create(UserId?.Value, SessionInfo.SessionTier,
+                    TierManager?.LastCalculatedExpiresAt ?? default, AccountInfo?.Value, SessionInfo);
+                if (snapshot == null)
+                    return;
+                queue.TryEnqueue(snapshot);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to queue realized profit: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Disposes everything the session created, safe to call multiple times.
+        /// Called again when setup finishes after the session was already disposed
+        /// </summary>
+        private void ReleaseResources()
+        {
             foreach (var cleanup in new Action[]
             {
+                () => Interlocked.Exchange(ref commandSub, null)?.Unsubscribe(),
                 () => FlipSettings?.Dispose(),
                 () => UserId?.Dispose(),
                 () => AccountInfo?.Dispose(),
                 () => SessionInfo?.Dispose(),
                 () => AccountSettings?.Dispose(),
+                () => PrivacySettings?.Dispose(),
                 () => PingTimer?.Dispose(),
                 () => FilterState?.Dispose(),
                 () => { if (TierManager != null) TierManager.OnTierChange -= TierChangedHandler; },

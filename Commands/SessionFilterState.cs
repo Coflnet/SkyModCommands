@@ -24,10 +24,12 @@ public class SessionFilterState : IDisposable
         BaseConfig?.Dispose();
     }
 
+    /// <summary>Always the current value, the session replaces it when the settings are subscribed again</summary>
+    private SelfUpdatingValue<AccountSettings> AccountSettings => lifesycle.AccountSettings;
+
     public async Task SubToConfigChanges()
     {
         var socket = lifesycle.socket;
-        var AccountSettings = lifesycle.AccountSettings;
         var loadedConfigMetadata = AccountSettings.Value.LoadedConfig;
         if (lifesycle.TierManager.IsLicense)
         {
@@ -127,9 +129,9 @@ public class SessionFilterState : IDisposable
                 }
                 socket.Dialog(db => db.MsgLine($"Your config: §6{newConfig.Name} §7v{loadedConfigMetadata.Version} §6updated to v{newConfig.Version}")
                     .MsgLine($"§7{newConfig.ChangeNotes} {diffSuffix}")
-                    .If(() => AccountSettings.Value.AutoUpdateConfig, db => db.MsgLine("Loading the updated version automatically.").Msg("To toggle this run /cofl configs autoupdate").AsGray(),
+                    .If(() => AccountSettings?.Value?.AutoUpdateConfig ?? false, db => db.MsgLine("Loading the updated version automatically.").Msg("To toggle this run /cofl configs autoupdate").AsGray(),
                     db => db.CoflCommand<UpdateCurrentConfigCommand>($"[click to load]", $"", "load new version\nWill override your current settings")));
-                if (AccountSettings.Value.AutoUpdateConfig)
+                if (AccountSettings?.Value?.AutoUpdateConfig ?? false)
                 {
                     updateSpan.Log("auto updating config");
                     MinecraftSocket.Commands["updatecurrentconfig"].Execute(socket, "");

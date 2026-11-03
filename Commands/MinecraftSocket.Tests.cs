@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
+using AwesomeAssertions;
 using System.Collections.Concurrent;
 using Newtonsoft.Json;
 using Coflnet.Sky.Core;
@@ -233,5 +234,62 @@ public class FlipStreamTests
         await Task.Delay(10);
         Assert.That(socket.TopBlocked.Count, Is.GreaterThanOrEqualTo(500));
 
+    }
+
+    [TestCase("\"hello world\"", "/cofl test hello world")]
+    [TestCase("hello", "/cofl test hello")]
+    [TestCase("\"\"", "/cofl test")]
+    [TestCase("null", "/cofl test")]
+    [TestCase("[\"a\",\"b\"]", "/cofl test [\"a\",\"b\"]")]
+    [TestCase("{\"a\":1}", "/cofl test {\"a\":1}")]
+    [TestCase("  [1,2]", "/cofl test   [1,2]")]
+    public void FormatCommandKeepsBehaviour(string data, string expected)
+    {
+        MinecraftSocket.FormatCommand(new TestCommand(), data).Should().Be(expected);
+    }
+
+    [Test]
+    public void FormatCommandDoesNotThrowForJsonArrays()
+    {
+        var thrown = 0;
+        void Count(object? s, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e) => Interlocked.Increment(ref thrown);
+        AppDomain.CurrentDomain.FirstChanceException += Count;
+        try
+        {
+            for (var i = 0; i < 10; i++)
+                MinecraftSocket.FormatCommand(new TestCommand(), "[\"a\"]");
+        }
+        finally
+        {
+            AppDomain.CurrentDomain.FirstChanceException -= Count;
+        }
+        thrown.Should().Be(0);
+    }
+
+    [Test]
+    [NonParallelizable]
+    public async Task UpdateStartDoesNotForceGarbageCollection()
+    {
+        System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(MinecraftSocket).TypeHandle);
+        var field = typeof(MinecraftSocket).GetField("NextUpdateStart", BindingFlags.NonPublic | BindingFlags.Static);
+        Action? handlers = null;
+        for (var i = 0; i < 100 && handlers == null; i++)
+        {
+            handlers = (Action?)field!.GetValue(null);
+            await Task.Delay(50);
+        }
+        handlers.Should().NotBeNull();
+
+        var before = GC.CollectionCount(2);
+        handlers!.GetInvocationList().Cast<Action>().Where(h => h.Method.DeclaringType!.DeclaringType == typeof(MinecraftSocket)
+            && h.Method.Name.Contains("cctor")).ToList().ForEach(h => h());
+
+        (GC.CollectionCount(2) - before).Should().Be(0);
+    }
+
+    private class TestCommand : McCommand
+    {
+        public override Task Execute(MinecraftSocket socket, string arguments) => Task.CompletedTask;
+        public new string Slug => "test";
     }
 }

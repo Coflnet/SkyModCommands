@@ -302,14 +302,7 @@ namespace Coflnet.Sky.Commands.MC
 
             new MinecraftSocket().TryAsyncTimes(async () =>
             {
-                NextUpdateStart += () =>
-                {
-                    var startTime = DateTime.UtcNow;
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    var memmoryUsed = GC.GetTotalMemory(true);
-                    Console.WriteLine("next update " + (DateTime.UtcNow - startTime) + " memmory used " + memmoryUsed);
-                };
+                NextUpdateStart += () => Console.WriteLine("next update memmory used " + GC.GetTotalMemory(false));
                 NextFlipTime = DateTime.UtcNow + TimeSpan.FromSeconds(70);
                 Timer selfTimer = null!;
                 selfTimer = new Timer((t) =>
@@ -788,18 +781,25 @@ namespace Coflnet.Sky.Commands.MC
             }
         }
 
-        private static string FormatCommand(McCommand command, string data)
+        internal static string FormatCommand(McCommand command, string data)
         {
-            string arguments;
+            return $"/cofl {command.Slug} {ParseCommandArguments(data)}".TrimEnd();
+        }
+
+        private static string ParseCommandArguments(string data)
+        {
+            // arrays and objects can never be deserialized as string, skip the throw+catch for them
+            var trimmed = data.AsSpan().TrimStart();
+            if (trimmed.StartsWith("[") || trimmed.StartsWith("{"))
+                return data.Trim('"');
             try
             {
-                arguments = JsonConvert.DeserializeObject<string>(data) ?? string.Empty;
+                return JsonConvert.DeserializeObject<string>(data) ?? string.Empty;
             }
             catch (JsonException)
             {
-                arguments = data.Trim('"');
+                return data.Trim('"');
             }
-            return $"/cofl {command.Slug} {arguments}".TrimEnd();
         }
 
         public void StoreCurrentCommandForPremiumPlusRetry()

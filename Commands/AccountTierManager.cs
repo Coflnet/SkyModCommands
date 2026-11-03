@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
 using Coflnet.Payments.Client.Model;
@@ -19,6 +20,10 @@ public interface IAccountTierManager : IDisposable
     Task<(AccountTier tier, DateTime expiresAt)> GetCurrentTierWithExpire(bool forceUpdate = false);
     Task<AccountTier> GetCurrentCached();
     DateTime ExpiresAt { get; }
+    /// <summary>
+    /// Expiry from the last tier calculation, unlike <see cref="ExpiresAt"/> it is not reset by <see cref="InvalidateCache"/>
+    /// </summary>
+    DateTime LastCalculatedExpiresAt => ExpiresAt;
     string? DefaultAccount { get; }
     bool IsLicense { get; }
 
@@ -42,6 +47,8 @@ public class AccountTierManager : IAccountTierManager
     private string userId = string.Empty;
     IAuthUpdate loginNotification;
     public DateTime ExpiresAt => expiresAt;
+    private DateTime lastCalculatedExpiresAt;
+    public DateTime LastCalculatedExpiresAt => lastCalculatedExpiresAt;
     bool isNewConnection = false;
 
     public string? DefaultAccount => activeSessions?.Value?.UseAccountTierOn;
@@ -61,11 +68,24 @@ public class AccountTierManager : IAccountTierManager
         this.userId = userId;
         socket.TryAsyncTimes(async () =>
         {
-            activeSessions?.Dispose();
-            activeSessions = await SelfUpdatingValue<ActiveSessions>.Create(userId, "activeSessions", () => new ActiveSessions());
+            var created = await SelfUpdatingValue<ActiveSessions>.Create(userId, "activeSessions", () => new ActiveSessions());
+            if (Disposed)
+            {
+                // the manager was disposed while loading, nobody else would release the subscription
+                created.Dispose();
+                return;
+            }
+            // exactly the latest value stays subscribed, concurrent logins dispose the one they replace
+            Interlocked.Exchange(ref activeSessions, created)?.Dispose();
             await CheckAccounttier();
-            if (!socket.IsClosed)
-                activeSessions.OnChange += ActiveSessions_OnChange;
+            if (Disposed)
+            {
+                created.Dispose();
+                Interlocked.CompareExchange(ref activeSessions, null, created);
+                return;
+            }
+            if (!socket.IsClosed && ReferenceEquals(activeSessions, created))
+                created.OnChange += ActiveSessions_OnChange;
         }, "get active sessions", 3);
     }
 
@@ -127,6 +147,7 @@ public class AccountTierManager : IAccountTierManager
             OnTierChange?.Invoke(this, currentTier.tier);
         }
         (lastTier, expiresAt) = currentTier;
+        lastCalculatedExpiresAt = expiresAt;
         nextTierRefresh = DateTime.UtcNow.AddSeconds(30);
         return currentTier;
     }

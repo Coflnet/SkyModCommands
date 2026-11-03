@@ -11,6 +11,7 @@ using Coflnet.Sky.Settings.Client.Api;
 using Coflnet.Sky.Settings.Client.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using AwesomeAssertions;
 using Moq;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -34,6 +35,32 @@ public class SessionFilterStateTests
         Assert.DoesNotThrowAsync(async () => await lifecycle.FilterState.SubToConfigChanges());
     }
 
+    [Test]
+    [NonParallelizable]
+    public async Task SubToConfigChangesReadsTheCurrentAccountSettingsAfterTheyWereReplaced()
+    {
+        var (socket, lifecycle) = CreateLifecycle("42", "17", "test", 3);
+        var old = lifecycle.AccountSettings;
+        // empty on purpose: only reading the current instance fills it
+        var replacement = SelfUpdatingValue<AccountSettings>.CreateNoUpdate((AccountSettings)null);
+        var replaced = false;
+        ConfigureSettingsService(socket.UserId, "17", "test", CreateConfig("17", "test"), () =>
+        {
+            if (replaced)
+                return;
+            replaced = true;
+            // SubToSettings ran again while the network calls were pending
+            ModSessionLifesycle.ReplaceValue(ref lifecycle.AccountSettings, replacement);
+        });
+        socket.AddService((ConfigStatsService)RuntimeHelpers.GetUninitializedObject(typeof(ConfigStatsService)));
+
+        await lifecycle.FilterState.SubToConfigChanges();
+
+        old.Value.Should().BeNull("the replaced instance is disposed and must not be written to again");
+        lifecycle.AccountSettings.Should().BeSameAs(replacement);
+        replacement.Value.Should().NotBeNull();
+    }
+
     private static ConfigContainer CreateConfig(string ownerId, string configName)
     {
         return new ConfigContainer
@@ -49,7 +76,7 @@ public class SessionFilterStateTests
         };
     }
 
-    private static void ConfigureSettingsService(string userId, string ownerId, string configName, ConfigContainer config)
+    private static void ConfigureSettingsService(string userId, string ownerId, string configName, ConfigContainer config, Action onOwnedConfigs = null)
     {
         var settingsApi = new Mock<ISettingsApi>();
         settingsApi
@@ -58,10 +85,14 @@ public class SessionFilterStateTests
                 "owned_configs",
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ApiResponse<string>(HttpStatusCode.OK, JsonConvert.SerializeObject(new OwnedConfigs
+            .Returns(() =>
             {
-                Configs = [new OwnedConfigs.OwnedConfig { OwnerId = ownerId, Name = configName, Version = config.Version }]
-            })));
+                onOwnedConfigs?.Invoke();
+                return Task.FromResult(new ApiResponse<string>(HttpStatusCode.OK, JsonConvert.SerializeObject(new OwnedConfigs
+                {
+                    Configs = [new OwnedConfigs.OwnedConfig { OwnerId = ownerId, Name = configName, Version = config.Version }]
+                })));
+            });
         settingsApi
             .Setup(api => api.GetSettingWithHttpInfoAsync(
                 ownerId,

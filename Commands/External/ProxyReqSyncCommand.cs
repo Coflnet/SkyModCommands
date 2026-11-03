@@ -49,24 +49,84 @@ public class ProxyReqSyncCommand : McCommand
         var lifesycle = socket.sessionLifesycle;
         if (socket.IsClosed || lifesycle == null || !socket.TryRegisterProxySync())
             return;
-        var accountInfo = lifesycle.AccountInfo;
-        var flipSettings = lifesycle.FlipSettings;
-        Action<AccountInfo> accounthandler = (a) => SendState(socket);
-        Func<FlipSettings, bool> settingsHandler = (a) =>
+        var sync = WireStateSync(socket, lifesycle, () => SendState(socket));
+        socket.OnConClose += sync.Stop;
+    }
+
+    internal static StateSyncHandlers WireStateSync(MinecraftSocket socket, ModSessionLifesycle lifesycle, Action send)
+    {
+        var sync = new StateSyncHandlers(lifesycle, send);
+        sync.Attach();
+        lifesycle.ValuesReplaced += sync.Attach;
+        lifesycle.OnDelayChange += sync.OnDelay;
+        return sync;
+    }
+
+    /// <summary>
+    /// Sends the state on changes of the account info and flip settings. The session replaces those values
+    /// when the settings are subscribed again, so the handlers are moved to the current instances on <see cref="Attach"/>.
+    /// </summary>
+    internal class StateSyncHandlers
+    {
+        private readonly Action send;
+        private readonly ModSessionLifesycle lifesycle;
+        private SelfUpdatingValue<AccountInfo> accountInfo;
+        private SelfUpdatingValue<FlipSettings> flipSettings;
+        private readonly object attachLock = new();
+        private bool stopped;
+
+        public StateSyncHandlers(ModSessionLifesycle lifesycle, Action send)
         {
-            SendState(socket);
-            return false;
-        };
-        Action<TimeSpan> delayUpdate = (a) => SendState(socket);
-        accountInfo.OnChange += accounthandler;
-        flipSettings.ShouldPreventUpdate += settingsHandler;
-        lifesycle.OnDelayChange += delayUpdate;
-        socket.OnConClose += () =>
+            this.lifesycle = lifesycle;
+            this.send = send;
+        }
+
+        public void OnDelay(TimeSpan _) => send();
+
+        private void OnAccount(AccountInfo _) => send();
+
+        private void OnSettings(FlipSettings _) => send();
+
+        public void Stop()
         {
-            accountInfo.OnChange -= accounthandler;
-            flipSettings.ShouldPreventUpdate -= settingsHandler;
-            lifesycle.OnDelayChange -= delayUpdate;
-        };
+            lifesycle.ValuesReplaced -= Attach;
+            lifesycle.OnDelayChange -= OnDelay;
+            lock (attachLock)
+            {
+                stopped = true;
+                Detach();
+            }
+        }
+
+        public void Attach()
+        {
+            lock (attachLock)
+            {
+                if (stopped)
+                    return;
+                Detach();
+                accountInfo = lifesycle.AccountInfo;
+                flipSettings = lifesycle.FlipSettings;
+                // AfterChange runs once the value is assigned, ShouldPreventUpdate is owned by the lifecycle
+                if (accountInfo != null)
+                    accountInfo.AfterChange += OnAccount;
+                if (flipSettings != null)
+                    flipSettings.AfterChange += OnSettings;
+            }
+        }
+
+        public void Detach()
+        {
+            lock (attachLock)
+            {
+                if (accountInfo != null)
+                    accountInfo.AfterChange -= OnAccount;
+                if (flipSettings != null)
+                    flipSettings.AfterChange -= OnSettings;
+                accountInfo = null;
+                flipSettings = null;
+            }
+        }
     }
 
     private void SendGlobalState(MinecraftSocket socket)

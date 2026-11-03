@@ -54,11 +54,17 @@ public class DelayHandler : IDelayHandler
     private double dropoutChance = 0.02;
     private SessionInfo sessionInfo;
     private Random random;
-    private SelfUpdatingValue<AccountInfo> accountInfo;
+    private Func<AccountInfo> getAccountInfo;
     private IFlipTrackingService flipTrackingService;
     public event Action<TimeSpan> OnDelayChange;
 
     public DelayHandler(ITimeProvider timeProvider, IFlipTrackingService flipTrackingService, SessionInfo sessionInfo, SelfUpdatingValue<AccountInfo> accountInfo, Random random = null)
+        : this(timeProvider, flipTrackingService, sessionInfo, () => accountInfo?.Value, random)
+    {
+    }
+
+    /// <param name="getAccountInfo">reads the current account info, the instance can be replaced while the handler lives</param>
+    public DelayHandler(ITimeProvider timeProvider, IFlipTrackingService flipTrackingService, SessionInfo sessionInfo, Func<AccountInfo> getAccountInfo, Random random = null)
     {
         this.timeProvider = timeProvider;
         this.random = random;
@@ -66,14 +72,14 @@ public class DelayHandler : IDelayHandler
             this.random = Random.Shared;
         this.flipTrackingService = flipTrackingService;
         this.sessionInfo = sessionInfo;
-        this.accountInfo = accountInfo;
+        this.getAccountInfo = getAccountInfo;
     }
 
     public async Task<DateTime> AwaitDelayForFlip(FlipInstance flipInstance)
     {
         if (currentDelay <= TimeSpan.Zero)
             return timeProvider.Now;
-        if(accountInfo.Value?.UserId == "187605" && flipInstance.Finder == Core.LowPricedAuction.FinderType.Rust)
+        if(getAccountInfo()?.UserId == "187605" && flipInstance.Finder == Core.LowPricedAuction.FinderType.Rust)
         {
             // special agreement
             return timeProvider.Now;
@@ -236,7 +242,7 @@ public class DelayHandler : IDelayHandler
             currentDelay -= TimeSpan.FromSeconds(7.2);
             macroPenalty += TimeSpan.FromSeconds(5);
         }
-        if (accountInfo.Value?.ShadinessLevel > 50 && macroPenalty < TimeSpan.FromSeconds(2) && Random.Shared.NextDouble() < 0.8)
+        if (getAccountInfo()?.ShadinessLevel > 50 && macroPenalty < TimeSpan.FromSeconds(2) && Random.Shared.NextDouble() < 0.8)
         {
             // shady accounts keep base delay
             macroPenalty += TimeSpan.FromSeconds(4);
@@ -248,7 +254,7 @@ public class DelayHandler : IDelayHandler
         if (ids.Any(DiHandler.GetService<DelayService>().IsSlowedDown))
             currentDelay += TimeSpan.FromSeconds(4);
 
-        if (accountInfo?.Value?.Tricks?.PenalizeUntil > timeProvider.Now)
+        if (getAccountInfo()?.Tricks?.PenalizeUntil > timeProvider.Now)
         {
             currentDelay *= 1.8;
         }

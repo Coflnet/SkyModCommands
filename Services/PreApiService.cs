@@ -62,11 +62,9 @@ public class PreApiService : BackgroundService, IPreApiService
     private static readonly Prometheus.Gauge slotNotificationWaiters = Prometheus.Metrics.CreateGauge(
         "sky_mod_preapi_slot_notification_waiters", "Connections retained while waiting for a pre-api slot");
     private IConfiguration config;
-    private ApiUpdateClock apiClock;
     public int PreApiUserCount => preApiUsers.Count;
-    public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi, IBaseApi baseApi, IConfiguration config, ApiUpdateClock apiClock = null)
+    public PreApiService(ConnectionMultiplexer redis, FlipperService flipperService, ILogger<PreApiService> logger, IProductsApi productsApi, IBaseApi baseApi, IConfiguration config)
     {
-        this.apiClock = apiClock ?? new ApiUpdateClock();
         this.redis = redis;
         this.logger = logger;
 
@@ -271,11 +269,12 @@ public class PreApiService : BackgroundService, IPreApiService
 
     /// <summary>
     /// Whether the flip should be held back after becoming purchasable because a pre-api user received it.
-    /// Also for beds an api update lands in: the public api never contains auctions still in their bed.
     /// </summary>
     internal bool ShouldHoldBack(LowPricedAuction e)
     {
-        return e.Auction == null || sent.ContainsKey(e.Auction.Uuid);
+        if (e.Auction != null && !sent.ContainsKey(e.Auction.Uuid))
+            return false;
+        return true;
     }
 
     /// <summary>
