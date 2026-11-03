@@ -185,8 +185,9 @@ public class GoalCommand : McCommand
             {
                 var progress = GoalProgressEvaluator.Evaluate(goal, counts, empty, new HashSet<string>(), DateTime.UtcNow);
                 var prefix = goal.Id == list.FocusId ? "§6★ " : "§7▸ ";
-                db.MsgLine($"{prefix}{goal.Title} {progress.Done}/{progress.Total}", $"/cofl goal focus {goal.Id}",
-                    $"Click to focus\n/cofl goal remove {goal.Id} to remove\n/cofl goal reset {goal.Id} to reset progress");
+                db.Msg($"{prefix}{goal.Title} {progress.Done}/{progress.Total}", $"/cofl goal focus {goal.Id}",
+                    $"Click to focus\n/cofl goal remove {goal.Id} to remove\n/cofl goal reset {goal.Id} to reset progress")
+                  .MsgLine(" §c[✖]", $"/cofl goal remove {goal.Id}", "Click to remove this goal");
             }
             return db;
         });

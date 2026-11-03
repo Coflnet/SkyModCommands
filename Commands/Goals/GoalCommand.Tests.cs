@@ -58,6 +58,15 @@ public class GoalCommandTests
     }
 
     [Test]
+    public async Task ListOffersOneClickRemovePerGoal()
+    {
+        await command.Execute(socket, "\"list\"");
+
+        var removeClicks = socket.Parts.Where(p => p.text.Contains('✖')).Select(p => p.onClick);
+        Assert.That(removeClicks, Is.EqualTo(new[] { "/cofl goal remove a1", "/cofl goal remove b2" }));
+    }
+
+    [Test]
     public async Task FocusRemoveAndClearMutateList()
     {
         await command.Execute(socket, "\"focus a1\"");
