@@ -834,7 +834,10 @@ namespace Coflnet.Sky.Commands.MC
             socket.Dialog(db => db.CoflCommand<InstanceSettingsCommand>(
                 $"You kept settings for this mod instance before signing in. {McColorCodes.AQUA}[Click to copy them to your account]",
                 "copy",
-                $"Replaces the settings of your account with the ones of this mod instance\nSame as {McColorCodes.AQUA}/cofl instancesettings copy"));
+                $"Replaces the settings of your account with the ones of this mod instance\nSame as {McColorCodes.AQUA}/cofl instancesettings copy")
+                .CoflCommand<InstanceSettingsCommand>($" {McColorCodes.GRAY}[Delete them]",
+                "delete",
+                $"Deletes the settings of this mod instance, you won't be asked about them again\nSame as {McColorCodes.AQUA}/cofl instancesettings delete"));
         }
 
         private async Task SubToUserCommands(string userId)

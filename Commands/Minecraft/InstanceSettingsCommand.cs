@@ -6,10 +6,11 @@ using Coflnet.Sky.ModCommands.Services;
 namespace Coflnet.Sky.Commands.MC;
 
 [CommandDescription("Keep settings for this mod instance without an account",
-    "Usage: /cl instancesettings <enable|disable|copy>",
+    "Usage: /cl instancesettings <enable|disable|copy|delete>",
     "enable: keeps your settings for 30 days after your last use (even while not logged in)",
     "disable: forgets the stored settings",
-    "copy: copies the stored settings to your account after login")]
+    "copy: copies the stored settings to your account after login",
+    "delete: deletes the stored settings (stops the copy question after login)")]
 public class InstanceSettingsCommand : McCommand
 {
     public override bool IsPublic => true;
@@ -25,6 +26,10 @@ public class InstanceSettingsCommand : McCommand
             case "disable":
                 await socket.sessionLifesycle.DisableInstanceSettings();
                 socket.Dialog(db => db.MsgLine("Settings are no longer kept for this mod instance"));
+                break;
+            case "delete":
+                await socket.sessionLifesycle.DisableInstanceSettings();
+                socket.Dialog(db => db.MsgLine("Deleted the settings of this mod instance, you won't be asked about them again"));
                 break;
             case "copy":
                 await CopyToAccount(socket);

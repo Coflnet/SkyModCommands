@@ -51,6 +51,22 @@ public class InstanceSettingsTests
     }
 
     [Test]
+    public async Task CopyOfferCanDeleteTheStoredSettings()
+    {
+        var service = new Mock<IInstanceSettingsService>();
+        var socket = CreateSocket(ModSessionLifesycle.DefaultSettings, service);
+        socket.sessionLifesycle.UserId = SelfUpdatingValue<string>.CreateNoUpdate("5");
+        await socket.sessionLifesycle.OfferInstanceSettingsCopy();
+        Assert.That(socket.Clickable.Any(c => c.Contains("/cofl instancesettings delete")), Is.True,
+            "copy offer also offers deleting, got: " + string.Join("|", socket.Sent));
+
+        await new InstanceSettingsCommand().Execute(socket, "\"delete\"");
+
+        service.Verify(s => s.Delete(SessionId), Times.Once);
+        Assert.That(socket.sessionLifesycle.SavesSettingsForInstance, Is.False);
+    }
+
+    [Test]
     public async Task FlipNeverIsKeptForInstance()
     {
         var service = new Mock<IInstanceSettingsService>();
