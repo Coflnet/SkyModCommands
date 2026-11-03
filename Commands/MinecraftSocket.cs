@@ -275,6 +275,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<NetworthCommand>();
             Commands.Add<RecipeCommand>();
             Commands.Add<NoLoginCommand>();
+            Commands.Add<InstanceSettingsCommand>();
             Commands.Add<AnankeCommand>();
             Commands.Add<Tasks.TaskCommand>();
             Commands.Add<Tasks.TaskDetailsCommand>();

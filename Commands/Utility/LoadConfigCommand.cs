@@ -127,7 +127,7 @@ public class LoadConfigCommand : ArgumentsCommand
         if (baseOwnership != null)
             baseOwnership.Version = loadedBase.Version;
         await ownedConfigs.Update();
-        await socket.sessionLifesycle.FlipSettings.Update(combinedSettings);
+        await socket.sessionLifesycle.SaveFlipSettings(combinedSettings);
         var baseVersion = loadedBase?.Version ?? 0;
         await UpdateConfig(socket, inOwnerShip, baseVersion);
         socket.Dialog(db => db.MsgLine($"§6{settings.Name} §7v{settings.Version} §6loaded"));

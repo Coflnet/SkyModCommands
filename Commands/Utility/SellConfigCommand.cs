@@ -178,7 +178,7 @@ public class SellConfigCommand : ArgumentsCommand
             socket.Dialog(db => db.Msg($"This config name is already published by {McColorCodes.GOLD}{existingConfig.OwnerName}{McColorCodes.GRAY}. Please choose a different name.", null, "Config name is already taken."));
             return;
         }
-        _ = socket.TryAsyncTimes(socket.sessionLifesycle.FlipSettings.Update, "update published as");
+        _ = socket.TryAsyncTimes(() => socket.sessionLifesycle.SaveFlipSettings(), "update published as");
         if (current.Value != null)
         {
             current.Value.Version++;
@@ -223,7 +223,7 @@ public class SellConfigCommand : ArgumentsCommand
         });
         await ownedConfigs.Update();
         socket.Settings.BlockExport = false;
-        await socket.sessionLifesycle.FlipSettings.Update();
+        await socket.sessionLifesycle.SaveFlipSettings();
     }
 
     public static async Task UpdateConfigRating(string userId, string name, int priceInt, string mcName = null)

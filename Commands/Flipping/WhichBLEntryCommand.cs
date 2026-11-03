@@ -40,7 +40,7 @@ namespace Coflnet.Sky.Commands.MC
                         else
                             socket.Settings.BlackList.Remove(item);
                         socket.Dialog(db => db.MsgLine("The matched filter had no item or filter selected, it has been removed from your list to prevent future issues"));
-                        return socket.sessionLifesycle.FlipSettings.Update();
+                        return socket.sessionLifesycle.SaveFlipSettings();
                     }
                     var text = $"This flip matched the filter {bl} {McColorCodes.GRAY}[{McColorCodes.RED}REMOVE{McColorCodes.GRAY}]";
                     var isWhitelist = args.WL;
