@@ -255,35 +255,33 @@ public class EmblemServiceTests
         var unlocked = await CreateService().GetUnlockedForSocket(socket);
 
         Assert.That(unlocked, Does.Contain("SlotBundle"));
-        Assert.That(unlocked, Does.Not.Contain("SlotSharer"));
     }
 
-    [TestCase("c0b5a2d1e4f94b3c8a7d6e5f4a3b2c1d", null, true)]
-    [TestCase("c0b5a2d1e4f94b3c8a7d6e5f4a3b2c1d", "50", true)]
-    [TestCase(OwnUuid, null, false)]
-    [TestCase(AlternateUuid, null, false)]
-    [TestCase("c0b5a2d1e4f94b3c8a7d6e5f4a3b2c1d", "49", false)]
-    public async Task TierSlotAssignedToAnotherPlayerUnlocksSharerEmblem(string assignedUuid, string assignedUserId, bool expected)
+    [Test]
+    public async Task TierSlotPurchasesUnlockSlotCountEmblemTiers()
     {
-        var slotsApi = new Mock<ITierSlotsApi>();
-        slotsApi.Setup(api => api.ApiTierSlotsOwnerOwnerIdGetAsync("49", 0, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TierSlotAccess>
-            {
-                new(id: 3, ownerId: "49", tier: "premium_plus", expires: DateTime.UtcNow.AddDays(7), minecraftUuid: assignedUuid, assignedUserId: assignedUserId, varVersion: 1, canManage: true)
-            });
         var transactionApi = new Mock<ITransactionApi>();
         transactionApi.Setup(api => api.TransactionUUserIdGetAsync("49", 0, 2000, 0, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExternalTransaction>());
+            .ReturnsAsync(new List<ExternalTransaction>
+            {
+                new(productId: "premium-slots-5"),
+                new(productId: "premium-slots-5"),
+                new(productId: "pre_api-slot")
+            });
+        var slotsApi = new Mock<ITierSlotsApi>();
+        slotsApi.Setup(api => api.ApiTierSlotsProductsGetAsync(0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PurchaseableProduct>
+            {
+                new(slug: "premium-slots-5", slotTier: "premium", slotCount: 5, ownershipSeconds: 30 * 86400),
+                new(slug: "pre_api-slot", slotTier: "pre_api", slotCount: 1, ownershipSeconds: 86400)
+            });
         var socket = new TierSlotSocket("49", transactionApi.Object, slotsApi.Object);
 
         var unlocked = await CreateService().GetUnlockedForSocket(socket);
 
-        Assert.That(unlocked.Contains("SlotSharer"), Is.EqualTo(expected));
+        Assert.That(unlocked, Is.SupersetOf(new[] { "SlotsFive", "SlotsTen" }), "11 slots purchased");
+        Assert.That(unlocked, Has.No.Member("SlotsTwenty").And.No.Member("SlotsFifty"));
     }
-
-    private const string OwnUuid = "384a029294fc445e863f2c42fe9709cb";
-    // a verified alternate account of the session, not part of the account info
-    private const string AlternateUuid = "9d1e8c7b6a5f4e3d2c1b0a9f8e7d6c5b";
 
     /// <summary>
     /// A logged in socket without a database backed account, so only the payments user id is known.
@@ -297,12 +295,11 @@ public class EmblemServiceTests
         {
             this.transactions = transactions;
             this.slots = slots;
-            SessionInfo.McUuid = OwnUuid;
-            SessionInfo.MinecraftUuids = [OwnUuid, AlternateUuid];
+            SessionInfo.McUuid = "384a029294fc445e863f2c42fe9709cb";
             sessionLifesycle = new ModSessionLifesycle(this)
             {
                 UserId = SelfUpdatingValue<string>.CreateNoUpdate(userId),
-                AccountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(new AccountInfo { McIds = [] })
+                AccountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(new AccountInfo())
             };
         }
 

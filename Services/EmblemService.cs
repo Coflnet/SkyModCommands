@@ -36,7 +36,7 @@ public class EmblemService
     private readonly string preApiSlug;
     private readonly ILogger<EmblemService> logger;
     private readonly ConcurrentDictionary<string, (HashSet<string> set, DateTime at)> cache = new();
-    private readonly ConcurrentDictionary<string, ((TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, bool slotBundle, bool sharedSlot) stats, DateTime at)> purchaseStatsCache = new();
+    private readonly ConcurrentDictionary<string, ((TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, bool slotBundle, int slotsPurchased) stats, DateTime at)> purchaseStatsCache = new();
     private SlotProducts slotProductCache;
     private static readonly TimeSpan cacheTtl = TimeSpan.FromMinutes(1);
     private const int purchaseTransactionLimit = 2000;
@@ -157,15 +157,23 @@ public class EmblemService
         (20, Emblems.PreApiTwentyPurchases),
     };
 
+    private static readonly (int minSlots, string emblemId)[] slotPurchaseEmblems =
+    {
+        (5, Emblems.SlotsFive),
+        (10, Emblems.SlotsTen),
+        (20, Emblems.SlotsTwenty),
+        (50, Emblems.SlotsFifty),
+    };
+
     /// <summary>
     /// The unlocked emblem ids for the player behind the socket: the achievement backed ones from the state
     /// service, plus the derived emblems the account currently qualifies for through account age, purchase
-    /// history, tier slots, or moderator status. This is the set the emblem command lists and validates equips against.
+    /// history, tier slot purchases, or moderator status. This is the set the emblem command lists and validates equips against.
     /// </summary>
     public async Task<HashSet<string>> GetUnlockedForSocket(MinecraftSocket socket, bool forceRefresh = false)
     {
         var unlockedTask = GetUnlocked(socket.SessionInfo.McUuid, forceRefresh);
-        // purchases and tier slots belong to the payments user id the licenses command buys with (see MinecraftSocket.UserId),
+        // purchases belong to the payments user id the licenses command buys with (see MinecraftSocket.UserId),
         // the database user is only needed for the account age
         var userId = socket.sessionLifesycle?.UserId?.Value ?? socket.AccountInfo?.UserId;
         var purchaseStatsTask = userId == null ? null : GetPurchaseStats(socket, userId);
@@ -192,8 +200,7 @@ public class EmblemService
             AddPreApiPurchaseEmblems(set, purchaseStats.preApiPurchases);
             if (purchaseStats.slotBundle)
                 set.Add(Emblems.SlotBundle);
-            if (purchaseStats.sharedSlot)
-                set.Add(Emblems.SlotSharer);
+            AddMilestoneEmblems(set, slotPurchaseEmblems, purchaseStats.slotsPurchased);
         }
         return set;
     }
@@ -201,24 +208,23 @@ public class EmblemService
     /// <summary>
     /// <see cref="GetPurchaseStats(MinecraftSocket, string)"/> for an already resolved account.
     /// </summary>
-    internal Task<(TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, bool slotBundle, bool sharedSlot)> GetPurchaseStats(MinecraftSocket socket, GoogleUser user)
+    internal Task<(TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, bool slotBundle, int slotsPurchased)> GetPurchaseStats(MinecraftSocket socket, GoogleUser user)
     {
         return GetPurchaseStats(socket, user.Id.ToString());
     }
 
     /// <summary>
-    /// Accumulated Premium and Premium+ time, the number of Pre API purchases and the tier slot facts the
-    /// emblems are derived from. Tier slot packages count with their own tier, duration and slot count
+    /// Accumulated Premium and Premium+ time, the number of Pre API purchases, whether a tier slot bundle
+    /// was bought and how many tier slots were bought in total. Tier slot packages count with their own tier, duration and slot count
     /// (a bundle contains several slots); every other product is recognised by its slug.
     /// </summary>
-    private async Task<(TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, bool slotBundle, bool sharedSlot)> GetPurchaseStats(MinecraftSocket socket, string userId)
+    private async Task<(TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, bool slotBundle, int slotsPurchased)> GetPurchaseStats(MinecraftSocket socket, string userId)
     {
         if (purchaseStatsCache.TryGetValue(userId, out var cached) && cached.at + cacheTtl > DateTime.UtcNow)
             return cached.stats;
 
         try
         {
-            var sharedSlotTask = HasSlotAssignedToOtherPlayer(socket, userId);
             var transactions = await socket.GetService<ITransactionApi>()
                 .TransactionUUserIdGetAsync(userId, 0, purchaseTransactionLimit);
             var slotProducts = await GetSlotProducts(socket);
@@ -227,11 +233,13 @@ public class EmblemService
             var premiumPlus = historyCapped ? TimeSpan.MaxValue : TimeSpan.Zero;
             var preApiPurchases = 0;
             var slotBundle = false;
+            var slotsPurchased = 0;
             foreach (var purchases in transactions.GroupBy(t => t.ProductId ?? string.Empty))
             {
                 var slotProduct = slotProducts.GetValueOrDefault(purchases.Key);
                 preApiPurchases += CountPreApiPurchases(purchases, slotProduct);
                 slotBundle |= slotProduct?.SlotCount > 1;
+                slotsPurchased += slotProduct == null ? 0 : (int)CountSlots(purchases, slotProduct);
                 if (historyCapped)
                     continue; // durations are already at their speculative maximum
                 var (duration, isPremiumPlus) = slotProduct == null
@@ -241,7 +249,7 @@ public class EmblemService
                 if (isPremiumPlus)
                     premiumPlus += duration;
             }
-            var result = (premium, premiumPlus, preApiPurchases, slotBundle, sharedSlot: await sharedSlotTask);
+            var result = (premium, premiumPlus, preApiPurchases, slotBundle, slotsPurchased);
             purchaseStatsCache[userId] = (result, DateTime.UtcNow);
             return result;
         }
@@ -333,46 +341,6 @@ public class EmblemService
         }
     }
 
-    /// <summary>
-    /// Whether the user assigned one of their tier slots to a player that is not one of their own accounts.
-    /// </summary>
-    private async Task<bool> HasSlotAssignedToOtherPlayer(MinecraftSocket socket, string userId)
-    {
-        try
-        {
-            var owned = await socket.GetService<ITierSlotsApi>().ApiTierSlotsOwnerOwnerIdGetAsync(userId);
-            var ownAccounts = await GetOwnAccounts(socket);
-            // a slot assigned to a user is decided by that user, an unassigned one by the minecraft account it is bound to
-            return owned.Any(slot => slot.AssignedUserId != null
-                ? slot.AssignedUserId != userId
-                : slot.MinecraftUuid != null && !ownAccounts.Contains(NormalizeUuid(slot.MinecraftUuid)));
-        }
-        catch (Exception e)
-        {
-            logger.LogWarning(e, "Could not load tier slots for emblems of {user}", userId);
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// The normalized minecraft accounts of the player, resolved like the session does (verified alternates included).
-    /// </summary>
-    private static async Task<HashSet<string>> GetOwnAccounts(MinecraftSocket socket)
-    {
-        var accounts = socket.sessionLifesycle == null
-            ? socket.AccountInfo?.McIds ?? Enumerable.Empty<string>()
-            : await socket.sessionLifesycle.GetMinecraftAccountUuids();
-        return accounts.Append(socket.SessionInfo.McUuid)
-            .Where(uuid => uuid != null)
-            .Select(NormalizeUuid)
-            .ToHashSet();
-    }
-
-    private static string NormalizeUuid(string uuid)
-    {
-        return uuid.Replace("-", "").ToLowerInvariant();
-    }
-
     private (TimeSpan duration, bool premiumPlus) GetPremiumDuration(string productSlug)
     {
         if (productSlug?.StartsWith("l_prem_plus", StringComparison.Ordinal) == true)
@@ -424,8 +392,13 @@ public class EmblemService
 
     internal static void AddPreApiPurchaseEmblems(HashSet<string> set, int purchaseCount)
     {
-        foreach (var (minPurchases, emblemId) in preApiPurchaseEmblems)
-            if (purchaseCount >= minPurchases)
+        AddMilestoneEmblems(set, preApiPurchaseEmblems, purchaseCount);
+    }
+
+    private static void AddMilestoneEmblems(HashSet<string> set, (int min, string emblemId)[] milestones, int count)
+    {
+        foreach (var (min, emblemId) in milestones)
+            if (count >= min)
                 set.Add(emblemId);
     }
 
