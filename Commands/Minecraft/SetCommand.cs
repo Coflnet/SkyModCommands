@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System.Linq;
 using static Coflnet.Sky.Commands.Shared.SettingsUpdater;
@@ -57,15 +56,9 @@ public class SetCommand : McCommand
                     altExecution, $"Click to rerun {McColorCodes.AQUA}/cofl set {altExecution}"));
                 return;
             }
-            if (string.IsNullOrEmpty(socket.sessionLifesycle.UserId))
-                socket.SendMessage(new ChatPart($"{COFLNET}You are not logged in, setting will reset when you stop the connection"));
-            else
-            {
-                var service = DiHandler.ServiceProvider.GetRequiredService<SettingsService>();
-                socket.Settings.Changer = socket.SessionInfo.ConnectionId;
-                socket.Settings.LastChanged = name;
-                await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
-            }
+            socket.Settings.Changer = socket.SessionInfo.ConnectionId;
+            socket.Settings.LastChanged = name;
+            await socket.sessionLifesycle.SaveFlipSettings();
             var doc = updater.GetDocFor(name);
             if (doc.RealName == nameof(ModSettings.HideBazaarOrderDisplay))
                 Coflnet.Sky.ModCommands.Services.BazaarOrderDisplay.Send(socket);

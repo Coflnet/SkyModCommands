@@ -120,7 +120,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
     private async Task Reset(MinecraftSocket socket)
     {
         await Unloadconfig(socket);
-        await socket.sessionLifesycle.FlipSettings.Update(ModSessionLifesycle.DefaultSettings);
+        await socket.sessionLifesycle.SaveFlipSettings(ModSessionLifesycle.DefaultSettings);
         socket.Dialog(db => db.MsgLine("Reset config to default."));
     }
 
@@ -196,7 +196,7 @@ public class ConfigsCommand : ListCommand<ConfigsCommand.ConfigRating, List<Conf
                 socket.GetService<SettingsService>(), socket.UserId,
                 [account.LoadedConfig], persist: false);
             if (userSettings != null)
-                await socket.sessionLifesycle.FlipSettings.Update(userSettings);
+                await socket.sessionLifesycle.SaveFlipSettings(userSettings);
             account.LoadedConfig = null;
             account.BaseConfigVersion = 0;
             await socket.sessionLifesycle.AccountSettings.Update();

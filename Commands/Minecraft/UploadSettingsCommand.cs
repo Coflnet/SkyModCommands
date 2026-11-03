@@ -10,7 +10,6 @@ public class UploadSettingsCommand : McCommand
     public override async Task Execute(MinecraftSocket socket, string arguments)
     {
         var settings = Convert<Dictionary<string, string>>(arguments);
-        var service = socket.GetService<SettingsService>();
         foreach (var setting in settings)
         {
             var current = await updater.GetCurrentValue(socket, setting.Key);
@@ -22,6 +21,6 @@ public class UploadSettingsCommand : McCommand
         }
         socket.Settings.Changer = socket.SessionInfo.ConnectionId;
         socket.Settings.LastChanged = "mod";
-        await service.UpdateSetting(socket.sessionLifesycle.UserId, "flipSettings", socket.Settings);
+        await socket.sessionLifesycle.SaveFlipSettings();
     }
 }

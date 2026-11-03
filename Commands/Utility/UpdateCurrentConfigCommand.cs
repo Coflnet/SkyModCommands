@@ -73,7 +73,7 @@ public class UpdateCurrentConfigCommand : ArgumentsCommand
         }
         settings.LastChanged = "config from seller";
         settings.UsedVersion = configData.Value.Version;
-        await socket.sessionLifesycle.FlipSettings.Update(settings);
+        await socket.sessionLifesycle.SaveFlipSettings(settings);
         loadedConfigMetadata.Version = configData.Value.Version;
         socket.sessionLifesycle.AccountSettings.Value.LoadedConfig = loadedConfigMetadata;
         await socket.sessionLifesycle.AccountSettings.Update();

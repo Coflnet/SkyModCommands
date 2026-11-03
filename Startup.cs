@@ -130,6 +130,7 @@ public class Startup
         services.AddSingleton<AltChecker>();
         services.AddSingleton<VpsInstanceManager>();
         services.AddSingleton<StayLoggedOutService>();
+        services.AddSingleton<IInstanceSettingsService, InstanceSettingsService>();
         services.AddSingleton<LowballSerivce>();
         services.AddSingleton<IDelayExemptList, DelayExemptionList>();
         services.AddSingleton<IMuseumDonationService, MuseumDonationService>();

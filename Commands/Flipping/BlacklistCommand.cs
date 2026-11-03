@@ -76,7 +76,7 @@ namespace Coflnet.Sky.Commands.MC
             list.Value.RecompileMatchers();
             list.Value.LastChanged = "preventUpdateMsg";
             list.Value.Changer = socket.SessionInfo.ConnectionId;
-            await list.Update(list.Value);
+            await socket.sessionLifesycle.SaveFlipSettings();
         }
 
         protected override async Task<IEnumerable<CreationOption>> CreateFrom(MinecraftSocket socket, string val)

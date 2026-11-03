@@ -4,7 +4,8 @@ set -Eeuo pipefail
 readonly CASSANDRA_IMAGE="docker.io/library/cassandra:4.1.7@sha256:17850cb6e5f96a58bce0d9c7e3fbe470b6b73a554e1abe2b8d300552baa6cf43"
 readonly READINESS_TIMEOUT_SECONDS=180
 readonly TOTAL_TIMEOUT_SECONDS=420
-readonly TEST_NAME="Coflnet.Sky.ModCommands.Services.CassandraSmokeTests.BlockedReasonsServerRoundTrip"
+readonly TEST_CLASS="Coflnet.Sky.ModCommands.Services.CassandraSmokeTests"
+readonly TEST_FILTER="FullyQualifiedName=${TEST_CLASS}.BlockedReasonsServerRoundTrip|FullyQualifiedName=${TEST_CLASS}.InstanceSettingsServerRoundTrip"
 
 print_plan() {
     printf '%s\n' \
@@ -17,7 +18,8 @@ print_plan() {
         "DIAGNOSTICS=docker logs --tail 40" \
         "STARTUP_OUTPUT=bounded" \
         "TEST_OUTPUT=bounded" \
-        "TEST=dotnet test SkyModCommands.csproj --filter FullyQualifiedName=${TEST_NAME}"
+        "LEASED_HOST_MODE=CASSANDRA_SMOKE_HOST,CASSANDRA_SMOKE_PORT,CASSANDRA_SMOKE_KEYSPACE,CASSANDRA_SMOKE_USER,CASSANDRA_SMOKE_PASSWORD" \
+        "TEST=dotnet test SkyModCommands.csproj --filter ${TEST_FILTER}"
 }
 
 if [[ "${1:-}" == "--plan" ]]; then
@@ -27,6 +29,37 @@ fi
 
 readonly SCRIPT_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_DIRECTORY="$(cd "${SCRIPT_DIRECTORY}/.." && pwd)"
+
+run_smoke_tests() {
+    local output_file="$1"
+    local test_status=0
+    cd "${PROJECT_DIRECTORY}"
+    timeout --signal=TERM --kill-after=45s "${TOTAL_TIMEOUT_SECONDS}s" \
+        dotnet test SkyModCommands.csproj --filter "${TEST_FILTER}" --logger "console;verbosity=detailed" >"${output_file}" 2>&1 || test_status=$?
+    if [[ "${test_status}" != "0" ]]; then
+        printf '%s\n' "Cassandra smoke test failed; final test output:"
+        tail -40 "${output_file}"
+        return "${test_status}"
+    fi
+    grep -E 'Server message for existing column|Instance settings TTL seconds' "${output_file}" | head -n 2 || true
+    grep -E 'Passed!.*Total:' "${output_file}" | tail -n 1 || true
+    printf '%s\n' "Cassandra smoke passed."
+}
+
+# Leased-host mode: an existing keyspace and role are supplied, so Docker and keyspace creation are skipped
+if [[ -n "${CASSANDRA_SMOKE_KEYSPACE:-}" ]]; then
+    for variable in CASSANDRA_SMOKE_HOST CASSANDRA_SMOKE_PORT CASSANDRA_SMOKE_USER CASSANDRA_SMOKE_PASSWORD; do
+        if [[ -z "${!variable:-}" ]]; then
+            printf '%s\n' "${variable} is required with CASSANDRA_SMOKE_KEYSPACE." >&2
+            exit 2
+        fi
+    done
+    leased_output_file="$(mktemp "${TMPDIR:-/tmp}/cassandra-smoke-test.XXXXXX.log")"
+    trap 'unlink "${leased_output_file}"' EXIT
+    export CASSANDRA_SMOKE_HOST CASSANDRA_SMOKE_PORT CASSANDRA_SMOKE_KEYSPACE CASSANDRA_SMOKE_USER CASSANDRA_SMOKE_PASSWORD
+    run_smoke_tests "${leased_output_file}"
+    exit $?
+fi
 readonly SCRIPT_PATH="${SCRIPT_DIRECTORY}/$(basename "${BASH_SOURCE[0]}")"
 readonly RESOURCE_SUFFIX="${CASSANDRA_SMOKE_RESOURCE_SUFFIX:-$$-${RANDOM}}"
 readonly CONTAINER_NAME="sky-mod-commands-cassandra-${RESOURCE_SUFFIX}"
@@ -110,15 +143,5 @@ if [[ ! "${published_port}" =~ ^[0-9]+$ ]]; then
     exit 1
 fi
 
-cd "${PROJECT_DIRECTORY}"
-test_status=0
-CASSANDRA_SMOKE_HOST=127.0.0.1 CASSANDRA_SMOKE_PORT="${published_port}" \
-    dotnet test SkyModCommands.csproj --filter "FullyQualifiedName=${TEST_NAME}" --logger "console;verbosity=detailed" >"${test_output_file}" 2>&1 || test_status=$?
-if [[ "${test_status}" != "0" ]]; then
-    printf '%s\n' "Cassandra smoke test failed; final test output:"
-    tail -40 "${test_output_file}"
-    exit "${test_status}"
-fi
-grep -E 'Server message for existing column' "${test_output_file}" | head -n 1 || true
-grep -E 'Passed!.*Total:' "${test_output_file}" | tail -n 1 || true
-printf '%s\n' "Blocked reasons Cassandra smoke passed."
+export CASSANDRA_SMOKE_HOST=127.0.0.1 CASSANDRA_SMOKE_PORT="${published_port}"
+run_smoke_tests "${test_output_file}"
