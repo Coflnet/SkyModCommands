@@ -21,13 +21,6 @@ namespace Coflnet.Sky.Commands.MC
         private static Prometheus.Counter sentFlipValue = Prometheus.Metrics.CreateCounter("sky_mod_flip_value", "Adds up the estimated value of flips sent");
         private static Prometheus.Histogram flipSendTiming = Prometheus.Metrics.CreateHistogram("sky_mod_send_time", "Full run through time of flips");
         private static Prometheus.Histogram processingTiming = Prometheus.Metrics.CreateHistogram("sky_mod_process_time", "Processing time of flips");
-        private static readonly Prometheus.Histogram sendRelativeApi = Prometheus.Metrics.CreateHistogram(
-            "sky_mod_flip_send_relative_api_seconds", "Seconds a flip was sent relative to the arrival of the api update data (first new auction, negative = before). bed=true flips were still in their bed and are held on purpose",
-            new Prometheus.HistogramConfiguration
-            {
-                LabelNames = new[] { "tier", "source", "bed" },
-                Buckets = new double[] { -40, -30, -20, -15, -10, -5, -3, -2, -1, -0.5, 0, 0.5, 1, 1.5, 2, 3, 5, 10, 20, 40 }
-            });
         private static Prometheus.Counter preApiFlipSent = Prometheus.Metrics.CreateCounter("sky_mod_flips_sent_preapi", "Flips sent to a preapi user");
 
         private ConcurrentDictionary<long, DateTime> SentFlips = new ConcurrentDictionary<long, DateTime>();
@@ -515,32 +508,12 @@ namespace Coflnet.Sky.Commands.MC
             try
             {
                 apiClock ??= DiHandler.ServiceProvider.GetService<ApiUpdateClock>();
-                var result = ApiRelativeSeconds(flip, apiClock, DateTime.UtcNow);
-                if (result == null)
-                    return;
-                sendRelativeApi.WithLabels(socket.SessionInfo.SessionTier.ToString(), result.Value.source, result.Value.bed ? "true" : "false").Observe(result.Value.seconds);
+                ApiRelativeSendMetric.Record(socket.SessionInfo.SessionTier.ToString(), flip, apiClock, DateTime.UtcNow);
             }
             catch (Exception)
             {
                 // metrics are best effort
             }
-        }
-
-        /// <summary>
-        /// Seconds between the arrival of the api update that made the auction public (time 0 = first new auction arrived) and now.
-        /// Negative if sent before. bed is true if the auction was still in its bed at that arrival.
-        /// </summary>
-        internal static (string source, double seconds, bool bed)? ApiRelativeSeconds(LowPricedAuction flip, ApiUpdateClock clock, DateTime now)
-        {
-            if (clock == null)
-                return null;
-            var isPreApi = flip.IsPreApi();
-            // api auctions carry the lastUpdated stamp as FindTime
-            var reference = isPreApi ? clock.FirstArrivalAfter(flip.Auction.Start) : clock.ArrivalOf(flip.Auction.FindTime);
-            if (reference == null)
-                return null;
-            var inBed = flip.Auction.Start + ApiUpdateClock.BedDuration > reference.Value;
-            return (isPreApi ? "preapi" : "api", (now - reference.Value).TotalSeconds, inBed);
         }
 
         public bool BlockedFlip(LowPricedAuction flip, string reason)

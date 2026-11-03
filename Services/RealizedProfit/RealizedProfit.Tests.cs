@@ -357,9 +357,9 @@ public class RealizedProfitStoreTests
         var store = new RealizedProfitStore(services.Object, TimeProvider.System, NullLogger<RealizedProfitStore>.Instance);
 
         await store.Upsert(new RealizedProfitRow { UserId = "u", UpdatedAt = DateTime.UtcNow });
-        var rows = await store.GetTier(1);
+        var read = () => store.GetTier(1);
 
-        rows.Should().BeEmpty();
+        await read.Should().ThrowAsync<InvalidOperationException>();
         services.Verify(s => s.GetService(typeof(global::Cassandra.ISession)), Times.Once, "retry is delayed after a failure");
     }
 
@@ -422,5 +422,180 @@ public class RealizedProfitSourcesLimitTests
         total.Should().Be(0);
         calls.Should().Be(RealizedProfitSources.MaxAccountsPerUser);
         peak.Should().BeLessThanOrEqualTo(RealizedProfitSources.MaxConcurrentCalls);
+    }
+}
+
+public class RealizedProfitSummaryTests
+{
+    private static readonly DateTime Now = new(2026, 11, 2, 12, 0, 0, DateTimeKind.Utc);
+
+    private static RealizedProfitRow Row(AccountTier tier, long ah, DateTime? updated = null)
+        => new() { Tier = (int)tier, UserId = Guid.NewGuid().ToString(), AhProfit = ah, BazaarProfit = 0, TaskValue = 0, UpdatedAt = updated ?? Now };
+
+    private static RealizedProfitTierService Service(params RealizedProfitRow[] rows)
+    {
+        var store = new Mock<IRealizedProfitStore>();
+        store.Setup(s => s.GetTier(It.IsAny<int>())).ReturnsAsync((int t) => rows.Where(r => r.Tier == t).ToList());
+        var time = new Mock<TimeProvider>();
+        time.Setup(t => t.GetUtcNow()).Returns(new DateTimeOffset(Now));
+        return new RealizedProfitTierService(store.Object, time.Object);
+    }
+
+    [Test]
+    public void Median_OddCount_IsMiddleValue()
+        => RealizedProfitAggregator.Aggregate(2, "PREMIUM", [Row(AccountTier.PREMIUM, 10), Row(AccountTier.PREMIUM, 1000000), Row(AccountTier.PREMIUM, 20)], Now)
+            .MedianPerUser.Should().Be(20);
+
+    [Test]
+    public void Median_EvenCount_IsMeanOfMiddleTwo()
+        => RealizedProfitAggregator.Aggregate(2, "PREMIUM", [Row(AccountTier.PREMIUM, 10), Row(AccountTier.PREMIUM, 40), Row(AccountTier.PREMIUM, 20), Row(AccountTier.PREMIUM, 999)], Now)
+            .MedianPerUser.Should().Be(30);
+
+    [Test]
+    public void Median_Empty_IsZero()
+        => RealizedProfitAggregator.Aggregate(2, "PREMIUM", [], Now).MedianPerUser.Should().Be(0);
+
+    [Test]
+    public void Median_IgnoresStaleRows()
+        => RealizedProfitAggregator.Aggregate(2, "PREMIUM", [Row(AccountTier.PREMIUM, 10), Row(AccountTier.PREMIUM, 5000, Now.AddDays(-2))], Now)
+            .MedianPerUser.Should().Be(10);
+
+    [Test]
+    public async Task Summary_AllIncludesNone_PaidExcludesNone()
+    {
+        var service = Service(Row(AccountTier.NONE, 1), Row(AccountTier.STARTER_PREMIUM, 10), Row(AccountTier.PREMIUM, 100), Row(AccountTier.SUPER_PREMIUM, 1000));
+
+        var summary = await service.GetSummary();
+
+        (summary.All.Users, summary.All.Total, summary.All.TierName).Should().Be((4, 1111L, "ALL"));
+        (summary.Paid.Users, summary.Paid.Total, summary.Paid.TierName).Should().Be((3, 1110L, "PAID"));
+    }
+
+    [Test]
+    public async Task Summary_MedianIsOverCombinedUsers()
+    {
+        // the combined median of 1, 5, 6, 100 is 5.5, an average of the tier medians (5 and 100) would be 52.5
+        var service = Service(Row(AccountTier.PREMIUM, 1), Row(AccountTier.PREMIUM, 5), Row(AccountTier.PREMIUM, 6),
+            Row(AccountTier.PREMIUM_PLUS, 100));
+
+        var summary = await service.GetSummary();
+
+        summary.Paid.MedianPerUser.Should().Be(5.5);
+        summary.All.AveragePerUser.Should().Be(28);
+    }
+
+    [Test]
+    public async Task SummaryEndpoint_HasTiersAllPaidWindowAndTimestamp()
+    {
+        var controller = new RealizedProfitController(Service(Row(AccountTier.PREMIUM, 10)));
+
+        var response = await controller.GetSummary();
+
+        response.Tiers.Select(t => t.TierName).Should().BeEquivalentTo(Enum.GetNames<AccountTier>());
+        (response.All.Users, response.Paid.Users, response.WindowHours, response.GeneratedAt).Should().Be((1, 1, 24, Now));
+    }
+
+    [Test]
+    public async Task TiersEndpoint_StillReturnsOnlyTheTierList()
+    {
+        var controller = new RealizedProfitController(Service(Row(AccountTier.PREMIUM, 10)));
+
+        var tiers = await controller.GetTiers();
+
+        tiers.Should().HaveCount(Enum.GetValues<AccountTier>().Length);
+        tiers.Select(t => t.TierName).Should().NotContain(["ALL", "PAID"]);
+    }
+
+    [Test]
+    public void LatestPerUser_KeepsOnlyNewestRowOfAUser()
+    {
+        var older = Row(AccountTier.NONE, 5, Now.AddHours(-3));
+        var newer = Row(AccountTier.PREMIUM, 5, Now.AddHours(-1));
+        newer.UserId = older.UserId;
+
+        var rows = RealizedProfitAggregator.LatestPerUser([older, newer, Row(AccountTier.NONE, 1)]);
+
+        rows.Should().HaveCount(2).And.Contain(newer).And.NotContain(older);
+    }
+
+    [Test]
+    public async Task Summary_UserWhoChangedTierIsCountedOnceInTheLatestTier()
+    {
+        var older = Row(AccountTier.NONE, 50, Now.AddHours(-3));
+        var newer = Row(AccountTier.PREMIUM, 50, Now.AddHours(-1));
+        newer.UserId = older.UserId;
+
+        var summary = await Service(older, newer).GetSummary();
+
+        summary.Tiers.Single(t => t.TierName == "NONE").Users.Should().Be(0);
+        summary.Tiers.Single(t => t.TierName == "PREMIUM").Users.Should().Be(1);
+        (summary.All.Users, summary.All.Total, summary.Paid.Users).Should().Be((1, 50L, 1));
+    }
+
+    [Test]
+    public async Task Exporter_FailedLoad_KeepsPreviousGaugeValuesAndIsNotCached()
+    {
+        var failing = false;
+        var store = new Mock<IRealizedProfitStore>();
+        store.Setup(s => s.GetTier(It.IsAny<int>())).Returns((int t) => failing
+            ? Task.FromException<List<RealizedProfitRow>>(new InvalidOperationException("down"))
+            : Task.FromResult(t == (int)AccountTier.PREMIUM ? new List<RealizedProfitRow> { Row(AccountTier.PREMIUM, 10) } : new List<RealizedProfitRow>()));
+        var now = Now;
+        var time = new Mock<TimeProvider>();
+        time.Setup(t => t.GetUtcNow()).Returns(() => new DateTimeOffset(now));
+        var registry = Prometheus.Metrics.NewCustomRegistry();
+        var exporter = new RealizedProfitMetricsExporter(new RealizedProfitTierService(store.Object, time.Object), Prometheus.Metrics.WithCustomRegistry(registry));
+        await exporter.Refresh();
+
+        failing = true;
+        now = Now.AddMinutes(5);
+        var refresh = () => exporter.Refresh();
+        await refresh.Should().ThrowAsync<InvalidOperationException>();
+
+        var text = await Scrape(registry);
+        text.Should().Contain("sky_mod_realized_profit_users{tier=\"PAID\"} 1")
+            .And.Contain("sky_mod_realized_profit_generated_timestamp_seconds " + new DateTimeOffset(Now).ToUnixTimeSeconds())
+            .And.Contain("sky_mod_realized_profit_users_missing_sources{tier=\"ALL\"} 0");
+        failing = false;
+        await exporter.Refresh();
+        (await Scrape(registry)).Should().Contain("sky_mod_realized_profit_generated_timestamp_seconds " + new DateTimeOffset(now).ToUnixTimeSeconds());
+    }
+
+    [Test]
+    public async Task Exporter_Refresh_SetsGaugesForTiersAllAndPaid()
+    {
+        var registry = Prometheus.Metrics.NewCustomRegistry();
+        var exporter = new RealizedProfitMetricsExporter(
+            Service(Row(AccountTier.NONE, 2), Row(AccountTier.PREMIUM, 10), Row(AccountTier.PREMIUM, 30)),
+            Prometheus.Metrics.WithCustomRegistry(registry));
+
+        await exporter.Refresh();
+
+        var text = await Scrape(registry);
+        text.Should().Contain("sky_mod_realized_profit_users{tier=\"ALL\"} 3")
+            .And.Contain("sky_mod_realized_profit_users{tier=\"PAID\"} 2")
+            .And.Contain("sky_mod_realized_profit_total{tier=\"PREMIUM\"} 40")
+            .And.Contain("sky_mod_realized_profit_per_user{tier=\"PAID\",stat=\"median\"} 20")
+            .And.Contain("sky_mod_realized_profit_per_user{tier=\"ALL\",stat=\"mean\"} 14")
+            .And.Contain("sky_mod_realized_profit_source_total{tier=\"ALL\",source=\"ah\"} 42");
+    }
+
+    [Test]
+    public async Task MetricsService_SwallowsRefreshErrors()
+    {
+        var store = new Mock<IRealizedProfitStore>();
+        store.Setup(s => s.GetTier(It.IsAny<int>())).ThrowsAsync(new InvalidOperationException("db down"));
+        var tiers = new RealizedProfitTierService(store.Object, TimeProvider.System);
+        var exporter = new RealizedProfitMetricsExporter(tiers, Prometheus.Metrics.WithCustomRegistry(Prometheus.Metrics.NewCustomRegistry()));
+        var service = new RealizedProfitMetricsService(exporter, NullLogger<RealizedProfitMetricsService>.Instance);
+
+        await service.Invoking(s => s.RefreshSafe(CancellationToken.None)).Should().NotThrowAsync();
+    }
+
+    private static async Task<string> Scrape(Prometheus.CollectorRegistry registry)
+    {
+        using var stream = new System.IO.MemoryStream();
+        await registry.CollectAndExportAsTextAsync(stream);
+        return System.Text.Encoding.UTF8.GetString(stream.ToArray());
     }
 }

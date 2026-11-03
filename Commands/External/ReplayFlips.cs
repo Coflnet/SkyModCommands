@@ -61,7 +61,10 @@ public class ReplayFlips : ArgumentsCommand
             {
                 var cr = consumer.Consume(new CancellationTokenSource(1000).Token);
                 if (cr == null) break;
-                await socket.SendFlip(cr.Message.Value);
+                var flip = cr.Message.Value;
+                flip.AdditionalProps ??= new();
+                flip.AdditionalProps[ApiRelativeSendMetric.ReplayProp] = "";
+                await socket.SendFlip(flip);
                 count++;
                 if (count % 40 == 0)
                 {

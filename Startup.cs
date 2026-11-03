@@ -194,6 +194,8 @@ public class Startup
         services.AddSingleton<RealizedProfitCollector>();
         services.AddSingleton<RealizedProfitTierService>();
         services.AddHostedService<RealizedProfitBackgroundService>();
+        services.AddSingleton<RealizedProfitMetricsExporter>();
+        services.AddHostedService<RealizedProfitMetricsService>();
         services.AddHttpClient(RealizedProfitSources.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10));
     }
 

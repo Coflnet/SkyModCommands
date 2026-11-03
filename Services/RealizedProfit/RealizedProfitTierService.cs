@@ -14,7 +14,7 @@ public class RealizedProfitTierService
     private readonly IRealizedProfitStore store;
     private readonly TimeProvider time;
     private readonly SemaphoreSlim gate = new(1, 1);
-    private List<TierRealizedProfit>? cached;
+    private RealizedProfitSummary? cached;
     private DateTime cachedAt;
 
     public RealizedProfitTierService(IRealizedProfitStore store, TimeProvider time)
@@ -23,7 +23,9 @@ public class RealizedProfitTierService
         this.time = time;
     }
 
-    public async Task<List<TierRealizedProfit>> GetTiers()
+    public async Task<List<TierRealizedProfit>> GetTiers() => (await GetSummary()).Tiers;
+
+    public async Task<RealizedProfitSummary> GetSummary()
     {
         if (TryGetCached(out var hit))
             return hit;
@@ -43,16 +45,27 @@ public class RealizedProfitTierService
         }
     }
 
-    private bool TryGetCached(out List<TierRealizedProfit> result)
+    private bool TryGetCached(out RealizedProfitSummary result)
     {
-        result = cached!;
-        return cached != null && time.GetUtcNow().UtcDateTime - cachedAt < CacheDuration;
+        var local = cached;
+        result = local!;
+        return local != null && time.GetUtcNow().UtcDateTime - cachedAt < CacheDuration;
     }
 
-    private async Task<List<TierRealizedProfit>> Load(DateTime now)
+    /// <summary>Throws if any tier could not be read, so partial numbers are neither cached nor exported.</summary>
+    private async Task<RealizedProfitSummary> Load(DateTime now)
     {
         var tiers = Enum.GetValues<AccountTier>();
-        var rows = await Task.WhenAll(tiers.Select(async t => (tier: t, rows: await store.GetTier((int)t))));
-        return rows.Select(r => RealizedProfitAggregator.Aggregate((int)r.tier, r.tier.ToString(), r.rows, now)).ToList();
+        var loaded = await Task.WhenAll(tiers.Select(t => store.GetTier((int)t)));
+        var rows = RealizedProfitAggregator.LatestPerUser(loaded.SelectMany(r => r));
+        var byTier = rows.ToLookup(r => r.Tier);
+        return new RealizedProfitSummary
+        {
+            Tiers = tiers.Select(t => RealizedProfitAggregator.Aggregate((int)t, t.ToString(), byTier[(int)t], now)).ToList(),
+            All = RealizedProfitAggregator.Aggregate(RealizedProfitAggregator.AllTierId, RealizedProfitAggregator.AllName, rows, now),
+            Paid = RealizedProfitAggregator.Aggregate(RealizedProfitAggregator.PaidTierId, RealizedProfitAggregator.PaidName,
+                rows.Where(r => r.Tier >= (int)AccountTier.STARTER_PREMIUM), now),
+            GeneratedAt = now
+        };
     }
 }

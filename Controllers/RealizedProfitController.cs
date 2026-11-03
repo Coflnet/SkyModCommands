@@ -23,4 +23,11 @@ public class RealizedProfitController : ControllerBase
     /// </summary>
     [HttpGet("tiers")]
     public Task<List<TierRealizedProfit>> GetTiers() => tiers.GetTiers();
+
+    /// <summary>
+    /// The per tier numbers plus the ALL (every tier) and PAID (STARTER_PREMIUM and above) aggregates,
+    /// including medians over the combined users. Same one minute cache as the tiers endpoint.
+    /// </summary>
+    [HttpGet("summary")]
+    public Task<RealizedProfitSummary> GetSummary() => tiers.GetSummary();
 }

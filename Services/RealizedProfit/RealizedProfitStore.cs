@@ -100,12 +100,15 @@ public class RealizedProfitStore : IRealizedProfitStore
         }
     }
 
-    /// <summary>Rows of the last 24 hours, newest row per user when it appears in both day partitions.</summary>
+    /// <summary>
+    /// Rows of the last 24 hours, newest row per user when it appears in both day partitions.
+    /// Throws when scylla is unavailable or the read fails, an empty list means there really are no rows.
+    /// </summary>
     public async Task<List<RealizedProfitRow>> GetTier(int tier)
     {
         var t = await GetTable();
         if (t == null)
-            return [];
+            throw new InvalidOperationException("Realized profit store is not available");
         try
         {
             var now = time.GetUtcNow().UtcDateTime;
@@ -116,7 +119,7 @@ public class RealizedProfitStore : IRealizedProfitStore
         catch (Exception e)
         {
             logger.LogError(e, "Could not read realized profit of tier {tier}", tier);
-            return [];
+            throw;
         }
     }
 
