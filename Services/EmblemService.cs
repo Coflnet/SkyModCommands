@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Coflnet.Payments.Client.Api;
+using Coflnet.Payments.Client.Model;
 using Coflnet.Sky.Commands.MC;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.Core;
@@ -35,7 +36,8 @@ public class EmblemService
     private readonly string preApiSlug;
     private readonly ILogger<EmblemService> logger;
     private readonly ConcurrentDictionary<string, (HashSet<string> set, DateTime at)> cache = new();
-    private readonly ConcurrentDictionary<string, (TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, DateTime at)> purchaseStatsCache = new();
+    private readonly ConcurrentDictionary<string, ((TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, bool slotBundle, int slotsPurchased) stats, DateTime at)> purchaseStatsCache = new();
+    private SlotProducts slotProductCache;
     private static readonly TimeSpan cacheTtl = TimeSpan.FromMinutes(1);
     private const int purchaseTransactionLimit = 2000;
 
@@ -155,21 +157,32 @@ public class EmblemService
         (20, Emblems.PreApiTwentyPurchases),
     };
 
+    private static readonly (int minSlots, string emblemId)[] slotPurchaseEmblems =
+    {
+        (5, Emblems.SlotsFive),
+        (10, Emblems.SlotsTen),
+        (20, Emblems.SlotsTwenty),
+        (50, Emblems.SlotsFifty),
+    };
+
     /// <summary>
     /// The unlocked emblem ids for the player behind the socket: the achievement backed ones from the state
     /// service, plus the derived emblems the account currently qualifies for through account age, purchase
-    /// history, or moderator status. This is the set the emblem command lists and validates equips against.
+    /// history, tier slot purchases, or moderator status. This is the set the emblem command lists and validates equips against.
     /// </summary>
     public async Task<HashSet<string>> GetUnlockedForSocket(MinecraftSocket socket, bool forceRefresh = false)
     {
         var unlockedTask = GetUnlocked(socket.SessionInfo.McUuid, forceRefresh);
+        // purchases belong to the payments user id the licenses command buys with (see MinecraftSocket.UserId),
+        // the database user is only needed for the account age
+        var userId = socket.sessionLifesycle?.UserId?.Value ?? socket.AccountInfo?.UserId;
+        var purchaseStatsTask = userId == null ? null : GetPurchaseStats(socket, userId);
         var userTask = Task.Run(() =>
         {
-            return int.TryParse(socket.AccountInfo?.UserId, out var userId)
-                && UserService.Instance.TryGetUserById(userId, out var user) ? user : null;
+            return int.TryParse(socket.AccountInfo?.UserId, out var id)
+                && UserService.Instance.TryGetUserById(id, out var user) ? user : null;
         });
         var user = await userTask;
-        var purchaseStatsTask = user == null ? null : GetPurchaseStats(socket, user);
         var set = new HashSet<string>(await unlockedTask);
         if (socket.GetService<ModeratorService>().IsModerator(socket))
             set.Add(Emblems.Moderator);
@@ -179,67 +192,152 @@ public class EmblemService
             foreach (var (minAge, emblemId) in ageEmblems)
                 if (age >= minAge)
                     set.Add(emblemId);
-
+        }
+        if (purchaseStatsTask != null)
+        {
             var purchaseStats = await purchaseStatsTask;
             AddPremiumTimeEmblems(set, purchaseStats.premium, purchaseStats.premiumPlus);
             AddPreApiPurchaseEmblems(set, purchaseStats.preApiPurchases);
+            if (purchaseStats.slotBundle)
+                set.Add(Emblems.SlotBundle);
+            AddMilestoneEmblems(set, slotPurchaseEmblems, purchaseStats.slotsPurchased);
         }
         return set;
     }
 
-    internal async Task<(TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases)> GetPurchaseStats(MinecraftSocket socket, GoogleUser user)
+    /// <summary>
+    /// <see cref="GetPurchaseStats(MinecraftSocket, string)"/> for an already resolved account.
+    /// </summary>
+    internal Task<(TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, bool slotBundle, int slotsPurchased)> GetPurchaseStats(MinecraftSocket socket, GoogleUser user)
     {
-        var userId = user.Id.ToString();
+        return GetPurchaseStats(socket, user.Id.ToString());
+    }
+
+    /// <summary>
+    /// Accumulated Premium and Premium+ time, the number of Pre API purchases, whether a tier slot bundle
+    /// was bought and how many tier slots were bought in total. Tier slot packages count with their own tier, duration and slot count
+    /// (a bundle contains several slots); every other product is recognised by its slug.
+    /// </summary>
+    private async Task<(TimeSpan premium, TimeSpan premiumPlus, int preApiPurchases, bool slotBundle, int slotsPurchased)> GetPurchaseStats(MinecraftSocket socket, string userId)
+    {
         if (purchaseStatsCache.TryGetValue(userId, out var cached) && cached.at + cacheTtl > DateTime.UtcNow)
-            return (cached.premium, cached.premiumPlus, cached.preApiPurchases);
+            return cached.stats;
 
         try
         {
             var transactions = await socket.GetService<ITransactionApi>()
                 .TransactionUUserIdGetAsync(userId, 0, purchaseTransactionLimit);
-            var preApiPurchases = transactions.Count(t => t.ProductId?.StartsWith(preApiSlug, StringComparison.Ordinal) == true);
+            var slotProducts = await GetSlotProducts(socket);
             var historyCapped = transactions.Count >= purchaseTransactionLimit;
             var premium = historyCapped ? TimeSpan.MaxValue : TimeSpan.Zero;
             var premiumPlus = historyCapped ? TimeSpan.MaxValue : TimeSpan.Zero;
-            if (!historyCapped)
+            var preApiPurchases = 0;
+            var slotBundle = false;
+            var slotsPurchased = 0;
+            foreach (var purchases in transactions.GroupBy(t => t.ProductId ?? string.Empty))
             {
-                foreach (var purchases in transactions.GroupBy(t => t.ProductId))
-                {
-                    var (duration, isPremiumPlus) = GetPremiumDuration(purchases.Key);
-                    if (duration == TimeSpan.Zero)
-                        continue;
-                    var unitCost = 0d;
-                    if (purchases.Any(t => t.Amount < 0))
-                    {
-                        try
-                        {
-                            var product = await socket.GetService<IProductsApi>().ProductsPProductSlugGetAsync(purchases.Key);
-                            unitCost = product?.Cost ?? 0;
-                        }
-                        catch (Exception e)
-                        {
-                            logger.LogWarning(e, "Could not load emblem product price for {product}", purchases.Key);
-                        }
-                    }
-                    // History has no quantity or applied discount. Count full-price units conservatively,
-                    // retaining one duration for discounted/free purchases or unavailable product prices.
-                    var count = purchases.Sum(t => unitCost > 0 ? Math.Max(1, Math.Floor(-t.Amount / unitCost)) : 1);
-                    var purchasedDuration = duration * count;
-                    premium += purchasedDuration;
-                    if (isPremiumPlus)
-                        premiumPlus += purchasedDuration;
-                }
+                var slotProduct = slotProducts.GetValueOrDefault(purchases.Key);
+                preApiPurchases += CountPreApiPurchases(purchases, slotProduct);
+                slotBundle |= slotProduct?.SlotCount > 1;
+                slotsPurchased += slotProduct == null ? 0 : (int)CountSlots(purchases, slotProduct);
+                if (historyCapped)
+                    continue; // durations are already at their speculative maximum
+                var (duration, isPremiumPlus) = slotProduct == null
+                    ? await GetProductDuration(socket, purchases)
+                    : GetSlotDuration(purchases, slotProduct);
+                premium += duration;
+                if (isPremiumPlus)
+                    premiumPlus += duration;
             }
-            var result = (premium, premiumPlus, preApiPurchases, at: DateTime.UtcNow);
-            purchaseStatsCache[userId] = result;
-            return (result.premium, result.premiumPlus, result.preApiPurchases);
+            var result = (premium, premiumPlus, preApiPurchases, slotBundle, slotsPurchased);
+            purchaseStatsCache[userId] = (result, DateTime.UtcNow);
+            return result;
         }
         catch (Exception e)
         {
             logger.LogWarning(e, "Could not load emblem purchase stats for {user}", userId);
             if (purchaseStatsCache.TryGetValue(userId, out var fallback))
-                return (fallback.premium, fallback.premiumPlus, fallback.preApiPurchases);
-            return (TimeSpan.Zero, TimeSpan.Zero, 0);
+                return fallback.stats;
+            return default;
+        }
+    }
+
+    private int CountPreApiPurchases(IGrouping<string, ExternalTransaction> purchases, PurchaseableProduct slotProduct)
+    {
+        if (slotProduct != null)
+            return IsTier(slotProduct, preApiSlug) ? (int)CountSlots(purchases, slotProduct) : 0;
+        return purchases.Key.StartsWith(preApiSlug, StringComparison.Ordinal) ? purchases.Count() : 0;
+    }
+
+    private (TimeSpan duration, bool premiumPlus) GetSlotDuration(IGrouping<string, ExternalTransaction> purchases, PurchaseableProduct slotProduct)
+    {
+        var isPremiumPlus = IsTier(slotProduct, premiumPlusSlug);
+        if (!isPremiumPlus && !IsTier(slotProduct, premiumSlug))
+            return (TimeSpan.Zero, false);
+        return (TimeSpan.FromSeconds(slotProduct.OwnershipSeconds) * CountSlots(purchases, slotProduct), isPremiumPlus);
+    }
+
+    private async Task<(TimeSpan duration, bool premiumPlus)> GetProductDuration(MinecraftSocket socket, IGrouping<string, ExternalTransaction> purchases)
+    {
+        var (duration, isPremiumPlus) = GetPremiumDuration(purchases.Key);
+        if (duration == TimeSpan.Zero)
+            return (TimeSpan.Zero, false);
+        var unitCost = purchases.Any(t => t.Amount < 0) ? await GetUnitCost(socket, purchases.Key) : 0;
+        return (duration * CountUnits(purchases, unitCost), isPremiumPlus);
+    }
+
+    private async Task<double> GetUnitCost(MinecraftSocket socket, string productSlug)
+    {
+        try
+        {
+            var product = await socket.GetService<IProductsApi>().ProductsPProductSlugGetAsync(productSlug);
+            return product?.Cost ?? 0;
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Could not load emblem product price for {product}", productSlug);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// History has no quantity or applied discount. Count full-price units conservatively,
+    /// retaining one unit for discounted/free purchases or unavailable product prices.
+    /// </summary>
+    private static double CountUnits(IEnumerable<ExternalTransaction> purchases, double unitCost)
+    {
+        return purchases.Sum(t => unitCost > 0 ? Math.Max(1, Math.Floor(-t.Amount / unitCost)) : 1);
+    }
+
+    private static double CountSlots(IGrouping<string, ExternalTransaction> purchases, PurchaseableProduct slotProduct)
+    {
+        return CountUnits(purchases, slotProduct.Cost) * Math.Max(1, slotProduct.SlotCount);
+    }
+
+    private static bool IsTier(PurchaseableProduct slotProduct, string slug)
+    {
+        return string.Equals(slotProduct.SlotTier, slug, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// The purchasable tier slot packages by slug. They are the same for everyone, so they are cached once.
+    /// </summary>
+    private async Task<Dictionary<string, PurchaseableProduct>> GetSlotProducts(MinecraftSocket socket)
+    {
+        var cached = slotProductCache;
+        if (cached != null && cached.At + cacheTtl > DateTime.UtcNow)
+            return cached.BySlug;
+        try
+        {
+            var products = await socket.GetService<ITierSlotsApi>().ApiTierSlotsProductsGetAsync();
+            var bySlug = products.Where(p => p.Slug != null).GroupBy(p => p.Slug).ToDictionary(g => g.Key, g => g.First());
+            slotProductCache = new SlotProducts(bySlug, DateTime.UtcNow);
+            return bySlug;
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Could not load tier slot products for emblems");
+            return cached?.BySlug ?? new Dictionary<string, PurchaseableProduct>();
         }
     }
 
@@ -294,8 +392,15 @@ public class EmblemService
 
     internal static void AddPreApiPurchaseEmblems(HashSet<string> set, int purchaseCount)
     {
-        foreach (var (minPurchases, emblemId) in preApiPurchaseEmblems)
-            if (purchaseCount >= minPurchases)
+        AddMilestoneEmblems(set, preApiPurchaseEmblems, purchaseCount);
+    }
+
+    private static void AddMilestoneEmblems(HashSet<string> set, (int min, string emblemId)[] milestones, int count)
+    {
+        foreach (var (min, emblemId) in milestones)
+            if (count >= min)
                 set.Add(emblemId);
     }
+
+    private sealed record SlotProducts(Dictionary<string, PurchaseableProduct> BySlug, DateTime At);
 }
