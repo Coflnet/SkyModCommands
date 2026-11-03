@@ -81,6 +81,27 @@ public class GoalCommandTests
         Assert.That(stored.FocusId, Is.Null);
     }
 
+    /// <summary>The goal hud header runs cancel; it only asks, the goal stays until the confirm click runs remove.</summary>
+    [Test]
+    public async Task CancelAsksForConfirmationAndKeepsTheGoal()
+    {
+        await command.Execute(socket, "\"cancel a1\"");
+
+        Assert.That(stored.Goals.Select(g => g.Id), Is.EqualTo(new[] { "a1", "b2" }));
+        Assert.That(socket.Parts.Select(p => p.text), Has.Some.Contains("Cancel the goal Alpha?"));
+        var confirm = socket.Parts.Single(p => p.text.Contains("Confirm cancel"));
+        Assert.That(confirm.onClick, Is.EqualTo("/cofl goal remove a1"));
+    }
+
+    [Test]
+    public async Task CancelOfUnknownGoalSaysNotFound()
+    {
+        await command.Execute(socket, "\"cancel zz\"");
+
+        Assert.That(socket.Parts.Select(p => p.text), Has.Some.Contains("Goal not found"));
+        Assert.That(socket.Parts.Select(p => p.onClick ?? ""), Has.None.Contains("goal remove"));
+    }
+
     [Test]
     public async Task AddBuildsThroughCraftsApi()
     {

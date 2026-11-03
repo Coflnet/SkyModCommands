@@ -14,7 +14,7 @@ namespace Coflnet.Sky.Commands.MC;
     "/cofl goal list - show your goals",
     "/cofl goal bazaar <itemTag> <quantity> - guide a buy-order to sell-offer flip",
     "/cofl goal add <itemTag> [quantity] [sell] [forge] - track a new goal",
-    "/cofl goal focus|remove|reset <id> - manage a goal",
+    "/cofl goal focus|cancel|remove|reset <id> - manage a goal",
     "/cofl goal clear - remove all goals")]
 public class GoalCommand : McCommand
 {
@@ -54,6 +54,11 @@ public class GoalCommand : McCommand
                 list.FocusId = list.Goals.First(g => g.Id == id).Id;
                 await SaveGoals(socket, userId, list);
                 socket.Dialog(db => db.MsgLine("Focused goal " + list.Goals.First(g => g.Id == id).Title));
+                return;
+            case "cancel":
+                var toCancel = FindGoal(socket, list, id);
+                if (toCancel != null)
+                    AskToConfirmCancel(socket, toCancel);
                 return;
             case "remove":
                 var toRemove = FindGoal(socket, list, id);
@@ -116,7 +121,7 @@ public class GoalCommand : McCommand
                 await Add(socket, userId, list, parts.Skip(1).ToArray());
                 return;
             default:
-                socket.Dialog(db => db.MsgLine($"Unknown goal command `{sub}`, use list, add, bazaar, focus, remove, reset or clear"));
+                socket.Dialog(db => db.MsgLine($"Unknown goal command `{sub}`, use list, add, bazaar, focus, cancel, remove, reset or clear"));
                 return;
         }
     }
@@ -154,6 +159,14 @@ public class GoalCommand : McCommand
         list.FocusId ??= goal.Id;
         await SaveGoals(socket, userId, list);
         socket.Dialog(db => db.MsgLine($"Tracking {goal.Title}: open your inventory to see the steps"));
+    }
+
+    /// <summary>The goal hud header asks before removing, a click on the hud is easily made by accident.</summary>
+    private static void AskToConfirmCancel(MinecraftSocket socket, Goal goal)
+    {
+        var orders = goal.BazaarFlip != null ? "Your bazaar orders are not cancelled. " : "";
+        socket.Dialog(db => db.Msg($"Cancel the goal {goal.Title}? Its tracked progress is lost. {orders}")
+            .Button("Confirm cancel", $"/cofl goal remove {goal.Id}", "Removes the goal from your list", McColorCodes.RED));
     }
 
     private static Goal FindGoal(MinecraftSocket socket, GoalList list, string id)
