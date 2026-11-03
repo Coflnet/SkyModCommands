@@ -53,6 +53,11 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public event Action ValuesReplaced;
         internal void RaiseValuesReplaced() => ValuesReplaced?.Invoke();
+        /// <summary>
+        /// Raised when the settings store echoes a flip settings write of this connection.
+        /// The echo is not applied again (the session already has the change), listeners that mirror the settings still have to send it
+        /// </summary>
+        public event Action OwnSettingsEchoed;
 
         private readonly CancellationTokenSource sessionCts = new();
         private volatile bool disposed;
@@ -135,18 +140,34 @@ namespace Coflnet.Sky.Commands.MC
 
             EnsureSessionContextOnFlipSettings(current.Value, previousSettings?.Value);
             current.OnChange += UpdateSettings;
-            current.ShouldPreventUpdate = (fs) => fs?.Changer == SessionInfo.ConnectionId;
+            current.ShouldPreventUpdate = IsOwnSettingsEcho;
         }
 
+        /// <summary>
+        /// Own writes are already applied, their echo is suppressed but announced via <see cref="OwnSettingsEchoed"/>
+        /// </summary>
+        private bool IsOwnSettingsEcho(FlipSettings settings)
+        {
+            if (settings?.Changer != SessionInfo.ConnectionId)
+                return false;
+            OwnSettingsEchoed?.Invoke();
+            return true;
+        }
+
+        /// <summary>
+        /// Swaps in the given settings, they are disposed instead when the session was released meanwhile
+        /// </summary>
         public async Task ReplaceFlipSettings(SelfUpdatingValue<FlipSettings> flipSettings)
         {
-            var previousSettings = FlipSettings;
-            FlipSettings = flipSettings ?? throw new Exception("flipSettings is null");
-            InitializeCurrentFlipSettings(FlipSettings, previousSettings);
-            previousSettings?.Dispose();
+            if (flipSettings == null)
+                throw new Exception("flipSettings is null");
+            // initialized before the swap, the list matchers are copied from the previous value before it is disposed
+            InitializeCurrentFlipSettings(flipSettings, FlipSettings);
+            if (!TryAdopt(ref FlipSettings, flipSettings))
+                return;
             RaiseValuesReplaced();
-            await ApplyFlipSettings(FlipSettings.Value, ConSpan);
-            Registerkeybinds(FlipSettings.Value, true);
+            await ApplyFlipSettings(flipSettings.Value, ConSpan);
+            Registerkeybinds(flipSettings.Value, true);
         }
 
         public async Task SetupConnectionSettings(string stringId)
@@ -418,16 +439,40 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         internal async Task SetupSignedOutSettings(string sessionId)
         {
+            var before = FlipSettings;
             var stored = await LoadInstanceSettings(sessionId);
             SavesSettingsForInstance = stored != null;
             var settings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(stored ?? DefaultSettings);
-            FlipSettings = settings;
-            InitializeCurrentFlipSettings(settings);
+            if (!TryInstallSignedOutSettings(before, settings))
+                return;
             if (stored == null)
                 return;
             ConSpan.Log("loaded instance settings");
             await ApplyFlipSettings(settings.Value, ConSpan);
             Registerkeybinds(settings.Value, true);
+        }
+
+        /// <summary>
+        /// Installs the signed-out settings only when the field is still <paramref name="expected"/>:
+        /// a login landing while they loaded already installed the account settings, which must stay
+        /// </summary>
+        private bool TryInstallSignedOutSettings(SelfUpdatingValue<FlipSettings> expected, SelfUpdatingValue<FlipSettings> settings)
+        {
+            InitializeCurrentFlipSettings(settings);
+            if (IsReleased || Interlocked.CompareExchange(ref FlipSettings, settings, expected) != expected)
+            {
+                settings.Dispose();
+                return false;
+            }
+            expected?.Dispose();
+            if (disposed)
+            {
+                // ReleaseResources may have run before the swap and missed the installed value
+                settings.Dispose();
+                return false;
+            }
+            RaiseValuesReplaced();
+            return true;
         }
 
         /// <summary>

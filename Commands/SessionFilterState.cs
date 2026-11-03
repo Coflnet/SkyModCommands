@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Coflnet.Sky.Commands.Shared;
 using Coflnet.Sky.ModCommands.Services;
@@ -89,15 +90,17 @@ public class SessionFilterState : IDisposable
         span.Log("loaded config " + loadedConfigMetadata?.Name);
         if (loadedConfigMetadata != null)
         {
-            var previous = LoadedConfig;
-            LoadedConfig = await SelfUpdatingValue<ConfigContainer>.Create(loadedConfigMetadata.OwnerId, SellConfigCommand.GetKeyFromname(loadedConfigMetadata.Name), () => throw new Exception("config not found"));
-            previous?.Dispose();
-            span.Log("got config " + LoadedConfig?.Value?.Name);
-            if (LoadedConfig.Value != null)
+            var created = await SelfUpdatingValue<ConfigContainer>.Create(loadedConfigMetadata.OwnerId, SellConfigCommand.GetKeyFromname(loadedConfigMetadata.Name), () => throw new Exception("config not found"));
+            // overlapping runs each dispose what they replace, a released session disposes the created value
+            if (!lifesycle.TryAdopt(ref LoadedConfig, created))
+                return;
+            // the field may already hold the value of an overlapping run, this run only hooks its own value
+            var newConfig = created.Value;
+            span.Log("got config " + newConfig?.Name);
+            if (newConfig != null)
             {
-                var newConfig = LoadedConfig.Value;
                 ShowConfigUpdateOption(loadedConfigMetadata, newConfig);
-                LoadedConfig.OnChange += (config) => ShowConfigUpdateOption(loadedConfigMetadata, config);
+                created.OnChange += (config) => ShowConfigUpdateOption(loadedConfigMetadata, config);
                 await SubBaseConfig(newConfig);
             }
         }
@@ -144,26 +147,29 @@ public class SessionFilterState : IDisposable
     {
         if (string.IsNullOrWhiteSpace(childConfig.Settings.BasedConfig))
             return;
-        BaseConfig?.Dispose();
-        BaseConfig = await LoadConfigCommand.GetContainer(lifesycle.socket, childConfig.Settings.BasedConfig);
-        if (BaseConfig?.Value == null)
+        var created = await LoadConfigCommand.GetContainer(lifesycle.socket, childConfig.Settings.BasedConfig);
+        if (!lifesycle.TryAdopt(ref BaseConfig, created))
+            return;
+        var baseConfig = created?.Value;
+        if (baseConfig == null)
             return;
         var baseAccess = (await OwnConfigsCommand.GetOwnConfigs(lifesycle.socket))
-            .FirstOrDefault(config => config.OwnerId == BaseConfig.Value.OwnerId
+            .FirstOrDefault(config => config.OwnerId == baseConfig.OwnerId
                 && config.Name.Equals(
-                    BaseConfig.Value.Name, StringComparison.OrdinalIgnoreCase));
+                    baseConfig.Name, StringComparison.OrdinalIgnoreCase));
         if (!BuyConfigCommand.HasManagedUpdates(baseAccess))
         {
-            BaseConfig.Dispose();
-            BaseConfig = null;
+            // only clears the field when no overlapping run replaced it meanwhile
+            Interlocked.CompareExchange(ref BaseConfig, null, created);
+            created.Dispose();
             return;
         }
-        Activity.Current.Log($"Baseconfig version {BaseConfig?.Value?.Version} > {lifesycle.AccountSettings?.Value?.BaseConfigVersion}");
-        if (BaseConfig.Value.Version > lifesycle.AccountSettings.Value.BaseConfigVersion && BaseConfig.Value.Version > 0)
+        Activity.Current.Log($"Baseconfig version {baseConfig.Version} > {lifesycle.AccountSettings?.Value?.BaseConfigVersion}");
+        if (baseConfig.Version > lifesycle.AccountSettings.Value.BaseConfigVersion && baseConfig.Version > 0)
         {
-            BaseConfigUpdate(childConfig, BaseConfig);
+            BaseConfigUpdate(childConfig, baseConfig);
         }
-        BaseConfig.OnChange += (newBaseConfig) =>
+        created.OnChange += (newBaseConfig) =>
         {
             BaseConfigUpdate(childConfig, newBaseConfig);
         };

@@ -16,6 +16,11 @@ namespace Coflnet.Sky.Commands.MC
             if (IsReleased)
                 return;
             await base.SubToSettings(val);
+            await SubToPrivacySettings(val);
+        }
+
+        internal async Task SubToPrivacySettings(string val)
+        {
             if (IsReleased)
                 return;
             var settings = await SelfUpdatingValue<PrivacySettings>.Create(val, "privacySettings", () =>

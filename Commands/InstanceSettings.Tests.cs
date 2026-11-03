@@ -125,6 +125,38 @@ public class InstanceSettingsTests
         service.Verify(s => s.Delete(SessionId), Times.Once);
     }
 
+    [Test]
+    public async Task LoginDuringTheLoadKeepsTheAccountSettings()
+    {
+        var gate = new TaskCompletionSource<FlipSettings>();
+        var service = new Mock<IInstanceSettingsService>();
+        var socket = CreateSocket(ModSessionLifesycle.DefaultSettings, service);
+        service.Setup(s => s.Get(SessionId)).Returns(gate.Task);
+
+        var setup = socket.sessionLifesycle.SetupSignedOutSettings(SessionId);
+        // the login landed while the instance settings loaded and installed the account settings
+        var account = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings { MinProfit = 999 });
+        socket.sessionLifesycle.FlipSettings = account;
+        gate.SetResult(ModSessionLifesycle.DefaultSettings);
+        await setup;
+
+        Assert.That(socket.sessionLifesycle.FlipSettings, Is.SameAs(account), "the signed-out settings must not overwrite the account settings");
+        Assert.That(account.Value, Is.Not.Null, "the account settings stay alive");
+    }
+
+    [Test]
+    public async Task SignedOutSettingsAnnounceTheReplacement()
+    {
+        var socket = CreateSocket(null);
+        var replaced = 0;
+        socket.sessionLifesycle.ValuesReplaced += () => replaced++;
+
+        await socket.sessionLifesycle.SetupSignedOutSettings(SessionId);
+
+        Assert.That(replaced, Is.EqualTo(1), "listeners like the proxy sync move to the installed settings");
+        Assert.That(socket.Settings, Is.Not.Null);
+    }
+
     private static InstanceSocket CreateSocket(FlipSettings stored, Mock<IInstanceSettingsService> service = null)
     {
         service ??= new Mock<IInstanceSettingsService>();
@@ -162,6 +194,9 @@ public class InstanceSettingsTests
         }
 
         public void SetLifecycle(ModSessionLifesycle lifecycle) => sessionLifesycle = lifecycle;
+
+        /// <summary>The base reads the websocket state, which throws without a real session</summary>
+        public override bool IsClosed => false;
 
         public override Activity CreateActivity(string name, Activity parent = null) => null;
 

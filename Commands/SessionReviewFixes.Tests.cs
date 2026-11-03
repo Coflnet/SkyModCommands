@@ -207,10 +207,143 @@ public class SessionReviewFixesTests
         var prevent = session.FlipSettings.ShouldPreventUpdate;
         prevent(new FlipSettings { Changer = socket.SessionInfo.ConnectionId }).Should().BeTrue("own writes are not applied again");
         prevent(new FlipSettings { Changer = "other" }).Should().BeFalse();
+        seen.Clear(); // the own echo is announced to the sync, covered by ProxySyncSendsOwnWritesWhoseEchoIsNotAppliedAgain
 
         var changed = new FlipSettings { Changer = "other" };
         await session.FlipSettings.Update(changed);
         seen.Should().ContainSingle().Which.Should().BeSameAs(changed, "the state is sent after the value was assigned");
+    }
+
+    [Test]
+    public void ProxySyncSendsOwnWritesWhoseEchoIsNotAppliedAgain()
+    {
+        var session = new NoSetupSession(socket);
+        socket.SetLifecycle(session);
+        session.AccountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(new AccountInfo());
+        session.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings());
+        session.InitializeCurrentFlipSettings(session.FlipSettings);
+        var sentMinProfit = new System.Collections.Generic.List<long>();
+        var sync = ProxyReqSyncCommand.WireStateSync(socket, session, () => sentMinProfit.Add(session.FlipSettings.Value.MinProfit));
+
+        // /cofl set changes the current value in place and saves it with this connection as changer
+        session.FlipSettings.Value.MinProfit = 5;
+        session.FlipSettings.Value.Changer = socket.SessionInfo.ConnectionId;
+        var echoPrevented = DeliverRedisEcho(session.FlipSettings, new FlipSettings { MinProfit = 5, Changer = socket.SessionInfo.ConnectionId });
+
+        echoPrevented.Should().BeTrue("the redis subscription returns before OnChange/AfterChange, the own write is not applied again");
+        sentMinProfit.Should().Equal([5L], "the proxy still has to receive the changed settings");
+
+        sync.Stop();
+        DeliverRedisEcho(session.FlipSettings, new FlipSettings { Changer = socket.SessionInfo.ConnectionId });
+        sentMinProfit.Should().HaveCount(1, "nothing is sent after Stop");
+    }
+
+    /// <summary>The first step of the redis subscription callback, it stops when this returns true</summary>
+    private static bool DeliverRedisEcho(SelfUpdatingValue<FlipSettings> value, FlipSettings echo)
+        => value.ShouldPreventUpdate?.Invoke(echo) ?? false;
+
+    [Test]
+    public async Task ReplaceFlipSettingsDisposesTheValueWhenTheSessionEnded()
+    {
+        var recording = new HookedSocket();
+        var session = new NoSetupSession(recording);
+        recording.SetLifecycle(session);
+        session.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings());
+        var current = session.FlipSettings;
+        session.Dispose();
+        var created = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings { BlackList = [], WhiteList = [] });
+
+        await session.ReplaceFlipSettings(created);
+
+        session.FlipSettings.Should().BeSameAs(current, "a released session keeps its values for the final cleanup");
+        created.Value.Should().BeNull("nobody would release the copied settings subscription");
+    }
+
+    [Test]
+    public async Task ReplaceFlipSettingsSwapsInTheValueOnALiveSession()
+    {
+        var recording = new HookedSocket();
+        var session = new NoSetupSession(recording);
+        recording.SetLifecycle(session);
+        var previous = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings { BlackList = [], WhiteList = [] });
+        session.FlipSettings = previous;
+        var replaced = 0;
+        session.ValuesReplaced += () => replaced++;
+        var created = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings { BlackList = [], WhiteList = [] });
+
+        await session.ReplaceFlipSettings(created);
+
+        session.FlipSettings.Should().BeSameAs(created);
+        created.Value.Should().NotBeNull();
+        previous.Value.Should().BeNull("the replaced value is disposed");
+        replaced.Should().Be(1);
+    }
+
+    [Test]
+    public async Task InventorySessionDisposedWhilePrivacySettingsLoadKeepsNone()
+    {
+        var gate = new TaskCompletionSource<Settings.Client.Client.ApiResponse<string>>();
+        var api = new Mock<ISettingsApi>();
+        api.Setup(a => a.GetSettingWithHttpInfoAsync("7", "privacySettings", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(gate.Task);
+        DiHandler.OverrideService<SettingsService, SettingsService>(
+            new SettingsService(Mock.Of<IConfiguration>(), NullLogger<SettingsService>.Instance, api.Object));
+        var recording = new HookedSocket();
+        var session = new InventoryModSession(recording);
+        recording.SetLifecycle(session);
+
+        var load = session.SubToPrivacySettings("7");
+        session.Dispose();
+        gate.SetResult(new(HttpStatusCode.OK, JsonConvert.SerializeObject(new PrivacySettings())));
+        await load.WaitAsync(TimeSpan.FromSeconds(5));
+
+        session.PrivacySettings.Should().BeNull("settings created for a dead session are disposed, not stored");
+    }
+
+    [Test]
+    public async Task LoginAdoptDisposesTheValueWhenTheSessionEnded()
+    {
+        var session = new NoSetupSession(socket);
+        socket.SetLifecycle(session);
+        var loginSocket = new Mock<IMinecraftSocket>();
+        loginSocket.SetupGet(s => s.sessionLifesycle).Returns(session);
+        var created = SelfUpdatingValue<string>.CreateNoUpdate("5");
+        session.Dispose();
+
+        await ModLoginExtensions.AdoptLogin(loginSocket.Object, created);
+
+        created.Value.Should().BeNull("the created value is released, nobody else holds it");
+        session.UserId.Should().NotBeSameAs(created);
+    }
+
+    [Test]
+    public void ProxySyncStateIsNotSentForAReleasedSession()
+    {
+        var recording = new HookedSocket();
+        var closed = false;
+        recording.Closed = () => closed;
+        var session = new NoSetupSession(recording);
+        recording.SetLifecycle(session);
+        SetSyncedValues(session);
+
+        ProxyReqSyncCommand.SendState(recording);
+        recording.Sent.Should().ContainSingle(r => r.type == "proxySync");
+
+        closed = true;
+        ProxyReqSyncCommand.SendState(recording);
+        recording.Sent.Should().HaveCount(1, "a closing connection is not synced anymore");
+
+        closed = false;
+        session.Dispose();
+        SetSyncedValues(session); // a setup step finishing late may still store values
+        ProxyReqSyncCommand.SendState(recording);
+        recording.Sent.Should().HaveCount(1, "a disposed session is not synced anymore");
+    }
+
+    private static void SetSyncedValues(ModSessionLifesycle session)
+    {
+        session.AccountInfo = SelfUpdatingValue<AccountInfo>.CreateNoUpdate(new AccountInfo());
+        session.FlipSettings = SelfUpdatingValue<FlipSettings>.CreateNoUpdate(new FlipSettings());
     }
 
     [Test]
@@ -350,7 +483,9 @@ public class SessionReviewFixesTests
     private class HookedSocket : TestSocket
     {
         public Func<bool> Closed = () => false;
+        public System.Collections.Generic.List<Response> Sent = new();
         public override bool IsClosed => Closed();
+        public override void Send(Response response) => Sent.Add(response);
     }
 
     private class ExposedInventorySession : InventoryModSession

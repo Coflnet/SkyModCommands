@@ -15,17 +15,25 @@ public static class ModLoginExtensions
             (socket as MinecraftSocket)?.ModAdapter.SendLoginPrompt(socket.sessionLifesycle.GetAuthLink(sessionId));
             return null;
         });
-        // the socket can close while the value is created, nobody would release it then
+        await AdoptLogin(socket, UserId);
+    }
+
+    /// <summary>
+    /// Hands the loaded user id to the session and completes the login.
+    /// Disposes the value when there is no user or the session ended while it was created, nobody would release it then
+    /// </summary>
+    internal static async Task AdoptLogin(IMinecraftSocket socket, SelfUpdatingValue<string> userId)
+    {
         var current = socket.sessionLifesycle;
-        if (UserId.Value == null || current == null)
+        if (userId.Value == null || current == null)
         {
-            UserId.Dispose();
+            userId.Dispose();
             return;
         }
         // the session owns the value from here on and disposes it when it ends
-        if (!current.TryAdopt(ref current.UserId, UserId))
+        if (!current.TryAdopt(ref current.UserId, userId))
             return;
-        await current.LoggedIn(UserId.Value);
+        await current.LoggedIn(userId.Value);
         socket.SendMessage("Login completed, please rerun the last command");
     }
 }

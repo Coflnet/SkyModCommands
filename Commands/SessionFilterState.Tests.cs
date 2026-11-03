@@ -61,6 +61,58 @@ public class SessionFilterStateTests
         replacement.Value.Should().NotBeNull();
     }
 
+    [Test]
+    [NonParallelizable]
+    public async Task LoadedConfigArrivingAfterTheSessionEndedIsNotKept()
+    {
+        var (socket, lifecycle) = CreateLifecycle("42", "17", "test", 3);
+        var gate = new TaskCompletionSource<ApiResponse<string>>();
+        var requested = new TaskCompletionSource();
+        ConfigureSettingsService(socket.UserId, "17", "test", CreateConfig("17", "test"), configResponse: () =>
+        {
+            requested.TrySetResult();
+            return gate.Task;
+        });
+        socket.AddService((ConfigStatsService)RuntimeHelpers.GetUninitializedObject(typeof(ConfigStatsService)));
+
+        var run = lifecycle.FilterState.SubToConfigChanges();
+        await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        lifecycle.Dispose();
+        gate.SetResult(ConfigResponse(CreateConfig("17", "test")));
+        await run.WaitAsync(TimeSpan.FromSeconds(5));
+
+        lifecycle.FilterState.LoadedConfig.Should().BeNull("FilterState.Dispose already ran, a value stored now is never released");
+    }
+
+    [Test]
+    [NonParallelizable]
+    public async Task OverlappingConfigSubscriptionsDisposeTheReplacedValue()
+    {
+        var (socket, lifecycle) = CreateLifecycle("42", "17", "test", 3);
+        var gates = new[] { new TaskCompletionSource<ApiResponse<string>>(), new TaskCompletionSource<ApiResponse<string>>() };
+        var calls = 0;
+        ConfigureSettingsService(socket.UserId, "17", "test", CreateConfig("17", "test"), configResponse: () => gates[calls++].Task);
+        socket.AddService((ConfigStatsService)RuntimeHelpers.GetUninitializedObject(typeof(ConfigStatsService)));
+
+        // a signed-out login runs the subscription from UserId.OnChange and from the login prompt
+        var first = lifecycle.FilterState.SubToConfigChanges();
+        var second = lifecycle.FilterState.SubToConfigChanges();
+        calls.Should().Be(2, "both runs wait for the config at the same time");
+        gates[0].SetResult(ConfigResponse(CreateConfig("17", "test")));
+        await first.WaitAsync(TimeSpan.FromSeconds(5));
+        var firstValue = lifecycle.FilterState.LoadedConfig;
+        gates[1].SetResult(ConfigResponse(CreateConfig("17", "test")));
+        await second.WaitAsync(TimeSpan.FromSeconds(5));
+
+        firstValue.Should().NotBeNull();
+        lifecycle.FilterState.LoadedConfig.Should().NotBeSameAs(firstValue);
+        lifecycle.FilterState.LoadedConfig.Value.Should().NotBeNull();
+        firstValue.Value.Should().BeNull("the replaced value would keep its subscription and prompt a second time");
+    }
+
+    private static ApiResponse<string> ConfigResponse(ConfigContainer config)
+        => new(HttpStatusCode.OK, JsonConvert.SerializeObject(config));
+
     private static ConfigContainer CreateConfig(string ownerId, string configName)
     {
         return new ConfigContainer
@@ -76,7 +128,8 @@ public class SessionFilterStateTests
         };
     }
 
-    private static void ConfigureSettingsService(string userId, string ownerId, string configName, ConfigContainer config, Action onOwnedConfigs = null)
+    private static void ConfigureSettingsService(string userId, string ownerId, string configName, ConfigContainer config, Action onOwnedConfigs = null,
+        Func<Task<ApiResponse<string>>> configResponse = null)
     {
         var settingsApi = new Mock<ISettingsApi>();
         settingsApi
@@ -99,7 +152,7 @@ public class SessionFilterStateTests
                 SellConfigCommand.GetKeyFromname(configName),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ApiResponse<string>(HttpStatusCode.OK, JsonConvert.SerializeObject(config)));
+            .Returns(configResponse ?? (() => Task.FromResult(ConfigResponse(config))));
         var configuration = new Mock<IConfiguration>();
         var settingsService = new SettingsService(configuration.Object, NullLogger<SettingsService>.Instance, settingsApi.Object);
         DiHandler.OverrideService<SettingsService, SettingsService>(settingsService);

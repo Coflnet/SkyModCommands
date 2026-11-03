@@ -70,6 +70,8 @@ public class ProxyReqSyncCommand : McCommand
         sync.Attach();
         lifesycle.ValuesReplaced += sync.Attach;
         lifesycle.OnDelayChange += sync.OnDelay;
+        // own writes do not reach AfterChange, their echo is suppressed so the session does not apply them twice
+        lifesycle.OwnSettingsEchoed += sync.OnOwnSettingsEchoed;
         return sync;
     }
 
@@ -94,6 +96,8 @@ public class ProxyReqSyncCommand : McCommand
 
         public void OnDelay(TimeSpan _) => send();
 
+        public void OnOwnSettingsEchoed() => send();
+
         private void OnAccount(AccountInfo _) => send();
 
         private void OnSettings(FlipSettings _) => send();
@@ -102,6 +106,7 @@ public class ProxyReqSyncCommand : McCommand
         {
             lifesycle.ValuesReplaced -= Attach;
             lifesycle.OnDelayChange -= OnDelay;
+            lifesycle.OwnSettingsEchoed -= OnOwnSettingsEchoed;
             lock (attachLock)
             {
                 stopped = true;
@@ -151,7 +156,7 @@ public class ProxyReqSyncCommand : McCommand
         }
     }
 
-    private static void SendState(MinecraftSocket socket)
+    internal static void SendState(MinecraftSocket socket)
     {
         var lifesycle = LiveSession(socket);
         if (lifesycle == null)
