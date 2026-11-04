@@ -264,6 +264,7 @@ namespace Coflnet.Sky.Commands.MC
             Commands.Add<SellProfitCommand>();
             Commands.Add<SetTimezoneCommand>();
             Commands.Add<CheapMuseumCommand>("cm");
+            Commands.Add<CheapAccessoriesCommand>("mp");
             Commands.Add<LimitsCommand>();
             Commands.Add<AdventCommand>();
             Commands.Add<ShareLoreCommand>();
