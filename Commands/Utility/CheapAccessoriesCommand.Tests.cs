@@ -33,6 +33,7 @@ public class CheapAccessoriesCommandTests
         socket.Services.Add(MockCrafts());
         socket.Services.Add(MockProfile("OWNED_RING"));
         socket.Services.Add(MockOpenedBag("SPEED_TALISMAN"));
+        socket.Services.Add(Accessories(socket));
 
         await MinecraftSocket.Commands["mp"].Execute(socket, "\"\"");
 
@@ -51,6 +52,7 @@ public class CheapAccessoriesCommandTests
         socket.SessionInfo.McUuid = Guid.NewGuid().ToString("N");
         socket.Services.Add(Store(new() { ["COMMON_ONE"] = Accessory("Common One", "COMMON"), ["RARE_ONE"] = Accessory("Rare One", "RARE") }));
         socket.Services.Add(Prices(new() { ["COMMON_ONE"] = 300_002, ["RARE_ONE"] = 800_005 }));
+        socket.Services.Add(Accessories(socket));
 
         await MinecraftSocket.Commands["mp"].Execute(socket, "\"\"");
 
@@ -59,6 +61,28 @@ public class CheapAccessoriesCommandTests
         Assert.That(lines, Has.Count.EqualTo(2));
         Assert.That(lines[0], Does.Contain("Rare One"));
         Assert.That(lines[1], Does.Contain("Common One"));
+    }
+
+    [Test]
+    public async Task CheapAccessoriesAsksToOpenRemainingBagPages()
+    {
+        var socket = new CaptureSocket();
+        socket.SessionInfo.McUuid = Guid.NewGuid().ToString("N");
+        var service = new Mock<IAccessoryService>();
+        service.Setup(s => s.GetOwnedAccessories(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new OwnedAccessories { Tags = ["A"], PageCount = 3, SeenPages = [1] });
+        service.Setup(s => s.GetCheapestPerMagicalPower(It.IsAny<OwnedAccessories>(), It.IsAny<int>())).ReturnsAsync([]);
+        socket.Services.Add(service.Object);
+
+        await MinecraftSocket.Commands["mp"].Execute(socket, "\"\"");
+
+        Assert.That(socket.Messages, Has.Some.Contain("Seen 1/3 accessory bag pages"));
+    }
+
+    private static IAccessoryService Accessories(CaptureSocket socket)
+    {
+        return new AccessoryService(socket.GetService<IProfileClient>(), socket.GetService<IPlayerStateApi>(),
+            socket.GetService<IHypixelItemStore>(), socket.GetService<Sniper.Client.Api.IAuctionApi>(), socket.GetService<ICraftsApi>());
     }
 
     private static IHypixelItemStore MockItems()
@@ -139,8 +163,8 @@ public class CheapAccessoriesCommandTests
     private static IPlayerStateApi MockOpenedBag(string tag)
     {
         var api = new Mock<IPlayerStateApi>();
-        api.Setup(a => a.PlayerStatePlayerIdStorageGetAsync(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new ChestView { Name = "Accessory Bag (1/1)", Items = [new PlayerState.Client.Model.Item { Tag = tag }, null] }]);
+        api.Setup(a => a.PlayerStatePlayerIdAccessoriesGetAsync(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AccessoryBag { Accessories = [new BagAccessory { Tag = tag }], PageCount = 1, SeenPages = [1] });
         return api.Object;
     }
 
