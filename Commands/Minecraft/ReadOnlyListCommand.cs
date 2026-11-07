@@ -42,10 +42,11 @@ public abstract class ReadOnlyListCommand<T> : McCommand
             arguments = RemoveSortArgument(arguments);
         }
         elements = FilterElementsForProfile(socket, elements).ToList();
+        var allElements = elements;
         if (!int.TryParse(arguments, out int page) && arguments.Length > 1)
         {
             // search
-            elements = elements.Where(e => GetId(e).ToLower().Contains(arguments.ToLower())).ToList();
+            elements = Search(elements, arguments).ToList();
         }
         if (page < 0)
             page = elements.Count / PageSize + page;
@@ -56,7 +57,7 @@ public abstract class ReadOnlyListCommand<T> : McCommand
         DialogBuilder dialog = PrintResult(socket, title, page, toDisplay, totalPages);
         if (toDisplay.Count() == 0)
             dialog.MsgLine(NoMatchText);
-        PrintSumary(socket, dialog, elements, toDisplay);
+        PrintSumary(socket, dialog, elements, toDisplay, allElements);
         socket.SendMessage(dialog.Build());
     }
 
@@ -96,6 +97,21 @@ public abstract class ReadOnlyListCommand<T> : McCommand
     {
     }
 
+    /// <summary>
+    /// Summary hook that also gets the elements before the search was applied, defaults to the filtered summary
+    /// </summary>
+    protected virtual void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<T> elements, IEnumerable<T> toDisplay, IEnumerable<T> unfilteredElements)
+    {
+        PrintSumary(socket, db, elements, toDisplay);
+    }
+
+    /// <summary>Applies a search argument, defaults to a substring match on <see cref="GetSearchText"/></summary>
+    protected virtual IEnumerable<T> Search(IEnumerable<T> elements, string query)
+    {
+        var lower = query.ToLower();
+        return elements.Where(e => GetSearchText(e).ToLower().Contains(lower));
+    }
+
     protected virtual IEnumerable<T> FilterElementsForProfile(MinecraftSocket socket, IEnumerable<T> elements)
     {
         return elements;
@@ -107,6 +123,8 @@ public abstract class ReadOnlyListCommand<T> : McCommand
     protected abstract Task<IEnumerable<T>> GetElements(MinecraftSocket socket, string val);
     protected abstract void Format(MinecraftSocket socket, DialogBuilder db, T elem);
     protected abstract string GetId(T elem);
+    /// <summary>Text a search argument is matched against, defaults to <see cref="GetId"/></summary>
+    protected virtual string GetSearchText(T elem) => GetId(elem);
     protected virtual string Title => "Elements";
     protected virtual int PageSize => 14;
 }
