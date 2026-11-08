@@ -24,7 +24,10 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
     public override async Task Execute(MinecraftSocket socket, string args)
     {
         socket.SendMessage($"{MinecraftSocket.COFLNET}{McColorCodes.GRAY}Loading tasks... this can take a few seconds.");
+        // the stats lookup runs while the tasks load so the player doesn't wait for both; it never throws
+        var statsRefresh = StatsRefresh.RefreshIfDue(socket);
         await base.Execute(socket, args);
+        await statsRefresh;
     }
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, TaskResult elem)
