@@ -86,6 +86,23 @@ namespace Coflnet.Sky.Commands.MC
             Assert.That(!regex.IsMatch(message));
         }
 
+        [TestCase("        ✦ CRYSTAL FOUND (1/5)")]
+        [TestCase("✦ CRYSTAL FOUND (5/5)")]
+        [TestCase("✦ You placed the Sapphire Crystal!")]
+        [TestCase("  CRYSTAL NUCLEUS LOOT BUNDLE ")]
+        public void MatchesCrystalNucleusRunLines(string message)
+        {
+            Assert.That(regex.IsMatch(message));
+        }
+
+        [TestCase("[MVP+] Someone: ✦ CRYSTAL FOUND (1/5)")]
+        [TestCase("Party > Someone: You placed the Jade Crystal!")]
+        [TestCase("Guild > Someone: CRYSTAL NUCLEUS LOOT BUNDLE")]
+        public void DoesNotMatchCrystalNucleusChat(string message)
+        {
+            Assert.That(!regex.IsMatch(message));
+        }
+
         [TestCase("LOOT SHARE You received a Chill Shard for assisting SomePlayer.")]
         [TestCase("LOOT SHARE You received an Abyssal Lanternfish Shard for assisting SomePlayer.")]
         [TestCase("LOOT SHARE You received x2 Chill Shards for assisting SomePlayer.")]
