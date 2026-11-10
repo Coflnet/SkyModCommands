@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /build
 
 RUN git clone --depth=1 https://github.com/Ekwav/websocket-sharp \
-    && git clone --depth=1 https://github.com/Coflnet/HypixelSkyblock.git dev \
+    && git init dev && git -C dev remote add origin https://github.com/Coflnet/HypixelSkyblock.git && git -C dev fetch --depth=1 origin 2df0f7c7a34c8c04653e4cf7c02ab6805876eb7a && git -C dev checkout --detach FETCH_HEAD \
     && git clone --depth=1 https://github.com/Coflnet/SkyFilter.git \
     && git clone --depth=1 https://github.com/Coflnet/SkyBackendForFrontend.git
 ARG SHARED_GOALS_REVISION=816a967a89fa318c1e48bb3585d769b76bd921b6
