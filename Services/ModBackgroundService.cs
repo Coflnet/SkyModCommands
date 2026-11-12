@@ -39,7 +39,7 @@ public class ModBackgroundService : BackgroundService
     ItemDetails itemDetails;
     private RedisFlipMatchTracker? matchTracker;
     object compareLock = new object();
-    private ConcurrentDictionary<(string, LowPricedAuction.FinderType, long), DateTime> alreadyProcessed = new();
+    private readonly RecentFlipFilter alreadyProcessed = new(TimeSpan.FromMinutes(1));
 
     private static Prometheus.Counter fastTrackSnipes = Prometheus.Metrics.CreateCounter("sky_fast_snipes", "Count of received fast track redis snipes");
     private static readonly Prometheus.Counter redisFlipTasks = Prometheus.Metrics.CreateCounter(
@@ -222,12 +222,8 @@ public class ModBackgroundService : BackgroundService
                     }
                     if (flip.TargetPrice < flip.Auction.StartingBid + 100_000)
                         return; // not actually flipable abort
-                    if (alreadyProcessed.TryGetValue((flip.Auction.Uuid, flip.Finder, flip.TargetPrice), out var last))
-                    {
-                        if (last > DateTime.UtcNow - TimeSpan.FromMinutes(1))
-                            return; // already processed
-                    }
-                    alreadyProcessed.TryAdd((flip.Auction.Uuid, flip.Finder, flip.TargetPrice), DateTime.UtcNow);
+                    if (!alreadyProcessed.TryAccept((flip.Auction.Uuid, flip.Finder, flip.TargetPrice), DateTime.UtcNow))
+                        return; // already processed, possibly by a concurrent delivery from another broker
                     if (flip.Auction.Context.ContainsKey("cname"))
                         flip.Auction.Context["cname"] += McColorCodes.DARK_GRAY + "!";
                     flip.AdditionalProps?.TryAdd("bfcs", "redis");
@@ -268,13 +264,7 @@ public class ModBackgroundService : BackgroundService
             {
                 await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
                 multiplexer.GetSubscriber().Publish(RedisChannel.Literal("beat"), System.Net.Dns.GetHostName());
-                foreach (var item in alreadyProcessed.ToList())
-                {
-                    if (item.Value < DateTime.UtcNow - TimeSpan.FromMinutes(2))
-                    {
-                        alreadyProcessed.TryRemove(item.Key, out _);
-                    }
-                }
+                alreadyProcessed.RemoveOlderThan(DateTime.UtcNow - TimeSpan.FromMinutes(2));
             }
             logger.LogWarning($"redis heart beat stopped; Cancellation Requested: {stoppingToken.IsCancellationRequested}");
         });
