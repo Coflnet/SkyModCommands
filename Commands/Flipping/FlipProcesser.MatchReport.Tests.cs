@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using Coflnet.Sky.Commands.Shared;
@@ -137,6 +138,113 @@ public class FlipProcesserMatchReportTests
 
         reportedAtFirstWait.Should().Be(2);
         socket.Flips.Should().HaveCount(2);
+    }
+
+    private static (FlipInstance instance, LowPricedAuction lp) ExemptCandidate(bool preApi = false)
+    {
+        var auction = new SaveAuction { Uuid = Guid.NewGuid().ToString("N"), Tag = "TANK_WITHER_BOOTS", Start = DateTime.UtcNow };
+        if (preApi)
+            auction.Context = new Dictionary<string, string> { ["pre-api"] = "true" };
+        var lp = new LowPricedAuction { Auction = auction, AdditionalProps = new Dictionary<string, string> { ["key"] = "k" } };
+        return (new FlipInstance { Auction = auction }, lp);
+    }
+
+    [TestCase(0.1, false, false, FlipProcesser.InstantReason.Exempt)]
+    [TestCase(0.5, false, false, FlipProcesser.InstantReason.None)]
+    [TestCase(0.5, false, true, FlipProcesser.InstantReason.LikelyBot)]
+    [TestCase(0.1, false, true, FlipProcesser.InstantReason.Exempt)]
+    [TestCase(0.1, true, false, FlipProcesser.InstantReason.None)]
+    [TestCase(0.5, true, true, FlipProcesser.InstantReason.None)]
+    public void InstantReasonMatchesTheFormerCondition(double draw, bool preApi, bool bot, FlipProcesser.InstantReason expected)
+    {
+        var exempt = new DelayExemptionList();
+        exempt.Exemptions.Add(("TANK_WITHER_BOOTS", "k"));
+        var handler = new Mock<IDelayHandler>();
+        handler.Setup(h => h.IsLikelyBot(It.IsAny<FlipInstance>())).Returns(bot);
+        var (instance, lp) = ExemptCandidate(preApi);
+
+        FlipProcesser.GetInstantReason(draw, lp, instance, exempt, handler.Object).Should().Be(expected);
+    }
+
+    [Test]
+    public void ExemptPathNeverAsksTheBotCheck()
+    {
+        var exempt = new Mock<IDelayExemptList>();
+        exempt.Setup(e => e.IsExempt(It.IsAny<LowPricedAuction>())).Returns(true);
+        var handler = new Mock<IDelayHandler>();
+        var (instance, lp) = ExemptCandidate();
+
+        FlipProcesser.GetInstantReason(0.1, lp, instance, exempt.Object, handler.Object);
+
+        exempt.Verify(e => e.IsExempt(lp), Times.Once());
+        handler.Verify(h => h.IsLikelyBot(It.IsAny<FlipInstance>()), Times.Never());
+    }
+
+    [TestCase(0.33)]
+    [TestCase(0.9)]
+    public void ExemptListIsNotAskedWithoutALowDraw(double draw)
+    {
+        var exempt = new Mock<IDelayExemptList>();
+        var handler = new Mock<IDelayHandler>();
+        var (instance, lp) = ExemptCandidate();
+
+        FlipProcesser.GetInstantReason(draw, lp, instance, exempt.Object, handler.Object);
+
+        exempt.Verify(e => e.IsExempt(It.IsAny<LowPricedAuction>()), Times.Never());
+        handler.Verify(h => h.IsLikelyBot(instance), Times.Once());
+    }
+
+    [Test]
+    public void PreApiIsOnlyCheckedAfterTheDecisionSides()
+    {
+        var exempt = new Mock<IDelayExemptList>();
+        exempt.Setup(e => e.IsExempt(It.IsAny<LowPricedAuction>())).Returns(true);
+        var handler = new Mock<IDelayHandler>();
+        var (instance, lp) = ExemptCandidate(preApi: true);
+
+        var reason = FlipProcesser.GetInstantReason(0.1, lp, instance, exempt.Object, handler.Object);
+
+        reason.Should().Be(FlipProcesser.InstantReason.None);
+        exempt.Verify(e => e.IsExempt(lp), Times.Once());
+    }
+
+    [Test]
+    public void NotListedItemIsNeverExemptEvenOnLuckyDraw()
+    {
+        var (instance, lp) = ExemptCandidate();
+        lp.AdditionalProps["key"] = "other";
+        var handler = new Mock<IDelayHandler>();
+
+        FlipProcesser.GetInstantReason(0.0, lp, instance, new DelayExemptionList(), handler.Object).Should().Be(FlipProcesser.InstantReason.None);
+    }
+
+    [Test]
+    public void SelectInstantCountsNoBedAndExemptFlips()
+    {
+        DiHandler.GetService<IDelayExemptList>().Exemptions.Add(("TANK_WITHER_BOOTS", "k"));
+        var processor = CreateProcessor();
+        var flips = Enumerable.Range(0, 400).Select(_ => ExemptCandidate()).ToList();
+
+        var instant = processor.SelectInstant(flips);
+
+        processor.NoBedFlipCount.Should().Be(400);
+        processor.ExemptInstantFlipCount.Should().Be(instant.Count);
+        instant.Count.Should().BeInRange(60, 200); // 33% of 400
+    }
+
+    [Test]
+    public void SelectInstantDoesNotCountLikelyBotAsExempt()
+    {
+        var delay = new Mock<IDelayHandler>();
+        delay.Setup(d => d.IsLikelyBot(It.IsAny<FlipInstance>())).Returns(true);
+        var processor = new FlipProcesser(socket, new Mock<ISpamController>().Object, delay.Object);
+        var flips = Enumerable.Range(0, 5).Select(_ => ExemptCandidate()).ToList();
+
+        var instant = processor.SelectInstant(flips);
+
+        instant.Should().HaveCount(5);
+        processor.NoBedFlipCount.Should().Be(5);
+        processor.ExemptInstantFlipCount.Should().Be(0);
     }
 
     private FlipProcesser CreateProcessor()

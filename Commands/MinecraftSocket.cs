@@ -117,6 +117,11 @@ namespace Coflnet.Sky.Commands.MC
         public event Action? OnConClose;
         private int proxySyncRegistered;
 
+        /// <summary>
+        /// True when this session is served through a proxy (edge) instance
+        /// </summary>
+        public bool IsProxySession => Volatile.Read(ref proxySyncRegistered) == 1;
+
         internal bool TryRegisterProxySync()
         {
             return Interlocked.CompareExchange(ref proxySyncRegistered, 1, 0) == 0;

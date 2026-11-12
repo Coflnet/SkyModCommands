@@ -90,7 +90,7 @@ public class ModBackgroundService : BackgroundService
             await counterService.GetTable().CreateIfNotExistsAsync();
         else
             logger.LogInformation("CounterService not configured, skipping counter table initialization");
-        await LoadDelayExcemptKeys();
+        StartDelayExemptRefresh(stoppingToken);
         await hypixelItemService.GetItemsAsync();
         await Task.Delay(1000);
         var client = new WebSocket("ws://localhost:8008/modsocket?SId=123123123123123123&player=test&version=1.5.6-Alpha");
@@ -109,19 +109,26 @@ public class ModBackgroundService : BackgroundService
         logger.LogError("Fast track was stopped");
     }
 
-    private async Task LoadDelayExcemptKeys()
+    private void StartDelayExemptRefresh(CancellationToken stoppingToken)
+        => StartDelayExemptRefresh(FetchDelayExemptKeys, delayExemptList, logger, stoppingToken);
+
+    /// <summary>
+    /// Starts the periodic reload in the background (does not block the caller)
+    /// </summary>
+    internal static Task StartDelayExemptRefresh(
+        Func<CancellationToken, Task<HashSet<(string, string)>>> fetch, IDelayExemptList list, ILogger logger,
+        CancellationToken stoppingToken, Func<TimeSpan, CancellationToken, Task>? delay = null)
     {
-        try
-        {
-            using var scope = scopeFactory.CreateScope();
-            var trackerApi = scope.ServiceProvider.GetRequiredService<ITrackerApi>();
-            var keys = await trackerApi.GetExemptFlipsAsync();
-            this.delayExemptList.Exemptions = new(keys.Select(k => (k.ItemTag, k.Key)).ToHashSet());
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Could not load delay exempt keys");
-        }
+        var refresher = new DelayExemptRefresher(fetch, list, logger, delay);
+        return Task.Run(() => refresher.RunAsync(DelayExemptRefresher.DefaultInterval, stoppingToken), stoppingToken);
+    }
+
+    private async Task<HashSet<(string, string)>> FetchDelayExemptKeys(CancellationToken token)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var trackerApi = scope.ServiceProvider.GetRequiredService<ITrackerApi>();
+        var keys = await trackerApi.GetExemptFlipsAsync(cancellationToken: token);
+        return keys.Select(k => (k.ItemTag, k.Key)).ToHashSet();
     }
 
     public async Task SubscribeToRedisSnipes(CancellationToken stoppingToken)

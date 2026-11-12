@@ -353,7 +353,7 @@ namespace Coflnet.Sky.Commands.MC
             var flipsWithTime = flips.Select(f => (f.instance, f.f.Auction.Start + TimeSpan.FromSeconds(20) - DateTime.UtcNow, lp: f.f));
             var bedsToWaitFor = flipsWithTime.Where(f => f.Item2 > TimeSpan.FromSeconds(3.1) && !(Settings?.ModSettings.NoBedDelay ?? false));
             var noBed = flipsWithTime.ExceptBy(bedsToWaitFor.Select(b => b.lp.Auction.Uuid), b => b.lp.Auction.Uuid).Select(f => (f.instance, f.lp));
-            var toSendInstant = noBed.Where(f => (Random.Shared.NextDouble() < 0.33 && delayExemptList.IsExempt(f.lp) || delayHandler.IsLikelyBot(f.instance)) && !f.lp.IsPreApi()).ToList();
+            var toSendInstant = SelectInstant(noBed);
             if (socket?.SessionInfo?.SessionTier >= AccountTier.PREMIUM_PLUS)
                 foreach (var item in flips)
                 {
@@ -393,6 +393,68 @@ namespace Coflnet.Sky.Commands.MC
                     await WaitForBedToSend(item).ConfigureAwait(false);
                 }
             }, "bed wait", 1);
+        }
+
+        public enum InstantReason
+        {
+            None,
+            Exempt,
+            LikelyBot
+        }
+
+        /// <summary>
+        /// Decides why (if at all) a flip is sent without the fairness delay.
+        /// Evaluation order matches the original inline condition: exemption (only on a lucky draw), then bot check, pre api never instant.
+        /// </summary>
+        /// <param name="draw">random number in [0,1) drawn for this flip</param>
+        public static InstantReason GetInstantReason(double draw, LowPricedAuction lp, FlipInstance instance, IDelayExemptList exemptList, IDelayHandler handler)
+        {
+            var reason = InstantReason.None;
+            if (draw < 0.33 && exemptList.IsExempt(lp))
+                reason = InstantReason.Exempt;
+            else if (handler.IsLikelyBot(instance))
+                reason = InstantReason.LikelyBot;
+            if (reason != InstantReason.None && lp.IsPreApi())
+                return InstantReason.None;
+            return reason;
+        }
+
+        internal List<(FlipInstance instance, LowPricedAuction lp)> SelectInstant(IEnumerable<(FlipInstance instance, LowPricedAuction lp)> noBed)
+        {
+            var instant = new List<(FlipInstance instance, LowPricedAuction lp)>();
+            int total = 0, exempt = 0;
+            foreach (var f in noBed)
+            {
+                total++;
+                var reason = GetInstantReason(Random.Shared.NextDouble(), f.lp, f.instance, delayExemptList, delayHandler);
+                if (reason == InstantReason.None)
+                    continue;
+                if (reason == InstantReason.Exempt)
+                    exempt++;
+                instant.Add(f);
+            }
+            CountFlips(total, exempt);
+            return instant;
+        }
+
+        private int noBedFlipCount;
+        private int exemptInstantFlipCount;
+        /// <summary>
+        /// Flips of this connection that went through the delay decision (no bed wait)
+        /// </summary>
+        public int NoBedFlipCount => Volatile.Read(ref noBedFlipCount);
+        /// <summary>
+        /// Part of <see cref="NoBedFlipCount"/> sent without delay because the item is on the exempt list
+        /// </summary>
+        public int ExemptInstantFlipCount => Volatile.Read(ref exemptInstantFlipCount);
+
+        private void CountFlips(int total, int exempt)
+        {
+            if (total == 0)
+                return;
+            Interlocked.Add(ref noBedFlipCount, total);
+            if (exempt > 0)
+                Interlocked.Add(ref exemptInstantFlipCount, exempt);
         }
 
         private async Task SendDelayed(IEnumerable<(FlipInstance instance, LowPricedAuction lp)> noBed, IEnumerable<(FlipInstance instance, LowPricedAuction lp)> toSendDelayed)

@@ -59,6 +59,7 @@ namespace Coflnet.Sky.Commands.MC
             else
                 socket.SendMessage(COFLNET + $"You are currently delayed by {McColorCodes.AQUA}{delayAmount.TotalSeconds}s{McColorCodes.GRAY} on api flips by the fairness system. This will decrease over time and is not fully applied to all flips.",
                         null, McColorCodes.GRAY + "Your call to this has been recorded, \nattempts to trick the system will be punished.");
+            SendExemptionNotice(socket, delayAmount);
             if (socket.SessionInfo.SessionTier == AccountTier.SUPER_PREMIUM && delayAmount > TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"While using {McColorCodes.RED}pre api{DEFAULT_COLOR} your delay increases {McColorCodes.GREEN}{DelayHandler.DelayReduction * 100}% slower{DEFAULT_COLOR} "
                     + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
@@ -97,6 +98,35 @@ namespace Coflnet.Sky.Commands.MC
             {
                 socket.SendMessage(GetSupportText(socket, delayAmount));
             }
+        }
+
+        /// <summary>
+        /// Hover text explaining <see cref="GetExemptionNotice"/>
+        /// </summary>
+        public static readonly string ExemptionNoticeHover = FormatLines(
+            "Counted are the flips of this session that your delay applied to.",
+            "These were sent without dealy because they are known to be macroed so there is no point in delaying them.");
+
+        /// <summary>
+        /// Text telling how many delayed flips were sent without delay, null when there is nothing to show
+        /// </summary>
+        public static string GetExemptionNotice(int exempt, int total, TimeSpan currentDelay)
+        {
+            if (total <= 0 || currentDelay <= TimeSpan.Zero)
+                return null;
+            return MinecraftSocket.COFLNET + $"{McColorCodes.AQUA}{exempt}{DEFAULT_COLOR} of the {McColorCodes.AQUA}{total}{DEFAULT_COLOR} flips had no delay";
+        }
+
+        private static void SendExemptionNotice(MinecraftSocket socket, TimeSpan delay)
+        {
+            if (socket.IsProxySession)
+                return;
+            var processor = socket.sessionLifesycle.FlipProcessor;
+            if (processor == null)
+                return;
+            var notice = GetExemptionNotice(processor.ExemptInstantFlipCount, processor.NoBedFlipCount, delay);
+            if (notice != null)
+                socket.SendMessage(notice, null, ExemptionNoticeHover);
         }
 
         private static void ShowWarning(MinecraftSocket socket, string settingName, string key)
