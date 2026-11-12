@@ -81,4 +81,17 @@ public class RecentFlipFilterTests
         Assert.That(filter.TryAccept(Key, now), Is.True);
         Assert.That(filter.TryAccept(("other", Key.Item2, 1), now), Is.False);
     }
+
+    [Test]
+    public void HeartbeatTickPrunesEvenWhenTheBrokerIsDown()
+    {
+        // A throwing beat publish used to kill the per-broker loop before pruning, so the map grew forever.
+        var filter = new RecentFlipFilter(TimeSpan.FromMinutes(1));
+        var now = DateTime.UtcNow;
+        filter.TryAccept(Key, now - TimeSpan.FromMinutes(5));
+        Assert.DoesNotThrow(() => ModBackgroundService.HeartbeatTick(filter,
+            () => throw new InvalidOperationException("broker down"), now,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance));
+        Assert.That(filter.Count, Is.EqualTo(0), "stale entry must have been pruned");
+    }
 }

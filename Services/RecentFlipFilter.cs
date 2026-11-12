@@ -25,6 +25,9 @@ public class RecentFlipFilter(TimeSpan window)
         return seen.TryUpdate(key, now, last);
     }
 
+    /// <summary>Number of tracked flips; exposed so pruning can be verified</summary>
+    public int Count => seen.Count;
+
     public void RemoveOlderThan(DateTime cutoff)
     {
         foreach (var item in seen)

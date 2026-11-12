@@ -263,8 +263,7 @@ public class ModBackgroundService : BackgroundService
             while (!stoppingToken.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
-                multiplexer.GetSubscriber().Publish(RedisChannel.Literal("beat"), System.Net.Dns.GetHostName());
-                alreadyProcessed.RemoveOlderThan(DateTime.UtcNow - TimeSpan.FromMinutes(2));
+                HeartbeatTick(alreadyProcessed, () => multiplexer.GetSubscriber().Publish(RedisChannel.Literal("beat"), System.Net.Dns.GetHostName()), DateTime.UtcNow, logger);
             }
             logger.LogWarning($"redis heart beat stopped; Cancellation Requested: {stoppingToken.IsCancellationRequested}");
         });
@@ -277,6 +276,23 @@ public class ModBackgroundService : BackgroundService
                 logger.LogInformation($"Status of Redis multiplexer: {multiplexer.IsConnected}");
             }
         });
+    }
+
+    /// <summary>
+    /// Prunes the flip dedup map before publishing the heart beat, so a broker that is down
+    /// (Publish throws) can neither stop the pruning nor end the heart beat loop.
+    /// </summary>
+    public static void HeartbeatTick(RecentFlipFilter processed, Action publishBeat, DateTime now, ILogger logger)
+    {
+        processed.RemoveOlderThan(now - TimeSpan.FromMinutes(2));
+        try
+        {
+            publishBeat();
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning("redis heart beat publish failed: {type}", e.GetType().Name);
+        }
     }
 
     private static async Task RunRedisFlipTask(Func<Task> action)
