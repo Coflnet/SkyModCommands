@@ -105,7 +105,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public static readonly string ExemptionNoticeHover = FormatLines(
             "Counted are the flips of this session that your delay applied to.",
-            "These were sent without dealy because they are known to be macroed so there is no point in delaying them.");
+            "These were sent without delay because they are known to be macroed so there is no point in delaying them.");
 
         /// <summary>
         /// Text telling how many delayed flips were sent without delay, null when there is nothing to show

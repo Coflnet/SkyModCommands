@@ -35,7 +35,7 @@ public class DelayCommandTests
     public void HoverExplainsTheCounts()
     {
         Assert.That(DelayCommand.ExemptionNoticeHover, Is.Not.Empty);
-        Assert.That(DelayCommand.ExemptionNoticeHover, Does.Contain("sent without it because other buyers are known to be faster on those items."));
+        Assert.That(DelayCommand.ExemptionNoticeHover, Does.Contain("sent without delay because they are known to be macroed so there is no point in delaying them."));
     }
 
     [Test]
