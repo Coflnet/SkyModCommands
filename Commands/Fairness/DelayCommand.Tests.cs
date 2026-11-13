@@ -29,6 +29,7 @@ public class DelayCommandTests
         Assert.That(notice, Does.Contain($"{McColorCodes.AQUA}12"));
         Assert.That(notice, Does.EndWith($"{McColorCodes.AQUA}3{McCommand.DEFAULT_COLOR} of the {McColorCodes.AQUA}12{McCommand.DEFAULT_COLOR} flips had no delay"));
         Assert.That(notice, Does.Not.Contain("0.33"));
+        Assert.That(notice, Does.Not.Contain(MinecraftSocket.COFLNET));
     }
 
     [Test]
@@ -39,9 +40,9 @@ public class DelayCommandTests
     }
 
     [Test]
-    public void NoticeIsShownWhenNoneWereExempt()
+    public void NoticeIsHiddenWhenNoneWereExempt()
     {
-        Assert.That(DelayCommand.GetExemptionNotice(0, 5, Delayed), Does.Contain($"{McColorCodes.AQUA}0"));
+        Assert.That(DelayCommand.GetExemptionNotice(0, 5, Delayed), Is.Null);
     }
 
     [Test]

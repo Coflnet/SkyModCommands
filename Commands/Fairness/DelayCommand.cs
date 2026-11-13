@@ -57,9 +57,14 @@ namespace Coflnet.Sky.Commands.MC
             else if (delayAmount == TimeSpan.FromSeconds(12))
                 socket.Dialog(db => db.CoflCommand<CaptchaCommand>($"You flipped for too long and have to solve a captcha to remove your 12 second delay {McColorCodes.AQUA}click to get one", "", "Generates a new captcha"));
             else
-                socket.SendMessage(COFLNET + $"You are currently delayed by {McColorCodes.AQUA}{delayAmount.TotalSeconds}s{McColorCodes.GRAY} on api flips by the fairness system. This will decrease over time and is not fully applied to all flips.",
-                        null, McColorCodes.GRAY + "Your call to this has been recorded, \nattempts to trick the system will be punished.");
-            SendExemptionNotice(socket, delayAmount);
+            {
+                var processor = socket.sessionLifesycle.FlipProcessor;
+                var notice = socket.IsProxySession || processor == null ? null
+                    : GetExemptionNotice(processor.ExemptInstantFlipCount, processor.NoBedFlipCount, delayAmount);
+                socket.Dialog(db => db.Msg($"You are currently delayed by {McColorCodes.AQUA}{delayAmount.TotalSeconds}s{McColorCodes.GRAY} on api flips by the fairness system. This will decrease over time and is not fully applied to all flips.",
+                        null, McColorCodes.GRAY + "Your call to this has been recorded, \nattempts to trick the system will be punished.")
+                    .If(() => notice != null, db => db.Msg(" " + notice, null, ExemptionNoticeHover)));
+            }
             if (socket.SessionInfo.SessionTier == AccountTier.SUPER_PREMIUM && delayAmount > TimeSpan.Zero)
                 socket.SendMessage(COFLNET + $"While using {McColorCodes.RED}pre api{DEFAULT_COLOR} your delay increases {McColorCodes.GREEN}{DelayHandler.DelayReduction * 100}% slower{DEFAULT_COLOR} "
                     + $"and is capped at {McColorCodes.GREEN}{DelayHandler.MaxSuperPremiumDelay.TotalSeconds} seconds.",
@@ -112,21 +117,9 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public static string GetExemptionNotice(int exempt, int total, TimeSpan currentDelay)
         {
-            if (total <= 0 || currentDelay <= TimeSpan.Zero)
+            if (exempt <= 0 || total <= 0 || currentDelay <= TimeSpan.Zero)
                 return null;
-            return MinecraftSocket.COFLNET + $"{McColorCodes.AQUA}{exempt}{DEFAULT_COLOR} of the {McColorCodes.AQUA}{total}{DEFAULT_COLOR} flips had no delay";
-        }
-
-        private static void SendExemptionNotice(MinecraftSocket socket, TimeSpan delay)
-        {
-            if (socket.IsProxySession)
-                return;
-            var processor = socket.sessionLifesycle.FlipProcessor;
-            if (processor == null)
-                return;
-            var notice = GetExemptionNotice(processor.ExemptInstantFlipCount, processor.NoBedFlipCount, delay);
-            if (notice != null)
-                socket.SendMessage(notice, null, ExemptionNoticeHover);
+            return $"{McColorCodes.AQUA}{exempt}{DEFAULT_COLOR} of the {McColorCodes.AQUA}{total}{DEFAULT_COLOR} flips had no delay";
         }
 
         private static void ShowWarning(MinecraftSocket socket, string settingName, string key)
