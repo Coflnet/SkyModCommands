@@ -103,6 +103,20 @@ namespace Coflnet.Sky.Commands.MC
             Assert.That(!regex.IsMatch(message));
         }
 
+        [TestCase("CHARM! You charmed the Yog and received 2 Yog Shards!")]
+        [TestCase("You placed a Trap!")]
+        public void MatchesHuntingActivity(string message)
+        {
+            Assert.That(regex.IsMatch(message), Is.True);
+        }
+
+        [TestCase("Party > Someone: CHARM! You charmed the Yog and received 2 Yog Shards!")]
+        [TestCase("[MVP+] Someone: You placed a Trap!")]
+        public void DoesNotUploadPlayersQuotingHuntingActivity(string message)
+        {
+            Assert.That(regex.IsMatch(message), Is.False);
+        }
+
         [TestCase("LOOT SHARE You received a Chill Shard for assisting SomePlayer.")]
         [TestCase("LOOT SHARE You received an Abyssal Lanternfish Shard for assisting SomePlayer.")]
         [TestCase("LOOT SHARE You received x2 Chill Shards for assisting SomePlayer.")]
