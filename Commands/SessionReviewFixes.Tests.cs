@@ -279,6 +279,73 @@ public class SessionReviewFixesTests
         replaced.Should().Be(1);
     }
 
+    [TestCase(null)]
+    [TestCase("^(§r§eSell Offer|§r§6[Bazaar]|§r§cCancelled|§r§6Bazaar!|§r§eYou collected|§6[Auction]|§r§eBIN Auction started|§r§eYou §r§ccancelled|[Test]| - | + |Trade completed).*")]
+    [TestCase("^custom messages$")]
+    [TestCase(".*")]
+    public void InventoryPrivacyNormalizesStoredRegexesExceptExplicitDebug(string storedRegex)
+    {
+        foreach (var noMessageBlocking in new[] { false, true })
+        {
+            var settings = PrivacySettings.Default;
+            settings.ChatRegex = storedRegex;
+            settings.ChatBlockRegex = "stale blocking regex";
+            settings.NoMessageBlocking = noMessageBlocking;
+            settings.CollectChat = false;
+            settings.DisableTradeStoring = true;
+
+            InventoryModSession.NormalizePrivacySettings(settings, keepDebugRegex: true);
+
+            settings.ChatRegex.Should().Be(storedRegex == ".*" ? ".*" : PrivacySettings.DefaultChatRegex);
+            settings.ChatBlockRegex.Should().Be(noMessageBlocking ? "$^" : PrivacySettings.DefaultChatBlockRegex);
+            settings.CollectChat.Should().BeFalse();
+            settings.DisableTradeStoring.Should().BeTrue();
+            settings.NoMessageBlocking.Should().Be(noMessageBlocking);
+        }
+    }
+
+    [Test]
+    public void InventoryPrivacyResetsAStoredDebugRegexOnLogin()
+    {
+        var settings = PrivacySettings.Default;
+        settings.ChatRegex = ".*";
+
+        InventoryModSession.NormalizePrivacySettings(settings, keepDebugRegex: false);
+
+        settings.ChatRegex.Should().Be(PrivacySettings.DefaultChatRegex);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task InventorySessionNormalizesStoredPrivacyWithoutWriting(bool noMessageBlocking)
+    {
+        var stored = PrivacySettings.Default;
+        stored.ChatRegex = ".*"; // a debug regex saved in an earlier session is the strongest case: login must still reset it
+        stored.ChatBlockRegex = "stale blocking regex";
+        stored.NoMessageBlocking = noMessageBlocking;
+        stored.CollectChat = false;
+        stored.DisableTradeStoring = true;
+        var api = new Mock<ISettingsApi>();
+        api.Setup(a => a.GetSettingWithHttpInfoAsync("7", "privacySettings", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Settings.Client.Client.ApiResponse<string>(HttpStatusCode.OK, JsonConvert.SerializeObject(stored)));
+        DiHandler.OverrideService<SettingsService, SettingsService>(
+            new SettingsService(Mock.Of<IConfiguration>(), NullLogger<SettingsService>.Instance, api.Object));
+        var recording = new HookedSocket();
+        using var session = new InventoryModSession(recording);
+        recording.SetLifecycle(session);
+
+        await session.SubToPrivacySettings("7");
+
+        session.PrivacySettings.Value.ChatRegex.Should().Be(PrivacySettings.DefaultChatRegex);
+        var sent = JsonConvert.DeserializeObject<PrivacySettings>(recording.Sent[^1].data);
+        sent.ChatRegex.Should().Be(PrivacySettings.DefaultChatRegex);
+        sent.ChatBlockRegex.Should().Be(noMessageBlocking ? "$^" : PrivacySettings.DefaultChatBlockRegex);
+        sent.CollectChat.Should().BeFalse();
+        sent.DisableTradeStoring.Should().BeTrue();
+        sent.NoMessageBlocking.Should().Be(noMessageBlocking);
+        api.Verify(a => a.UpdateSettingAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [Test]
     public async Task InventorySessionDisposedWhilePrivacySettingsLoadKeepsNone()
     {

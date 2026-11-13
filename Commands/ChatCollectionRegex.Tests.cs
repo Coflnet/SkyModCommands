@@ -107,6 +107,13 @@ namespace Coflnet.Sky.Commands.MC
         [TestCase("LOOT SHARE You received an Abyssal Lanternfish Shard for assisting SomePlayer.")]
         [TestCase("LOOT SHARE You received x2 Chill Shards for assisting SomePlayer.")]
         [TestCase("LOOT SHARE You received 2x Chill Shards for assisting SomePlayer.")]
+        [TestCase("LOOT SHARE! You received a Chill Shard for assisting SomePlayer.")]
+        [TestCase("LOOT SHARE! You received an Abyssal Lanternfish Shard for assisting SomePlayer.")]
+        [TestCase("LOOT SHARE! You received x2 Chill Shards for assisting SomePlayer.")]
+        [TestCase("LOOT SHARE! You received 2x Chill Shards for assisting SomePlayer.")]
+        [TestCase("LOOT SHARE! You received a Bloodbat Shard from TTiagZ catching a Bloodbat!")]
+        [TestCase("LOOT SHARE! You received a Billygoat Shard from Serelya catching a Billygoat!")]
+        [TestCase("LOOT SHARE! You received a Hideonfloor Shard from 72Thomas catching a Hideonfloor!")]
         public void MatchesLootShareShard(string message)
         {
             Assert.That(regex.IsMatch(message));
@@ -115,6 +122,10 @@ namespace Coflnet.Sky.Commands.MC
         [TestCase("[MVP+] Someone: LOOT SHARE You received")]
         [TestCase("Guild > Someone: LOOT SHARE You received a Chill Shard")]
         [TestCase("LOOT SHARE Someone else received a Chill Shard")]
+        [TestCase("[MVP+] Someone: LOOT SHARE! You received a Chill Shard")]
+        [TestCase("Guild > Someone: LOOT SHARE! You received a Chill Shard")]
+        [TestCase("LOOT SHARE! Someone else received a Chill Shard")]
+        [TestCase("LOOT SHARE!! You received a Chill Shard")]
         public void DoesNotMatchLootShareInChat(string message)
         {
             Assert.That(!regex.IsMatch(message));
