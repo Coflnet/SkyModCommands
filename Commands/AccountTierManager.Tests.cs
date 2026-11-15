@@ -77,6 +77,54 @@ public class AccountTierManagerSlotTests
     }
 
     [Test]
+    public async Task LoadingSessionsRecalculatesTierCachedDuringReconnect()
+    {
+        const string userId = "42";
+        const string minecraft = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        var gate = new TaskCompletionSource<Coflnet.Sky.Settings.Client.Client.ApiResponse<string>>();
+        var settingsApi = new Mock<ISettingsApi>();
+        settingsApi.Setup(api => api.GetSettingWithHttpInfoAsync(userId, "activeSessions", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(gate.Task);
+        settingsApi.Setup(api => api.GetSettingWithHttpInfoAsync(userId, "licenses", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Coflnet.Sky.Settings.Client.Client.ApiResponse<string>(HttpStatusCode.OK, JsonConvert.SerializeObject(new LicenseSetting())));
+        var settings = new SettingsService(Mock.Of<IConfiguration>(), NullLogger<SettingsService>.Instance, settingsApi.Object);
+        DiHandler.OverrideService<SettingsService, SettingsService>(settings);
+        var payments = new Mock<IUserApi>();
+        payments.Setup(api => api.UserUserIdOwnsEntriesPostAsync(userId, minecraft, It.IsAny<List<string>>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new OwnershipAccess(productSlug: "premium_plus", expiresAt: DateTime.UtcNow.AddDays(1),
+                ownerId: "7", slotId: 1, minecraftUuid: minecraft)]);
+        var socket = new Mock<IMinecraftSocket>();
+        socket.SetupGet(s => s.SessionInfo).Returns(new SessionInfo { McUuid = minecraft, ConnectionId = "current" });
+        socket.SetupGet(s => s.AccountInfo).Returns(new AccountInfo { Tier = AccountTier.NONE });
+        socket.Setup(s => s.GetService<IUserApi>()).Returns(payments.Object);
+        socket.Setup(s => s.GetService<SettingsService>()).Returns(settings);
+        Task login = Task.CompletedTask;
+        socket.Setup(s => s.TryAsyncTimes(It.IsAny<Func<Task>>(), It.IsAny<string>(), It.IsAny<int>()))
+            .Returns((Func<Task> action, string _, int _) =>
+            {
+                login = action();
+                return Task.CompletedTask.ConfigureAwait(false);
+            });
+        var auth = new Mock<IAuthUpdate>();
+        using var manager = new AccountTierManager(socket.Object, auth.Object);
+        var changes = new List<AccountTier>();
+        manager.OnTierChange += (_, tier) => changes.Add(tier);
+        auth.Raise(a => a.OnLogin += null, this, userId);
+
+        Assert.That(await manager.GetCurrentCached(), Is.EqualTo(AccountTier.NONE));
+        gate.SetResult(new(HttpStatusCode.OK, JsonConvert.SerializeObject(new ActiveSessions
+        {
+            UseAccountTierOn = minecraft,
+            Sessions = [new ActiveSession { ConnectionId = "current", MinecraftUuid = minecraft, LastActive = DateTime.UtcNow }]
+        })));
+        await login.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.That(await manager.GetCurrentCached(), Is.EqualTo(AccountTier.PREMIUM_PLUS));
+        Assert.That(manager.IsLicense, Is.True);
+        Assert.That(changes, Is.EqualTo(new[] { AccountTier.NONE, AccountTier.PREMIUM_PLUS }));
+    }
+
+    [Test]
     public async Task DisposeWhileLoadingActiveSessionsDoesNotKeepTheSubscription()
     {
         var gate = new TaskCompletionSource<Coflnet.Sky.Settings.Client.Client.ApiResponse<string>>();

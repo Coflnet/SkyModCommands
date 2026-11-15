@@ -77,7 +77,8 @@ public class AccountTierManager : IAccountTierManager
             }
             // exactly the latest value stays subscribed, concurrent logins dispose the one they replace
             Interlocked.Exchange(ref activeSessions, created)?.Dispose();
-            await CheckAccounttier();
+            // Discard any tier calculated before the active sessions were available.
+            await CheckAccounttier(true);
             if (Disposed)
             {
                 created.Dispose();
