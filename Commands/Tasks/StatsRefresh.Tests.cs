@@ -41,13 +41,16 @@ public class StatsRefreshTests
         => Assert.That(StatsRefresh.IsDue(Info(Now.AddDays(-6)), Now), Is.False);
 
     [Test]
-    public async Task OpensStatsOnceWithMessage()
+    public async Task OpensThenClosesStatsWithMessage()
     {
         var socket = new CaptureSocket(Api(Info(default, false)));
 
-        await StatsRefresh.RefreshIfDue(socket, Now);
+        var refresh = StatsRefresh.RefreshIfDue(socket, Now);
 
         Assert.That(socket.Executed, Is.EqualTo(new[] { "/stats" }));
+        await refresh;
+
+        Assert.That(socket.Executed, Is.EqualTo(new[] { "/stats", "/cofl closegui" }));
         Assert.That(socket.Messages, Has.Some.Contains("Briefly opening your stats menu"));
     }
 
@@ -58,10 +61,10 @@ public class StatsRefreshTests
 
         await StatsRefresh.RefreshIfDue(socket, Now);
         await StatsRefresh.RefreshIfDue(socket, Now.AddDays(3));
-        Assert.That(socket.Executed, Has.Count.EqualTo(1));
+        Assert.That(socket.Executed, Is.EqualTo(new[] { "/stats", "/cofl closegui" }));
 
         await StatsRefresh.RefreshIfDue(socket, Now.AddDays(8));
-        Assert.That(socket.Executed, Has.Count.EqualTo(2));
+        Assert.That(socket.Executed, Is.EqualTo(new[] { "/stats", "/cofl closegui", "/stats", "/cofl closegui" }));
     }
 
     [Test]

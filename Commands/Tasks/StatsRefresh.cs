@@ -48,7 +48,7 @@ public static class StatsRefresh
     }
 
     /// <summary>
-    /// Runs <c>/stats</c> on the client when a refresh is due. Never throws: a failing state lookup
+    /// Runs <c>/stats</c> on the client when a refresh is due, then closes the menu. Never throws: a failing state lookup
     /// only skips the refresh.
     /// </summary>
     public static async Task RefreshIfDue(MinecraftSocket socket)
@@ -73,6 +73,9 @@ public static class StatsRefresh
             return;
         socket.Dialog(db => db.MsgLine($"{McColorCodes.GRAY}Briefly opening your stats menu to refresh your gear and stats for task estimates (about once a week)."));
         socket.ExecuteCommand(Command);
+        // Give the client time to open the menu and capture its contents before closing it.
+        await Task.Delay(800);
+        socket.ExecuteCommand("/cofl closegui");
     }
 
     private static async Task<ExtractedInfo> LoadState(MinecraftSocket socket, string name)
