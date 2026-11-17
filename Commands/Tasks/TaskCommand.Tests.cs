@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Linq;
+using Coflnet.Sky.ModCommands.Dialogs;
 using AwesomeAssertions;
 using Coflnet.Sky.PlayerState.Client.Model;
 using NUnit.Framework;
@@ -136,5 +138,78 @@ public class TaskCommandTests
     private class TitleProbe : TaskCommand
     {
         public string ReadTitle() => Title;
+    }
+
+    private static TaskResult Acc(string name, bool accessible = true) =>
+        new() { Name = name, Message = name, IsAccessible = accessible };
+
+    private static List<TaskResult> Five() => new() { Acc("a"), Acc("b", false), Acc("c"), Acc("d"), Acc("e", false), Acc("f"), Acc("g") };
+
+    [Test]
+    public void UnlockedView_ContainsOnlyAccessible_ForStarter()
+    {
+        var view = TaskCommand.BuildView(Five(), "unlocked", true);
+        view.Select(t => t.Name).Should().Equal("a", "c", "d", "f", "g");
+    }
+
+    [Test]
+    public void UnlockedView_HidesTopThreeBelowStarter()
+    {
+        var view = TaskCommand.BuildView(Five(), "Unlocked mining", false);
+        view.Should().HaveCount(5);
+        view.Take(3).Should().OnlyContain(t => TaskCommand.IsHiddenPlaceholder(t));
+        view.Skip(3).Select(t => t.Name).Should().Equal("f", "g");
+    }
+
+    [Test]
+    public void UnlockedView_FewerThanThree_HidesAll()
+    {
+        var view = TaskCommand.BuildView(new() { Acc("a"), Acc("b"), Acc("x", false) }, "unlocked", false);
+        view.Should().HaveCount(2).And.OnlyContain(t => TaskCommand.IsHiddenPlaceholder(t));
+    }
+
+    [Test]
+    public void HiddenEntry_StatesPremiumRequiredWithUpgradeClick()
+    {
+        var db = DialogBuilder.New;
+        TaskCommand.FormatHidden(db);
+        var part = db.Build().Single(p => p.text != null && p.text.Contains("starter premium"));
+        part.text.Should().Contain("Top 3 require starter premium to see");
+        part.onClick.Should().Be("/cofl buy starter_premium");
+    }
+
+    [Test]
+    public void NormalList_IsUnchangedForFreeUser()
+    {
+        var tasks = Five();
+        TaskCommand.BuildView(tasks, "", false).Should().BeSameAs(tasks);
+        TaskCommand.BuildView(tasks, "mining", false).Should().BeSameAs(tasks);
+        tasks.Should().NotContain(t => TaskCommand.IsHiddenPlaceholder(t));
+    }
+
+    [Test]
+    public void Search_KeepsThePremiumNoticeForFreeUsers()
+    {
+        var view = TaskCommand.BuildView(Five(), "unlocked g", false);
+        var found = TaskCommand.SearchKeepingHidden(view, "g", t => t.Name).ToList();
+        found.Take(3).Should().OnlyContain(t => TaskCommand.IsHiddenPlaceholder(t));
+        found.Skip(3).Select(t => t.Name).Should().Equal("g");
+    }
+
+    [Test]
+    public void NextPageLink_StaysInTheUnlockedView()
+    {
+        TaskCommand.NextPageCommand("task", "Profitable tasks" + TaskCommand.UnlockedTitleSuffix, 1).Should().Be("/cofl task unlocked 2");
+        TaskCommand.NextPageCommand("task", "Profitable tasks", 1).Should().Be("/cofl task 2");
+    }
+
+    [Test]
+    public void IsUnlockedView_OnlyMatchesFirstWord()
+    {
+        TaskCommand.IsUnlockedView("unlocked").Should().BeTrue();
+        TaskCommand.IsUnlockedView("  UNLOCKED 2").Should().BeTrue();
+        TaskCommand.IsUnlockedView("mining unlocked").Should().BeFalse();
+        TaskCommand.IsUnlockedView("unlockedx").Should().BeFalse();
+        TaskCommand.IsUnlockedView(null).Should().BeFalse();
     }
 }

@@ -58,11 +58,24 @@ public class FlipsCommand : ReadOnlyListCommand<Shared.FlipDetails>
         {
             throw new CoflnetException("invalid_days", "Format is: /flips [sort] [days] [page]");
         }
-        if (days > 14 && await socket.UserAccountTier() < Shared.AccountTier.PREMIUM_PLUS)
-            throw new CoflnetException("not_allowed", "You need to be premium plus to see more than 14 days of flips");
+        var denied = DeniedMessage(days, await socket.UserAccountTier());
+        if (denied != null)
+            throw new CoflnetException("not_allowed", denied);
         var accounts = await socket.sessionLifesycle.GetMinecraftAccountUuids();
         var response = await socket.GetService<FlipTrackingService>().GetPlayerFlips(accounts, TimeSpan.FromDays(days));
         return response.Flips;
+    }
+
+    /// <summary>Returns why the tier may not see this many days of flips, or null when allowed.</summary>
+    internal static string DeniedMessage(int days, Shared.AccountTier tier)
+    {
+        if (tier >= Shared.AccountTier.PREMIUM_PLUS)
+            return null;
+        if (tier >= Shared.AccountTier.PREMIUM)
+            return days > FlipHistoryLimit.PremiumDays
+                ? $"You need to be premium plus to see more than {FlipHistoryLimit.PremiumDays} days of flips" : null;
+        return days > FlipHistoryLimit.FreeDays
+            ? $"You need to be premium to see more than {FlipHistoryLimit.FreeDays} days of flips" : null;
     }
 
     protected override string RemoveSortArgument(string arguments)

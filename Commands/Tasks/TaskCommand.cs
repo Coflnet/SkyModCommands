@@ -11,6 +11,8 @@ namespace Coflnet.Sky.Commands.MC.Tasks;
 [CommandDescription(
     "Lists tasks that can be done for profit",
     "Search by name, category or island, e.g. /cofl task mining",
+    "Only tasks you have unlocked: /cofl task unlocked [search|page]",
+    "(below starter premium the top 3 of that view are hidden)",
     "Tasks are calculated based on your current progress",
     "and try to self adjust based on how many items",
     "you managed to collect recently (active tasks)",
@@ -20,6 +22,20 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
     public override bool IsPublic => true;
     protected override string Title => "Profitable tasks";
     private const int MaxCategoriesShown = 8;
+    /// <summary>First argument word that switches to the unlocked-only view (also registered as no-op sorter so the base class strips it and still pages/searches the rest)</summary>
+    internal const string UnlockedKeyword = "unlocked";
+    internal const int HiddenTopCount = 3;
+    internal const string HiddenTaskName = "Hidden task";
+    internal const string UpgradeCommand = "/cofl buy starter_premium";
+    internal const string UnlockedTitleSuffix = " (unlocked only)";
+
+    public TaskCommand()
+    {
+        sorters = new Dictionary<string, System.Func<IEnumerable<TaskResult>, System.Linq.IOrderedEnumerable<TaskResult>>>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            [UnlockedKeyword] = elements => elements.OrderBy(_ => 0)
+        };
+    }
 
     public override async Task Execute(MinecraftSocket socket, string args)
     {
@@ -32,6 +48,11 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
 
     protected override void Format(MinecraftSocket socket, DialogBuilder db, TaskResult elem)
     {
+        if (IsHiddenPlaceholder(elem))
+        {
+            FormatHidden(db);
+            return;
+        }
         var typeTag = elem.Type switch
         {
             TaskType.NUMBER_1 => $"{McColorCodes.DARK_AQUA}[Passive] ",
@@ -48,7 +69,78 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
         // Minecraft NAME, not uuid - sending McUuid here used to silently return an empty state
         // instead of the player's own (see SkyPlayerState's TaskExecutionService.BuildParameters).
         var results = await socket.GetService<TaskService>().GetResults(socket.SessionInfo.McName);
-        return results.Select(r => PrepareTaskResult(r, r.Name)).ToList();
+        var prepared = results.Select(r => PrepareTaskResult(r, r.Name)).ToList();
+        // the tier is only looked up for the unlocked view, the normal list never needs it
+        var hasStarter = !IsUnlockedView(val) || socket.sessionLifesycle.TierManager.HasAtLeast(AccountTier.STARTER_PREMIUM);
+        return BuildView(prepared, val, hasStarter);
+    }
+
+    protected override string GetTitle(string arguments)
+    {
+        return IsUnlockedView(arguments) ? Title + UnlockedTitleSuffix : Title;
+    }
+
+    /// <summary>Same header as the base class, but the next page link stays in the current view</summary>
+    protected override DialogBuilder PrintResult(MinecraftSocket socket, string title, int page, IEnumerable<TaskResult> toDisplay, int totalPages)
+    {
+        return DialogBuilder.New
+            .MsgLine($"{title} (page {page}/{totalPages})", NextPageCommand(Slug, title, page), $"Click to go to next page ({page + 1})")
+            .ForEach(toDisplay, (db, elem, i) => Format(socket, db, elem));
+    }
+
+    /// <summary>The view is read back from the title because the header is built without the arguments</summary>
+    internal static string NextPageCommand(string slug, string title, int page)
+    {
+        var view = title.EndsWith(UnlockedTitleSuffix) ? UnlockedKeyword + " " : "";
+        return $"/cofl {slug} {view}{page + 1}";
+    }
+
+    /// <summary>True when the first argument word is the unlocked keyword (case insensitive)</summary>
+    internal static bool IsUnlockedView(string arguments)
+    {
+        var first = arguments?.Trim().Split(' ', System.StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return string.Equals(first, UnlockedKeyword, System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// The elements for the requested view: untouched for the normal list, accessible only (with the top
+    /// entries hidden for non starter players) for the unlocked view
+    /// </summary>
+    internal static List<TaskResult> BuildView(List<TaskResult> tasks, string arguments, bool hasStarter)
+    {
+        if (!IsUnlockedView(arguments))
+            return tasks;
+        return HideTopForTier(tasks.Where(t => t.IsAccessible).ToList(), hasStarter);
+    }
+
+    /// <summary>
+    /// Replaces the first <see cref="HiddenTopCount"/> entries with placeholders unless the tier is starter or above.
+    /// With fewer entries all of them are hidden.
+    /// </summary>
+    internal static List<TaskResult> HideTopForTier(List<TaskResult> ordered, bool hasStarter)
+    {
+        if (hasStarter)
+            return ordered;
+        var hidden = System.Math.Min(HiddenTopCount, ordered.Count);
+        var placeholders = Enumerable.Range(0, hidden).Select(_ => CreateHiddenPlaceholder());
+        return placeholders.Concat(ordered.Skip(hidden)).ToList();
+    }
+
+    internal static TaskResult CreateHiddenPlaceholder()
+    {
+        return new TaskResult { Name = HiddenTaskName, Message = HiddenTaskName, IsAccessible = true, OnClick = UpgradeCommand };
+    }
+
+    internal static bool IsHiddenPlaceholder(TaskResult elem)
+    {
+        return elem.Name == HiddenTaskName && elem.OnClick == UpgradeCommand;
+    }
+
+    internal static void FormatHidden(DialogBuilder db)
+    {
+        db.MsgLine($"{McColorCodes.RED}Top {HiddenTopCount} require starter premium to see",
+            UpgradeCommand,
+            $"{McColorCodes.GRAY}You need starter premium or higher to see the top {HiddenTopCount} unlocked tasks\n{McColorCodes.YELLOW}Click to buy a tier");
     }
 
     protected override void PrintSumary(MinecraftSocket socket, DialogBuilder db, IEnumerable<TaskResult> elements, IEnumerable<TaskResult> toDisplay, IEnumerable<TaskResult> unfilteredElements)
@@ -56,18 +148,37 @@ public class TaskCommand : ReadOnlyListCommand<TaskResult>
         db.MsgLine("Please let us know if any of the numbers are incorrect on discord", "/cofl report numbers incorrect", "For larger bugs you will usually be rewarded as well\nClick to get a report reference id!");
         if (socket.Version.StartsWith("1.5") || socket.Version.StartsWith("1.6"))
             db.MsgLine($"{McColorCodes.RED}There is a newer mod version that improves this feature");
+        AddViewSwitch(db);
         AddCategorySummary(db, unfilteredElements);
+    }
+
+    internal static void AddViewSwitch(DialogBuilder db)
+    {
+        db.Msg($"{McColorCodes.YELLOW}View: ");
+        db.Msg($"{McColorCodes.AQUA}all tasks", "/cofl task", "Show every task including unavailable ones");
+        db.Msg($"{McColorCodes.DARK_GRAY} · ");
+        db.Msg($"{McColorCodes.AQUA}only unlocked", $"/cofl task {UnlockedKeyword}", "Show only tasks you can do right now");
+        db.LineBreak();
     }
 
     protected override void PrintHelp(MinecraftSocket socket)
     {
         base.PrintHelp(socket);
+        socket.Dialog(db => db.MsgLine($"Only tasks you can do: {McColorCodes.AQUA}/cofl task {UnlockedKeyword}{McColorCodes.GRAY} (top {HiddenTopCount} need starter premium)"));
         socket.Dialog(db => db.MsgLine($"Search matches task name, category, island and location, e.g. {McColorCodes.AQUA}/cofl task mining{McColorCodes.GRAY} or {McColorCodes.AQUA}/cofl task galatea"));
     }
 
     protected override IEnumerable<TaskResult> Search(IEnumerable<TaskResult> elements, string query)
     {
-        return SearchTasks(elements, query, GetId);
+        return SearchKeepingHidden(elements, query, GetId);
+    }
+
+    /// <summary>Hidden placeholders survive every search, so searching never drops the premium notice</summary>
+    internal static IEnumerable<TaskResult> SearchKeepingHidden(IEnumerable<TaskResult> elements, string query, System.Func<TaskResult, string> getId)
+    {
+        var list = elements.ToList();
+        var visible = list.Where(e => !IsHiddenPlaceholder(e));
+        return list.Where(IsHiddenPlaceholder).Concat(SearchTasks(visible, query, getId));
     }
 
     /// <summary>
