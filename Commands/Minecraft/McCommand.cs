@@ -38,6 +38,9 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         public virtual bool IsPublic => false;
 
+        public virtual System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string>> CompletionArguments
+            => System.Array.Empty<System.Collections.Generic.KeyValuePair<string, string>>();
+
         protected static async Task<string> GetUserIdFromMcName(IMinecraftSocket socket, string minecraftName, bool forceName = false)
         {
             if (!forceName && int.TryParse(minecraftName, out var id))
