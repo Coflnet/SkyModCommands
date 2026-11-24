@@ -20,16 +20,16 @@
     <PackageReference Include="Coflnet.Core" Version="0.7.9" />
     <PackageReference Include="Coflnet.DiscordBot.Client" Version="0.1.0" />
     <PackageReference Include="Coflnet.Leaderboard.Client" Version="0.3.3" />
-    <PackageReference Include="Coflnet.Payments.Client" Version="0.29.1" />
+    <PackageReference Include="Coflnet.Payments.Client" Version="0.38.0" />
     <PackageReference Include="Figgle.Fonts" Version="0.6.6" />
     <PackageReference Include="Coflnet.Sky.Chat.Client" Version="2.0.1" />
     <PackageReference Include="Coflnet.Sky.Indexer.Client" Version="0.3.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Coflnet.Sky.Proxy.Client" Version="1.2.1" />
-    <PackageReference Include="Coflnet.Sky.PlayerState.Client" Version="0.20.0" />
+    <PackageReference Include="Coflnet.Sky.PlayerState.Client" Version="0.24.0" />
     <!-- Direct override so the transitive 0.7.0 reference does not hide DemandFlip.Capacity / the fleet allocate+residual API. -->
     <PackageReference Include="Coflnet.Sky.Bazaar.Flipper.Client" Version="0.11.0" />
   </ItemGroup>
@@ -43,7 +43,7 @@
   <ItemGroup Condition="'$(Configuration)' != 'Release'">
     <PackageReference Include="AwesomeAssertions" Version="9.6.0" />
     <PackageReference Include="Moq" Version="4.21.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
     <PackageReference Include="NUnit" Version="4.6.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="6.3.1">
       <PrivateAssets>all</PrivateAssets>
