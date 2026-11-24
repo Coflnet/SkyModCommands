@@ -48,4 +48,30 @@ public class PreApiTests
         Assert.That(lastFlip.Auction.Uuid, Is.EqualTo(flip.Auction.Uuid));
         Assert.That(lastFlip.Auction.Context["cname"], Is.EqualTo("test" + McColorCodes.RED + "."));
     }
+
+    [Test]
+    public void SoldAuctionStaysSoldAfterCleanup()
+    {
+        // regression: the sell handler removed the sent entry and cleanup dropped every sold uuid
+        // without one, so a sale was forgotten within one 45s cycle and real flips got bait-blacklisted
+        var soldAt = new DateTime(2026, 11, 24, 13, 22, 46, DateTimeKind.Utc);
+        service.MarkSold("757980941c1845c4a2a93a7aa79fe032", AccountTier.PREMIUM, soldAt);
+
+        service.CleanupStaleEntries(soldAt + TimeSpan.FromSeconds(45));
+        service.CleanupStaleEntries(soldAt + TimeSpan.FromMinutes(3));
+
+        Assert.That(service.IsSold("757980941c1845c4a2a93a7aa79fe032"), Is.True);
+        Assert.That(service.SoldToTier("757980941c1845c4a2a93a7aa79fe032"), Is.EqualTo(AccountTier.PREMIUM));
+    }
+
+    [Test]
+    public void SoldAuctionIsForgottenAfterRetention()
+    {
+        var soldAt = new DateTime(2026, 11, 24, 13, 22, 46, DateTimeKind.Utc);
+        service.MarkSold("757980941c1845c4a2a93a7aa79fe032", AccountTier.PREMIUM, soldAt);
+
+        service.CleanupStaleEntries(soldAt + PreApiService.SoldRetention + TimeSpan.FromSeconds(1));
+
+        Assert.That(service.IsSold("757980941c1845c4a2a93a7aa79fe032"), Is.False);
+    }
 }

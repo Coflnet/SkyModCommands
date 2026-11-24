@@ -56,7 +56,12 @@ public class PreApiService : BackgroundService, IPreApiService
     private Prometheus.Counter preApiFlipPurchased = Prometheus.Metrics.CreateCounter("sky_mod_flips_purchased_preapi", "Flips bought by a preapi user");
     private ConcurrentDictionary<string, Prometheus.Counter> flipsPurchasedFromSender = new();
     private List<string> preApiUsers = new();
-    private ConcurrentDictionary<string, AccountTier> sold = new();
+    /// <summary>
+    /// How long a sale stays known to <see cref="IsSold"/>. Must cover the bait check window
+    /// (flips up to a few minutes old), so it can't be tied to the short-lived sent entry.
+    /// </summary>
+    internal static readonly TimeSpan SoldRetention = TimeSpan.FromMinutes(10);
+    private ConcurrentDictionary<string, (AccountTier Tier, DateTime SoldAt)> sold = new();
     private ConcurrentDictionary<string, DateTime> sent = new();
     private ConcurrentDictionary<(int count, IMinecraftSocket socket), byte> notifyWhenUserLeave = new();
     private static readonly Prometheus.Gauge slotNotificationWaiters = Prometheus.Metrics.CreateGauge(
@@ -81,8 +86,7 @@ public class PreApiService : BackgroundService, IPreApiService
             try
             {
                 var sell = MessagePack.MessagePackSerializer.Deserialize<Auction>(message);
-                sold.TryAdd(sell.Uuid, sell.Tier);
-                sent.TryRemove(sell.Uuid, out _);
+                MarkSold(sell.Uuid, sell.Tier, DateTime.UtcNow);
             }
             catch (Exception e)
             {
@@ -114,7 +118,7 @@ public class PreApiService : BackgroundService, IPreApiService
                 await RefreshUsers();
                 PublishSell(Dns.GetHostName(), AccountTier.NONE);
                 PublishReceive(Dns.GetHostName());
-                CleanupStaleEntries();
+                CleanupStaleEntries(DateTime.UtcNow);
             }
             catch (Exception e)
             {
@@ -125,19 +129,25 @@ public class PreApiService : BackgroundService, IPreApiService
         }
     }
 
-    private void CleanupStaleEntries()
+    internal void MarkSold(string uuid, AccountTier tier, DateTime now)
     {
-        var cutoff = DateTime.UtcNow - TimeSpan.FromMinutes(2);
+        sold.TryAdd(uuid, (tier, now));
+        sent.TryRemove(uuid, out _);
+    }
+
+    internal void CleanupStaleEntries(DateTime now)
+    {
+        var sentCutoff = now - TimeSpan.FromMinutes(2);
         foreach (var item in sent)
         {
-            if (item.Value < cutoff)
+            if (item.Value < sentCutoff)
                 sent.TryRemove(item.Key, out _);
         }
-        foreach (var item in sold.Keys.ToArray())
+        var soldCutoff = now - SoldRetention;
+        foreach (var item in sold)
         {
-            // sold entries are only relevant for ~2 minutes for IsSold checks
-            if (!sent.ContainsKey(item))
-                sold.TryRemove(item, out _);
+            if (item.Value.SoldAt < soldCutoff)
+                sold.TryRemove(item.Key, out _);
         }
     }
 
@@ -178,7 +188,7 @@ public class PreApiService : BackgroundService, IPreApiService
     }
     public AccountTier SoldToTier(string uuid)
     {
-        return sold.GetValueOrDefault(uuid);
+        return sold.TryGetValue(uuid, out var entry) ? entry.Tier : default;
     }
 
     private async Task RefreshUsers()
