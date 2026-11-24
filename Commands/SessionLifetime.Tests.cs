@@ -100,6 +100,23 @@ public class SessionLifetimeTests
     }
 
     [Test]
+    public async Task LoginPromptStopsAfterNoLogin()
+    {
+        var calls = 0;
+        lifesycle.LoginPromptDelay = (delay, _) =>
+        {
+            calls++;
+            lifesycle.StopLoginPrompts();
+            return Task.CompletedTask;
+        };
+
+        await lifesycle.RunLoginPromptLoop(StringId).WaitAsync(TimeSpan.FromSeconds(5));
+
+        calls.Should().Be(1);
+        socket.Messages.SelectMany(m => m).Should().NotContain(p => p.text.Contains("to stop receiving this"));
+    }
+
+    [Test]
     public async Task SetupAfterDisposeCreatesNothing()
     {
         lifesycle.Dispose();

@@ -83,6 +83,7 @@ namespace Coflnet.Sky.Commands.MC
         /// </summary>
         internal static readonly TimeSpan LoginPromptMaxDuration = TimeSpan.FromHours(1);
         internal Func<TimeSpan, CancellationToken, Task> LoginPromptDelay { get; set; } = (delay, token) => Task.Delay(delay, token);
+        private volatile bool loginPromptsStopped;
 
         public TimeSpan CurrentDelay => DelayHandler?.CurrentDelay ?? MC.DelayHandler.DefaultDelay;
         public TimeSpan MacroDelay => DelayHandler?.MacroDelay ?? default;
@@ -399,7 +400,7 @@ namespace Coflnet.Sky.Commands.MC
         {
             var index = 1;
             var waited = TimeSpan.Zero;
-            while (!IsLoggedIn() && !disposed && waited < LoginPromptMaxDuration)
+            while (ShouldKeepPrompting() && waited < LoginPromptMaxDuration)
             {
                 socket.ModAdapter.SendLoginPrompt(GetAuthLink(stringId));
                 var delay = TimeSpan.FromSeconds(300 * index++);
@@ -409,13 +410,20 @@ namespace Coflnet.Sky.Commands.MC
                 if (!await WaitForNextLoginPrompt(delay))
                     return;
                 waited += delay;
-                if (IsLoggedIn())
+                if (!ShouldKeepPrompting())
                     return;
                 socket.Dialog(d => d.MsgLine($"do {McColorCodes.AQUA}/cofl nologin{McColorCodes.RESET} to stop receiving this (or click this message)", "/cofl nologin"));
             }
         }
 
         private bool IsLoggedIn() => UserId?.Value != null;
+
+        private bool ShouldKeepPrompting() => !IsLoggedIn() && !disposed && !loginPromptsStopped;
+
+        /// <summary>
+        /// Stops the running login prompt loop, used when the user opts out with /cofl nologin
+        /// </summary>
+        public void StopLoginPrompts() => loginPromptsStopped = true;
 
         /// <returns>false if the session ended while waiting</returns>
         private async Task<bool> WaitForNextLoginPrompt(TimeSpan delay)
