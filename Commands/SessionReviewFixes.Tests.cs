@@ -547,6 +547,41 @@ public class SessionReviewFixesTests
         created.Value.Should().BeNull("ReleaseResources ran before the swap and missed the created value");
     }
 
+    [Test]
+    public async Task TierCalculatedBeforeSubscribingIsApplied()
+    {
+        var tierManager = new Mock<IAccountTierManager>();
+        tierManager.Setup(t => t.GetCurrentCached()).ReturnsAsync(AccountTier.PREMIUM);
+        var session = new ProbeSession(socket);
+        socket.SetLifecycle(session);
+        session.TierManager = tierManager.Object;
+        SetSyncedValues(session);
+
+        await session.SubscribeTiers();
+
+        socket.SessionInfo.SessionTier.Should().Be(AccountTier.PREMIUM);
+        session.Dispose();
+    }
+
+    [Test]
+    public async Task TierEventDuringSubscribingIsNotAppliedTwice()
+    {
+        var tierManager = new Mock<IAccountTierManager>();
+        var calculation = new TaskCompletionSource<AccountTier>();
+        tierManager.Setup(t => t.GetCurrentCached()).Returns(calculation.Task);
+        var session = new ProbeSession(socket);
+        socket.SetLifecycle(session);
+        session.TierManager = tierManager.Object;
+        SetSyncedValues(session);
+        var subscribing = session.SubscribeTiers();
+        tierManager.Raise(t => t.OnTierChange += null, tierManager.Object, AccountTier.PREMIUM);
+        calculation.SetResult(AccountTier.PREMIUM_PLUS);
+        await subscribing;
+
+        socket.SessionInfo.SessionTier.Should().Be(AccountTier.PREMIUM, "the replay must not override the event that already ran");
+        session.Dispose();
+    }
+
     private class HookedSocket : TestSocket
     {
         public Func<bool> Closed = () => false;
@@ -565,6 +600,7 @@ public class SessionReviewFixesTests
     {
         public ProbeSession(MinecraftSocket socket) : base(socket) { }
         public Task Subscribe(string userId) => SubToSettings(userId);
+        public Task SubscribeTiers() => SubscribeToTierChanges();
         protected override void UpdateSettings(FlipSettings settings) { }
     }
 

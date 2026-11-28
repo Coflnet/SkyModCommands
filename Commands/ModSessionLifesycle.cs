@@ -236,7 +236,8 @@ namespace Coflnet.Sky.Commands.MC
 
             loadSpan?.Dispose();
             UpdateExtraDelay();
-            TierManager.OnTierChange += TierChangedHandler;
+            // subscribes synchronously, the replay may recalculate the tier and must not delay loading
+            _ = SubscribeToTierChanges();
             if (AbortIfDisposed())
                 return;
             await SubscribetoCommands();
@@ -368,8 +369,30 @@ namespace Coflnet.Sky.Commands.MC
             }, TaskScheduler.Default);
         }
 
+        private volatile bool tierChangeHandled;
+
+        /// <summary>
+        /// Subscribes to tier changes and replays the already calculated tier if the event fired
+        /// before the subscription (login completes while settings are still loading).
+        /// </summary>
+        protected async Task SubscribeToTierChanges()
+        {
+            tierChangeHandled = false;
+            TierManager.OnTierChange += TierChangedHandler;
+            await socket.TryAsyncTimes(ReplayMissedTierChange, "replay missed tier change");
+        }
+
+        private async Task ReplayMissedTierChange()
+        {
+            var tier = await TierManager.GetCurrentCached();
+            if (tierChangeHandled || disposed)
+                return;
+            TierChangedHandler(this, tier);
+        }
+
         private void TierChangedHandler(object sender, AccountTier Newtier)
         {
+            tierChangeHandled = true;
             if (Newtier != AccountTier.NONE)
                 Console.WriteLine("tier changed to " + Newtier);
             socket.SessionInfo.SessionTier = Newtier;
