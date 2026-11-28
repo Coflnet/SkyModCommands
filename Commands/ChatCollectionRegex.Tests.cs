@@ -72,6 +72,8 @@ namespace Coflnet.Sky.Commands.MC
         [TestCase("            Team Score: 312 (S+) (NEW RECORD!)")]
         [TestCase("  OBSIDIAN CHEST REWARDS")]
         [TestCase("  WOOD CHEST REWARDS")]
+        [TestCase("  PAID CHEST REWARDS")]
+        [TestCase("  FREE CHEST REWARDS")]
         public void MatchesDungeonRunLines(string message)
         {
             Assert.That(regex.IsMatch(message));
@@ -81,6 +83,9 @@ namespace Coflnet.Sky.Commands.MC
         [TestCase("Party Finder > Someone joined the dungeon group! (Floor VII)")]
         [TestCase("Guild > Someone: anyone for The Catacombs - Floor VII carry?")]
         [TestCase("    Wither Essence x21")]
+        [TestCase("    Crimson Essence x500")]
+        [TestCase("Party > Someone: PAID CHEST REWARDS")]
+        [TestCase("[MVP+] Someone: FREE CHEST REWARDS")]
         public void DoesNotMatchOtherDungeonChat(string message)
         {
             Assert.That(!regex.IsMatch(message));
